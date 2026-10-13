@@ -46,7 +46,7 @@ processResources {
 // unless built explicitly with -PincludeSc2Assets for a private local install.
 sourceSets.client.resources.srcDir 'sc2-assets'
 tasks.named('jar') {
-	if (!project.hasProperty('includeSc2Assets')) exclude 'assets/starmine/**/sc2/**'
+	if (!project.hasProperty('includeSc2Assets')) exclude 'assets/starmine/**/sc2/**', 'assets/starmine/sounds.json'
 }
 
 tasks.withType(JavaCompile).configureEach {

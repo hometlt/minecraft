@@ -9,7 +9,9 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +30,13 @@ public final class SkinnedModel {
 	public final byte[] joints;
 	public final int[] indices;
 	public final Map<String, Clip> clips = new HashMap<>();
+	/** Attack clips ("attack", "attack1", ...) in order, for picking a variant per swing. */
+	public final List<Clip> attacks = new ArrayList<>();
+	/** Index ranges drawn with one texture each (`textures/entity/sc2/<texture>.png`). */
+	public final List<Part> parts = new ArrayList<>();
+
+	public record Part(String texture, int first, int count) {
+	}
 
 	/** One baked clip: `frames` palettes of `slots` 3x4 matrices. */
 	public static final class Clip {
@@ -90,6 +99,17 @@ public final class SkinnedModel {
 			for (int i = 0; i < matrices.length; i++) matrices[i] = data.getFloat(offset + i * 4);
 			String name = clip.get("name").getAsString();
 			clips.put(name, new Clip(name, frames, clip.get("loop").getAsBoolean(), matrices));
+		}
+		for (int i = 0; ; i++) {
+			Clip attack = clips.get(i == 0 ? "attack" : "attack" + i);
+			if (attack == null) break;
+			attacks.add(attack);
+		}
+		for (JsonElement element : header.getAsJsonArray("parts")) {
+			JsonObject part = element.getAsJsonObject();
+			int first = part.get("first").getAsInt(), count = part.get("count").getAsInt();
+			if (first < 0 || count < 0 || first + count > indexCount || count % 3 != 0) throw new IllegalArgumentException("bad part range");
+			parts.add(new Part(part.get("texture").getAsString(), first, count));
 		}
 	}
 

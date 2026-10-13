@@ -1,6 +1,11 @@
 package dev.starmine;
 
-import dev.starmine.entity.Zergling;
+import dev.starmine.entity.ZergKind;
+import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.ZergSpit;
+import java.util.EnumMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -17,43 +22,61 @@ import net.minecraft.world.item.SpawnEggItem;
 /**
  * StarMine: StarCraft II zerg as Minecraft mobs.
  *
- * Common side: entity types, their attributes, spawn eggs and sound events. Models, textures and
- * sound files are not part of the mod; Modkit imports them from the player's own StarCraft II
- * installation (see README). Health and damage are scaled to Minecraft: 1 SC2 hit point is
- * {@link #HEALTH_PER_SC2_HP} Minecraft health, so a zergling (35) has half a player's health and a
- * hydralisk (90) more than a player.
+ * Common side: one entity type, spawn egg and four sound events (attack, death, ambient, hurt) per
+ * {@link ZergKind}, plus the zerg missile. Models, textures and sound files are not part of the mod;
+ * Modkit imports them from the player's own StarCraft II installation (see README).
  */
 public final class StarMine implements ModInitializer {
 	public static final String MOD_ID = "starmine";
-	public static final double HEALTH_PER_SC2_HP = 10.0 / 35.0;
 
-	public static final EntityType<Zergling> ZERGLING = Registry.register(
-		BuiltInRegistries.ENTITY_TYPE,
-		id("zergling"),
-		EntityType.Builder.of(Zergling::new, MobCategory.MONSTER)
-			.sized(0.8f, 0.9f)
-			.clientTrackingRange(10)
-			.build("zergling"));
+	/** The four sound events of a kind; their files come from SC2 through Modkit. */
+	public record KindSounds(SoundEvent attack, SoundEvent death, SoundEvent ambient, SoundEvent hurt) {
+	}
 
-	public static final Item ZERGLING_SPAWN_EGG = Registry.register(
-		BuiltInRegistries.ITEM,
-		id("zergling_spawn_egg"),
-		new SpawnEggItem(ZERGLING, 0x4b1f4f, 0xc79a52, new Item.Properties()));
+	private static final Map<ZergKind, EntityType<ZergMob>> TYPES = new EnumMap<>(ZergKind.class);
+	private static final Map<EntityType<?>, ZergKind> KINDS = new IdentityHashMap<>();
+	private static final Map<ZergKind, KindSounds> SOUNDS = new EnumMap<>(ZergKind.class);
+	private static final Map<ZergKind, Item> EGGS = new EnumMap<>(ZergKind.class);
 
-	/** Sound events; their files come from SC2 through Modkit (assets/starmine/sounds/sc2/...). */
-	public static final class Sounds {
-		public static final SoundEvent ZERGLING_ATTACK = sound("zergling.attack");
-		public static final SoundEvent ZERGLING_DEATH = sound("zergling.death");
-		public static final SoundEvent ZERGLING_AMBIENT = sound("zergling.ambient");
-		public static final SoundEvent ZERGLING_HURT = sound("zergling.hurt");
-
-		private static SoundEvent sound(String name) {
-			ResourceLocation location = id(name);
-			return Registry.register(BuiltInRegistries.SOUND_EVENT, location, SoundEvent.createVariableRangeEvent(location));
+	static {
+		for (ZergKind kind : ZergKind.values()) {
+			EntityType<ZergMob> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, id(kind.id),
+				EntityType.Builder.<ZergMob>of(ZergMob::new, MobCategory.MONSTER)
+					.sized(kind.width, kind.height)
+					.clientTrackingRange(kind.flying ? 12 : 10)
+					.build(kind.id));
+			TYPES.put(kind, type);
+			KINDS.put(type, kind);
+			SOUNDS.put(kind, new KindSounds(sound(kind.id + ".attack"), sound(kind.id + ".death"), sound(kind.id + ".ambient"), sound(kind.id + ".hurt")));
+			EGGS.put(kind, Registry.register(BuiltInRegistries.ITEM, id(kind.id + "_spawn_egg"),
+				new SpawnEggItem(type, kind.eggBase, kind.eggSpots, new Item.Properties())));
 		}
+	}
 
-		static void load() {
-		}
+	public static final EntityType<ZergSpit> SPIT = Registry.register(BuiltInRegistries.ENTITY_TYPE, id("zerg_spit"),
+		EntityType.Builder.<ZergSpit>of(ZergSpit::new, MobCategory.MISC)
+			.sized(0.3f, 0.3f)
+			.clientTrackingRange(6)
+			.updateInterval(10)
+			.build("zerg_spit"));
+
+	public static EntityType<ZergMob> type(ZergKind kind) {
+		return TYPES.get(kind);
+	}
+
+	public static ZergKind kindOf(EntityType<?> type) {
+		ZergKind kind = KINDS.get(type);
+		if (kind == null) throw new IllegalStateException("not a StarMine zerg: " + type);
+		return kind;
+	}
+
+	public static KindSounds sounds(ZergKind kind) {
+		return SOUNDS.get(kind);
+	}
+
+	private static SoundEvent sound(String name) {
+		ResourceLocation location = id(name);
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, location, SoundEvent.createVariableRangeEvent(location));
 	}
 
 	public static ResourceLocation id(String path) {
@@ -62,8 +85,9 @@ public final class StarMine implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		Sounds.load();
-		FabricDefaultAttributeRegistry.register(ZERGLING, Zergling.createAttributes());
-		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> entries.accept(ZERGLING_SPAWN_EGG));
+		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
+		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
+			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));
+		});
 	}
 }
