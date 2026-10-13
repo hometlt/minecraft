@@ -1,7 +1,14 @@
 package dev.starmine.entity;
 
 import dev.starmine.StarMine;
+import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveLogic;
+import dev.starmine.hive.HiveSavedData;
 import java.util.List;
+import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -46,6 +53,12 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
  * eggs that hatch broodlings (brood lord), and locust waves (swarm host). The queen also heals
  * nearby zerg. Every attack swings, which the client turns into an attack animation. Zerg never
  * fight each other.
+ *
+ * Hive: a member knows its hive and home hatchery, counts in the hive's supply and returns home when
+ * idle. The hatchery runs the hive ({@link HiveLogic}); larvae stay by it; a cocoon hatches its units
+ * when its SC2 train time is over. Hatchery and cocoon are structures: immobile and solid. Flying
+ * kinds hover above the ground; the overlord ferries zerg that cannot reach their target; zerg near
+ * an overseer see invisible players and creatures, which glow around the overseer.
  */
 public class ZergMob extends Monster implements RangedAttackMob {
 	public final ZergKind kind;
@@ -53,6 +66,16 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	public int attackStartTick = Integer.MIN_VALUE / 2;
 	public int attackVariant;
 	private int lifeLeft;
+	/** The hive this zerg belongs to (its hatchery's UUID) and where that hatchery stands. */
+	private UUID hiveId;
+	private BlockPos home;
+	/** A cocoon's future: what hatches, how many, in how many ticks. */
+	private ZergKind cocoonKind;
+	private int cocoonCount, cocoonTicks;
+	/** Ticks this ground zerg has had a target it has no path to (the overlord ferries such zerg). */
+	private int unreachable;
+	/** An overseer is near: invisible players and creatures are seen (see the visibility mixin). */
+	private boolean overseerNear;
 
 	public ZergMob(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
@@ -66,6 +89,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	}
 
 	public static AttributeSupplier.Builder attributes(ZergKind kind) {
+		if (kind.structure()) return Monster.createMonsterAttributes()
+			.add(Attributes.MAX_HEALTH, kind.health)
+			.add(Attributes.MOVEMENT_SPEED, 0)
+			.add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
+			.add(Attributes.FOLLOW_RANGE, 0);
 		return Monster.createMonsterAttributes()
 			.add(Attributes.MAX_HEALTH, kind.health)
 			.add(Attributes.MOVEMENT_SPEED, kind.speed)
@@ -89,7 +117,15 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	@Override
 	protected void registerGoals() {
 		ZergKind kind = StarMine.kindOf(this.getType());
+		if (kind.structure()) return;
 		this.goalSelector.addGoal(0, new FloatGoal(this));
+		if (kind == ZergKind.LARVA) {
+			this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 3));
+			this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.6));
+			return;
+		}
+		if (kind == ZergKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
+		this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, kind == ZergKind.DRONE ? 12 : 24));
 		switch (kind.attack) {
 			case NONE -> {
 			}
@@ -101,7 +137,8 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			});
 			default -> this.goalSelector.addGoal(2, new RangedAttackGoal(this, 1.0, kind.interval, kind.interval + 10, (float) kind.range));
 		}
-		this.goalSelector.addGoal(5, kind.flying ? new WaterAvoidingRandomFlyingGoal(this, 0.8) : new WaterAvoidingRandomStrollGoal(this, 0.8));
+		this.goalSelector.addGoal(5, kind.hoverHeight() > 0 ? new ZergGoals.HoverWander(this)
+			: kind.flying ? new WaterAvoidingRandomFlyingGoal(this, 0.8) : new WaterAvoidingRandomStrollGoal(this, 0.8));
 		this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 		if (kind.attack == ZergKind.Attack.NONE) return;
@@ -129,10 +166,176 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	@Override
 	public void aiStep() {
 		super.aiStep();
-		if (this.level().isClientSide || !this.isAlive()) return;
+		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (kind == ZergKind.QUEEN && this.tickCount % 200 == 0) transfuse();
+		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
+		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
+		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
+		if (this.tickCount % 20 == 0) {
+			trackReachability();
+			overseerNear = !this.level().getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(20), mob -> mob.kind == ZergKind.OVERSEER).isEmpty();
+			if (kind == ZergKind.OVERSEER) revealInvisible();
+		}
 	}
+
+	/** Flying kinds stay above their hover height over the ground below. */
+	private void keepAloft() {
+		double floor = ZergGoals.ground(this, this.getX(), this.getZ()) + kind.hoverHeight() - 1;
+		if (this.getY() < floor) {
+			Vec3 motion = this.getDeltaMovement();
+			this.setDeltaMovement(motion.x, Math.max(motion.y, 0.12), motion.z);
+		}
+	}
+
+	/** Ground zerg note how long their target has been out of reach (for the overlord's ferry). */
+	private void trackReachability() {
+		if (kind.flying || this.getTarget() == null || this.isPassenger()) {
+			unreachable = 0;
+			return;
+		}
+		Path path = this.getNavigation().getPath();
+		boolean far = this.distanceToSqr(this.getTarget()) > 9;
+		unreachable = far && (path == null || !path.canReach() || this.getNavigation().isDone()) ? unreachable + 20 : 0;
+	}
+
+	public int unreachableTicks() {
+		return unreachable;
+	}
+
+	public void clearUnreachable() {
+		unreachable = 0;
+	}
+
+	/** Overseer: invisible creatures and players around it glow for everyone (SC2 detection). */
+	private void revealInvisible() {
+		for (LivingEntity other : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(16), LivingEntity::isInvisible))
+			other.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
+	}
+
+	/** Zerg near an overseer see invisible players and creatures. */
+	public boolean seesInvisible() {
+		return overseerNear || kind == ZergKind.OVERSEER;
+	}
+
+	public UUID hiveId() {
+		return hiveId;
+	}
+
+	public BlockPos home() {
+		return home;
+	}
+
+	/** Joins a hive: counted in its members and supply, kept in the world, returns home when idle. */
+	public void joinHive(Hive hive) {
+		this.hiveId = hive.id;
+		this.home = hive.hatchery;
+		if (!kind.structure() || kind == ZergKind.EGG) hive.join(kind);
+		this.setPersistenceRequired();
+	}
+
+	public void becomeCocoon(ZergKind kind, int count, int ticks) {
+		this.cocoonKind = kind;
+		this.cocoonCount = count;
+		this.cocoonTicks = ticks;
+	}
+
+	private void hatchCocoon(ServerLevel server) {
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		ZergKind born = cocoonKind;
+		int count = cocoonCount;
+		cocoonKind = null;
+		if (hive != null) HiveLogic.hatch(this, server, hive, born, count);
+		this.discard();
+	}
+
+	@Override
+	public void remove(Entity.RemovalReason reason) {
+		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null) {
+			HiveSavedData data = HiveSavedData.get(server.getServer());
+			Hive hive = data.get(hiveId);
+			if (kind == ZergKind.HATCHERY) {
+				if (hiveId.equals(this.getUUID())) data.remove(hiveId);
+			} else if (hive != null) {
+				hive.leave(kind);
+				if (kind == ZergKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
+				data.setDirty();
+			}
+		}
+		super.remove(reason);
+	}
+
+	@Override
+	public void addAdditionalSaveData(CompoundTag tag) {
+		super.addAdditionalSaveData(tag);
+		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
+		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
+		if (cocoonKind != null) {
+			tag.putString("StarMineCocoon", cocoonKind.name());
+			tag.putInt("StarMineCocoonCount", cocoonCount);
+			tag.putInt("StarMineCocoonTicks", cocoonTicks);
+		}
+	}
+
+	@Override
+	public void readAdditionalSaveData(CompoundTag tag) {
+		super.readAdditionalSaveData(tag);
+		if (tag.hasUUID("StarMineHive")) hiveId = tag.getUUID("StarMineHive");
+		home = NbtUtils.readBlockPos(tag, "StarMineHome").orElse(null);
+		if (tag.contains("StarMineCocoon")) {
+			try {
+				cocoonKind = ZergKind.valueOf(tag.getString("StarMineCocoon"));
+				cocoonCount = tag.getInt("StarMineCocoonCount");
+				cocoonTicks = tag.getInt("StarMineCocoonTicks");
+			} catch (IllegalArgumentException ignored) {
+				cocoonKind = null;
+			}
+		}
+		if (kind == ZergKind.HATCHERY) hiveId = this.getUUID();
+	}
+
+	@Override
+	public boolean removeWhenFarAway(double distance) {
+		return hiveId == null && !kind.structure() && super.removeWhenFarAway(distance);
+	}
+
+	@Override
+	public boolean isPushable() {
+		return !kind.structure() && super.isPushable();
+	}
+
+	@Override
+	public boolean canBeCollidedWith() {
+		return kind.structure() || super.canBeCollidedWith();
+	}
+
+	@Override
+	public boolean shouldDespawnInPeaceful() {
+		return !kind.structure() && hiveId == null;
+	}
+
+	/** Zerg ride an overlord as cargo; nobody steers it but its own AI. */
+	@Override
+	public LivingEntity getControllingPassenger() {
+		return kind == ZergKind.OVERLORD ? null : super.getControllingPassenger();
+	}
+
+	@Override
+	protected boolean canAddPassenger(Entity passenger) {
+		if (kind != ZergKind.OVERLORD || !(passenger instanceof ZergMob zerg)) return false;
+		int used = 0;
+		for (Entity rider : this.getPassengers()) if (rider instanceof ZergMob riding) used += riding.kind.economy().cargo();
+		return used + zerg.kind.economy().cargo() <= ZergGoals.Transport.CAPACITY;
+	}
+
+	/** Cargo hangs under the overlord's body, spread a little around its centre. */
+	@Override
+	protected void positionRider(Entity passenger, Entity.MoveFunction move) {
+		int index = this.getPassengers().indexOf(passenger);
+		double angle = index * 2.4, spread = index == 0 ? 0 : 0.6;
+		move.accept(passenger, this.getX() + Math.cos(angle) * spread, this.getY() - passenger.getBbHeight() + 0.6, this.getZ() + Math.sin(angle) * spread);
+	}
+
 
 	/** Queen: heal the most wounded zerg nearby (Transfusion). */
 	private void transfuse() {
@@ -229,6 +432,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	protected void tickDeath() {
 		++this.deathTime;
 		if (kind.flying) this.setNoGravity(false);
+		if (this.isVehicle()) this.ejectPassengers();
 		if (this.deathTime >= kind.deathTicks() && !this.level().isClientSide() && !this.isRemoved()) {
 			this.level().broadcastEntityEvent(this, (byte) 60);
 			this.remove(Entity.RemovalReason.KILLED);

@@ -1,0 +1,83 @@
+package dev.starmine.hive;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import dev.starmine.entity.ZergKind;
+import java.util.Comparator;
+import java.util.Map;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+
+/**
+ * Hive debugging: `/starmine hive list`, `/starmine hive info` (the nearest hive) and
+ * `/starmine hive give <minerals> [vespene]` (adds to the nearest hive). Operators only.
+ */
+public final class HiveCommands {
+	private HiveCommands() {
+	}
+
+	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("starmine").requires(source -> source.hasPermission(2))
+			.then(Commands.literal("hive")
+				.then(Commands.literal("list").executes(HiveCommands::list))
+				.then(Commands.literal("info").executes(HiveCommands::info))
+				.then(Commands.literal("give")
+					.then(Commands.argument("minerals", IntegerArgumentType.integer(0))
+						.executes(context -> give(context, IntegerArgumentType.getInteger(context, "minerals"), 0))
+						.then(Commands.argument("vespene", IntegerArgumentType.integer(0))
+							.executes(context -> give(context, IntegerArgumentType.getInteger(context, "minerals"),
+								IntegerArgumentType.getInteger(context, "vespene"))))))));
+	}
+
+	private static Hive nearest(CommandContext<CommandSourceStack> context) {
+		var source = context.getSource();
+		String dimension = source.getLevel().dimension().location().toString();
+		return HiveSavedData.get(source.getServer()).all().stream()
+			.filter(hive -> hive.dimension.equals(dimension))
+			.min(Comparator.comparingDouble(hive -> hive.hatchery.getCenter().distanceToSqr(source.getPosition())))
+			.orElse(null);
+	}
+
+	private static int list(CommandContext<CommandSourceStack> context) {
+		var hives = HiveSavedData.get(context.getSource().getServer()).all();
+		context.getSource().sendSuccess(() -> Component.literal("Hives: " + hives.size() + "/" + HiveSavedData.MAX_HIVES), false);
+		for (Hive hive : hives)
+			context.getSource().sendSuccess(() -> Component.literal(" " + hive.dimension + " " + hive.hatchery.toShortString()
+				+ "  M" + hive.minerals + " V" + hive.vespene + " D" + hive.diamonds), false);
+		return hives.size();
+	}
+
+	private static int info(CommandContext<CommandSourceStack> context) {
+		Hive hive = nearest(context);
+		if (hive == null) {
+			context.getSource().sendFailure(Component.literal("No hive in this dimension"));
+			return 0;
+		}
+		StringBuilder members = new StringBuilder();
+		for (Map.Entry<ZergKind, Integer> entry : hive.members.entrySet()) members.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
+		StringBuilder pending = new StringBuilder();
+		for (Map.Entry<ZergKind, Integer> entry : hive.pending.entrySet()) pending.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
+		String text = "Hive " + hive.hatchery.toShortString() + ": minerals " + hive.minerals + ", vespene " + hive.vespene
+			+ ", diamonds " + hive.diamonds + ", supply " + hive.supplyUsed() + "/" + hive.supplyCap()
+			+ ", larva in " + (HiveLogic.LARVA_TICKS - hive.larvaTimer) / 20 + " s\n members:" + members + "\n in cocoons:" + pending
+			+ (hive.queenTicks >= 0 ? "\n queen in " + hive.queenTicks / 20 + " s" : "");
+		context.getSource().sendSuccess(() -> Component.literal(text), false);
+		return 1;
+	}
+
+	private static int give(CommandContext<CommandSourceStack> context, int minerals, int vespene) {
+		Hive hive = nearest(context);
+		if (hive == null) {
+			context.getSource().sendFailure(Component.literal("No hive in this dimension"));
+			return 0;
+		}
+		hive.minerals += minerals;
+		hive.vespene += vespene;
+		hive.mineralsCollected += minerals;
+		HiveSavedData.get(context.getSource().getServer()).setDirty();
+		context.getSource().sendSuccess(() -> Component.literal("Hive now has " + hive.minerals + " minerals, " + hive.vespene + " vespene"), true);
+		return 1;
+	}
+}

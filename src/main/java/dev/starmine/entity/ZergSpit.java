@@ -10,6 +10,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -33,14 +34,15 @@ public class ZergSpit extends ThrowableItemProjectile {
 		this.setPos(shooter.getX(), shooter.getY(0.6), shooter.getZ());
 	}
 
+	/** Called by the base constructor before {@link #kind} is set: the synced item is set after. */
 	@Override
 	protected Item getDefaultItem() {
-		return kind.missile();
+		return Items.SLIME_BALL;
 	}
 
 	@Override
 	protected double getDefaultGravity() {
-		return kind == ZergKind.BROOD_LORD ? 0.03 : 0.01;
+		return kind == ZergKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
 	}
 
 	@Override

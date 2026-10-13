@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "dev.starmine.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": ["OverseerSightMixin"],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

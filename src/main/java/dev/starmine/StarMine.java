@@ -3,6 +3,8 @@ package dev.starmine;
 import dev.starmine.entity.ZergKind;
 import dev.starmine.entity.ZergMob;
 import dev.starmine.entity.ZergSpit;
+import dev.starmine.hive.HiveCommands;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -86,6 +88,7 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
+		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));
 		});

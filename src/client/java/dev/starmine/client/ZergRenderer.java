@@ -53,13 +53,15 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 			}
 		}
 		if (visible) {
-			this.shadowRadius = entity.kind.width * 0.5f;
+			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			choosePose(model, entity, partialTick);
 			skin(model);
 			poseStack.pushPose();
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+			float scale = entity.kind.modelScale();
+			if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
 			PoseStack.Pose pose = poseStack.last();
 			for (SkinnedModel.Part part : model.parts) {
