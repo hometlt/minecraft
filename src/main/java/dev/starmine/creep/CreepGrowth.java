@@ -136,11 +136,25 @@ public final class CreepGrowth {
 	 */
 	private static boolean decorate(ServerLevel level, BlockPos pos) {
 		if (level.random.nextFloat() >= 0.06f) return false;
+		return grow(level, pos, false);
+	}
+
+	/**
+	 * A growth on a creep floor cell, unless another growth is within 2 blocks (not too dense);
+	 * `tentacle` forces a two-block tentacle (where a tree stood). True when something grew.
+	 */
+	private static boolean grow(ServerLevel level, BlockPos pos, boolean tentacle) {
+		if (!tentacle)
+			for (BlockPos near : BlockPos.betweenClosed(pos.offset(-2, -1, -2), pos.offset(2, 2, 2)))
+				if (isGrowth(level.getBlockState(near))) return false;
 		BlockState state = level.getBlockState(pos);
+		if (state.isAir() && level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP))
+			state = StarMineBlocks.CREEP.getStateForPlacement(state, level, pos, Direction.DOWN);
+		if (state == null) return false;
 		if (!state.is(StarMineBlocks.CREEP) || !MultifaceBlock.hasFace(state, Direction.DOWN) || MultifaceBlock.availableFaces(state).size() > 1) return false;
 		BlockPos below = pos.below();
 		if (!level.getBlockState(below).isFaceSturdy(level, below, Direction.UP) || !level.getBlockState(pos.above()).isAir()) return false;
-		float pick = level.random.nextFloat();
+		float pick = tentacle ? 0 : level.random.nextFloat();
 		if (pick < 0.12f && level.getBlockState(pos.above()).isAir()) {
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
 			net.minecraft.world.level.block.DoublePlantBlock.placeAt(level, StarMineBlocks.CREEP_TENTACLE.defaultBlockState(), pos, 3);
@@ -151,15 +165,60 @@ public final class CreepGrowth {
 		return true;
 	}
 
-	/** Plants and natural leaves next to creep die, so creep can grow where they stood. */
+	private static boolean isGrowth(BlockState state) {
+		return state.is(StarMineBlocks.CREEP_TENDRIL) || state.is(StarMineBlocks.CREEP_PUSTULE)
+			|| state.is(StarMineBlocks.CREEP_VESSELS) || state.is(StarMineBlocks.CREEP_TENTACLE);
+	}
+
+	/**
+	 * What creep touches dies (owner): plants go — and sometimes a growth takes their place; natural
+	 * leaves fall; a natural tree it reaches is consumed whole and a tentacle grows where it stood.
+	 */
 	private static void clearAround(ServerLevel level, BlockPos cell) {
 		for (Direction d : Direction.values()) {
 			BlockPos near = cell.relative(d);
 			BlockState state = level.getBlockState(near);
-			if (state.is(DESTROYS)
-				|| state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT))
+			if (state.is(DESTROYS)) {
 				level.destroyBlock(near, false);
+				if (level.random.nextFloat() < 0.25f) grow(level, near, false);
+			} else if (state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT)) {
+				level.destroyBlock(near, false);
+			} else if (state.is(BlockTags.LOGS)) {
+				consumeTree(level, near);
+			}
 		}
+	}
+
+	/**
+	 * A natural tree (its logs touch non-persistent leaves; log houses are spared) is consumed: logs and
+	 * leaves vanish and a creep tentacle grows at the foot of the trunk.
+	 */
+	private static void consumeTree(ServerLevel level, BlockPos seed) {
+		List<BlockPos> logs = new ArrayList<>();
+		Set<BlockPos> seen = new HashSet<>();
+		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>(List.of(seed));
+		boolean natural = false;
+		while (!queue.isEmpty() && logs.size() < 200) {
+			BlockPos pos = queue.poll();
+			if (!seen.add(pos)) continue;
+			BlockState state = level.getBlockState(pos);
+			if (state.is(BlockTags.LOGS)) {
+				logs.add(pos);
+				for (BlockPos near : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) queue.add(near.immutable());
+			} else if (state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT)) {
+				natural = true;
+			}
+		}
+		if (!natural || logs.isEmpty()) return;
+		BlockPos foot = logs.stream().min(java.util.Comparator.comparingInt(BlockPos::getY)).get();
+		for (BlockPos log : logs)
+			for (BlockPos near : BlockPos.betweenClosed(log.offset(-3, -1, -3), log.offset(3, 3, 3))) {
+				BlockState state = level.getBlockState(near);
+				if (state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT))
+					level.setBlock(near, Blocks.AIR.defaultBlockState(), 2);
+			}
+		for (BlockPos log : logs) level.setBlock(log, Blocks.AIR.defaultBlockState(), 3);
+		grow(level, foot, true);
 	}
 
 	/** Grass, podzol, mycelium and paths under creep turn to dirt. */

@@ -9,7 +9,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": ["dev.starmine.StarMine"],
-		"client": ["dev.starmine.client.StarMineClient"]
+		"client": ["dev.starmine.client.StarMineClient"],
+		"fabric-gametest": ["dev.starmine.entity.DroneGameTests"]
 	},
 	"mixins": ["starmine.mixins.json"],
 	"depends": {

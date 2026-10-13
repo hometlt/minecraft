@@ -3,13 +3,11 @@ package dev.starmine.entity;
 import dev.starmine.StarMine;
 import dev.starmine.block.StarMineBlocks;
 import dev.starmine.creep.CreepGrowth;
-import net.minecraft.world.level.block.MultifaceBlock;
 import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveResources;
 import dev.starmine.hive.HiveSavedData;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,63 +17,70 @@ import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * A drone's work (stage 2 of docs/HIVE_DESIGN.md, reworked on the owner's play test), run while it
- * has no target:
+ * A drone's work (stage 2 of docs/HIVE_DESIGN.md, reworked on the owner's play tests). It always has
+ * a goal, and goes there through {@link #moveTo}:
  *
  * - SEEK: a natural tree nearby (logs with non-persistent leaves, so log houses stay), else an ore
  *   within a scan, else EXPLORE;
- * - TREE: the drone walks to the trunk's foot and, standing there, takes the tree from its top
- *   down, leaves with it, 8 logs a trip — it does not climb;
- * - MINE: walks to the ore if there is a way, otherwise digs a tunnel of 2x2x2 cubes toward it, with
- *   stair steps up and down; takes the whole vein and ores met on the way;
- * - CARRY: brings the load to the edge of its hatchery (minerals, vespene, hoarded diamonds) — when
- *   its valuable slot holds 8, or a precious ore, or before taking a second kind of resource;
- * - EXPLORE: walks ever farther; when walks find nothing, digs stairs deeper.
+ * - TREE: to the trunk's foot; standing there it takes the tree from its top down, leaves with it;
+ * - MINE: to the ore (the planner digs the way), then the whole vein and ores met on the way;
+ * - CARRY: to the edge of its hatchery with its valuable slot — when it holds 8, or a precious ore,
+ *   or before a second kind of resource would be taken;
+ * - EXPLORE: ever farther, and deeper when walks find nothing;
+ * - RAID (a raid party member): to the target, opening the way for the warriors, then stealing food
+ *   from containers and breaking mechanisms and crops.
  *
- * It breaks only blocks within reach (like a player) and always finishes a block it has started
- * unless an enemy takes its attention. Stuck while walking, it bridges a gap or builds a step with
- * the stone it dug (its 8 fill slots), cuts stairs to get up, or digs through; underground it prefers
- * an existing way out; in a passage too narrow for it, it widens the passage first. Creep on a block
- * it digs is not lost: it lines the new cavity. Its valuable slot is shown in front of it; everything
- * drops if it dies. Yields come from `data/starmine/hive/resources.json`; with
- * `starmineHiveGriefing` off drones only explore. Trees and ores are claimed per drone.
+ * Movement: an ordinary path when the game's pathfinder has a reasonable one; otherwise (or when it
+ * gets stuck) a plan of {@link DronePlanner} — digging through walls, stair steps up and down, bridges
+ * of stone fill, never through the floors of the hive's routes. Blocks are broken only within reach,
+ * and a block once started is finished unless an enemy takes the drone's attention. Creep on a dug
+ * block lines the new cavity. Yields come from `data/starmine/hive/resources.json`; with
+ * `starmineHiveGriefing` off drones neither dig nor chop. Trees and ores are claimed per drone.
  */
 final class DroneWork extends Goal {
-	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE }
+	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE, RAID }
+
+	private enum Move { MOVING, ARRIVED, FAILED }
 
 	private static final Map<BlockPos, UUID> CLAIMS = new HashMap<>();
 	private static final UUID NOBODY = new UUID(0, 0);
 	private static final double REACH = 3.6;
-	private static final int TRAIL = 96;
+	public static final TagKey<Block> MECHANISMS = TagKey.create(Registries.BLOCK, StarMine.id("raid_mechanisms"));
 
 	private final ZergMob drone;
 	private State state = State.SEEK, resume = State.SEEK;
 	private final List<BlockPos> logs = new ArrayList<>(), leaves = new ArrayList<>();
 	private BlockPos treeFoot, mineTarget;
 	private boolean deep;
-	/** The cube being dug (blocks still to break) and where the drone stands after it. */
-	private final Deque<BlockPos> cube = new ArrayDeque<>();
-	private BlockPos cubeExit;
 	private BlockPos breaking;
-	private int breakTicks, breakNeeded, stateTicks, cubeTicks, misses, seekCooldown;
-	private Vec3 walkGoal;
-	private double bestDistance;
-	private int stuckTicks;
-	private boolean homeReachable = true;
+	private int breakTicks, breakNeeded, stateTicks, misses, seekCooldown;
 	private Vec3 exploreTo;
-	/** The cubes this drone dug, in order: underground it walks them back to the way out it made. */
-	private final Deque<BlockPos> trail = new ArrayDeque<>();
+
+	// movement
+	private Vec3 moveGoal;
+	private boolean planned;
+	private List<DronePlanner.Step> plan;
+	private int stepIndex, stepTicks, failures, stuckTicks;
+	private double bestDistance;
 
 	DroneWork(ZergMob drone) {
 		this.drone = drone;
@@ -99,35 +104,34 @@ final class DroneWork extends Goal {
 
 	@Override
 	public void stop() {
-		// an enemy took its attention: the cracks fade, the block is left
+		// an enemy took its attention: the cracks fade, the block is left, the plan is redone later
 		cancelBreak();
+		resetMove();
 	}
 
 	@Override
 	public void tick() {
 		if (!(drone.level() instanceof ServerLevel level)) return;
 		stateTicks++;
-		// a block once started is finished first
-		if (breaking != null) {
+		if (breaking != null) { // a block once started is finished first
 			if (breakBlock(level, breaking)) afterBreak(level);
-			return;
-		}
-		if (!cube.isEmpty() || cubeExit != null) {
-			digCube(level);
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
 		if (drone.raidTarget() != null) {
-			raid(level, griefing);
-			return;
+			if (state != State.RAID) to(State.RAID);
+		} else if (state == State.RAID) {
+			to(State.SEEK);
+		} else if (drone.loadFull() && state != State.CARRY) {
+			to(State.CARRY);
 		}
-		if (drone.loadFull() && state != State.CARRY) to(State.CARRY);
 		switch (state) {
 			case SEEK -> seek(level, griefing);
 			case TREE -> tree(level);
 			case MINE -> mine(level, griefing);
-			case CARRY -> carry(level);
+			case CARRY -> carry(level, griefing);
 			case EXPLORE -> explore(level, griefing);
+			case RAID -> raid(level, griefing);
 		}
 	}
 
@@ -135,7 +139,92 @@ final class DroneWork extends Goal {
 		if (next == State.CARRY && state != State.CARRY) resume = state == State.TREE || state == State.MINE ? state : State.SEEK;
 		state = next;
 		stateTicks = 0;
-		walkGoal = null;
+		resetMove();
+	}
+
+	// ---- moving: an ordinary path, else a dig-and-build plan ----
+
+	private void resetMove() {
+		moveGoal = null;
+		plan = null;
+		planned = false;
+		failures = 0;
+	}
+
+	/** One tick of going to within `arrive` blocks of `goal`. */
+	private Move moveTo(ServerLevel level, Vec3 goal, double arrive, boolean dig) {
+		if (drone.position().distanceTo(goal) <= arrive) {
+			drone.getNavigation().stop();
+			return Move.ARRIVED;
+		}
+		if (moveGoal == null || moveGoal.distanceToSqr(goal) > 1) {
+			resetMove();
+			moveGoal = goal;
+			bestDistance = Double.MAX_VALUE;
+			stuckTicks = 0;
+			// the game's path if it reaches the goal and is not much longer than the way straight there
+			Path path = drone.getNavigation().createPath(BlockPos.containing(goal), (int) Math.max(1, arrive - 1));
+			double straight = drone.position().distanceTo(goal);
+			if (path != null && path.canReach() && path.getNodeCount() <= straight * 1.6 + 12) {
+				drone.getNavigation().moveTo(path, 1.0);
+				return Move.MOVING;
+			}
+			return replan(level, goal, arrive, dig);
+		}
+		if (plan != null) return followPlan(level, goal, arrive, dig);
+		// on an ordinary path: watch for being stuck, then plan
+		double distance = drone.position().distanceTo(goal);
+		if (distance < bestDistance - 0.5) {
+			bestDistance = distance;
+			stuckTicks = 0;
+		} else if (++stuckTicks > 60 || drone.getNavigation().isDone()) {
+			return replan(level, goal, arrive, dig);
+		}
+		return Move.MOVING;
+	}
+
+	private Move replan(ServerLevel level, Vec3 goal, double arrive, boolean dig) {
+		drone.getNavigation().stop();
+		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+		Set<Long> routes = hive != null ? hive.routes : Set.of();
+		plan = DronePlanner.plan(level, DronePlanner.feetOf(drone.position()), goal, arrive, routes, dig, drone.fillCount(), 3000);
+		stepIndex = 0;
+		stepTicks = 0;
+		planned = true;
+		if (plan == null || plan.isEmpty()) {
+			plan = null;
+			return ++failures >= 3 ? Move.FAILED : Move.MOVING;
+		}
+		return Move.MOVING;
+	}
+
+	private Move followPlan(ServerLevel level, Vec3 goal, double arrive, boolean dig) {
+		if (stepIndex >= plan.size()) return replan(level, goal, arrive, dig); // a partial plan ran out
+		DronePlanner.Step step = plan.get(stepIndex);
+		for (BlockPos block : step.dig()) {
+			if (!DronePlanner.solid(level, block)) continue;
+			if (!reach(block) || !DronePlanner.breakable(level, block, null) || !drone.canTake(level.getBlockState(block)))
+				return replan(level, goal, arrive, dig);
+			start(level, block);
+			return Move.MOVING;
+		}
+		for (BlockPos floor : step.fill()) {
+			if (DronePlanner.solid(level, floor)) continue;
+			if (!drone.placeFill(floor)) return replan(level, goal, arrive, dig);
+			return Move.MOVING;
+		}
+		Vec3 centre = DronePlanner.centre(step.feet());
+		double dx = drone.getX() - centre.x, dz = drone.getZ() - centre.z;
+		if (dx * dx + dz * dz < 0.12 && Math.abs(drone.getY() - centre.y) < 0.8) {
+			Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+			if (hive != null) hive.addRoute(step.feet());
+			stepIndex++;
+			stepTicks = 0;
+			return Move.MOVING;
+		}
+		if (++stepTicks > 80) return replan(level, goal, arrive, dig);
+		drone.getMoveControl().setWantedPosition(centre.x, centre.y, centre.z, 1.0);
+		return Move.MOVING;
 	}
 
 	// ---- SEEK ----
@@ -246,9 +335,8 @@ final class DroneWork extends Goal {
 			to(State.SEEK);
 			return;
 		}
-		// stand at the foot of the trunk
 		if (!reach(treeFoot) && !reach(treeFoot.above())) {
-			if (!walk(level, Vec3.atBottomCenterOf(treeFoot), true)) {
+			if (moveTo(level, Vec3.atBottomCenterOf(treeFoot), 2.5, true) == Move.FAILED) {
 				for (BlockPos log : logs) release(log);
 				logs.clear();
 				to(State.SEEK);
@@ -257,6 +345,10 @@ final class DroneWork extends Goal {
 		}
 		drone.getNavigation().stop();
 		BlockPos top = logs.get(0);
+		if (!drone.canTake(level.getBlockState(top))) { // another resource in its slot: deliver it first
+			to(State.CARRY);
+			return;
+		}
 		int removed = 0;
 		while (!leaves.isEmpty() && leaves.get(0).getY() >= top.getY() - 1 && removed < 12) {
 			BlockPos leaf = leaves.remove(0);
@@ -264,10 +356,6 @@ final class DroneWork extends Goal {
 				level.destroyBlock(leaf, false, drone);
 				removed++;
 			}
-		}
-		if (!drone.canTake(level.getBlockState(top))) { // another resource in its slot: deliver it first
-			to(State.CARRY);
-			return;
 		}
 		// taken from the top while the drone works at the foot
 		breaking = top;
@@ -310,22 +398,12 @@ final class DroneWork extends Goal {
 			start(level, mineTarget);
 			return;
 		}
-		if (deep && drone.blockPosition().distManhattan(mineTarget) <= 2) {
+		Move move = moveTo(level, Vec3.atCenterOf(mineTarget), deep ? 2.0 : 2.8, true);
+		if (move == Move.ARRIVED && deep) {
 			deep = false;
 			mineTarget = null;
 			to(State.SEEK);
-			return;
-		}
-		// an open way (a cave) is walked; otherwise the drone digs toward the target
-		if (stateTicks % 40 == 1) {
-			Path path = drone.getNavigation().createPath(mineTarget, 1);
-			if (path != null && path.canReach() && path.getNodeCount() < 48) {
-				drone.getNavigation().moveTo(path, 1.0);
-				return;
-			}
-		}
-		if (!drone.getNavigation().isDone()) return;
-		if (!planCube(level, Vec3.atCenterOf(mineTarget), true)) {
+		} else if (move == Move.FAILED) {
 			release(mineTarget);
 			mineTarget = null;
 			to(State.SEEK);
@@ -345,190 +423,10 @@ final class DroneWork extends Goal {
 		return false;
 	}
 
-	// ---- tunnels of 2x2x2 cubes with stair steps ----
-
-	/**
-	 * Plans the next cube toward a goal: two blocks forward along the main horizontal direction (an
-	 * occasional sideways turn when `winding`), two wide, two high, one step up or down when the goal
-	 * is above or below; a step gets a third block of headroom so the drone can climb or drop through.
-	 * False when every direction meets water, lava or unbreakable blocks.
-	 */
-	private boolean planCube(ServerLevel level, Vec3 goal, boolean winding) {
-		BlockPos feet = drone.blockPosition();
-		double dx = goal.x - drone.getX(), dz = goal.z - drone.getZ(), dy = goal.y - drone.getY();
-		Direction main = Math.abs(dx) >= Math.abs(dz) ? (dx >= 0 ? Direction.EAST : Direction.WEST) : (dz >= 0 ? Direction.SOUTH : Direction.NORTH);
-		int step = dy > 1.5 ? 1 : dy < -1.5 ? -1 : 0;
-		List<Direction> order = new ArrayList<>();
-		if (winding && drone.getRandom().nextFloat() < 0.2f) order.add(drone.getRandom().nextBoolean() ? main.getClockWise() : main.getCounterClockWise());
-		order.add(main);
-		order.add(main.getClockWise());
-		order.add(main.getCounterClockWise());
-		for (Direction dir : order) {
-			List<BlockPos> blocks = cubeBlocks(feet, dir, step);
-			// an ore of another kind than the load is not broken through (it would be lost)
-			if (blocks.stream().allMatch(pos -> level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
-				|| diggable(level, pos) && drone.canTake(level.getBlockState(pos)))) {
-				cube.clear();
-				for (BlockPos pos : blocks) if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) cube.add(pos);
-				cubeExit = feet.relative(dir, 2).above(step);
-				cubeTicks = 0;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/** The blocks of the next cube: forward 1..2, two wide, floor at the step, headroom at the step. */
-	private static List<BlockPos> cubeBlocks(BlockPos feet, Direction dir, int step) {
-		Direction side = dir.getClockWise();
-		List<BlockPos> blocks = new ArrayList<>();
-		for (int forward = 1; forward <= 2; forward++)
-			for (int across = 0; across <= 1; across++) {
-				int from = forward == 1 ? Math.min(0, step) : step;
-				int to = forward == 1 ? Math.max(0, step) + (step != 0 ? 2 : 1) : step + 1;
-				for (int up = from; up <= to; up++) blocks.add(feet.relative(dir, forward).relative(side, across).above(up));
-			}
-		if (step > 0) for (int across = 0; across <= 1; across++) blocks.add(feet.relative(side, across).above(2)); // headroom to step up
-		return blocks;
-	}
-
-	private void digCube(ServerLevel level) {
-		cubeTicks++;
-		while (!cube.isEmpty() && level.getBlockState(cube.peek()).getCollisionShape(level, cube.peek()).isEmpty()) cube.poll();
-		if (!cube.isEmpty()) {
-			BlockPos next = cube.peek();
-			if (reach(next) && diggable(level, next)) {
-				start(level, next);
-			} else {
-				// out of reach or no longer safe: this cube is abandoned
-				cube.clear();
-				cubeExit = null;
-			}
-			return;
-		}
-		if (cubeExit == null) return;
-		Vec3 exit = Vec3.atBottomCenterOf(cubeExit);
-		if (drone.position().distanceToSqr(exit) < 1.2 || cubeTicks > 100) {
-			trail.addLast(cubeExit);
-			if (trail.size() > TRAIL) trail.pollFirst();
-			cubeExit = null;
-			BlockPos ore = findOre(level, drone.blockPosition(), 3); // ores met on the way
-			if (ore != null && state == State.MINE && !deep) {
-				release(mineTarget);
-				mineTarget = ore;
-				claim(ore);
-			}
-			return;
-		}
-		if (!drone.getNavigation().moveTo(exit.x, exit.y, exit.z, 1.0)) drone.getMoveControl().setWantedPosition(exit.x, exit.y, exit.z, 1.0);
-	}
-
-	/**
-	 * A block a drone may break: no block entity, no water or lava at or next to it, and not metal or
-	 * very hard (owner: drones cannot break metal or especially strong blocks — iron, obsidian…).
-	 */
-	private static boolean diggable(ServerLevel level, BlockPos pos) {
-		BlockState state = level.getBlockState(pos);
-		if (!state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) return false;
-		float hardness = state.getDestroySpeed(level, pos);
-		if (hardness < 0 || hardness >= 5) return false;
-		var sound = state.getSoundType();
-		if (sound == net.minecraft.world.level.block.SoundType.METAL || sound == net.minecraft.world.level.block.SoundType.ANVIL
-			|| sound == net.minecraft.world.level.block.SoundType.COPPER || sound == net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK
-			|| sound == net.minecraft.world.level.block.SoundType.CHAIN) return false;
-		for (Direction d : Direction.values()) if (!level.getFluidState(pos.relative(d)).isEmpty()) return false;
-		return true;
-	}
-
-	// ---- walking, getting unstuck ----
-
-	/**
-	 * Walks toward a goal and notices when it stops getting closer: then it bridges a gap or builds a
-	 * step with fill, or (when `mayDig`) digs a cube toward the goal. False when it cannot get closer.
-	 */
-	private boolean walk(ServerLevel level, Vec3 goal, boolean mayDig) {
-		if (walkGoal == null || walkGoal.distanceToSqr(goal) > 1) {
-			walkGoal = goal;
-			bestDistance = Double.MAX_VALUE;
-			stuckTicks = 0;
-		}
-		double distance = drone.position().distanceTo(goal);
-		if (distance < bestDistance - 0.5) {
-			bestDistance = distance;
-			stuckTicks = 0;
-		} else {
-			stuckTicks++;
-		}
-		if (drone.getNavigation().isDone() || stateTicks % 40 == 1) travel(goal);
-		if (stuckTicks < 60) return true;
-		stuckTicks = 0;
-		bestDistance = distance;
-		return unstick(level, goal, mayDig);
-	}
-
-	private boolean unstick(ServerLevel level, Vec3 goal, boolean mayDig) {
-		if (widen(level, goal)) return true;
-		BlockPos feet = drone.blockPosition();
-		double dx = goal.x - drone.getX(), dz = goal.z - drone.getZ();
-		Direction dir = Math.abs(dx) >= Math.abs(dz) ? (dx >= 0 ? Direction.EAST : Direction.WEST) : (dz >= 0 ? Direction.SOUTH : Direction.NORTH);
-		BlockPos front = feet.relative(dir, 1);
-		boolean frontFree = level.getBlockState(front).getCollisionShape(level, front).isEmpty();
-		boolean frontFloor = !level.getBlockState(front.below()).getCollisionShape(level, front.below()).isEmpty();
-		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
-		if (frontFree && !frontFloor && drone.fillCount() > 0) return drone.placeFill(front.below()); // a bridge block
-		if (goal.y > drone.getY() + 1.5) {
-			// it cannot get up: a step of stone, or stairs cut into the wall
-			if (frontFree && frontFloor && drone.fillCount() > 0) return drone.placeFill(front);
-			if (griefing) return planCube(level, goal, false);
-		}
-		if (mayDig && griefing) return planCube(level, goal, false);
-		return false;
-	}
-
-	/**
-	 * A passage too narrow or low for a 2-block drone: the solid blocks in its 2x2 cross-section a
-	 * step ahead (toward the goal) are dug out. False when nothing there can be dug.
-	 */
-	private boolean widen(ServerLevel level, Vec3 goal) {
-		if (!level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING)) return false;
-		Vec3 direction = goal.subtract(drone.position()).multiply(1, 0, 1);
-		if (direction.lengthSqr() < 1e-4) return false;
-		direction = direction.normalize();
-		var box = drone.getBoundingBox().move(direction.scale(0.9)).setMaxY(drone.getY() + 1.95).deflate(0.05, 0, 0.05).move(0, 0.05, 0);
-		List<BlockPos> blocking = new ArrayList<>();
-		for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY, box.minZ), BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
-			if (level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) continue;
-			if (!diggable(level, pos) || !drone.canTake(level.getBlockState(pos)) || !reach(pos)) return false;
-			blocking.add(pos.immutable());
-		}
-		if (blocking.isEmpty()) return false;
-		cube.clear();
-		cube.addAll(blocking);
-		cubeExit = BlockPos.containing(drone.position().add(direction));
-		cubeTicks = 0;
-		return true;
-	}
-
-	/** Paths over long distances in legs the pathfinder can plan. */
-	private void travel(Vec3 goal) {
-		Vec3 from = drone.position();
-		Vec3 leg = goal;
-		if (from.distanceTo(goal) > 40) {
-			Vec3 step = from.add(goal.subtract(from).normalize().scale(32));
-			leg = new Vec3(step.x, drone.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) step.x, (int) step.z), step.z);
-		}
-		if (!drone.getNavigation().moveTo(leg.x, leg.y, leg.z, 1.0))
-			drone.getMoveControl().setWantedPosition(leg.x, leg.y, leg.z, 1.0);
-	}
-
 	// ---- CARRY ----
 
-	/**
-	 * The load goes to the edge of the hatchery (the hatchery itself is solid). Underground the drone
-	 * takes an existing way out when the pathfinder finds one, else walks back along its own tunnel,
-	 * and only when that is gone too digs stairs up.
-	 */
-	private void carry(ServerLevel level) {
+	/** The load goes to the edge of the hatchery (the hatchery itself is solid). */
+	private void carry(ServerLevel level, boolean griefing) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		if (hive == null) {
 			drone.clearCargo();
@@ -550,19 +448,14 @@ final class DroneWork extends Goal {
 			to(back == State.TREE && !logs.isEmpty() ? State.TREE : back == State.MINE && mineTarget != null ? State.MINE : State.SEEK);
 			return;
 		}
-		Vec3 edge = flat < 0.01 ? centre.add(5, 0, 0) : centre.add(dx / flat * 5.5, 0, dz / flat * 5.5);
-		boolean underground = !level.canSeeSky(drone.blockPosition().above());
-		if (underground && stateTicks % 40 == 1) {
-			Path path = drone.getNavigation().createPath(BlockPos.containing(edge), 2);
-			homeReachable = path != null && path.canReach();
-		}
-		if (underground && !homeReachable && !trail.isEmpty()) {
-			BlockPos back = trail.peekLast();
-			if (drone.position().distanceToSqr(Vec3.atBottomCenterOf(back)) < 2.5) trail.pollLast();
-			else if (!walk(level, Vec3.atBottomCenterOf(back), true)) trail.pollLast();
-			return;
-		}
-		walk(level, edge, underground);
+		Vec3 edge = flat < 0.01 ? centre.add(5.5, 0, 0) : centre.add(dx / flat * 5.5, 0, dz / flat * 5.5);
+		// leg by leg when far: the plan's reach is 40 blocks
+		Vec3 goal = drone.position().distanceTo(edge) > 36 ? surface(level, drone.position().add(edge.subtract(drone.position()).normalize().scale(32))) : edge;
+		if (moveTo(level, goal, 2.5, griefing) == Move.FAILED) resetMove();
+	}
+
+	private Vec3 surface(ServerLevel level, Vec3 point) {
+		return new Vec3(point.x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(point.x), (int) Math.floor(point.z)), point.z);
 	}
 
 	// ---- EXPLORE ----
@@ -571,44 +464,42 @@ final class DroneWork extends Goal {
 		BlockPos home = drone.home() != null ? drone.home() : drone.blockPosition();
 		double radius = Math.min(96, 16 << Math.min(misses, 3));
 		double angle = drone.getRandom().nextDouble() * Math.PI * 2;
-		double x = home.getX() + Math.cos(angle) * radius, z = home.getZ() + Math.sin(angle) * radius;
-		exploreTo = new Vec3(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) x, (int) z), z);
+		exploreTo = surface(level, new Vec3(home.getX() + Math.cos(angle) * radius, 0, home.getZ() + Math.sin(angle) * radius));
 		to(State.EXPLORE);
 	}
 
 	private void explore(ServerLevel level, boolean griefing) {
-		if (exploreTo == null || stateTicks > 900 || drone.position().distanceToSqr(exploreTo) < 16) {
-			misses++;
-			if (griefing && misses >= 2 && drone.getRandom().nextBoolean()) {
-				// walks found nothing: stairs down to look deeper
-				double angle = drone.getRandom().nextDouble() * Math.PI * 2;
-				BlockPos head = drone.blockPosition();
-				mineTarget = head.offset((int) (Math.cos(angle) * 14), -6 - drone.getRandom().nextInt(10), (int) (Math.sin(angle) * 14));
-				deep = true;
-				to(State.MINE);
-			} else {
-				to(State.SEEK);
-				seekCooldown = 0;
-			}
-			return;
+		Vec3 goal = exploreTo == null ? null
+			: drone.position().distanceTo(exploreTo) > 36 ? surface(level, drone.position().add(exploreTo.subtract(drone.position()).normalize().scale(32))) : exploreTo;
+		Move move = goal == null ? Move.FAILED : moveTo(level, goal, 4, false);
+		boolean done = exploreTo == null || stateTicks > 1200 || drone.position().distanceTo(exploreTo) < 5 || move == Move.FAILED;
+		if (!done) return;
+		misses++;
+		if (griefing && misses >= 2 && drone.getRandom().nextBoolean()) {
+			// walks found nothing: stairs down to look deeper
+			double angle = drone.getRandom().nextDouble() * Math.PI * 2;
+			mineTarget = drone.blockPosition().offset((int) (Math.cos(angle) * 14), -6 - drone.getRandom().nextInt(10), (int) (Math.sin(angle) * 14));
+			deep = true;
+			to(State.MINE);
+		} else {
+			to(State.SEEK);
+			seekCooldown = 0;
 		}
-		if (!walk(level, exploreTo, false)) exploreTo = null;
 	}
 
 	// ---- RAID ----
 
-	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> MECHANISMS =
-		net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, StarMine.id("raid_mechanisms"));
-
 	/**
-	 * A drone on a raid opens the way for the party (digs through walls, bridges gaps), and at the
-	 * target steals food from chests and barrels and breaks mechanisms and crops within 10 blocks.
+	 * A drone on a raid opens the way for the party (digs through walls, builds stairs and bridges),
+	 * and at the target steals food from containers and breaks mechanisms and crops within 10 blocks.
 	 */
 	private void raid(ServerLevel level, boolean griefing) {
 		BlockPos target = drone.raidTarget();
+		if (target == null) return;
 		Vec3 goal = Vec3.atBottomCenterOf(target);
 		if (drone.position().distanceTo(goal) > 10) {
-			walk(level, goal, griefing);
+			Vec3 leg = drone.position().distanceTo(goal) > 36 ? surface(level, drone.position().add(goal.subtract(drone.position()).normalize().scale(32))) : goal;
+			moveTo(level, leg, 8, griefing);
 			return;
 		}
 		if (stateTicks % 20 == 0) stealFood(level);
@@ -623,24 +514,21 @@ final class DroneWork extends Goal {
 				victim = pos.immutable();
 			}
 		}
-		if (victim == null) {
-			if (drone.getNavigation().isDone()) walk(level, goal.add(drone.getRandom().nextGaussian() * 5, 0, drone.getRandom().nextGaussian() * 5), false);
-			return;
-		}
+		if (victim == null) return;
 		if (reach(victim)) start(level, victim);
-		else walk(level, Vec3.atBottomCenterOf(victim), true);
+		else if (moveTo(level, Vec3.atBottomCenterOf(victim), 2.8, true) == Move.FAILED) resetMove();
 	}
 
 	/** Food is taken out of the chests, barrels and other containers within reach (it is eaten). */
 	private void stealFood(ServerLevel level) {
 		for (BlockPos pos : BlockPos.betweenClosed(drone.blockPosition().offset(-3, -2, -3), drone.blockPosition().offset(3, 3, 3))) {
-			if (!(level.getBlockEntity(pos) instanceof net.minecraft.world.Container container)) continue;
+			if (!(level.getBlockEntity(pos) instanceof Container container)) continue;
 			for (int slot = 0; slot < container.getContainerSize(); slot++) {
-				var stack = container.getItem(slot);
-				if (!stack.isEmpty() && stack.has(net.minecraft.core.component.DataComponents.FOOD)) {
-					container.setItem(slot, net.minecraft.world.item.ItemStack.EMPTY);
+				ItemStack stack = container.getItem(slot);
+				if (!stack.isEmpty() && stack.has(DataComponents.FOOD)) {
+					container.setItem(slot, ItemStack.EMPTY);
 					drone.swing(InteractionHand.MAIN_HAND);
-					drone.playSound(net.minecraft.sounds.SoundEvents.GENERIC_EAT, 1.0f, 0.8f);
+					drone.playSound(SoundEvents.GENERIC_EAT, 1.0f, 0.8f);
 					container.setChanged();
 					return;
 				}
@@ -700,8 +588,6 @@ final class DroneWork extends Goal {
 		} else if (state == State.MINE && done.equals(mineTarget)) {
 			release(mineTarget);
 			if (!nextInVein(level) && !deep) to(State.SEEK);
-		} else if (!cube.isEmpty() && cube.peek().equals(done)) {
-			cube.poll();
 		}
 	}
 

@@ -26,6 +26,21 @@ public final class Hive {
 	/** Minerals ever brought in: the worker target grows with it. */
 	public int mineralsCollected;
 	public int larvaTimer, decisionTimer, queenTicks = -1;
+	/**
+	 * Cells drones of this hive walk (body corners): their floors are never dug, so new tunnels do not
+	 * cut the ways to the hatchery and to targets. Oldest are forgotten past {@link #MAX_ROUTES}.
+	 */
+	public final java.util.LinkedHashSet<Long> routes = new java.util.LinkedHashSet<>();
+	public static final int MAX_ROUTES = 6000;
+
+	public void addRoute(BlockPos feet) {
+		if (routes.add(feet.asLong()) && routes.size() > MAX_ROUTES) {
+			var it = routes.iterator();
+			it.next();
+			it.remove();
+		}
+	}
+
 	/** Game time the next raid may start. */
 	public long nextRaid;
 	/** The thick creep under the hatchery has been laid. */
@@ -101,6 +116,7 @@ public final class Hive {
 		tag.putInt("queenTicks", queenTicks);
 		tag.putBoolean("foundation", foundation);
 		tag.putLong("nextRaid", nextRaid);
+		tag.putLongArray("routes", routes.stream().mapToLong(Long::longValue).toArray());
 		CompoundTag counts = new CompoundTag();
 		members.forEach((kind, n) -> counts.putInt(kind.name(), n));
 		tag.put("members", counts);
@@ -121,6 +137,7 @@ public final class Hive {
 		hive.queenTicks = tag.getInt("queenTicks");
 		hive.foundation = tag.getBoolean("foundation");
 		hive.nextRaid = tag.getLong("nextRaid");
+		for (long cell : tag.getLongArray("routes")) hive.routes.add(cell);
 		readCounts(tag.getCompound("members"), hive.members);
 		readCounts(tag.getCompound("pending"), hive.pending);
 		return hive;

@@ -14,6 +14,17 @@ repositories {
 loom {
 	splitEnvironmentSourceSets()
 
+	// In-game tests (src/main/java/dev/starmine/entity/DroneGameTests.java): gradlew runGametest
+	runs {
+		gametest {
+			inherit server
+			name "Game Test"
+			vmArg "-Dfabric-api.gametest"
+			vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest/junit.xml"
+			runDir "build/gametest"
+		}
+	}
+
 	mods {
 		"starmine" {
 			sourceSet sourceSets.main
