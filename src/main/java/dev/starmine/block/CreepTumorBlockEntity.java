@@ -17,6 +17,8 @@ import net.minecraft.world.level.block.state.BlockState;
 public class CreepTumorBlockEntity extends BlockEntity {
 	private int age;
 	private boolean spawned;
+	/** Game time it was planted (synced to clients: it turns invisible 5 s later). */
+	private long plantedAt = -1;
 
 	public CreepTumorBlockEntity(BlockPos pos, BlockState state) {
 		super(StarMineBlocks.CREEP_TUMOR_ENTITY, pos, state);
@@ -24,6 +26,11 @@ public class CreepTumorBlockEntity extends BlockEntity {
 
 	public static void serverTick(Level level, BlockPos pos, BlockState state, CreepTumorBlockEntity tumor) {
 		if (!(level instanceof ServerLevel server)) return;
+		if (tumor.plantedAt < 0) {
+			tumor.plantedAt = level.getGameTime();
+			tumor.setChanged();
+			level.sendBlockUpdated(pos, state, state, 3);
+		}
 		CreepGrowth.grow(server, pos, CreepSources.TUMOR_RADIUS);
 		tumor.age++;
 		if (!tumor.spawned && tumor.age >= 220 && tumor.age % 40 == 0) {
@@ -39,6 +46,7 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		super.saveAdditional(tag, registries);
 		tag.putInt("age", age);
 		tag.putBoolean("spawned", spawned);
+		tag.putLong("plantedAt", plantedAt);
 	}
 
 	@Override
@@ -46,5 +54,21 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		super.loadAdditional(tag, registries);
 		age = tag.getInt("age");
 		spawned = tag.getBoolean("spawned");
+		plantedAt = tag.contains("plantedAt") ? tag.getLong("plantedAt") : -1;
+	}
+
+	/** Visible for 5 s after planting, then hidden like a burrowed SC2 tumor. */
+	public boolean visible(long gameTime) {
+		return plantedAt < 0 || gameTime - plantedAt < 100;
+	}
+
+	@Override
+	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+		return saveWithoutMetadata(registries);
+	}
+
+	@Override
+	public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getUpdatePacket() {
+		return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
 	}
 }

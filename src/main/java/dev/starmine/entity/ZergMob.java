@@ -212,6 +212,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
 		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
+		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
 		if (kind == ZergKind.DRONE) defendOnly();
 		if (kind.structure()) pushOffTop();
 		if (this.tickCount % 10 == 0) creepEffects(server);
@@ -256,6 +257,39 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			this.setTarget(null);
 			defendTicks = 0;
 		}
+	}
+
+	/**
+	 * A zerg that appears on creep without a hive (a spawn egg) joins the nearest hive of this
+	 * dimension within 64 blocks: drones work for it, warriors guard it.
+	 */
+	private void adoptByNearestHive(ServerLevel server) {
+		if (!CreepTouch.onCreep(this)) return;
+		String dimension = server.dimension().location().toString();
+		HiveSavedData data = HiveSavedData.get(server.getServer());
+		Hive nearest = null;
+		double best = 64 * 64;
+		for (Hive hive : data.all()) {
+			if (!hive.dimension.equals(dimension)) continue;
+			double distance = hive.hatchery.distToCenterSqr(this.position());
+			if (distance < best) {
+				best = distance;
+				nearest = hive;
+			}
+		}
+		if (nearest == null) return;
+		joinHive(nearest);
+		data.setDirty();
+	}
+
+	/** Whoever hurts a hive's zerg (or its hatchery) has its warriors on them. */
+	@Override
+	public boolean hurt(DamageSource source, float amount) {
+		boolean hurt = super.hurt(source, amount);
+		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
+			&& !(attacker instanceof ZergMob))
+			HiveLogic.alarm(server, hiveId, this.position(), attacker);
+		return hurt;
 	}
 
 	/** Zerg buildings shove off whatever stands on top of them (owner: nobody camps on a hatchery). */

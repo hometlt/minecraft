@@ -11,7 +11,8 @@ import net.minecraft.core.Direction;
 
 /**
  * Draws a creep tumor from its SC2 model, its base on the face it grows from (floor, wall or
- * ceiling), playing its stand loop; neighbouring tumors are out of step.
+ * ceiling), playing its stand loop; neighbouring tumors are out of step. 5 s after planting it is no
+ * longer drawn (the creep under it stays: that is the block model).
  */
 public class CreepTumorRenderer implements BlockEntityRenderer<CreepTumorBlockEntity> {
 	private final SkinnedModelDrawer drawer = new SkinnedModelDrawer();
@@ -23,7 +24,7 @@ public class CreepTumorRenderer implements BlockEntityRenderer<CreepTumorBlockEn
 	@Override
 	public void render(CreepTumorBlockEntity tumor, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light, int overlay) {
 		SkinnedModel model = StarMineModels.get("creeptumor");
-		if (model == null || tumor.getLevel() == null) return;
+		if (model == null || tumor.getLevel() == null || !tumor.visible(tumor.getLevel().getGameTime())) return;
 		SkinnedModel.Clip stand = model.clips.get("stand");
 		if (stand == null) return;
 		if (palette.length != model.slots * 12) palette = new float[model.slots * 12];

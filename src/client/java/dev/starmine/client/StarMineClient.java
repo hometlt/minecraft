@@ -20,6 +20,6 @@ public final class StarMineClient implements ClientModInitializer {
 		for (ZergKind kind : ZergKind.values()) EntityRendererRegistry.register(StarMine.type(kind), ZergRenderer::new);
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
-		BlockRenderLayerMap.INSTANCE.putBlock(StarMineBlocks.CREEP, RenderType.cutout());
+		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), StarMineBlocks.CREEP, StarMineBlocks.CREEP_TUMOR);
 	}
 }

@@ -9,6 +9,9 @@ import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -66,6 +69,7 @@ public final class HiveLogic {
 			hive.born(ZergKind.QUEEN, 1);
 			spawn(level, hive, ZergKind.QUEEN, around(hatchery, level), null);
 		}
+		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
 		if (++hive.decisionTimer >= DECISION_TICKS) {
 			hive.decisionTimer = 0;
 			decide(hatchery, level, hive);
@@ -99,6 +103,33 @@ public final class HiveLogic {
 			return;
 		}
 		if (hive.canAfford(ZergKind.ZERGLING, 2)) morph(larva, level, hive, ZergKind.ZERGLING, 2, false);
+	}
+
+	/**
+	 * A player (not in creative or spectator) or a hostile creature within 16 blocks of the hatchery is a
+	 * threat: the hive's warriors attack it.
+	 */
+	private static void watchForThreats(ZergMob hatchery, ServerLevel level, Hive hive) {
+		LivingEntity threat = null;
+		double best = 16 * 16;
+		for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, hatchery.getBoundingBox().inflate(16),
+			entity -> entity.isAlive() && !(entity instanceof ZergMob)
+				&& (entity instanceof Player player ? !player.isCreative() && !player.isSpectator() : entity instanceof Enemy))) {
+			double distance = other.distanceToSqr(hatchery);
+			if (distance < best) {
+				best = distance;
+				threat = other;
+			}
+		}
+		if (threat != null) alarm(level, hive.id, hatchery.position(), threat);
+	}
+
+	/** The hive's warriors within 32 blocks of the alarm and without a target go for the attacker. */
+	public static void alarm(ServerLevel level, java.util.UUID hiveId, Vec3 where, LivingEntity attacker) {
+		for (ZergMob guard : level.getEntitiesOfClass(ZergMob.class, new AABB(where, where).inflate(32),
+			mob -> hiveId.equals(mob.hiveId()) && mob.isAlive() && mob.getTarget() == null && mob.kind != ZergKind.DRONE
+				&& mob.kind.attack != ZergKind.Attack.NONE && !mob.kind.structure()))
+			guard.setTarget(attacker);
 	}
 
 	/** Larva to cocoon: pays (unless free), reserves supply, and the cocoon hatches after the SC2 time. */
