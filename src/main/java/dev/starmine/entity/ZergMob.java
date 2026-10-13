@@ -10,7 +10,19 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
+import dev.starmine.hive.HiveResources;
+import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -47,7 +59,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
-import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 
 /**
@@ -67,8 +78,9 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
  * kinds hover above the ground; the overlord ferries zerg that cannot reach their target; zerg near
  * an overseer see invisible players and creatures, which glow around the overseer.
  *
- * Drone: works for its hive ({@link DroneWork}: trees, ores, tunnels, carrying), climbs walls and
- * trunks like a spider, never starts a fight and gives up defending itself after 10 s or 6 blocks.
+ * Drone: works for its hive ({@link DroneWork}: trees, ores, tunnels, carrying), carries its load in
+ * front of it (dropped if it dies), never starts a fight and gives up defending itself after 10 s or
+ * 6 blocks. Buildings shove off whoever stands on top of them.
  */
 public class ZergMob extends Monster implements RangedAttackMob {
 	public final ZergKind kind;
@@ -86,9 +98,14 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private int unreachable;
 	/** An overseer is near: invisible players and creatures are seen (see the visibility mixin). */
 	private boolean overseerNear;
-	/** Drone: what it carries to the hatchery, and whether it is climbing a wall or trunk. */
+	/**
+	 * Drone: the resources it carries to the hatchery and the blocks they came from (shown in front of
+	 * it, dropped if it dies), plus fill — dug stone and earth it builds bridges and steps with.
+	 */
 	public int cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks;
-	private boolean climbing;
+	private final List<ItemStack> cargoItems = new ArrayList<>();
+	private ItemStack fill = ItemStack.EMPTY;
+	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(ZergMob.class, EntityDataSerializers.ITEM_STACK);
 	/** Drone defending itself: ticks since it took up its attacker. */
 	private int defendTicks;
 
@@ -121,7 +138,6 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	protected PathNavigation createNavigation(Level level) {
-		if (StarMine.kindOf(this.getType()) == ZergKind.DRONE) return new WallClimberNavigation(this, level);
 		if (!StarMine.kindOf(this.getType()).flying) return super.createNavigation(level);
 		FlyingPathNavigation navigation = new FlyingPathNavigation(this, level);
 		navigation.setCanOpenDoors(false);
@@ -190,10 +206,8 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
 		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
-		if (kind == ZergKind.DRONE) {
-			climbing = this.horizontalCollision;
-			defendOnly();
-		}
+		if (kind == ZergKind.DRONE) defendOnly();
+		if (kind.structure()) pushOffTop();
 		if (this.tickCount % 10 == 0) creepEffects(server);
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
@@ -238,30 +252,99 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		}
 	}
 
-	@Override
-	public boolean onClimbable() {
-		return kind == ZergKind.DRONE ? climbing : super.onClimbable();
+	/** Zerg buildings shove off whatever stands on top of them (owner: nobody camps on a hatchery). */
+	private void pushOffTop() {
+		AABB box = this.getBoundingBox();
+		AABB top = new AABB(box.minX, box.maxY - 0.5, box.minZ, box.maxX, box.maxY + 2, box.maxZ);
+		for (Entity other : this.level().getEntities(this, top, entity -> !(entity instanceof ZergMob zerg && zerg.kind.structure()))) {
+			if (other.getY() < box.maxY - 0.6 || other.isPassenger()) continue;
+			double dx = other.getX() - this.getX(), dz = other.getZ() - this.getZ();
+			double length = Math.sqrt(dx * dx + dz * dz);
+			if (length < 0.01) {
+				double angle = this.random.nextDouble() * Math.PI * 2;
+				dx = Math.cos(angle);
+				dz = Math.sin(angle);
+				length = 1;
+			}
+			other.setDeltaMovement(dx / length * 0.7, 0.35, dz / length * 0.7);
+			other.hurtMarked = true;
+		}
 	}
 
-	public void addCargo(dev.starmine.hive.HiveResources.Yield yield) {
-		if (!yield.any()) return;
-		cargoMinerals += yield.minerals();
-		cargoVespene += yield.vespene();
-		cargoDiamonds += yield.diamonds();
-		cargoBlocks++;
+	/** A drone takes a block it broke: resources go to its load, plain stone and earth to its fill. */
+	public void collect(BlockState state) {
+		HiveResources.Yield yield = HiveResources.yieldOf(state);
+		Item item = state.getBlock().asItem();
+		if (yield.any()) {
+			cargoMinerals += yield.minerals();
+			cargoVespene += yield.vespene();
+			cargoDiamonds += yield.diamonds();
+			cargoBlocks++;
+			if (item != Items.AIR) {
+				boolean merged = false;
+				for (ItemStack stack : cargoItems)
+					if (stack.is(item) && stack.getCount() < stack.getMaxStackSize()) {
+						stack.grow(1);
+						merged = true;
+						break;
+					}
+				if (!merged) cargoItems.add(new ItemStack(item));
+			}
+		} else if (item != Items.AIR && item instanceof BlockItem && !state.is(BlockTags.LEAVES) && fill.getCount() < DroneWork.FILL) {
+			if (fill.isEmpty()) fill = new ItemStack(item);
+			else fill.grow(1);
+		}
+		updateCarried();
 	}
 
-	public int cargoValue() {
-		return cargoMinerals + cargoVespene * 2 + cargoDiamonds * 50;
+	public int fillCount() {
+		return fill.getCount();
 	}
 
-	/** A drone goes home with a load: SC2 carries 5 minerals a trip; here a few blocks' worth. */
-	public boolean cargoFull() {
-		return cargoValue() >= 10 || cargoBlocks >= 4;
+	/** Puts a fill block (bridge, step); false when there is none or the place is taken. */
+	public boolean placeFill(BlockPos pos) {
+		if (fill.isEmpty() || !(fill.getItem() instanceof BlockItem blockItem)) return false;
+		BlockState there = this.level().getBlockState(pos);
+		if (!there.canBeReplaced()) return false;
+		BlockState placed = blockItem.getBlock().defaultBlockState();
+		this.level().setBlockAndUpdate(pos, placed);
+		this.playSound(placed.getSoundType().getPlaceSound(), 1.0f, 1.0f);
+		this.swing(InteractionHand.MAIN_HAND);
+		fill.shrink(1);
+		updateCarried();
+		return true;
 	}
 
+	/** The load is delivered; the fill stays with the drone. */
 	public void clearCargo() {
 		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;
+		cargoItems.clear();
+		updateCarried();
+	}
+
+	/** What the client draws in front of the drone: its load, else its fill. */
+	private void updateCarried() {
+		ItemStack shown = !cargoItems.isEmpty() ? cargoItems.get(0).copyWithCount(Math.max(1, cargoBlocks)) : fill.copy();
+		this.entityData.set(CARRIED, shown);
+	}
+
+	public ItemStack carried() {
+		return this.entityData.get(CARRIED);
+	}
+
+	@Override
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(CARRIED, ItemStack.EMPTY);
+	}
+
+	@Override
+	protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
+		super.dropCustomDeathLoot(level, source, recentlyHit);
+		for (ItemStack stack : cargoItems) this.spawnAtLocation(stack.copy());
+		if (!fill.isEmpty()) this.spawnAtLocation(fill.copy());
+		cargoItems.clear();
+		fill = ItemStack.EMPTY;
 	}
 
 	/**
@@ -364,6 +447,12 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
 		if (cargoBlocks > 0) tag.putIntArray("StarMineCargo", new int[] {cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks});
+		if (!cargoItems.isEmpty() || !fill.isEmpty()) {
+			ListTag items = new ListTag();
+			for (ItemStack stack : cargoItems) items.add(stack.save(this.registryAccess()));
+			tag.put("StarMineCargoItems", items);
+			if (!fill.isEmpty()) tag.put("StarMineFill", fill.save(this.registryAccess()));
+		}
 		if (cocoonKind != null) {
 			tag.putString("StarMineCocoon", cocoonKind.name());
 			tag.putInt("StarMineCocoonCount", cocoonCount);
@@ -383,6 +472,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			cargoDiamonds = cargo[2];
 			cargoBlocks = cargo[3];
 		}
+		cargoItems.clear();
+		for (Tag item : tag.getList("StarMineCargoItems", Tag.TAG_COMPOUND))
+			ItemStack.parse(this.registryAccess(), item).ifPresent(cargoItems::add);
+		fill = tag.contains("StarMineFill") ? ItemStack.parse(this.registryAccess(), tag.get("StarMineFill")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
+		if (kind == ZergKind.DRONE) updateCarried();
 		if (tag.contains("StarMineCocoon")) {
 			try {
 				cocoonKind = ZergKind.valueOf(tag.getString("StarMineCocoon"));

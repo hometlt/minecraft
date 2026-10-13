@@ -5,7 +5,11 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.starmine.StarMine;
 import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.ZergKind;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -26,8 +30,11 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 	private float[] palette = new float[0], second = new float[0];
 	private final SkinnedModelDrawer drawer = new SkinnedModelDrawer();
 
+	private final ItemRenderer items;
+
 	public ZergRenderer(EntityRendererProvider.Context context) {
 		super(context);
+		this.items = context.getItemRenderer();
 		this.shadowRadius = 0.5f;
 	}
 
@@ -64,9 +71,25 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 			if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
 			drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
+			if (entity.kind == ZergKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
+	}
+
+	/** The drone's load (or fill) as up to three blocks held in front of its head. */
+	private void drawCarried(ZergMob drone, SkinnedModel model, PoseStack poseStack, MultiBufferSource buffers, int light) {
+		ItemStack carried = drone.carried();
+		if (carried.isEmpty()) return;
+		int cubes = Math.min(3, 1 + (carried.getCount() - 1) / 4);
+		ItemStack one = carried.copyWithCount(1);
+		for (int i = 0; i < cubes; i++) {
+			poseStack.pushPose();
+			poseStack.translate(0, model.size[1] * 0.35 + i * 0.3, model.size[2] * 0.5 + 0.1);
+			poseStack.scale(0.5f, 0.5f, 0.5f);
+			items.renderStatic(one, ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY, poseStack, buffers, drone.level(), drone.getId() + i);
+			poseStack.popPose();
+		}
 	}
 
 	private void choosePose(SkinnedModel model, ZergMob entity, float partialTick) {
