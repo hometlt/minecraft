@@ -29,6 +29,23 @@ public final class StarMineBlocks {
 		.mapColor(MapColor.COLOR_PURPLE).strength(1.5f).sound(SoundType.SLIME_BLOCK).noOcclusion()
 		.noLootTable().pushReaction(PushReaction.DESTROY)));
 
+	/** Creep growths (own art): tendrils, pustules, vessels, two-block tentacles. */
+	public static final CreepDecorBlock CREEP_TENDRIL = register("creep_tendril", new CreepDecorBlock(decor()));
+	public static final CreepDecorBlock CREEP_PUSTULE = register("creep_pustule", new CreepDecorBlock(decor()));
+	public static final CreepDecorBlock CREEP_VESSELS = register("creep_vessels", new CreepDecorBlock(decor()));
+	public static final CreepTentacleBlock CREEP_TENTACLE = register("creep_tentacle", new CreepTentacleBlock(decor()));
+
+	private static BlockBehaviour.Properties decor() {
+		return BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).noCollission().instabreak()
+			.sound(SoundType.SLIME_BLOCK).noLootTable().pushReaction(PushReaction.DESTROY).randomTicks();
+	}
+
+	/** Creep and everything growing on it (counts as creep for zerg and players standing on it). */
+	public static boolean isCreep(net.minecraft.world.level.block.state.BlockState state) {
+		return state.is(CREEP) || state.is(THICK_CREEP) || state.is(CREEP_TUMOR) || state.is(CREEP_TENDRIL)
+			|| state.is(CREEP_PUSTULE) || state.is(CREEP_VESSELS) || state.is(CREEP_TENTACLE);
+	}
+
 	public static final BlockEntityType<CreepTumorBlockEntity> CREEP_TUMOR_ENTITY = Registry.register(
 		BuiltInRegistries.BLOCK_ENTITY_TYPE, StarMine.id("creep_tumor"),
 		BlockEntityType.Builder.of(CreepTumorBlockEntity::new, CREEP_TUMOR).build(null));

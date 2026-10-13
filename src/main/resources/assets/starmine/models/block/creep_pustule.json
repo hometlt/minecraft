@@ -1,0 +1,218 @@
+{
+	"textures": {
+		"particle": "starmine:block/creep_pustule",
+		"creep": "starmine:block/sc2/creep",
+		"pustule": "starmine:block/creep_pustule"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0.1,
+				0
+			],
+			"to": [
+				16,
+				0.1,
+				16
+			],
+			"faces": {
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#creep"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#creep"
+				}
+			}
+		},
+		{
+			"from": [
+				3,
+				0,
+				3
+			],
+			"to": [
+				8,
+				4,
+				8
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						3,
+						12,
+						8,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"south": {
+					"uv": [
+						3,
+						12,
+						8,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"east": {
+					"uv": [
+						3,
+						12,
+						8,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"west": {
+					"uv": [
+						3,
+						12,
+						8,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"up": {
+					"uv": [
+						3,
+						3,
+						8,
+						8
+					],
+					"texture": "#pustule"
+				}
+			}
+		},
+		{
+			"from": [
+				9,
+				0,
+				6
+			],
+			"to": [
+				13,
+				3,
+				10
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						9,
+						13,
+						13,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"south": {
+					"uv": [
+						9,
+						13,
+						13,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"east": {
+					"uv": [
+						9,
+						13,
+						13,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"west": {
+					"uv": [
+						9,
+						13,
+						13,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"up": {
+					"uv": [
+						9,
+						6,
+						13,
+						10
+					],
+					"texture": "#pustule"
+				}
+			}
+		},
+		{
+			"from": [
+				5,
+				0,
+				10
+			],
+			"to": [
+				9,
+				5,
+				14
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						5,
+						11,
+						9,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"south": {
+					"uv": [
+						5,
+						11,
+						9,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"east": {
+					"uv": [
+						5,
+						11,
+						9,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"west": {
+					"uv": [
+						5,
+						11,
+						9,
+						16
+					],
+					"texture": "#pustule"
+				},
+				"up": {
+					"uv": [
+						5,
+						10,
+						9,
+						14
+					],
+					"texture": "#pustule"
+				}
+			}
+		}
+	]
+}

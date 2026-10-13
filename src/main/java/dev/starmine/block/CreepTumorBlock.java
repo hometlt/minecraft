@@ -26,12 +26,30 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * Creep tumor (SC2 model): stands on any face of a block (floor, wall, ceiling) — FACING points away
  * from the block it grows on. It is a creep source of radius 10 and, like in SC2, spawns one more
  * tumor at the edge of its creep once ({@link CreepTumorBlockEntity}). Owner: it does not block walking,
- * turns invisible 5 s after it is planted (like a burrowed SC2 tumor), lies on creep, and dies when the
- * block it grows on is broken.
+ * turns invisible 5 s after it is planted (like a burrowed SC2 tumor) but can still be hit and broken,
+ * lies on creep, and dies when the block it grows on is broken.
  */
 public class CreepTumorBlock extends BaseEntityBlock {
 	public static final MapCodec<CreepTumorBlock> CODEC = simpleCodec(CreepTumorBlock::new);
 	public static final DirectionProperty FACING = BlockStateProperties.FACING;
+	/** A flat outline (4 px) against the supporting face, for aiming at it; nothing to bump into. */
+	private static final VoxelShape[] SHAPES = new VoxelShape[6];
+
+	static {
+		for (Direction d : Direction.values()) {
+			double x0 = 3, y0 = 3, z0 = 3, x1 = 13, y1 = 13, z1 = 13;
+			switch (d) {
+				case UP -> { y0 = 0; y1 = 4; }
+				case DOWN -> { y0 = 12; y1 = 16; }
+				case NORTH -> { z0 = 12; z1 = 16; }
+				case SOUTH -> { z0 = 0; z1 = 4; }
+				case WEST -> { x0 = 12; x1 = 16; }
+				case EAST -> { x0 = 0; x1 = 4; }
+			}
+			SHAPES[d.ordinal()] = Block.box(x0, y0, z0, x1, y1, z1);
+		}
+	}
+
 	public CreepTumorBlock(Properties properties) {
 		super(properties);
 		registerDefaultState(stateDefinition.any().setValue(FACING, Direction.UP));
@@ -53,10 +71,10 @@ public class CreepTumorBlock extends BaseEntityBlock {
 		return RenderShape.MODEL;
 	}
 
-	/** Like a burrowed SC2 tumor it is not in the way: nothing to bump into or to aim at. */
+	/** It can be hit and broken (owner): a low outline on the face it grows from. */
 	@Override
 	protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-		return Shapes.empty();
+		return SHAPES[state.getValue(FACING).ordinal()];
 	}
 
 	@Override

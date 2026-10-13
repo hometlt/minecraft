@@ -13,7 +13,7 @@ public final class CreepTouch {
 	public static boolean onCreep(Entity entity) {
 		BlockPos feet = entity.blockPosition();
 		BlockState here = entity.level().getBlockState(feet);
-		if (here.is(StarMineBlocks.CREEP) || here.is(StarMineBlocks.THICK_CREEP) || here.is(StarMineBlocks.CREEP_TUMOR)) return true;
+		if (StarMineBlocks.isCreep(here)) return true;
 		return entity.level().getBlockState(feet.below()).is(StarMineBlocks.THICK_CREEP);
 	}
 }

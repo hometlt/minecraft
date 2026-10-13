@@ -141,5 +141,9 @@
 	"message.starmine.hive_limit": "A world holds at most %s zerg hives",
 	"block.starmine.thick_creep": "Thick Creep",
 	"block.starmine.creep": "Creep",
-	"block.starmine.creep_tumor": "Creep Tumor"
+	"block.starmine.creep_tumor": "Creep Tumor",
+	"block.starmine.creep_tendril": "Creep Tendril",
+	"block.starmine.creep_pustule": "Creep Pustules",
+	"block.starmine.creep_vessels": "Creep Vessels",
+	"block.starmine.creep_tentacle": "Creep Tentacle"
 }

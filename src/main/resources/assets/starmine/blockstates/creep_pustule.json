@@ -1,0 +1,22 @@
+{
+	"variants": {
+		"": [
+			{
+				"model": "starmine:block/creep_pustule",
+				"y": 0
+			},
+			{
+				"model": "starmine:block/creep_pustule",
+				"y": 90
+			},
+			{
+				"model": "starmine:block/creep_pustule",
+				"y": 180
+			},
+			{
+				"model": "starmine:block/creep_pustule",
+				"y": 270
+			}
+		]
+	}
+}

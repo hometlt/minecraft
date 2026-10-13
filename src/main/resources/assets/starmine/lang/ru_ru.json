@@ -141,5 +141,9 @@
 	"message.starmine.hive_limit": "В мире может быть не больше %s ульев зергов",
 	"block.starmine.thick_creep": "Густая слизь",
 	"block.starmine.creep": "Слизь",
-	"block.starmine.creep_tumor": "Опухоль слизи"
+	"block.starmine.creep_tumor": "Опухоль слизи",
+	"block.starmine.creep_tendril": "Щупальце слизи",
+	"block.starmine.creep_pustule": "Наросты слизи",
+	"block.starmine.creep_vessels": "Сосуды слизи",
+	"block.starmine.creep_tentacle": "Щупальце-переросток"
 }

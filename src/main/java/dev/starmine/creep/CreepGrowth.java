@@ -83,6 +83,7 @@ public final class CreepGrowth {
 				continue;
 			}
 			wither(level, grown);
+			if (decorate(level, grown)) continue;
 			if (s.known.add(grown)) s.cells.add(grown);
 			if (s.cells.size() > MAX_CELLS) drop(s, level.random.nextInt(s.cells.size()));
 		}
@@ -127,6 +128,27 @@ public final class CreepGrowth {
 		if (!state.is(StarMineBlocks.CREEP)) return;
 		BlockState without = state.setValue(MultifaceBlock.getFaceProperty(face), false);
 		level.setBlockAndUpdate(pos, MultifaceBlock.availableFaces(without).isEmpty() ? Blocks.AIR.defaultBlockState() : without);
+	}
+
+	/**
+	 * Now and then a creep floor grows something (owner: so creep-ravaged ground is not all alike): a
+	 * tendril, pustules, vessels or a two-block tentacle. Only on plain floor creep with air above.
+	 */
+	private static boolean decorate(ServerLevel level, BlockPos pos) {
+		if (level.random.nextFloat() >= 0.06f) return false;
+		BlockState state = level.getBlockState(pos);
+		if (!state.is(StarMineBlocks.CREEP) || !MultifaceBlock.hasFace(state, Direction.DOWN) || MultifaceBlock.availableFaces(state).size() > 1) return false;
+		BlockPos below = pos.below();
+		if (!level.getBlockState(below).isFaceSturdy(level, below, Direction.UP) || !level.getBlockState(pos.above()).isAir()) return false;
+		float pick = level.random.nextFloat();
+		if (pick < 0.12f && level.getBlockState(pos.above()).isAir()) {
+			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
+			net.minecraft.world.level.block.DoublePlantBlock.placeAt(level, StarMineBlocks.CREEP_TENTACLE.defaultBlockState(), pos, 3);
+			return true;
+		}
+		Block growth = pick < 0.5f ? StarMineBlocks.CREEP_TENDRIL : pick < 0.75f ? StarMineBlocks.CREEP_PUSTULE : StarMineBlocks.CREEP_VESSELS;
+		level.setBlockAndUpdate(pos, growth.defaultBlockState());
+		return true;
 	}
 
 	/** Plants and natural leaves next to creep die, so creep can grow where they stood. */
