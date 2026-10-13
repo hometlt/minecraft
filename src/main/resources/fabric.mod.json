@@ -5,7 +5,7 @@
 	"name": "StarMine",
 	"description": "StarCraft II zerg in Minecraft. Models, textures and sounds are imported by Modkit from your own StarCraft II installation; this mod ships none of them.",
 	"authors": ["StarMine"],
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"environment": "*",
 	"entrypoints": {
 		"main": ["dev.starmine.StarMine"],
