@@ -80,7 +80,8 @@ final class ZergGoals {
 			List<BlockPos> spots = new ArrayList<>();
 			BlockPos centre = queen.blockPosition();
 			for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-10, -6, -10), centre.offset(10, 6, 10)))
-				if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepSources.nearestSource(level, pos) >= 7) spots.add(pos.immutable());
+				if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepSources.nearestTumor(level, pos) >= CreepSources.TUMOR_SPACING
+					&& CreepSources.nearestSource(level, pos) >= 7) spots.add(pos.immutable());
 			if (spots.isEmpty()) return false;
 			spot = spots.get(queen.getRandom().nextInt(spots.size()));
 			timeout = 300;
@@ -101,7 +102,7 @@ final class ZergGoals {
 		public void tick() {
 			if (spot == null || queen.distanceToSqr(Vec3.atCenterOf(spot)) > 16) return;
 			queen.swing(InteractionHand.MAIN_HAND);
-			CreepGrowth.placeTumor((ServerLevel) queen.level(), spot, 7);
+			CreepGrowth.placeTumor((ServerLevel) queen.level(), spot, CreepSources.TUMOR_SPACING);
 			spot = null;
 		}
 	}

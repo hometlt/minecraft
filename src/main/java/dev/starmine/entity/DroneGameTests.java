@@ -18,7 +18,8 @@ import net.minecraft.world.phys.Vec3;
  * In-game tests of drone movement and work (run with `gradlew runGametest`): the planner digs
  * through a wall, cuts stairs up to a higher goal, bridges a gap with fill, never plans to break the
  * floor of a hive route; and a real drone of a real hive gets to an ore behind a wall and mines it.
- * The arena (`starmine:arena`, 32x12x32) is cleared and floored with stone at relative y = 1.
+ * The arena (`starmine:arena`, 48x12x48; GameTest walls it with barriers) is cleared and floored with stone at relative y = 1. Tests with
+ * a hatchery run in batches of their own: a world holds at most 3 hives.
  */
 public class DroneGameTests implements FabricGameTest {
 	private static final String ARENA = "starmine:arena";
@@ -26,8 +27,14 @@ public class DroneGameTests implements FabricGameTest {
 	/** Clears the arena and lays a stone floor at relative y = 1 (walking height 2). */
 	private static void arena(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
-		for (BlockPos rel : BlockPos.betweenClosed(0, 0, 0, 31, 11, 31))
+		for (BlockPos rel : BlockPos.betweenClosed(0, 0, 0, 47, 11, 47))
 			level.setBlock(helper.absolutePos(rel), rel.getY() == 1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
+	}
+
+	/** A hive test starts with no hives: the test world persists between runs (at most 3 per world). */
+	private static void hiveArena(GameTestHelper helper) {
+		arena(helper);
+		HiveSavedData.get(helper.getLevel().getServer()).clear();
 	}
 
 	private static void fill(GameTestHelper helper, int x0, int y0, int z0, int x1, int y1, int z1, Block block) {
@@ -41,7 +48,7 @@ public class DroneGameTests implements FabricGameTest {
 	@GameTest(template = ARENA)
 	public void plannerDigsThroughWall(GameTestHelper helper) {
 		arena(helper);
-		fill(helper, 12, 2, 0, 13, 5, 31, Blocks.STONE);
+		fill(helper, 12, 2, 0, 13, 5, 47, Blocks.STONE); // wall across the whole arena
 		List<DronePlanner.Step> plan = DronePlanner.plan(helper.getLevel(), helper.absolutePos(new BlockPos(3, 2, 14)),
 			centre(helper, 22, 2, 15), 2.0, Set.of(), true, 0, 4000);
 		helper.assertTrue(plan != null && !plan.isEmpty(), "no plan through the wall");
@@ -59,6 +66,26 @@ public class DroneGameTests implements FabricGameTest {
 		helper.assertTrue(plan != null && !plan.isEmpty(), "no plan up the cliff");
 		int top = plan.stream().mapToInt(step -> step.feet().getY()).max().orElse(0);
 		helper.assertTrue(top >= helper.absolutePos(new BlockPos(0, 8, 0)).getY(), "the plan does not climb to the top");
+		helper.succeed();
+	}
+
+	/** Owner: from underground to the surface by stairs straight up, not by a long level tunnel. */
+	@GameTest(template = ARENA)
+	public void plannerDigsStairsToSurface(GameTestHelper helper) {
+		arena(helper);
+		fill(helper, 0, 2, 0, 31, 10, 31, Blocks.STONE); // 9 blocks of rock
+		fill(helper, 14, 2, 14, 15, 3, 15, Blocks.AIR); // the drone's pocket at the bottom
+		Vec3 goal = centre(helper, 18, 11, 15); // on the surface, 3 blocks aside
+		List<DronePlanner.Step> plan = DronePlanner.plan(helper.getLevel(), helper.absolutePos(new BlockPos(14, 2, 14)), goal, 2.0, Set.of(), true, 0, 6000);
+		helper.assertTrue(plan != null && !plan.isEmpty(), "no way up");
+		BlockPos start = helper.absolutePos(new BlockPos(14, 2, 14));
+		int ups = 0, spread = 0;
+		for (DronePlanner.Step step : plan) {
+			spread = Math.max(spread, Math.max(Math.abs(step.feet().getX() - start.getX()), Math.abs(step.feet().getZ() - start.getZ())));
+		}
+		for (int i = 1; i < plan.size(); i++) if (plan.get(i).feet().getY() > plan.get(i - 1).feet().getY()) ups++;
+		helper.assertTrue(ups >= 7, "not stairs: only " + ups + " steps up");
+		helper.assertTrue(spread <= 14, "a long tunnel instead of stairs: " + spread + " blocks aside");
 		helper.succeed();
 	}
 
@@ -85,14 +112,61 @@ public class DroneGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
+	/** Owner: a tree on the site forbids a hatchery. */
+	@GameTest(template = ARENA, batch = "hiveRefused")
+	public void hatcheryRefusedByTree(GameTestHelper helper) {
+		hiveArena(helper);
+		fill(helper, 10, 2, 10, 10, 5, 10, Blocks.OAK_LOG);
+		ZergMob hatchery = helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(12, 2, 12));
+		helper.runAfterDelay(10, () -> {
+			helper.assertTrue(hatchery.isRemoved(), "a hatchery was founded over a tree");
+			helper.succeed();
+		});
+	}
+
+	/** Owner: a hatchery levels earth and stone on its site. */
+	@GameTest(template = ARENA, batch = "hiveLevel")
+	public void hatcheryLevelsItsSite(GameTestHelper helper) {
+		hiveArena(helper);
+		fill(helper, 9, 2, 9, 14, 4, 14, Blocks.DIRT);
+		ZergMob hatchery = helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(12, 2, 12));
+		helper.runAfterDelay(10, () -> {
+			helper.assertTrue(!hatchery.isRemoved(), "the hatchery was refused");
+			helper.assertBlockNotPresent(Blocks.DIRT, new BlockPos(10, 3, 10));
+			helper.assertBlockNotPresent(Blocks.DIRT, new BlockPos(13, 4, 13));
+			helper.succeed();
+		});
+	}
+
+	/** A hive with resources and 4 drones mutates one into a spawning pool. */
+	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hivePool")
+	public void droneBecomesSpawningPool(GameTestHelper helper) {
+		hiveArena(helper);
+		helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(24, 2, 24));
+		List<ZergMob> drones = new java.util.ArrayList<>();
+		for (int i = 0; i < 4; i++) drones.add(helper.spawn(StarMine.type(ZergKind.DRONE), new BlockPos(36 + (i % 2) * 3, 2, 36 + (i / 2) * 3)));
+		helper.runAfterDelay(5, () -> {
+			HiveSavedData data = HiveSavedData.get(helper.getLevel().getServer());
+			Hive hive = data.all().stream().min((a, b) -> Double.compare(a.hatchery.distSqr(drones.get(0).blockPosition()), b.hatchery.distSqr(drones.get(0).blockPosition()))).orElse(null);
+			if (hive == null) {
+				helper.fail("no hive");
+				return;
+			}
+			hive.minerals = 1000;
+			for (ZergMob drone : drones) drone.joinHive(hive);
+		});
+		helper.succeedWhen(() -> helper.assertTrue(!helper.getLevel().getEntitiesOfClass(ZergMob.class,
+			new net.minecraft.world.phys.AABB(helper.absolutePos(BlockPos.ZERO)).inflate(48), mob -> mob.kind == ZergKind.SPAWNING_POOL).isEmpty(), "no spawning pool yet"));
+	}
+
 	/** A real hive's drone digs to an iron ore walled in stone and mines it. */
-	@GameTest(template = ARENA, timeoutTicks = 2400)
+	@GameTest(template = ARENA, timeoutTicks = 2400, batch = "hiveOre")
 	public void droneMinesOreBehindWall(GameTestHelper helper) {
-		arena(helper);
+		hiveArena(helper);
 		fill(helper, 21, 2, 21, 27, 5, 27, Blocks.STONE);
 		BlockPos ore = new BlockPos(24, 3, 24);
 		helper.setBlock(ore, Blocks.IRON_ORE);
-		helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(6, 2, 6));
+		helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(7, 2, 7));
 		ZergMob drone = helper.spawn(StarMine.type(ZergKind.DRONE), new BlockPos(16, 2, 16));
 		helper.runAfterDelay(5, () -> {
 			HiveSavedData data = HiveSavedData.get(helper.getLevel().getServer());

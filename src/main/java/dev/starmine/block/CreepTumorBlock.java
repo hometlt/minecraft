@@ -26,8 +26,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * Creep tumor (SC2 model): stands on any face of a block (floor, wall, ceiling) — FACING points away
  * from the block it grows on. It is a creep source of radius 10 and, like in SC2, spawns one more
  * tumor at the edge of its creep once ({@link CreepTumorBlockEntity}). Owner: it does not block walking,
- * turns invisible 5 s after it is planted (like a burrowed SC2 tumor) but can still be hit and broken,
- * lies on creep, and dies when the block it grows on is broken.
+ * is always visible (owner changed his mind on hiding it), can be hit and broken, lies on creep, and
+ * dies when the block it grows on is broken.
  */
 public class CreepTumorBlock extends BaseEntityBlock {
 	public static final MapCodec<CreepTumorBlock> CODEC = simpleCodec(CreepTumorBlock::new);

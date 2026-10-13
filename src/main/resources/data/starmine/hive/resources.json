@@ -3,7 +3,7 @@
 	"entries": [
 		{
 			"block": "#minecraft:logs",
-			"minerals": 2
+			"minerals": 1
 		},
 		{
 			"block": "#minecraft:copper_ores",

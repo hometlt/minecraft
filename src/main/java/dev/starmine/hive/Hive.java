@@ -41,6 +41,17 @@ public final class Hive {
 		}
 	}
 
+	/** Hatchery tier (1 hatchery, 2 lair, 3 hive) and the research running at the hatchery (ticks). */
+	public int tier = 1, tierTicks = -1;
+	/** Evolution chamber upgrades (owner: attack 1, armor 1, attack 2… up to 3 each) and research ticks. */
+	public int attackLevel, armorLevel, upgradeTicks = -1;
+	/** A drone has been sent to mutate into this building (until it arrives or gives up). */
+	public String buildOrder;
+	public long buildOrderUntil;
+	/** Hive tunnels dug (owner: not too many) and when the next may start. */
+	public int tunnels;
+	public long nextTunnel;
+
 	/** Game time the next raid may start. */
 	public long nextRaid;
 	/** The thick creep under the hatchery has been laid. */
@@ -77,6 +88,12 @@ public final class Hive {
 
 	public void born(ZergKind kind, int count) {
 		pending.computeIfPresent(kind, (k, n) -> n > count ? n - count : null);
+	}
+
+	/** Whether the hive has what a unit or building needs (its tech building, its hatchery tier). */
+	public boolean unlocked(ZergKind kind) {
+		ZergKind need = kind.requires();
+		return (need == null || count(need) > 0) && tier >= kind.tier();
 	}
 
 	public double supplyUsed() {
@@ -116,6 +133,13 @@ public final class Hive {
 		tag.putInt("queenTicks", queenTicks);
 		tag.putBoolean("foundation", foundation);
 		tag.putLong("nextRaid", nextRaid);
+		tag.putInt("tier", tier);
+		tag.putInt("tierTicks", tierTicks);
+		tag.putInt("attackLevel", attackLevel);
+		tag.putInt("armorLevel", armorLevel);
+		tag.putInt("upgradeTicks", upgradeTicks);
+		tag.putInt("tunnels", tunnels);
+		tag.putLong("nextTunnel", nextTunnel);
 		tag.putLongArray("routes", routes.stream().mapToLong(Long::longValue).toArray());
 		CompoundTag counts = new CompoundTag();
 		members.forEach((kind, n) -> counts.putInt(kind.name(), n));
@@ -137,6 +161,13 @@ public final class Hive {
 		hive.queenTicks = tag.getInt("queenTicks");
 		hive.foundation = tag.getBoolean("foundation");
 		hive.nextRaid = tag.getLong("nextRaid");
+		hive.tier = Math.max(1, tag.getInt("tier"));
+		hive.tierTicks = tag.contains("tierTicks") ? tag.getInt("tierTicks") : -1;
+		hive.attackLevel = tag.getInt("attackLevel");
+		hive.armorLevel = tag.getInt("armorLevel");
+		hive.upgradeTicks = tag.contains("upgradeTicks") ? tag.getInt("upgradeTicks") : -1;
+		hive.tunnels = tag.getInt("tunnels");
+		hive.nextTunnel = tag.getLong("nextTunnel");
 		for (long cell : tag.getLongArray("routes")) hive.routes.add(cell);
 		readCounts(tag.getCompound("members"), hive.members);
 		readCounts(tag.getCompound("pending"), hive.pending);

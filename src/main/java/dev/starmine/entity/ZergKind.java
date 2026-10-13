@@ -39,7 +39,18 @@ public enum ZergKind {
 	// hive: larva and cocoon stay at their hatchery; the hatchery is the hive's anchor (a structure)
 	LARVA(       25,    0.79,  false, Attack.NONE,            0,    0,     0,    false, 0.6f, 0.4f,  0x6a4a5a, 0xd0b0c0),
 	EGG(         200,   0,     false, Attack.NONE,            0,    0,     0,    false, 0.9f, 0.9f,  0x5a3a4a, 0xa08070),
-	HATCHERY(    1500,  0,     false, Attack.NONE,            0,    0,     0,    false, 6.0f, 4.0f,  0x4a2a3a, 0xc08a6a);
+	HATCHERY(    1500,  0,     false, Attack.NONE,            0,    0,     0,    false, 12.0f, 8.0f, 0x4a2a3a, 0xc08a6a),
+	// buildings a drone mutates into (SC2): tech for units, upgrades, defence
+	SPAWNING_POOL(     1000, 0, false, Attack.NONE,      0,  0,    0, false, 4.0f, 1.7f, 0x5a2a3a, 0x60a040),
+	EVOLUTION_CHAMBER( 750,  0, false, Attack.NONE,      0,  0,    0, false, 4.2f, 1.8f, 0x5a3a2a, 0xd0a060),
+	ROACH_WARREN(      850,  0, false, Attack.NONE,      0,  0,    0, false, 3.4f, 2.9f, 0x5a3a20, 0x90b040),
+	BANELING_NEST(     850,  0, false, Attack.NONE,      0,  0,    0, false, 3.3f, 3.9f, 0x30602a, 0x9ae050),
+	HYDRALISK_DEN(     850,  0, false, Attack.NONE,      0,  0,    0, false, 4.5f, 3.7f, 0x6a2a40, 0xe0a060),
+	SPIRE(             850,  0, false, Attack.NONE,      0,  0,    0, false, 2.8f, 4.4f, 0x5a2050, 0x40c0a0),
+	INFESTATION_PIT(   850,  0, false, Attack.NONE,      0,  0,    0, false, 3.8f, 1.2f, 0x40303a, 0xa0e060),
+	ULTRALISK_CAVERN(  850,  0, false, Attack.NONE,      0,  0,    0, false, 4.6f, 3.0f, 0x5a4a3a, 0xe0d0b0),
+	SPINE_CRAWLER(     300,  0, false, Attack.NONE,      25, 1.32, 7, true,  2.0f, 2.0f, 0x6a3a3a, 0xe0b0a0),
+	SPORE_CRAWLER(     400,  0, false, Attack.NONE,      15, 0.61, 7, true,  2.0f, 2.4f, 0x3a5a3a, 0xc0e0a0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -122,19 +133,74 @@ public enum ZergKind {
 			case VIPER -> new Economy(100, 200, 3, ticks(40), 0, 0);
 			case ULTRALISK -> new Economy(275, 200, 6, ticks(55), 0, 8);
 			case HATCHERY -> new Economy(325, 0, 0, ticks(71), 8, 0);
+			case SPAWNING_POOL -> new Economy(200, 0, 0, seconds(46), 0, 0);
+			case EVOLUTION_CHAMBER -> new Economy(75, 0, 0, seconds(25), 0, 0);
+			case ROACH_WARREN -> new Economy(150, 0, 0, seconds(39), 0, 0);
+			case BANELING_NEST -> new Economy(100, 50, 0, seconds(43), 0, 0);
+			case HYDRALISK_DEN -> new Economy(100, 100, 0, seconds(29), 0, 0);
+			case SPIRE -> new Economy(200, 200, 0, seconds(71), 0, 0);
+			case INFESTATION_PIT -> new Economy(100, 100, 0, seconds(36), 0, 0);
+			case ULTRALISK_CAVERN -> new Economy(150, 200, 0, seconds(46), 0, 0);
+			case SPINE_CRAWLER -> new Economy(100, 0, 0, seconds(36), 0, 0);
+			case SPORE_CRAWLER -> new Economy(75, 0, 0, seconds(21), 0, 0);
 			case BROODLING, LOCUST, CHANGELING, LARVA, EGG -> new Economy(0, 0, 0, 0, 0, this == LARVA || this == EGG ? 0 : 1);
 		};
 	}
 
 	/** Immobile hive parts: no movement, no knockback, solid to walk on. */
 	public boolean structure() {
-		return this == HATCHERY || this == EGG;
+		return this == HATCHERY || this == EGG || building();
+	}
+
+	/** Buildings a drone mutates into (not the hatchery, not cocoons). */
+	public boolean building() {
+		return ordinal() >= SPAWNING_POOL.ordinal();
+	}
+
+	/** Crawlers defend their hive: spines hit ground foes, spores flying ones. */
+	public boolean crawler() {
+		return this == SPINE_CRAWLER || this == SPORE_CRAWLER;
+	}
+
+	/** SC2 build time at Faster speed (real seconds), in ticks. */
+	private static int seconds(double s) {
+		return (int) Math.round(s * 20);
+	}
+
+	/**
+	 * What a unit or building needs in the hive first (SC2 tech): the spawning pool for zerglings,
+	 * queens and crawlers, the warren for roaches, the nest for banelings, the den for hydralisks and
+	 * lurkers, the spire for flyers, the pit for infestors, swarm hosts and vipers, the cavern for
+	 * ultralisks; second-tier buildings need a lair, the cavern a hive ({@link #tier()}).
+	 */
+	public ZergKind requires() {
+		return switch (this) {
+			case ZERGLING, QUEEN, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST, EVOLUTION_CHAMBER -> SPAWNING_POOL;
+			case ROACH, RAVAGER -> ROACH_WARREN;
+			case BANELING -> BANELING_NEST;
+			case HYDRALISK, LURKER -> HYDRALISK_DEN;
+			case MUTALISK, CORRUPTOR, BROOD_LORD -> SPIRE;
+			case INFESTOR, SWARM_HOST, VIPER -> INFESTATION_PIT;
+			case ULTRALISK -> ULTRALISK_CAVERN;
+			default -> null;
+		};
+	}
+
+	/** Hatchery tier a building needs: 2 = lair, 3 = hive. */
+	public int tier() {
+		return switch (this) {
+			case HYDRALISK_DEN, SPIRE, INFESTATION_PIT -> 2;
+			case ULTRALISK_CAVERN -> 3;
+			default -> 1;
+		};
 	}
 
 	/** Owner's sizes: the drone 2 blocks across, the lurker 3, overlord, overseer and brood lord 4. */
 	public float modelScale() {
 		return switch (this) {
+			case ZERGLING -> 1.25f;
 			case DRONE -> 1.4f;
+			case HATCHERY -> 2.0f;
 			case LURKER -> 1.1f;
 			case OVERLORD -> 1.6f;
 			case OVERSEER -> 1.44f;

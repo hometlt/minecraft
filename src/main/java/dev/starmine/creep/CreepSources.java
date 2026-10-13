@@ -14,12 +14,12 @@ import net.minecraft.world.level.saveddata.SavedData;
 
 /**
  * What keeps creep alive (owner: creep disappears where no tumor or hatchery/lair/hive is near):
- * hatcheries of this dimension's hives (radius {@link #HATCHERY_RADIUS}, SC2 12) and creep tumors
+ * hatcheries of this dimension's hives (radius {@link #HATCHERY_RADIUS}: SC2 12, the hatchery is twice SC2 size) and creep tumors
  * (radius {@link #TUMOR_RADIUS}, SC2 10). Tumor positions are kept per dimension as saved data, so
  * receding never mistakes an unloaded tumor for a dead one.
  */
 public final class CreepSources extends SavedData {
-	public static final int HATCHERY_RADIUS = 12, TUMOR_RADIUS = 10, MAX_TUMORS = 40;
+	public static final int HATCHERY_RADIUS = 16, TUMOR_RADIUS = 10, TUMOR_SPACING = 8, MAX_TUMORS = 60;
 	private static final Factory<CreepSources> FACTORY = new Factory<>(CreepSources::new, CreepSources::load, null);
 	private final Set<BlockPos> tumors = new HashSet<>();
 
@@ -44,6 +44,13 @@ public final class CreepSources extends SavedData {
 		String dimension = level.dimension().location().toString();
 		for (Hive hive : HiveSavedData.get(level.getServer()).all())
 			if (hive.dimension.equals(dimension)) best = Math.min(best, Math.sqrt(hive.hatchery.distSqr(pos)));
+		for (BlockPos tumor : tumors(level).all()) best = Math.min(best, Math.sqrt(tumor.distSqr(pos)));
+		return best;
+	}
+
+	/** Distance to the nearest creep tumor (new tumors keep {@link #TUMOR_SPACING} from the others). */
+	public static double nearestTumor(ServerLevel level, BlockPos pos) {
+		double best = Double.MAX_VALUE;
 		for (BlockPos tumor : tumors(level).all()) best = Math.min(best, Math.sqrt(tumor.distSqr(pos)));
 		return best;
 	}

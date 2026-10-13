@@ -54,7 +54,7 @@ final class DronePlanner {
 	static List<Step> plan(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget) {
 		PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f, b.f));
 		Map<Long, Double> best = new HashMap<>();
-		Node first = new Node(start, 0, centre(start).distanceTo(target), null, null);
+		Node first = new Node(start, 0, heuristic(centre(start), target), null, null);
 		open.add(first);
 		best.put(start.asLong(), 0.0);
 		Node closest = first;
@@ -73,12 +73,21 @@ final class DronePlanner {
 					BlockPos to = step.feet;
 					if (Math.abs(to.getX() - start.getX()) > 40 || Math.abs(to.getZ() - start.getZ()) > 40) continue;
 					double cost = node.g + 1 + (to.getY() != node.feet.getY() ? 0.5 : 0) + digCost(level, step) + step.fill.size() * 2.0;
+					// owner: to get up or down, cut (or build) stairs rather than long level tunnels
+					double rise = target.y - centre(node.feet).y;
+					if (!step.dig.isEmpty() && to.getY() == node.feet.getY() && Math.abs(rise) > 2) cost += 4;
 					if (cost >= best.getOrDefault(to.asLong(), Double.MAX_VALUE)) continue;
 					best.put(to.asLong(), cost);
-					open.add(new Node(to, cost, cost + centre(to).distanceTo(target) * 1.1, node, step));
+					open.add(new Node(to, cost, cost + heuristic(centre(to), target) * 1.1, node, step));
 				}
 		}
 		return closest == first || centre(closest.feet).distanceTo(target) > centre(start).distanceTo(target) - 2 ? null : path(closest);
+	}
+
+	/** Distance to the goal with height weighted 1.5x: climbing is what most needs digging. */
+	private static double heuristic(Vec3 from, Vec3 target) {
+		double dx = target.x - from.x, dz = target.z - from.z;
+		return Math.sqrt(dx * dx + dz * dz) + Math.abs(target.y - from.y) * 1.5;
 	}
 
 	private static List<Step> path(Node node) {

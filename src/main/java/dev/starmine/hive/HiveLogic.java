@@ -46,6 +46,13 @@ public final class HiveLogic {
 			hatchery.discard();
 			return null;
 		}
+		// owner: the site is levelled; trees, fences or harder blocks forbid it
+		if (!HiveTerrain.prepare(level, hatchery.blockPosition(), (int) Math.ceil(hatchery.kind.width / 2), (int) Math.ceil(hatchery.kind.height), true)) {
+			for (var player : level.getPlayers(p -> p.distanceToSqr(hatchery) < 64 * 64))
+				player.sendSystemMessage(Component.translatable("message.starmine.site_blocked"));
+			hatchery.discard();
+			return null;
+		}
 		hive = new Hive(hatchery.getUUID(), level.dimension().location().toString(), hatchery.blockPosition());
 		data.add(hive);
 		return hive;
@@ -69,6 +76,7 @@ public final class HiveLogic {
 			hive.born(ZergKind.QUEEN, 1);
 			spawn(level, hive, ZergKind.QUEEN, around(hatchery, level), null);
 		}
+		research(level, hive);
 		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
 		if (hatchery.tickCount % 200 == 0) maybeRaid(hatchery, level, hive);
 		if (++hive.decisionTimer >= DECISION_TICKS) {
@@ -79,7 +87,8 @@ public final class HiveLogic {
 	}
 
 	private static void decide(ZergMob hatchery, ServerLevel level, Hive hive) {
-		if (hive.count(ZergKind.QUEEN) + hive.pending(ZergKind.QUEEN) == 0 && hive.queenTicks < 0 && hive.canAfford(ZergKind.QUEEN, 1)) {
+		orderBuilding(hatchery, level, hive);
+		if (hive.unlocked(ZergKind.QUEEN) && hive.count(ZergKind.QUEEN) + hive.pending(ZergKind.QUEEN) == 0 && hive.queenTicks < 0 && hive.canAfford(ZergKind.QUEEN, 1)) {
 			hive.pay(ZergKind.QUEEN, 1);
 			hive.expect(ZergKind.QUEEN, 1);
 			hive.queenTicks = ZergKind.QUEEN.economy().trainTicks();
@@ -103,7 +112,132 @@ public final class HiveLogic {
 			morph(larva, level, hive, ZergKind.DRONE, 1, false);
 			return;
 		}
-		if (hive.canAfford(ZergKind.ZERGLING, 2)) morph(larva, level, hive, ZergKind.ZERGLING, 2, false);
+		// warriors the hive's tech allows (SC2: pool, warren, nest, den, spire, pit, cavern)
+		List<ZergKind> choices = new java.util.ArrayList<>();
+		for (ZergKind kind : WARRIORS) {
+			int count = kind == ZergKind.ZERGLING ? 2 : 1;
+			if (hive.unlocked(kind) && hive.canAfford(kind, count)) choices.add(kind);
+		}
+		if (choices.isEmpty()) return;
+		ZergKind pick = choices.get(level.random.nextInt(choices.size()));
+		morph(larva, level, hive, pick, pick == ZergKind.ZERGLING ? 2 : 1, false);
+	}
+
+	private static final ZergKind[] WARRIORS = {ZergKind.ZERGLING, ZergKind.ROACH, ZergKind.RAVAGER, ZergKind.BANELING, ZergKind.HYDRALISK,
+		ZergKind.LURKER, ZergKind.MUTALISK, ZergKind.CORRUPTOR, ZergKind.BROOD_LORD, ZergKind.INFESTOR, ZergKind.SWARM_HOST,
+		ZergKind.VIPER, ZergKind.ULTRALISK};
+
+	/** The order buildings come in (SC2-like), with how many of each. */
+	private static final ZergKind[] BUILD_ORDER = {ZergKind.SPAWNING_POOL, ZergKind.EVOLUTION_CHAMBER, ZergKind.SPINE_CRAWLER,
+		ZergKind.ROACH_WARREN, ZergKind.SPORE_CRAWLER, ZergKind.BANELING_NEST, ZergKind.HYDRALISK_DEN, ZergKind.SPINE_CRAWLER,
+		ZergKind.SPIRE, ZergKind.INFESTATION_PIT, ZergKind.ULTRALISK_CAVERN};
+
+	/**
+	 * Buildings (owner): with 4 drones or more the hive sends one drone at a time to mutate into the next
+	 * building it lacks and can afford, on a levelled site beside the hatchery.
+	 */
+	private static void orderBuilding(ZergMob hatchery, ServerLevel level, Hive hive) {
+		long now = level.getGameTime();
+		if (hive.buildOrder != null && now < hive.buildOrderUntil) return;
+		hive.buildOrder = null;
+		if (hive.count(ZergKind.DRONE) < 4) return;
+		java.util.Map<ZergKind, Integer> wanted = new java.util.EnumMap<>(ZergKind.class);
+		ZergKind next = null;
+		for (ZergKind kind : BUILD_ORDER) {
+			int want = wanted.merge(kind, 1, Integer::sum);
+			if (hive.count(kind) + hive.pending(kind) >= want) continue;
+			if (hive.unlocked(kind) && hive.canAfford(kind, 1)) next = kind;
+			break;
+		}
+		if (next == null) return;
+		BlockPos site = findSite(level, hatchery, next);
+		if (site == null) return;
+		final ZergKind building = next;
+		level.getEntitiesOfClass(ZergMob.class, hatchery.getBoundingBox().inflate(48),
+				mob -> mob.kind == ZergKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.cargoBlocks == 0)
+			.stream().min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(Vec3.atCenterOf(site))))
+			.ifPresent(drone -> {
+				drone.orderBuild(building, site);
+				hive.buildOrder = building.name();
+				hive.buildOrderUntil = now + 1200;
+			});
+	}
+
+	/** A levelled site for a building on the ground around the hatchery, clear of other buildings. */
+	private static BlockPos findSite(ServerLevel level, ZergMob hatchery, ZergKind kind) {
+		int half = HiveTerrain.foundation(kind);
+		for (int attempt = 0; attempt < 24; attempt++) {
+			double angle = level.random.nextDouble() * Math.PI * 2;
+			double distance = hatchery.kind.width / 2 + 2 + half + level.random.nextInt(7);
+			int x = (int) Math.floor(hatchery.getX() + Math.cos(angle) * distance), z = (int) Math.floor(hatchery.getZ() + Math.sin(angle) * distance);
+			BlockPos feet = groundNear(level, x, hatchery.getBlockY(), z);
+			if (feet == null) continue;
+			AABB area = new AABB(feet).inflate(half + 1, 3, half + 1);
+			if (!level.getEntitiesOfClass(ZergMob.class, area, mob -> mob.kind.structure()).isEmpty()) continue;
+			if (HiveTerrain.prepare(level, feet, half - 1, (int) Math.ceil(kind.height), false)) return feet;
+		}
+		return null;
+	}
+
+	/**
+	 * The ground within 4 blocks up or down of `y` in the column (x, z): the highest free cell on a solid
+	 * block. Not the world heightmap: hives under a roof, in a cave or under a test's barrier ceiling.
+	 */
+	private static BlockPos groundNear(ServerLevel level, int x, int y, int z) {
+		for (int dy = 4; dy >= -4; dy--) {
+			BlockPos feet = new BlockPos(x, y + dy, z);
+			if (level.getBlockState(feet).blocksMotion() || level.getBlockState(feet.above()).blocksMotion()) continue;
+			if (level.getBlockState(feet.below()).blocksMotion()) return feet;
+		}
+		return null;
+	}
+
+	/** A drone has reached its site: it becomes the building (paid now; built over the SC2 time). */
+	public static boolean mutate(ZergMob drone, ServerLevel level, ZergKind kind, BlockPos site) {
+		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+		if (hive == null || !hive.unlocked(kind) || !hive.canAfford(kind, 1)) return false;
+		int half = HiveTerrain.foundation(kind);
+		if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) return false;
+		hive.pay(kind, 1);
+		hive.expect(kind, 1);
+		HiveTerrain.lay(level, site, half);
+		ZergMob building = spawn(level, hive, kind, Vec3.atBottomCenterOf(site), null);
+		if (building != null) building.startConstruction(kind.economy().trainTicks());
+		hive.buildOrder = null;
+		drone.discard();
+		return true;
+	}
+
+	/**
+	 * Research: the hatchery becomes a lair (150/100, 57 s; needs the pool) and a hive (200/150, 71 s;
+	 * needs the infestation pit); the evolution chamber improves attack and armor in turn (owner: attack
+	 * 1, armor 1, attack 2… up to 3 each), each level a little dearer and longer.
+	 */
+	private static void research(ServerLevel level, Hive hive) {
+		if (hive.tierTicks >= 0 && --hive.tierTicks < 0) hive.tier++;
+		if (hive.tierTicks < 0 && hive.tier < 3) {
+			boolean lair = hive.tier == 1 && hive.count(ZergKind.SPAWNING_POOL) > 0 && hive.minerals >= 150 && hive.vespene >= 100;
+			boolean full = hive.tier == 2 && hive.count(ZergKind.INFESTATION_PIT) > 0 && hive.minerals >= 200 && hive.vespene >= 150;
+			if (lair || full) {
+				hive.minerals -= lair ? 150 : 200;
+				hive.vespene -= lair ? 100 : 150;
+				hive.tierTicks = lair ? 57 * 20 : 71 * 20;
+			}
+		}
+		if (hive.upgradeTicks >= 0 && --hive.upgradeTicks < 0) {
+			if (hive.attackLevel <= hive.armorLevel) hive.attackLevel++;
+			else hive.armorLevel++;
+		}
+		if (hive.upgradeTicks < 0 && hive.count(ZergKind.EVOLUTION_CHAMBER) > 0 && (hive.attackLevel < 3 || hive.armorLevel < 3)) {
+			boolean attack = hive.attackLevel <= hive.armorLevel;
+			int levelNext = (attack ? hive.attackLevel : hive.armorLevel) + 1;
+			int cost = attack ? 50 + 50 * levelNext : 75 + 75 * levelNext;
+			if (hive.tier >= levelNext && hive.minerals >= cost && hive.vespene >= cost) {
+				hive.minerals -= cost;
+				hive.vespene -= cost;
+				hive.upgradeTicks = (90 + 20 * levelNext) * 20;
+			}
+		}
 	}
 
 	/**

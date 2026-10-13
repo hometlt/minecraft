@@ -239,19 +239,43 @@ public final class CreepGrowth {
 		if (CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
 		Source s = SOURCES.get(new Key(level.dimension(), from.asLong()));
 		if (s == null || s.cells.isEmpty()) return false;
-		for (int attempt = 0; attempt < 24; attempt++) {
+		for (int attempt = 0; attempt < 48; attempt++) {
 			BlockPos cell = s.cells.get(level.random.nextInt(s.cells.size()));
 			double distance = Math.sqrt(cell.distSqr(from));
-			if (distance < min || distance > max) continue;
-			if (placeTumor(level, cell, min)) return true;
+			if (distance < min || distance > max || !atEdge(level, cell)) continue;
+			if (placeTumor(level, cell, min)) {
+				slimeTrail(level, from, cell);
+				return true;
+			}
 		}
 		return false;
+	}
+
+	/** Creep that still meets bare ground within 3 blocks (only there do tumors spread). */
+	private static boolean atEdge(ServerLevel level, BlockPos cell) {
+		for (BlockPos near : BlockPos.betweenClosed(cell.offset(-3, -1, -3), cell.offset(3, 1, 3))) {
+			BlockState state = level.getBlockState(near);
+			if (state.isAir() && level.getBlockState(near.below()).isFaceSturdy(level, near.below(), Direction.UP)) return true;
+		}
+		return false;
+	}
+
+	/** Slime particles running over the creep from the old tumor to the new one. */
+	private static void slimeTrail(ServerLevel level, BlockPos from, BlockPos to) {
+		net.minecraft.world.phys.Vec3 a = net.minecraft.world.phys.Vec3.atCenterOf(from), b = net.minecraft.world.phys.Vec3.atCenterOf(to);
+		int steps = (int) Math.ceil(a.distanceTo(b) * 3);
+		for (int i = 0; i <= steps; i++) {
+			net.minecraft.world.phys.Vec3 p = a.lerp(b, i / (double) steps);
+			level.sendParticles(net.minecraft.core.particles.ParticleTypes.ITEM_SLIME, p.x, p.y - 0.3, p.z, 2, 0.15, 0.05, 0.15, 0.02);
+		}
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.ITEM_SLIME, b.x, b.y, b.z, 30, 0.4, 0.3, 0.4, 0.1);
 	}
 
 	/** Puts a tumor on a creep cell (any face); false when it cannot stand there. */
 	public static boolean placeTumor(ServerLevel level, BlockPos cell, int spacing) {
 		BlockState state = level.getBlockState(cell);
-		if (!state.is(StarMineBlocks.CREEP) || CreepSources.nearestSource(level, cell) < spacing) return false;
+		if (!state.is(StarMineBlocks.CREEP) || CreepSources.nearestTumor(level, cell) < spacing
+			|| CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
 		Set<Direction> faces = MultifaceBlock.availableFaces(state);
 		Direction face = faces.contains(Direction.DOWN) ? Direction.DOWN : faces.stream().findFirst().orElse(null);
 		if (face == null) return false;

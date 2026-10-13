@@ -114,6 +114,12 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(ZergMob.class, EntityDataSerializers.ITEM_STACK);
 	/** Drone defending itself: ticks since it took up its attacker. */
 	private int defendTicks;
+	/** Drone sent to mutate into a building at a site; a building still being built (ticks left). */
+	private ZergKind buildKind;
+	private BlockPos buildSite;
+	private int constructTicks;
+	/** Drone fleeing from an armed attacker until this game time. */
+	private long fleeUntil;
 	/** On a raid: where the party goes, and the game time it ends (then everyone goes home). */
 	private BlockPos raidTarget;
 	private long raidUntil;
@@ -142,7 +148,9 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
 			.add(Attributes.FOLLOW_RANGE, kind == ZergKind.DRONE ? 64.0 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
-			.add(Attributes.STEP_HEIGHT, 1.0);
+			// zerglings leap up 2 blocks (owner); the pathfinder plans with the step height
+			.add(Attributes.STEP_HEIGHT, kind == ZergKind.ZERGLING ? 2.0 : 1.0)
+			.add(Attributes.JUMP_STRENGTH, kind == ZergKind.ZERGLING ? 0.62 : 0.42);
 	}
 
 	@Override
@@ -217,6 +225,9 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (kind == ZergKind.QUEEN && this.tickCount % 200 == 0) transfuse();
 		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
+		if (constructTicks > 0 && --constructTicks == 0) finishConstruction(server);
+		if (kind.crawler() && constructTicks == 0) crawlerAttack(server);
+		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
 		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
 		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
@@ -255,6 +266,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	 * most 10 s, then they go back to work.
 	 */
 	private void defendOnly() {
+		if (fleeing()) {
+			this.setTarget(null);
+			return;
+		}
 		LivingEntity target = this.getTarget();
 		if (target == null) {
 			defendTicks = 0;
@@ -294,9 +309,122 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	public boolean hurt(DamageSource source, float amount) {
 		boolean hurt = super.hurt(source, amount);
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
-			&& !(attacker instanceof ZergMob))
+			&& !(attacker instanceof ZergMob)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
+			// owner: a drone attacked by someone armed runs to the hatchery or to the hive's warriors
+			if (kind == ZergKind.DRONE && armed(attacker)) {
+				fleeUntil = server.getGameTime() + 200;
+				this.setTarget(null);
+			}
+		}
 		return hurt;
+	}
+
+	/** A drone's order to mutate into a building at a site (see {@link HiveLogic#mutate}). */
+	public void orderBuild(ZergKind building, BlockPos site) {
+		this.buildKind = building;
+		this.buildSite = site.immutable();
+	}
+
+	public ZergKind buildKind() {
+		return buildKind;
+	}
+
+	public BlockPos buildSite() {
+		return buildSite;
+	}
+
+	public void cancelBuild() {
+		buildKind = null;
+		buildSite = null;
+	}
+
+	/** A new building grows for its SC2 build time before it counts for the hive. */
+	public void startConstruction(int ticks) {
+		this.constructTicks = Math.max(1, ticks);
+		this.setHealth(Math.max(1, this.getMaxHealth() * 0.1f));
+	}
+
+	public boolean underConstruction() {
+		return constructTicks > 0;
+	}
+
+	private void finishConstruction(ServerLevel server) {
+		this.setHealth(this.getMaxHealth());
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (hive != null) {
+			hive.born(kind, 1);
+			hive.join(kind);
+			HiveSavedData.get(server.getServer()).setDirty();
+		}
+	}
+
+	/**
+	 * Crawlers defend the hive: a spine crawler impales the nearest ground foe within range (SC2 25
+	 * damage every 1.32 s), a spore crawler shoots the nearest flying one (SC2 15 every 0.61 s).
+	 */
+	private void crawlerAttack(ServerLevel server) {
+		if (this.tickCount % kind.interval != 0) return;
+		boolean spore = kind == ZergKind.SPORE_CRAWLER;
+		LivingEntity foe = null;
+		double best = kind.range * kind.range;
+		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.range),
+			entity -> entity.isAlive() && !(entity instanceof ZergMob) && !(entity instanceof net.minecraft.world.entity.decoration.ArmorStand)
+				&& !(entity instanceof Player player && (player.isCreative() || player.isSpectator())))) {
+			boolean flying = other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
+				|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Blaze
+				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3;
+			if (flying != spore) continue;
+			double d = other.distanceToSqr(this);
+			if (d < best) {
+				best = d;
+				foe = other;
+			}
+		}
+		if (foe == null) return;
+		this.swing(InteractionHand.MAIN_HAND);
+		this.getLookControl().setLookAt(foe);
+		foe.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
+		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 1.0f);
+	}
+
+	/** The hive's evolution chamber upgrades: +0.5 damage and +2 armor per level. */
+	private void applyUpgrades(ServerLevel server) {
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (hive == null) return;
+		modifier(Attributes.ATTACK_DAMAGE, UPGRADE_ATTACK, hive.attackLevel * 0.5);
+		modifier(Attributes.ARMOR, UPGRADE_ARMOR, hive.armorLevel * 2.0);
+	}
+
+	private void modifier(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, ResourceLocation id, double amount) {
+		AttributeInstance instance = this.getAttribute(attribute);
+		if (instance == null) return;
+		AttributeModifier current = instance.getModifier(id);
+		if (current != null && current.amount() == amount) return;
+		instance.removeModifier(id);
+		if (amount != 0) instance.addTransientModifier(new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_VALUE));
+	}
+
+	/** Extra damage from the hive's attack upgrades (missiles and crawlers use it too). */
+	public double attackBonus() {
+		AttributeInstance damage = this.getAttribute(Attributes.ATTACK_DAMAGE);
+		AttributeModifier bonus = damage == null ? null : damage.getModifier(UPGRADE_ATTACK);
+		return bonus == null ? 0 : bonus.amount();
+	}
+
+	private static final ResourceLocation UPGRADE_ATTACK = StarMine.id("upgrade_attack"), UPGRADE_ARMOR = StarMine.id("upgrade_armor");
+
+	/** A weapon in hand: swords, axes, bows, crossbows, tridents, maces. */
+	private static boolean armed(LivingEntity attacker) {
+		var stack = attacker.getMainHandItem();
+		var item = stack.getItem();
+		return stack.is(net.minecraft.tags.ItemTags.SWORDS) || stack.is(net.minecraft.tags.ItemTags.AXES)
+			|| item instanceof net.minecraft.world.item.BowItem || item instanceof net.minecraft.world.item.CrossbowItem
+			|| item instanceof net.minecraft.world.item.TridentItem || item instanceof net.minecraft.world.item.MaceItem;
+	}
+
+	public boolean fleeing() {
+		return this.level().getGameTime() < fleeUntil;
 	}
 
 	/** Zerg buildings shove off whatever stands on top of them (owner: nobody camps on a hatchery). */
@@ -518,7 +646,13 @@ public class ZergMob extends Monster implements RangedAttackMob {
 					data.remove(hiveId);
 				}
 			} else if (hive != null) {
-				hive.leave(kind);
+				if (kind.building()) {
+					if (constructTicks > 0) hive.born(kind, 1);
+					else hive.leave(kind);
+					HiveTerrain.ruin(server, this.blockPosition(), HiveTerrain.foundation(kind));
+				} else {
+					hive.leave(kind);
+				}
 				if (kind == ZergKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
 				data.setDirty();
 			}
@@ -542,6 +676,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			ListTag items = new ListTag();
 			for (ItemStack slot : fillSlots) items.add(slot.save(this.registryAccess()));
 			tag.put("StarMineFill", items);
+		}
+		if (constructTicks > 0) tag.putInt("StarMineConstruct", constructTicks);
+		if (buildKind != null && buildSite != null) {
+			tag.putString("StarMineBuild", buildKind.name());
+			tag.put("StarMineBuildSite", NbtUtils.writeBlockPos(buildSite));
 		}
 		if (cocoonKind != null) {
 			tag.putString("StarMineCocoon", cocoonKind.name());
@@ -580,6 +719,15 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			}
 		}
 		if (kind == ZergKind.HATCHERY) hiveId = this.getUUID();
+		constructTicks = tag.getInt("StarMineConstruct");
+		if (tag.contains("StarMineBuild")) {
+			try {
+				buildKind = ZergKind.valueOf(tag.getString("StarMineBuild"));
+				buildSite = NbtUtils.readBlockPos(tag, "StarMineBuildSite").orElse(null);
+			} catch (IllegalArgumentException ignored) {
+				buildKind = null;
+			}
+		}
 	}
 
 	@Override

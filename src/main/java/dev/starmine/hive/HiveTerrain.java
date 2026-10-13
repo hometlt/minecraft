@@ -4,6 +4,8 @@ import dev.starmine.block.StarMineBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
+import java.util.List;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -12,8 +14,46 @@ import net.minecraft.world.level.block.state.BlockState;
  * Bedrock and blocks with block entities are left alone.
  */
 public final class HiveTerrain {
-	/** A hatchery's footprint half-size (its 6-block base, about 8 blocks of model) plus the ring. */
-	public static final int HATCHERY_FOUNDATION = 4;
+	/** A hatchery's footprint half-size (owner: twice SC2 size, a 12-block base) plus the ring. */
+	public static final int HATCHERY_FOUNDATION = 7;
+
+	/** Foundation half-size of a building: its base plus the 1-block ring. */
+	public static int foundation(dev.starmine.entity.ZergKind kind) {
+		return kind == dev.starmine.entity.ZergKind.HATCHERY ? HATCHERY_FOUNDATION : (int) Math.ceil(kind.width / 2) + 1;
+	}
+
+	/**
+	 * Levels a building site (owner): within the footprint and up to the building's height, earth,
+	 * stone, sand, gravel and plants are cleared away. Trees, fences, walls, anything harder than stone
+	 * or with a block entity forbid the site: false, and nothing is changed. With `apply` false it only
+	 * checks.
+	 */
+	public static boolean prepare(ServerLevel level, BlockPos feet, int halfSize, int height, boolean apply) {
+		List<BlockPos> clear = new java.util.ArrayList<>();
+		for (BlockPos pos : BlockPos.betweenClosed(feet.offset(-halfSize, 0, -halfSize), feet.offset(halfSize, height, halfSize))) {
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir()) continue;
+			if (!levelable(level, pos, state)) return false;
+			clear.add(pos.immutable());
+		}
+		// the ground under the site must exist: no building over a chasm
+		int holes = 0;
+		for (int dx = -halfSize; dx <= halfSize; dx++)
+			for (int dz = -halfSize; dz <= halfSize; dz++)
+				if (level.getBlockState(feet.offset(dx, -3, dz)).isAir()) holes++;
+		if (holes > (2 * halfSize + 1) * (2 * halfSize + 1) / 3) return false;
+		if (apply) for (BlockPos pos : clear) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+		return true;
+	}
+
+	private static boolean levelable(ServerLevel level, BlockPos pos, BlockState state) {
+		if (state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || state.is(BlockTags.FENCES) || state.is(BlockTags.WALLS)
+			|| state.is(BlockTags.FENCE_GATES) || level.getBlockEntity(pos) != null || !state.getFluidState().isEmpty()) return false;
+		if (state.canBeReplaced() || StarMineBlocks.isCreep(state)) return true;
+		if (state.is(BlockTags.DIRT) || state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.SAND) || state.is(Blocks.GRAVEL)
+			|| state.is(BlockTags.SNOW) || state.is(Blocks.CLAY) || state.is(Blocks.COBBLESTONE) || state.is(BlockTags.FLOWERS)) return true;
+		return false;
+	}
 
 	private HiveTerrain() {
 	}

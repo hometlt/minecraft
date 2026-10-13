@@ -4,6 +4,7 @@ import dev.starmine.StarMine;
 import dev.starmine.block.StarMineBlocks;
 import dev.starmine.creep.CreepGrowth;
 import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveResources;
 import dev.starmine.hive.HiveSavedData;
 import java.util.ArrayDeque;
@@ -39,9 +40,10 @@ import net.minecraft.world.phys.Vec3;
  * A drone's work (stage 2 of docs/HIVE_DESIGN.md, reworked on the owner's play tests). It always has
  * a goal, and goes there through {@link #moveTo}:
  *
- * - SEEK: a natural tree nearby (logs with non-persistent leaves, so log houses stay), else an ore
- *   within a scan, else EXPLORE;
- * - TREE: to the trunk's foot; standing there it takes the tree from its top down, leaves with it;
+ * - SEEK: an ore within a scan, else a natural tree nearby (logs with non-persistent leaves, so log
+ *   houses stay), else (sometimes) a tunnel for the hive's network, else EXPLORE;
+ * - TREE (only when no ore is in reach): to the trunk's foot; standing there it takes the tree from
+ *   its top down, leaves with it, leaving a stump of 1-3 logs;
  * - MINE: to the ore (the planner digs the way), then the whole vein and ores met on the way;
  * - CARRY: to the edge of its hatchery with its valuable slot — when it holds 8, or a precious ore,
  *   or before a second kind of resource would be taken;
@@ -57,7 +59,13 @@ import net.minecraft.world.phys.Vec3;
  * `starmineHiveGriefing` off drones neither dig nor chop. Trees and ores are claimed per drone.
  */
 final class DroneWork extends Goal {
-	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE, RAID }
+	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL }
+
+	/** Owner: a drone marks a group of up to 8 blocks of the resource it goes for; others leave them. */
+	private static final int GROUP = 8;
+	/** Owner: drones spread out — an ore within this distance of another drone's mark is not chosen. */
+	private static final int SPREAD = 8;
+	private BlockPos tunnelTo;
 
 	private enum Move { MOVING, ARRIVED, FAILED }
 
@@ -118,9 +126,15 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
-		if (drone.raidTarget() != null) {
+		if (drone.fleeing()) {
+			flee(level);
+			return;
+		}
+		if (drone.buildKind() != null) {
+			if (state != State.BUILD) to(State.BUILD);
+		} else if (drone.raidTarget() != null) {
 			if (state != State.RAID) to(State.RAID);
-		} else if (state == State.RAID) {
+		} else if (state == State.RAID || state == State.BUILD) {
 			to(State.SEEK);
 		} else if (drone.loadFull() && state != State.CARRY) {
 			to(State.CARRY);
@@ -132,6 +146,8 @@ final class DroneWork extends Goal {
 			case CARRY -> carry(level, griefing);
 			case EXPLORE -> explore(level, griefing);
 			case RAID -> raid(level, griefing);
+			case BUILD -> build(level);
+			case TUNNEL -> tunnel(level, griefing);
 		}
 	}
 
@@ -232,24 +248,26 @@ final class DroneWork extends Goal {
 	private void seek(ServerLevel level, boolean griefing) {
 		if (--seekCooldown > 0) return;
 		seekCooldown = 40;
-		if (griefing && findTree(level)) {
-			to(State.TREE);
-			return;
-		}
+		// ores first (owner: wood only makes the first drones), trees when no ore is in reach
 		if (griefing) {
-			BlockPos ore = findOre(level, drone.blockPosition(), 12);
+			BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID());
 			if (ore != null) {
-				claim(ore);
+				claimGroup(level, ore);
 				mineTarget = ore;
 				deep = false;
 				to(State.MINE);
 				return;
 			}
 		}
+		if (griefing && findTree(level)) {
+			to(State.TREE);
+			return;
+		}
 		if (drone.cargoBlocks > 0) {
 			to(State.CARRY);
 			return;
 		}
+		if (griefing && startTunnel(level)) return;
 		startExplore(level);
 	}
 
@@ -319,7 +337,12 @@ final class DroneWork extends Goal {
 		logs.sort((a, b) -> Integer.compare(b.getY(), a.getY()));
 		leaves.sort((a, b) -> Integer.compare(b.getY(), a.getY()));
 		treeFoot = logs.get(logs.size() - 1);
+		// owner: a stump of 1 to 3 logs is left standing (claimed for good, never taken)
+		int stump = treeFoot.getY() + 1 + drone.getRandom().nextInt(3);
 		for (BlockPos log : logs) claim(log);
+		for (BlockPos log : logs) if (log.getY() < stump) CLAIMS.put(log, NOBODY);
+		logs.removeIf(log -> log.getY() < stump);
+		if (logs.isEmpty()) return false;
 		return true;
 	}
 
@@ -365,18 +388,46 @@ final class DroneWork extends Goal {
 
 	// ---- MINE ----
 
-	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius) {
-		BlockPos best = null;
-		double bestDist = Double.MAX_VALUE;
+	/**
+	 * The nearest unclaimed ore within `radius`, away from other drones' marks (owner: drones mine in
+	 * different places and directions instead of crowding); if all are near marks, the nearest anyway.
+	 */
+	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius, UUID self) {
+		List<BlockPos> others = new ArrayList<>();
+		for (Map.Entry<BlockPos, UUID> claim : CLAIMS.entrySet())
+			if (!claim.getValue().equals(self) && !claim.getValue().equals(NOBODY) && claim.getKey().distSqr(centre) < (radius + SPREAD) * (radius + SPREAD))
+				others.add(claim.getKey());
+		BlockPos best = null, crowded = null;
+		double bestDist = Double.MAX_VALUE, crowdedDist = Double.MAX_VALUE;
 		for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-radius, -radius, -radius), centre.offset(radius, radius, radius))) {
 			if (CLAIMS.containsKey(pos) || !HiveResources.isOre(level.getBlockState(pos))) continue;
 			double d = pos.distSqr(centre);
-			if (d < bestDist) {
+			boolean near = false;
+			for (BlockPos other : others) if (other.distSqr(pos) < SPREAD * SPREAD) { near = true; break; }
+			if (!near && d < bestDist) {
 				best = pos.immutable();
 				bestDist = d;
+			} else if (near && d < crowdedDist) {
+				crowded = pos.immutable();
+				crowdedDist = d;
 			}
 		}
-		return best;
+		return best != null ? best : crowded;
+	}
+
+	/** Marks the ore and the connected blocks of the same kind, up to {@link #GROUP}, as this drone's. */
+	private void claimGroup(ServerLevel level, BlockPos ore) {
+		Block kind = level.getBlockState(ore).getBlock();
+		ArrayDeque<BlockPos> queue = new ArrayDeque<>(List.of(ore));
+		Set<BlockPos> seen = new HashSet<>();
+		int claimed = 0;
+		while (!queue.isEmpty() && claimed < GROUP) {
+			BlockPos pos = queue.poll();
+			if (!seen.add(pos) || !level.getBlockState(pos).is(kind) || CLAIMS.containsKey(pos) && !drone.getUUID().equals(CLAIMS.get(pos))) continue;
+			claim(pos);
+			claimed++;
+			for (BlockPos near : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) queue.add(near.immutable());
+		}
 	}
 
 	private void mine(ServerLevel level, boolean griefing) {
@@ -410,16 +461,19 @@ final class DroneWork extends Goal {
 		}
 	}
 
+	/** The next block of its marked group (or unclaimed ore right next to the last one). */
 	private boolean nextInVein(ServerLevel level) {
 		if (mineTarget == null) return false;
 		for (BlockPos near : BlockPos.betweenClosed(mineTarget.offset(-1, -1, -1), mineTarget.offset(1, 1, 1))) {
-			if (!CLAIMS.containsKey(near) && HiveResources.isOre(level.getBlockState(near))) {
+			UUID owner = CLAIMS.get(near);
+			if ((owner == null || owner.equals(drone.getUUID())) && HiveResources.isOre(level.getBlockState(near))) {
 				mineTarget = near.immutable();
 				claim(mineTarget);
 				return true;
 			}
 		}
 		mineTarget = null;
+		releaseAll(drone.getUUID());
 		return false;
 	}
 
@@ -436,7 +490,7 @@ final class DroneWork extends Goal {
 		Vec3 centre = Vec3.atBottomCenterOf(hive.hatchery);
 		double dx = drone.getX() - centre.x, dz = drone.getZ() - centre.z;
 		double flat = Math.sqrt(dx * dx + dz * dz);
-		if (flat < 8 && Math.abs(drone.getY() - centre.y) < 4) {
+		if (flat < 11 && Math.abs(drone.getY() - centre.y) < 4) {
 			hive.minerals += drone.cargoMinerals;
 			hive.mineralsCollected += drone.cargoMinerals;
 			hive.vespene += drone.cargoVespene;
@@ -448,7 +502,7 @@ final class DroneWork extends Goal {
 			to(back == State.TREE && !logs.isEmpty() ? State.TREE : back == State.MINE && mineTarget != null ? State.MINE : State.SEEK);
 			return;
 		}
-		Vec3 edge = flat < 0.01 ? centre.add(5.5, 0, 0) : centre.add(dx / flat * 5.5, 0, dz / flat * 5.5);
+		Vec3 edge = flat < 0.01 ? centre.add(9.5, 0, 0) : centre.add(dx / flat * 9.5, 0, dz / flat * 9.5);
 		// leg by leg when far: the plan's reach is 40 blocks
 		Vec3 goal = drone.position().distanceTo(edge) > 36 ? surface(level, drone.position().add(edge.subtract(drone.position()).normalize().scale(32))) : edge;
 		if (moveTo(level, goal, 2.5, griefing) == Move.FAILED) resetMove();
@@ -485,6 +539,91 @@ final class DroneWork extends Goal {
 			to(State.SEEK);
 			seekCooldown = 0;
 		}
+	}
+
+	// ---- BUILD ----
+
+	/** To the site the hive chose, then it mutates into the building (or gives the order up). */
+	private void build(ServerLevel level) {
+		BlockPos site = drone.buildSite();
+		if (site == null) {
+			drone.cancelBuild();
+			return;
+		}
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), 3, false);
+		if (move == Move.ARRIVED) {
+			if (!HiveLogic.mutate(drone, level, drone.buildKind(), site)) drone.cancelBuild();
+		} else if (move == Move.FAILED || stateTicks > 1200) {
+			drone.cancelBuild();
+		}
+	}
+
+	// ---- TUNNEL ----
+
+	/**
+	 * Hive tunnels (owner): now and then (one every 3 min per hive, at most 12) a drone digs a tunnel
+	 * of about 20 blocks — sideways and down from the hive's existing ways, so tunnels join up — and a
+	 * creep tumor is planted at its end so creep grows into it.
+	 */
+	private boolean startTunnel(ServerLevel level) {
+		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+		long now = level.getGameTime();
+		if (hive == null || hive.tunnels >= 12 || now < hive.nextTunnel || drone.getRandom().nextInt(4) != 0) return false;
+		hive.nextTunnel = now + 3600;
+		// start from a cell of the hive's ways (an underground one if there is), else its hatchery
+		BlockPos from = hive.hatchery;
+		List<Long> cells = new ArrayList<>(hive.routes);
+		for (int i = 0; i < 16 && !cells.isEmpty(); i++) {
+			BlockPos cell = BlockPos.of(cells.get(drone.getRandom().nextInt(cells.size())));
+			from = cell;
+			if (!level.canSeeSky(cell.above(2))) break;
+		}
+		double angle = drone.getRandom().nextDouble() * Math.PI * 2;
+		boolean surface = level.canSeeSky(from.above(2));
+		int down = surface ? 6 + drone.getRandom().nextInt(6) : drone.getRandom().nextInt(7) - 2;
+		tunnelTo = from.offset((int) (Math.cos(angle) * 20), -down, (int) (Math.sin(angle) * 20));
+		to(State.TUNNEL);
+		return true;
+	}
+
+	private void tunnel(ServerLevel level, boolean griefing) {
+		if (tunnelTo == null || !griefing) {
+			to(State.SEEK);
+			return;
+		}
+		Move move = moveTo(level, Vec3.atBottomCenterOf(tunnelTo), 2.5, true);
+		if (move == Move.MOVING && stateTicks < 3600) return;
+		if (move == Move.ARRIVED) {
+			Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+			if (hive != null) {
+				hive.tunnels++;
+				HiveSavedData.get(level.getServer()).setDirty();
+			}
+			// creep and a tumor at the tunnel's end
+			BlockPos end = drone.blockPosition();
+			CreepGrowth.lineCavity(level, end);
+			CreepGrowth.placeTumor(level, end, dev.starmine.creep.CreepSources.TUMOR_SPACING);
+		}
+		tunnelTo = null;
+		to(State.SEEK);
+	}
+
+	// ---- FLEE ----
+
+	/** Away from an armed attacker: to the nearest warrior of the hive within 32 blocks, else home. */
+	private void flee(ServerLevel level) {
+		ZergMob guard = null;
+		double best = 32 * 32;
+		for (ZergMob mob : level.getEntitiesOfClass(ZergMob.class, drone.getBoundingBox().inflate(32),
+			m -> drone.hiveId().equals(m.hiveId()) && m.isAlive() && m.kind != ZergKind.DRONE && m.kind.attack != ZergKind.Attack.NONE && !m.kind.structure())) {
+			double d = mob.distanceToSqr(drone);
+			if (d < best) {
+				best = d;
+				guard = mob;
+			}
+		}
+		Vec3 goal = guard != null ? guard.position() : drone.home() != null ? Vec3.atBottomCenterOf(drone.home()) : drone.position();
+		moveTo(level, goal, guard != null ? 3 : 7, false);
 	}
 
 	// ---- RAID ----

@@ -50,7 +50,8 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super.onHitEntity(hit);
 		if (!(hit.getEntity() instanceof LivingEntity target) || target instanceof ZergMob) return;
 		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
-		target.hurt(this.damageSources().mobProjectile(this, owner), (float) kind.damage);
+		double bonus = owner instanceof ZergMob zerg ? zerg.attackBonus() : 0;
+		target.hurt(this.damageSources().mobProjectile(this, owner), (float) (kind.damage + bonus));
 		if (kind.attack == ZergKind.Attack.SLOW) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 4));
 	}
 

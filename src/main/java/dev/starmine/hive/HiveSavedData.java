@@ -41,6 +41,12 @@ public final class HiveSavedData extends SavedData {
 		setDirty();
 	}
 
+	/** Forgets every hive (in-game tests: the test world is reused between runs). */
+	public void clear() {
+		hives.clear();
+		setDirty();
+	}
+
 	public void remove(UUID id) {
 		if (hives.remove(id) != null) setDirty();
 	}
