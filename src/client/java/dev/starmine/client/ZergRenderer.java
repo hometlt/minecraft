@@ -77,16 +77,16 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
 	}
 
-	/** The drone's load (or fill) as up to three blocks held in front of its head. */
+	/** The drone's valuable slot held in front of it: one small block per unit, up to 8 (2x2x2). */
 	private void drawCarried(ZergMob drone, SkinnedModel model, PoseStack poseStack, MultiBufferSource buffers, int light) {
 		ItemStack carried = drone.carried();
 		if (carried.isEmpty()) return;
-		int cubes = Math.min(3, 1 + (carried.getCount() - 1) / 4);
+		int cubes = Math.min(8, carried.getCount());
 		ItemStack one = carried.copyWithCount(1);
 		for (int i = 0; i < cubes; i++) {
 			poseStack.pushPose();
-			poseStack.translate(0, model.size[1] * 0.35 + i * 0.3, model.size[2] * 0.5 + 0.1);
-			poseStack.scale(0.5f, 0.5f, 0.5f);
+			poseStack.translate(((i & 1) - 0.5) * 0.24, model.size[1] * 0.3 + (i >> 2) * 0.24, model.size[2] * 0.5 + 0.12 + ((i >> 1) & 1) * 0.24);
+			poseStack.scale(0.24f, 0.24f, 0.24f);
 			items.renderStatic(one, ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY, poseStack, buffers, drone.level(), drone.getId() + i);
 			poseStack.popPose();
 		}

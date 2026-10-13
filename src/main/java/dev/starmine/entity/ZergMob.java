@@ -23,6 +23,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import java.util.UUID;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -99,12 +100,17 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	/** An overseer is near: invisible players and creatures are seen (see the visibility mixin). */
 	private boolean overseerNear;
 	/**
-	 * Drone: the resources it carries to the hatchery and the blocks they came from (shown in front of
-	 * it, dropped if it dies), plus fill — dug stone and earth it builds bridges and steps with.
+	 * Drone inventory (owner): one slot of a valuable resource — one kind at a time, up to
+	 * {@link #LOAD} blocks, shown in front of it — and {@link #FILL_SLOTS} slots of cobblestone and other
+	 * stone it builds bridges and steps with. Earth and gravel are not kept. All of it drops if it dies.
 	 */
+	public static final int LOAD = 8, FILL_SLOTS = 8;
 	public int cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks;
-	private final List<ItemStack> cargoItems = new ArrayList<>();
-	private ItemStack fill = ItemStack.EMPTY;
+	private ItemStack valuable = ItemStack.EMPTY;
+	private boolean precious;
+	private final List<ItemStack> fillSlots = new ArrayList<>();
+	private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> FILL_TAG =
+		net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, StarMine.id("drone_fill"));
 	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(ZergMob.class, EntityDataSerializers.ITEM_STACK);
 	/** Drone defending itself: ticks since it took up its attacker. */
 	private int defendTicks;
@@ -271,61 +277,83 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		}
 	}
 
-	/** A drone takes a block it broke: resources go to its load, plain stone and earth to its fill. */
+	/** Whether the drone may take this block now: not a second kind of valuable resource. */
+	public boolean canTake(BlockState state) {
+		if (!HiveResources.yieldOf(state).any()) return true;
+		return valuable.isEmpty() || valuable.is(state.getBlock().asItem()) && valuable.getCount() < LOAD && !precious;
+	}
+
+	/** Time to go home: a full slot (8) or a precious ore. */
+	public boolean loadFull() {
+		return valuable.getCount() >= LOAD || precious && !valuable.isEmpty();
+	}
+
+	/** A drone takes a block it broke: a resource into its valuable slot, stone into its fill slots. */
 	public void collect(BlockState state) {
 		HiveResources.Yield yield = HiveResources.yieldOf(state);
 		Item item = state.getBlock().asItem();
 		if (yield.any()) {
+			if (!canTake(state)) return; // a second kind would be lost; drones avoid breaking those
 			cargoMinerals += yield.minerals();
 			cargoVespene += yield.vespene();
 			cargoDiamonds += yield.diamonds();
 			cargoBlocks++;
+			precious |= yield.precious();
 			if (item != Items.AIR) {
-				boolean merged = false;
-				for (ItemStack stack : cargoItems)
-					if (stack.is(item) && stack.getCount() < stack.getMaxStackSize()) {
-						stack.grow(1);
-						merged = true;
-						break;
-					}
-				if (!merged) cargoItems.add(new ItemStack(item));
+				if (valuable.isEmpty()) valuable = new ItemStack(item);
+				else valuable.grow(1);
 			}
-		} else if (item != Items.AIR && item instanceof BlockItem && !state.is(BlockTags.LEAVES) && fill.getCount() < DroneWork.FILL) {
-			if (fill.isEmpty()) fill = new ItemStack(item);
-			else fill.grow(1);
+		} else if (state.is(FILL_TAG)) {
+			Item stone = state.is(Blocks.STONE) ? Items.COBBLESTONE : state.is(Blocks.DEEPSLATE) ? Items.COBBLED_DEEPSLATE : item;
+			addFill(stone);
 		}
 		updateCarried();
 	}
 
-	public int fillCount() {
-		return fill.getCount();
+	private void addFill(Item item) {
+		if (!(item instanceof BlockItem)) return;
+		for (ItemStack slot : fillSlots)
+			if (slot.is(item) && slot.getCount() < slot.getMaxStackSize()) {
+				slot.grow(1);
+				return;
+			}
+		if (fillSlots.size() < FILL_SLOTS) fillSlots.add(new ItemStack(item));
 	}
 
-	/** Puts a fill block (bridge, step); false when there is none or the place is taken. */
+	public int fillCount() {
+		int count = 0;
+		for (ItemStack slot : fillSlots) count += slot.getCount();
+		return count;
+	}
+
+	/** Puts a building block from the fill slots (bridge, step); false when there is none or the place is taken. */
 	public boolean placeFill(BlockPos pos) {
-		if (fill.isEmpty() || !(fill.getItem() instanceof BlockItem blockItem)) return false;
 		BlockState there = this.level().getBlockState(pos);
 		if (!there.canBeReplaced()) return false;
-		BlockState placed = blockItem.getBlock().defaultBlockState();
-		this.level().setBlockAndUpdate(pos, placed);
-		this.playSound(placed.getSoundType().getPlaceSound(), 1.0f, 1.0f);
-		this.swing(InteractionHand.MAIN_HAND);
-		fill.shrink(1);
-		updateCarried();
-		return true;
+		for (ItemStack slot : fillSlots) {
+			if (slot.isEmpty() || !(slot.getItem() instanceof BlockItem blockItem)) continue;
+			BlockState placed = blockItem.getBlock().defaultBlockState();
+			this.level().setBlockAndUpdate(pos, placed);
+			this.playSound(placed.getSoundType().getPlaceSound(), 1.0f, 1.0f);
+			this.swing(InteractionHand.MAIN_HAND);
+			slot.shrink(1);
+			fillSlots.removeIf(ItemStack::isEmpty);
+			return true;
+		}
+		return false;
 	}
 
 	/** The load is delivered; the fill stays with the drone. */
 	public void clearCargo() {
 		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;
-		cargoItems.clear();
+		valuable = ItemStack.EMPTY;
+		precious = false;
 		updateCarried();
 	}
 
-	/** What the client draws in front of the drone: its load, else its fill. */
+	/** What the client draws in front of the drone: only its valuable slot (earth and stone are not shown). */
 	private void updateCarried() {
-		ItemStack shown = !cargoItems.isEmpty() ? cargoItems.get(0).copyWithCount(Math.max(1, cargoBlocks)) : fill.copy();
-		this.entityData.set(CARRIED, shown);
+		this.entityData.set(CARRIED, valuable.copy());
 	}
 
 	public ItemStack carried() {
@@ -341,10 +369,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	@Override
 	protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
 		super.dropCustomDeathLoot(level, source, recentlyHit);
-		for (ItemStack stack : cargoItems) this.spawnAtLocation(stack.copy());
-		if (!fill.isEmpty()) this.spawnAtLocation(fill.copy());
-		cargoItems.clear();
-		fill = ItemStack.EMPTY;
+		if (!valuable.isEmpty()) this.spawnAtLocation(valuable.copy());
+		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
+		valuable = ItemStack.EMPTY;
+		fillSlots.clear();
 	}
 
 	/**
@@ -447,11 +475,12 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
 		if (cargoBlocks > 0) tag.putIntArray("StarMineCargo", new int[] {cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks});
-		if (!cargoItems.isEmpty() || !fill.isEmpty()) {
+		if (!valuable.isEmpty()) tag.put("StarMineValuable", valuable.save(this.registryAccess()));
+		if (precious) tag.putBoolean("StarMinePrecious", true);
+		if (!fillSlots.isEmpty()) {
 			ListTag items = new ListTag();
-			for (ItemStack stack : cargoItems) items.add(stack.save(this.registryAccess()));
-			tag.put("StarMineCargoItems", items);
-			if (!fill.isEmpty()) tag.put("StarMineFill", fill.save(this.registryAccess()));
+			for (ItemStack slot : fillSlots) items.add(slot.save(this.registryAccess()));
+			tag.put("StarMineFill", items);
 		}
 		if (cocoonKind != null) {
 			tag.putString("StarMineCocoon", cocoonKind.name());
@@ -472,10 +501,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			cargoDiamonds = cargo[2];
 			cargoBlocks = cargo[3];
 		}
-		cargoItems.clear();
-		for (Tag item : tag.getList("StarMineCargoItems", Tag.TAG_COMPOUND))
-			ItemStack.parse(this.registryAccess(), item).ifPresent(cargoItems::add);
-		fill = tag.contains("StarMineFill") ? ItemStack.parse(this.registryAccess(), tag.get("StarMineFill")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
+		valuable = tag.contains("StarMineValuable") ? ItemStack.parse(this.registryAccess(), tag.get("StarMineValuable")).orElse(ItemStack.EMPTY) : ItemStack.EMPTY;
+		precious = tag.getBoolean("StarMinePrecious");
+		fillSlots.clear();
+		for (Tag item : tag.getList("StarMineFill", Tag.TAG_COMPOUND))
+			ItemStack.parse(this.registryAccess(), item).ifPresent(fillSlots::add);
 		if (kind == ZergKind.DRONE) updateCarried();
 		if (tag.contains("StarMineCocoon")) {
 			try {

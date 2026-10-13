@@ -26,14 +26,15 @@ import org.slf4j.LoggerFactory;
  * Entries match a block id or a block tag (`#minecraft:logs`) and give minerals, vespene or hoarded
  * diamonds; `deepslateBonus` multiplies blocks whose id contains "deepslate". Trees are chopped for
  * minerals; coal, redstone and lapis give vespene; diamonds are only hoarded at the hatchery.
+ * `precious` ores (gold, emerald, redstone, lapis, diamond) send a drone home as soon as it has one.
  */
 public final class HiveResources implements SimpleSynchronousResourceReloadListener {
 	private static final Logger LOG = LoggerFactory.getLogger("StarMine");
 	private static final ResourceLocation FILE = StarMine.id("hive/resources.json");
 
 	/** One block's yield. */
-	public record Yield(int minerals, int vespene, int diamonds) {
-		public static final Yield NONE = new Yield(0, 0, 0);
+	public record Yield(int minerals, int vespene, int diamonds, boolean precious) {
+		public static final Yield NONE = new Yield(0, 0, 0, false);
 
 		public boolean any() {
 			return minerals > 0 || vespene > 0 || diamonds > 0;
@@ -56,7 +57,7 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 			if (!match) continue;
 			if (!BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath().contains("deepslate")) return entry.yield;
 			Yield y = entry.yield;
-			return new Yield((int) Math.round(y.minerals * deepslateBonus), (int) Math.round(y.vespene * deepslateBonus), y.diamonds);
+			return new Yield((int) Math.round(y.minerals * deepslateBonus), (int) Math.round(y.vespene * deepslateBonus), y.diamonds, y.precious);
 		}
 		return Yield.NONE;
 	}
@@ -86,7 +87,8 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 			for (JsonElement element : root.getAsJsonArray("entries")) {
 				JsonObject object = element.getAsJsonObject();
 				String id = object.get("block").getAsString();
-				Yield yield = new Yield(get(object, "minerals"), get(object, "vespene"), get(object, "diamonds"));
+				Yield yield = new Yield(get(object, "minerals"), get(object, "vespene"), get(object, "diamonds"),
+					object.has("precious") && object.get("precious").getAsBoolean());
 				loaded.add(id.startsWith("#")
 					? new Entry(null, TagKey.create(Registries.BLOCK, ResourceLocation.parse(id.substring(1))), yield)
 					: new Entry(ResourceLocation.parse(id), null, yield));

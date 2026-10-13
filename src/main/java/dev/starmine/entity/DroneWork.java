@@ -33,16 +33,17 @@ import net.minecraft.world.phys.Vec3;
  * - SEEK: a natural tree nearby (logs with non-persistent leaves, so log houses stay), else an ore
  *   within a scan, else EXPLORE;
  * - TREE: the drone walks to the trunk's foot and, standing there, takes the tree from its top
- *   down, leaves with it, 10 logs a trip — it does not climb;
+ *   down, leaves with it, 8 logs a trip — it does not climb;
  * - MINE: walks to the ore if there is a way, otherwise digs a tunnel of 2x2x2 cubes toward it, with
  *   stair steps up and down; takes the whole vein and ores met on the way;
- * - CARRY: brings the load to the edge of its hatchery (minerals, vespene, hoarded diamonds);
+ * - CARRY: brings the load to the edge of its hatchery (minerals, vespene, hoarded diamonds) — when
+ *   its valuable slot holds 8, or a precious ore, or before taking a second kind of resource;
  * - EXPLORE: walks ever farther; when walks find nothing, digs stairs deeper.
  *
  * It breaks only blocks within reach (like a player) and always finishes a block it has started
  * unless an enemy takes its attention. Stuck while walking, it bridges a gap or builds a step with
- * the stone and earth it dug (kept as fill, up to 16), or digs through. What it carries is shown in
- * front of it and drops if it dies. Yields come from `data/starmine/hive/resources.json`; with
+ * the stone it dug (its 8 fill slots), cuts stairs to get up, or digs through; underground it prefers
+ * an existing way out. Its valuable slot is shown in front of it; everything drops if it dies. Yields come from `data/starmine/hive/resources.json`; with
  * `starmineHiveGriefing` off drones only explore. Trees and ores are claimed per drone.
  */
 final class DroneWork extends Goal {
@@ -50,8 +51,8 @@ final class DroneWork extends Goal {
 
 	private static final Map<BlockPos, UUID> CLAIMS = new HashMap<>();
 	private static final UUID NOBODY = new UUID(0, 0);
-	static final int LOAD = 10, FILL = 16;
 	private static final double REACH = 3.6;
+	private static final int TRAIL = 96;
 
 	private final ZergMob drone;
 	private State state = State.SEEK, resume = State.SEEK;
@@ -66,7 +67,10 @@ final class DroneWork extends Goal {
 	private Vec3 walkGoal;
 	private double bestDistance;
 	private int stuckTicks;
+	private boolean homeReachable = true;
 	private Vec3 exploreTo;
+	/** The cubes this drone dug, in order: underground it walks them back to the way out it made. */
+	private final Deque<BlockPos> trail = new ArrayDeque<>();
 
 	DroneWork(ZergMob drone) {
 		this.drone = drone;
@@ -108,7 +112,7 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
-		if (drone.cargoBlocks >= LOAD && state != State.CARRY) to(State.CARRY);
+		if (drone.loadFull() && state != State.CARRY) to(State.CARRY);
 		switch (state) {
 			case SEEK -> seek(level, griefing);
 			case TREE -> tree(level);
@@ -252,6 +256,10 @@ final class DroneWork extends Goal {
 				removed++;
 			}
 		}
+		if (!drone.canTake(level.getBlockState(top))) { // another resource in its slot: deliver it first
+			to(State.CARRY);
+			return;
+		}
 		// taken from the top while the drone works at the foot
 		breaking = top;
 		breakTicks = 0;
@@ -283,6 +291,10 @@ final class DroneWork extends Goal {
 		if (!deep && !ore) {
 			release(mineTarget);
 			if (!nextInVein(level)) to(State.SEEK);
+			return;
+		}
+		if (ore && !drone.canTake(level.getBlockState(mineTarget))) { // deliver what it has first
+			to(State.CARRY);
 			return;
 		}
 		if (ore && reach(mineTarget)) {
@@ -344,7 +356,9 @@ final class DroneWork extends Goal {
 		order.add(main.getCounterClockWise());
 		for (Direction dir : order) {
 			List<BlockPos> blocks = cubeBlocks(feet, dir, step);
-			if (blocks.stream().allMatch(pos -> level.getBlockState(pos).getCollisionShape(level, pos).isEmpty() || diggable(level, pos))) {
+			// an ore of another kind than the load is not broken through (it would be lost)
+			if (blocks.stream().allMatch(pos -> level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
+				|| diggable(level, pos) && drone.canTake(level.getBlockState(pos)))) {
 				cube.clear();
 				for (BlockPos pos : blocks) if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) cube.add(pos);
 				cubeExit = feet.relative(dir, 2).above(step);
@@ -386,6 +400,8 @@ final class DroneWork extends Goal {
 		if (cubeExit == null) return;
 		Vec3 exit = Vec3.atBottomCenterOf(cubeExit);
 		if (drone.position().distanceToSqr(exit) < 1.2 || cubeTicks > 100) {
+			trail.addLast(cubeExit);
+			if (trail.size() > TRAIL) trail.pollFirst();
 			cubeExit = null;
 			BlockPos ore = findOre(level, drone.blockPosition(), 3); // ores met on the way
 			if (ore != null && state == State.MINE && !deep) {
@@ -441,9 +457,14 @@ final class DroneWork extends Goal {
 		BlockPos front = feet.relative(dir, 1);
 		boolean frontFree = level.getBlockState(front).getCollisionShape(level, front).isEmpty();
 		boolean frontFloor = !level.getBlockState(front.below()).getCollisionShape(level, front.below()).isEmpty();
+		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
 		if (frontFree && !frontFloor && drone.fillCount() > 0) return drone.placeFill(front.below()); // a bridge block
-		if (goal.y > drone.getY() + 1.5 && frontFree && frontFloor && drone.fillCount() > 0) return drone.placeFill(front); // a step
-		if (mayDig && level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING)) return planCube(level, goal, false);
+		if (goal.y > drone.getY() + 1.5) {
+			// it cannot get up: a step of stone, or stairs cut into the wall
+			if (frontFree && frontFloor && drone.fillCount() > 0) return drone.placeFill(front);
+			if (griefing) return planCube(level, goal, false);
+		}
+		if (mayDig && griefing) return planCube(level, goal, false);
 		return false;
 	}
 
@@ -461,7 +482,11 @@ final class DroneWork extends Goal {
 
 	// ---- CARRY ----
 
-	/** The load goes to the edge of the hatchery: the hatchery itself is solid, its centre unreachable. */
+	/**
+	 * The load goes to the edge of the hatchery (the hatchery itself is solid). Underground the drone
+	 * takes an existing way out when the pathfinder finds one, else walks back along its own tunnel,
+	 * and only when that is gone too digs stairs up.
+	 */
 	private void carry(ServerLevel level) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		if (hive == null) {
@@ -485,7 +510,18 @@ final class DroneWork extends Goal {
 			return;
 		}
 		Vec3 edge = flat < 0.01 ? centre.add(5, 0, 0) : centre.add(dx / flat * 5.5, 0, dz / flat * 5.5);
-		walk(level, edge, false);
+		boolean underground = !level.canSeeSky(drone.blockPosition().above());
+		if (underground && stateTicks % 40 == 1) {
+			Path path = drone.getNavigation().createPath(BlockPos.containing(edge), 2);
+			homeReachable = path != null && path.canReach();
+		}
+		if (underground && !homeReachable && !trail.isEmpty()) {
+			BlockPos back = trail.peekLast();
+			if (drone.position().distanceToSqr(Vec3.atBottomCenterOf(back)) < 2.5) trail.pollLast();
+			else if (!walk(level, Vec3.atBottomCenterOf(back), true)) trail.pollLast();
+			return;
+		}
+		walk(level, edge, underground);
 	}
 
 	// ---- EXPLORE ----
