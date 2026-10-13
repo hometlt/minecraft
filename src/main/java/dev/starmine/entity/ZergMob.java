@@ -41,6 +41,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 
 /**
@@ -59,6 +60,9 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
  * when its SC2 train time is over. Hatchery and cocoon are structures: immobile and solid. Flying
  * kinds hover above the ground; the overlord ferries zerg that cannot reach their target; zerg near
  * an overseer see invisible players and creatures, which glow around the overseer.
+ *
+ * Drone: works for its hive ({@link DroneWork}: trees, ores, tunnels, carrying), climbs walls and
+ * trunks like a spider, never starts a fight and gives up defending itself after 10 s or 6 blocks.
  */
 public class ZergMob extends Monster implements RangedAttackMob {
 	public final ZergKind kind;
@@ -76,6 +80,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private int unreachable;
 	/** An overseer is near: invisible players and creatures are seen (see the visibility mixin). */
 	private boolean overseerNear;
+	/** Drone: what it carries to the hatchery, and whether it is climbing a wall or trunk. */
+	public int cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks;
+	private boolean climbing;
+	/** Drone defending itself: ticks since it took up its attacker. */
+	private int defendTicks;
 
 	public ZergMob(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
@@ -99,13 +108,14 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			.add(Attributes.MOVEMENT_SPEED, kind.speed)
 			.add(Attributes.FLYING_SPEED, kind.speed * 1.5)
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
-			.add(Attributes.FOLLOW_RANGE, 32.0)
+			.add(Attributes.FOLLOW_RANGE, kind == ZergKind.DRONE ? 64.0 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
 			.add(Attributes.STEP_HEIGHT, 1.0);
 	}
 
 	@Override
 	protected PathNavigation createNavigation(Level level) {
+		if (StarMine.kindOf(this.getType()) == ZergKind.DRONE) return new WallClimberNavigation(this, level);
 		if (!StarMine.kindOf(this.getType()).flying) return super.createNavigation(level);
 		FlyingPathNavigation navigation = new FlyingPathNavigation(this, level);
 		navigation.setCanOpenDoors(false);
@@ -125,7 +135,8 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			return;
 		}
 		if (kind == ZergKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
-		this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, kind == ZergKind.DRONE ? 12 : 24));
+		if (kind == ZergKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
+		else this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 24));
 		switch (kind.attack) {
 			case NONE -> {
 			}
@@ -172,6 +183,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
 		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
+		if (kind == ZergKind.DRONE) {
+			climbing = this.horizontalCollision;
+			defendOnly();
+		}
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
 			overseerNear = !this.level().getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(20), mob -> mob.kind == ZergKind.OVERSEER).isEmpty();
@@ -197,6 +212,48 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		Path path = this.getNavigation().getPath();
 		boolean far = this.distanceToSqr(this.getTarget()) > 9;
 		unreachable = far && (path == null || !path.canReach() || this.getNavigation().isDone()) ? unreachable + 20 : 0;
+	}
+
+	/**
+	 * Drones fight only back: the attacker stays their target while it is within 6 blocks and for at
+	 * most 10 s, then they go back to work.
+	 */
+	private void defendOnly() {
+		LivingEntity target = this.getTarget();
+		if (target == null) {
+			defendTicks = 0;
+			return;
+		}
+		if (++defendTicks > 200 || !target.isAlive() || this.distanceToSqr(target) > 36) {
+			this.setTarget(null);
+			defendTicks = 0;
+		}
+	}
+
+	@Override
+	public boolean onClimbable() {
+		return kind == ZergKind.DRONE ? climbing : super.onClimbable();
+	}
+
+	public void addCargo(dev.starmine.hive.HiveResources.Yield yield) {
+		if (!yield.any()) return;
+		cargoMinerals += yield.minerals();
+		cargoVespene += yield.vespene();
+		cargoDiamonds += yield.diamonds();
+		cargoBlocks++;
+	}
+
+	public int cargoValue() {
+		return cargoMinerals + cargoVespene * 2 + cargoDiamonds * 50;
+	}
+
+	/** A drone goes home with a load: SC2 carries 5 minerals a trip; here a few blocks' worth. */
+	public boolean cargoFull() {
+		return cargoValue() >= 10 || cargoBlocks >= 4;
+	}
+
+	public void clearCargo() {
+		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;
 	}
 
 	public int unreachableTicks() {
@@ -251,6 +308,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	public void remove(Entity.RemovalReason reason) {
+		if (kind == ZergKind.DRONE && !this.level().isClientSide) DroneWork.releaseAll(this.getUUID());
 		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null) {
 			HiveSavedData data = HiveSavedData.get(server.getServer());
 			Hive hive = data.get(hiveId);
@@ -270,6 +328,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		super.addAdditionalSaveData(tag);
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
+		if (cargoBlocks > 0) tag.putIntArray("StarMineCargo", new int[] {cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks});
 		if (cocoonKind != null) {
 			tag.putString("StarMineCocoon", cocoonKind.name());
 			tag.putInt("StarMineCocoonCount", cocoonCount);
@@ -282,6 +341,13 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		super.readAdditionalSaveData(tag);
 		if (tag.hasUUID("StarMineHive")) hiveId = tag.getUUID("StarMineHive");
 		home = NbtUtils.readBlockPos(tag, "StarMineHome").orElse(null);
+		int[] cargo = tag.getIntArray("StarMineCargo");
+		if (cargo.length == 4) {
+			cargoMinerals = cargo[0];
+			cargoVespene = cargo[1];
+			cargoDiamonds = cargo[2];
+			cargoBlocks = cargo[3];
+		}
 		if (tag.contains("StarMineCocoon")) {
 			try {
 				cocoonKind = ZergKind.valueOf(tag.getString("StarMineCocoon"));

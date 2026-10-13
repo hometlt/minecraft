@@ -4,6 +4,12 @@ import dev.starmine.entity.ZergKind;
 import dev.starmine.entity.ZergMob;
 import dev.starmine.entity.ZergSpit;
 import dev.starmine.hive.HiveCommands;
+import dev.starmine.hive.HiveResources;
+import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
+import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.world.level.GameRules;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import java.util.EnumMap;
 import java.util.IdentityHashMap;
@@ -55,6 +61,10 @@ public final class StarMine implements ModInitializer {
 		}
 	}
 
+	/** Drones chop trees and dig (owner: on by default); off, they only explore. */
+	public static final GameRules.Key<GameRules.BooleanValue> HIVE_GRIEFING =
+		GameRuleRegistry.register("starmineHiveGriefing", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
+
 	public static final EntityType<ZergSpit> SPIT = Registry.register(BuiltInRegistries.ENTITY_TYPE, id("zerg_spit"),
 		EntityType.Builder.<ZergSpit>of(ZergSpit::new, MobCategory.MISC)
 			.sized(0.3f, 0.3f)
@@ -88,6 +98,7 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
+		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));

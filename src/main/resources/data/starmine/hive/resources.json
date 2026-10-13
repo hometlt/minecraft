@@ -1,0 +1,15 @@
+{
+	"deepslateBonus": 1.5,
+	"entries": [
+		{ "block": "#minecraft:logs", "minerals": 2 },
+		{ "block": "#minecraft:copper_ores", "minerals": 4 },
+		{ "block": "#minecraft:iron_ores", "minerals": 8 },
+		{ "block": "#minecraft:gold_ores", "minerals": 12 },
+		{ "block": "minecraft:nether_quartz_ore", "minerals": 4 },
+		{ "block": "#minecraft:emerald_ores", "minerals": 15 },
+		{ "block": "#minecraft:coal_ores", "vespene": 2 },
+		{ "block": "#minecraft:redstone_ores", "vespene": 6 },
+		{ "block": "#minecraft:lapis_ores", "vespene": 8 },
+		{ "block": "#minecraft:diamond_ores", "diamonds": 1 }
+	]
+}

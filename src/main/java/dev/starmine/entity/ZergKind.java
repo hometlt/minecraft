@@ -10,13 +10,14 @@ import net.minecraft.world.item.Items;
  * the scales the owner accepted on the zergling: health and damage x{@link #SCALE} (10/35; a
  * zergling has half a player's health, a hydralisk more than a player), attack period kept,
  * walking speed x{@link #SPEED_SCALE}, range in blocks = SC2 range x{@link #BLOCKS_PER_UNIT}.
- * Hitboxes follow the imported model sizes (1.153 blocks per SC2 unit, a zergling 1 block tall).
+ * Hitboxes follow the imported model sizes (1.153 blocks per SC2 unit, a zergling 1 block tall);
+ * drones and zerglings fit 1x1 tunnels (hitbox under a block).
  * Model and sound names follow the enum name in lower case without underscores.
  */
 public enum ZergKind {
 	//           sc2Hp  speed  fly    attack                  dmg   period range  aggressive  hitbox w/h (from model size)  egg colours
-	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.8f, 1.0f, 0x4b1f4f, 0xc79a52),
-	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 1.2f, 0.7f,  0x6a4a2a, 0xd8c08a),
+	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.8f, 0.9f, 0x4b1f4f, 0xc79a52),
+	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 0.9f, 0.7f,  0x6a4a2a, 0xd8c08a),
 	OVERLORD(    200,   0.902, true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 4.0f,  0x5a3a5a, 0xb08ab0),
 	OVERSEER(    200,   2.62,  true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 3.8f,  0x3a5a3a, 0xc0d080),
 	QUEEN(       175,   1.31,  false, Attack.RANGED,          8,    0.71,  5,    true,  2.0f, 2.6f,  0x40205a, 0xe0b040),
