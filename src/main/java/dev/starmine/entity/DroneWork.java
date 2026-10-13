@@ -117,6 +117,10 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
+		if (drone.raidTarget() != null) {
+			raid(level, griefing);
+			return;
+		}
 		if (drone.loadFull() && state != State.CARRY) to(State.CARRY);
 		switch (state) {
 			case SEEK -> seek(level, griefing);
@@ -419,12 +423,19 @@ final class DroneWork extends Goal {
 		if (!drone.getNavigation().moveTo(exit.x, exit.y, exit.z, 1.0)) drone.getMoveControl().setWantedPosition(exit.x, exit.y, exit.z, 1.0);
 	}
 
-	/** A block a drone may break: breakable, no block entity, no water or lava at or next to it. */
+	/**
+	 * A block a drone may break: no block entity, no water or lava at or next to it, and not metal or
+	 * very hard (owner: drones cannot break metal or especially strong blocks — iron, obsidian…).
+	 */
 	private static boolean diggable(ServerLevel level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
 		if (!state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) return false;
 		float hardness = state.getDestroySpeed(level, pos);
-		if (hardness < 0 || hardness > 20) return false;
+		if (hardness < 0 || hardness >= 5) return false;
+		var sound = state.getSoundType();
+		if (sound == net.minecraft.world.level.block.SoundType.METAL || sound == net.minecraft.world.level.block.SoundType.ANVIL
+			|| sound == net.minecraft.world.level.block.SoundType.COPPER || sound == net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK
+			|| sound == net.minecraft.world.level.block.SoundType.CHAIN) return false;
 		for (Direction d : Direction.values()) if (!level.getFluidState(pos.relative(d)).isEmpty()) return false;
 		return true;
 	}
@@ -582,6 +593,59 @@ final class DroneWork extends Goal {
 			return;
 		}
 		if (!walk(level, exploreTo, false)) exploreTo = null;
+	}
+
+	// ---- RAID ----
+
+	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> MECHANISMS =
+		net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, StarMine.id("raid_mechanisms"));
+
+	/**
+	 * A drone on a raid opens the way for the party (digs through walls, bridges gaps), and at the
+	 * target steals food from chests and barrels and breaks mechanisms and crops within 10 blocks.
+	 */
+	private void raid(ServerLevel level, boolean griefing) {
+		BlockPos target = drone.raidTarget();
+		Vec3 goal = Vec3.atBottomCenterOf(target);
+		if (drone.position().distanceTo(goal) > 10) {
+			walk(level, goal, griefing);
+			return;
+		}
+		if (stateTicks % 20 == 0) stealFood(level);
+		if (!griefing) return;
+		BlockPos victim = null;
+		double best = Double.MAX_VALUE;
+		for (BlockPos pos : BlockPos.betweenClosed(target.offset(-10, -4, -10), target.offset(10, 6, 10))) {
+			if (!level.getBlockState(pos).is(MECHANISMS)) continue;
+			double d = pos.distSqr(drone.blockPosition());
+			if (d < best) {
+				best = d;
+				victim = pos.immutable();
+			}
+		}
+		if (victim == null) {
+			if (drone.getNavigation().isDone()) walk(level, goal.add(drone.getRandom().nextGaussian() * 5, 0, drone.getRandom().nextGaussian() * 5), false);
+			return;
+		}
+		if (reach(victim)) start(level, victim);
+		else walk(level, Vec3.atBottomCenterOf(victim), true);
+	}
+
+	/** Food is taken out of the chests, barrels and other containers within reach (it is eaten). */
+	private void stealFood(ServerLevel level) {
+		for (BlockPos pos : BlockPos.betweenClosed(drone.blockPosition().offset(-3, -2, -3), drone.blockPosition().offset(3, 3, 3))) {
+			if (!(level.getBlockEntity(pos) instanceof net.minecraft.world.Container container)) continue;
+			for (int slot = 0; slot < container.getContainerSize(); slot++) {
+				var stack = container.getItem(slot);
+				if (!stack.isEmpty() && stack.has(net.minecraft.core.component.DataComponents.FOOD)) {
+					container.setItem(slot, net.minecraft.world.item.ItemStack.EMPTY);
+					drone.swing(InteractionHand.MAIN_HAND);
+					drone.playSound(net.minecraft.sounds.SoundEvents.GENERIC_EAT, 1.0f, 0.8f);
+					container.setChanged();
+					return;
+				}
+			}
+		}
 	}
 
 	// ---- breaking ----

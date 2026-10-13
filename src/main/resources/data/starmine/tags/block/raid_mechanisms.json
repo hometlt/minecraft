@@ -1,0 +1,28 @@
+{
+	"values": [
+		"minecraft:redstone_wire",
+		"minecraft:repeater",
+		"minecraft:comparator",
+		"minecraft:piston",
+		"minecraft:sticky_piston",
+		"minecraft:observer",
+		"minecraft:dispenser",
+		"minecraft:dropper",
+		"minecraft:hopper",
+		"#minecraft:rails",
+		"minecraft:lever",
+		"#minecraft:buttons",
+		"#minecraft:pressure_plates",
+		"minecraft:redstone_torch",
+		"minecraft:redstone_wall_torch",
+		"minecraft:redstone_lamp",
+		"minecraft:note_block",
+		"minecraft:daylight_detector",
+		"minecraft:target",
+		"minecraft:tripwire_hook",
+		"minecraft:tripwire",
+		"minecraft:crafter",
+		"minecraft:bell",
+		"#minecraft:crops"
+	]
+}

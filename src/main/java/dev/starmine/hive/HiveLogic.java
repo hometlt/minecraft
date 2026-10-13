@@ -70,6 +70,7 @@ public final class HiveLogic {
 			spawn(level, hive, ZergKind.QUEEN, around(hatchery, level), null);
 		}
 		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
+		if (hatchery.tickCount % 200 == 0) maybeRaid(hatchery, level, hive);
 		if (++hive.decisionTimer >= DECISION_TICKS) {
 			hive.decisionTimer = 0;
 			decide(hatchery, level, hive);
@@ -122,6 +123,38 @@ public final class HiveLogic {
 			}
 		}
 		if (threat != null) alarm(level, hive.id, hatchery.position(), threat);
+	}
+
+	public static final int RAID_COOLDOWN = 5 * 60 * 20, RAID_LENGTH = 3 * 60 * 20, RAID_RANGE = 96;
+
+	/**
+	 * Raids (owner): with at least 4 warriors and 2 drones at home the hive sends a party every 5 min to
+	 * the nearest settlement within 96 blocks — beds, workstations, bells (points of interest), else a
+	 * player — for 3 min. Warriors kill what lives there; drones open the way through walls (not metal
+	 * or very hard blocks), bridge gaps, steal food and break mechanisms and crops.
+	 */
+	private static void maybeRaid(ZergMob hatchery, ServerLevel level, Hive hive) {
+		long now = level.getGameTime();
+		if (now < hive.nextRaid) return;
+		List<ZergMob> home = level.getEntitiesOfClass(ZergMob.class, hatchery.getBoundingBox().inflate(48),
+			mob -> hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && !mob.kind.structure());
+		List<ZergMob> warriors = home.stream().filter(m -> m.kind != ZergKind.DRONE && m.kind != ZergKind.LARVA && m.kind.attack != ZergKind.Attack.NONE).toList();
+		List<ZergMob> drones = home.stream().filter(m -> m.kind == ZergKind.DRONE).toList();
+		if (warriors.size() < 4 || drones.size() < 2) return;
+		BlockPos target = level.getPoiManager()
+			.findClosest(type -> true, hatchery.blockPosition(), RAID_RANGE, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY)
+			.filter(pos -> pos.distSqr(hatchery.blockPosition()) > 24 * 24)
+			.orElse(null);
+		if (target == null) {
+			Player player = level.getNearestPlayer(hatchery.getX(), hatchery.getY(), hatchery.getZ(), RAID_RANGE,
+				entity -> entity instanceof Player p && !p.isCreative() && !p.isSpectator());
+			if (player != null) target = player.blockPosition();
+		}
+		hive.nextRaid = now + RAID_COOLDOWN;
+		if (target == null) return;
+		long until = now + RAID_LENGTH;
+		for (ZergMob warrior : warriors.subList(0, Math.min(12, warriors.size()))) warrior.joinRaid(target, until);
+		for (ZergMob drone : drones.subList(0, Math.min(2, drones.size()))) drone.joinRaid(target, until);
 	}
 
 	/** The hive's warriors within 32 blocks of the alarm and without a target go for the attacker. */

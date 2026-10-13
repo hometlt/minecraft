@@ -5,6 +5,10 @@ import dev.starmine.entity.ZergKind;
 import dev.starmine.entity.ZergMob;
 import dev.starmine.entity.ZergSpit;
 import dev.starmine.hive.HiveCommands;
+import dev.starmine.mixin.MobAccessor;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.monster.Monster;
 import dev.starmine.hive.HiveResources;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
 import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
@@ -105,6 +109,11 @@ public final class StarMine implements ModInitializer {
 		StarMineBlocks.load();
 		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
+		// owner: hostile mobs (creepers, zombies, skeletons...) attack zerg as zerg attack them
+		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+			if (entity instanceof Monster monster && !(entity instanceof ZergMob))
+				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, ZergMob.class, true));
+		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));

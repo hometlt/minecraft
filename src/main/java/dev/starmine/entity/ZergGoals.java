@@ -106,6 +106,47 @@ final class ZergGoals {
 		}
 	}
 
+	/**
+	 * Raid (warriors): march to the raid target in legs the pathfinder can plan, then roam around it;
+	 * the hostile target goals pick the creatures to kill on the way and there.
+	 */
+	static final class Raid extends Goal {
+		private final ZergMob mob;
+		private int repath;
+
+		Raid(ZergMob mob) {
+			this.mob = mob;
+			this.setFlags(EnumSet.of(Flag.MOVE));
+		}
+
+		@Override
+		public boolean canUse() {
+			return mob.raidTarget() != null && mob.getTarget() == null && !mob.isPassenger();
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return canUse();
+		}
+
+		@Override
+		public void tick() {
+			if (--repath > 0 && !mob.getNavigation().isDone()) return;
+			repath = 40;
+			BlockPos target = mob.raidTarget();
+			Vec3 goal = Vec3.atBottomCenterOf(target);
+			if (mob.position().distanceTo(goal) < 12) {
+				// at the target: roam around it
+				goal = goal.add(mob.getRandom().nextGaussian() * 6, 0, mob.getRandom().nextGaussian() * 6);
+			} else if (mob.position().distanceTo(goal) > 40) {
+				goal = mob.position().add(goal.subtract(mob.position()).normalize().scale(32));
+			}
+			double y = mob.kind.flying ? ground(mob, goal.x, goal.z) + Math.max(2, mob.kind.hoverHeight())
+				: mob.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(goal.x), (int) Math.floor(goal.z));
+			if (!mob.getNavigation().moveTo(goal.x, y, goal.z, 1.1)) mob.getMoveControl().setWantedPosition(goal.x, y, goal.z, 1.1);
+		}
+	}
+
 	/** Hive members without a target drift back toward their hatchery. */
 	static final class ReturnHome extends Goal {
 		private final ZergMob mob;
@@ -120,7 +161,7 @@ final class ZergGoals {
 		@Override
 		public boolean canUse() {
 			BlockPos home = mob.home();
-			return home != null && mob.getTarget() == null && !mob.isPassenger()
+			return home != null && mob.getTarget() == null && !mob.isPassenger() && mob.raidTarget() == null
 				&& mob.distanceToSqr(Vec3.atBottomCenterOf(home)) > radius * radius;
 		}
 

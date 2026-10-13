@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "dev.starmine.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": ["OverseerSightMixin"],
+	"mixins": ["MobAccessor", "OverseerSightMixin", "VillagerZergFearMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	}

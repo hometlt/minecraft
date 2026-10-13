@@ -114,6 +114,9 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(ZergMob.class, EntityDataSerializers.ITEM_STACK);
 	/** Drone defending itself: ticks since it took up its attacker. */
 	private int defendTicks;
+	/** On a raid: where the party goes, and the game time it ends (then everyone goes home). */
+	private BlockPos raidTarget;
+	private long raidUntil;
 
 	public ZergMob(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
@@ -163,6 +166,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			return;
 		}
 		if (kind == ZergKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
+		if (kind != ZergKind.DRONE && kind.attack != ZergKind.Attack.NONE) this.goalSelector.addGoal(3, new ZergGoals.Raid(this));
 		if (kind == ZergKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
 		if (kind == ZergKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
 		else this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 24));
@@ -186,6 +190,9 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (kind.aggressive) {
 			this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
 			this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
+			// owner: zerg are hostile to every creature (animals and villagers too), never to each other
+			this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
+				other -> !(other instanceof ZergMob) && !(other instanceof Player) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)));
 		}
 	}
 
@@ -451,6 +458,22 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		return overseerNear || kind == ZergKind.OVERSEER;
 	}
 
+	/** Joins a raid: go to the target until the given game time. */
+	public void joinRaid(BlockPos target, long until) {
+		this.raidTarget = target.immutable();
+		this.raidUntil = until;
+	}
+
+	/** The raid's destination while the raid lasts, else null. */
+	public BlockPos raidTarget() {
+		if (raidTarget != null && this.level().getGameTime() > raidUntil) raidTarget = null;
+		return raidTarget;
+	}
+
+	public void endRaid() {
+		raidTarget = null;
+	}
+
 	public UUID hiveId() {
 		return hiveId;
 	}
@@ -508,6 +531,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		super.addAdditionalSaveData(tag);
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
+		if (raidTarget != null) {
+			tag.put("StarMineRaid", NbtUtils.writeBlockPos(raidTarget));
+			tag.putLong("StarMineRaidUntil", raidUntil);
+		}
 		if (cargoBlocks > 0) tag.putIntArray("StarMineCargo", new int[] {cargoMinerals, cargoVespene, cargoDiamonds, cargoBlocks});
 		if (!valuable.isEmpty()) tag.put("StarMineValuable", valuable.save(this.registryAccess()));
 		if (precious) tag.putBoolean("StarMinePrecious", true);
@@ -528,6 +555,8 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		super.readAdditionalSaveData(tag);
 		if (tag.hasUUID("StarMineHive")) hiveId = tag.getUUID("StarMineHive");
 		home = NbtUtils.readBlockPos(tag, "StarMineHome").orElse(null);
+		raidTarget = NbtUtils.readBlockPos(tag, "StarMineRaid").orElse(null);
+		raidUntil = tag.getLong("StarMineRaidUntil");
 		int[] cargo = tag.getIntArray("StarMineCargo");
 		if (cargo.length == 4) {
 			cargoMinerals = cargo[0];
