@@ -1,6 +1,9 @@
 package dev.starmine.entity;
 
 import dev.starmine.StarMine;
+import dev.starmine.block.StarMineBlocks;
+import dev.starmine.creep.CreepGrowth;
+import net.minecraft.world.level.block.MultifaceBlock;
 import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveResources;
 import dev.starmine.hive.HiveSavedData;
@@ -43,7 +46,9 @@ import net.minecraft.world.phys.Vec3;
  * It breaks only blocks within reach (like a player) and always finishes a block it has started
  * unless an enemy takes its attention. Stuck while walking, it bridges a gap or builds a step with
  * the stone it dug (its 8 fill slots), cuts stairs to get up, or digs through; underground it prefers
- * an existing way out. Its valuable slot is shown in front of it; everything drops if it dies. Yields come from `data/starmine/hive/resources.json`; with
+ * an existing way out; in a passage too narrow for it, it widens the passage first. Creep on a block
+ * it digs is not lost: it lines the new cavity. Its valuable slot is shown in front of it; everything
+ * drops if it dies. Yields come from `data/starmine/hive/resources.json`; with
  * `starmineHiveGriefing` off drones only explore. Trees and ores are claimed per drone.
  */
 final class DroneWork extends Goal {
@@ -451,6 +456,7 @@ final class DroneWork extends Goal {
 	}
 
 	private boolean unstick(ServerLevel level, Vec3 goal, boolean mayDig) {
+		if (widen(level, goal)) return true;
 		BlockPos feet = drone.blockPosition();
 		double dx = goal.x - drone.getX(), dz = goal.z - drone.getZ();
 		Direction dir = Math.abs(dx) >= Math.abs(dz) ? (dx >= 0 ? Direction.EAST : Direction.WEST) : (dz >= 0 ? Direction.SOUTH : Direction.NORTH);
@@ -466,6 +472,30 @@ final class DroneWork extends Goal {
 		}
 		if (mayDig && griefing) return planCube(level, goal, false);
 		return false;
+	}
+
+	/**
+	 * A passage too narrow or low for a 2-block drone: the solid blocks in its 2x2 cross-section a
+	 * step ahead (toward the goal) are dug out. False when nothing there can be dug.
+	 */
+	private boolean widen(ServerLevel level, Vec3 goal) {
+		if (!level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING)) return false;
+		Vec3 direction = goal.subtract(drone.position()).multiply(1, 0, 1);
+		if (direction.lengthSqr() < 1e-4) return false;
+		direction = direction.normalize();
+		var box = drone.getBoundingBox().move(direction.scale(0.9)).setMaxY(drone.getY() + 1.95).deflate(0.05, 0, 0.05).move(0, 0.05, 0);
+		List<BlockPos> blocking = new ArrayList<>();
+		for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY, box.minZ), BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
+			if (level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) continue;
+			if (!diggable(level, pos) || !drone.canTake(level.getBlockState(pos)) || !reach(pos)) return false;
+			blocking.add(pos.immutable());
+		}
+		if (blocking.isEmpty()) return false;
+		cube.clear();
+		cube.addAll(blocking);
+		cubeExit = BlockPos.containing(drone.position().add(direction));
+		cubeTicks = 0;
+		return true;
 	}
 
 	/** Paths over long distances in legs the pathfinder can plan. */
@@ -583,8 +613,19 @@ final class DroneWork extends Goal {
 		if (breakTicks < breakNeeded) return false;
 		level.destroyBlockProgress(drone.getId(), pos, -1);
 		drone.collect(state);
+		boolean creeped = coveredByCreep(level, pos);
 		level.destroyBlock(pos, false, drone);
+		if (creeped) CreepGrowth.lineCavity(level, pos);
 		return true;
+	}
+
+	/** Whether creep lies on any face of this block (it would fall off when the block goes). */
+	private static boolean coveredByCreep(ServerLevel level, BlockPos pos) {
+		for (Direction d : Direction.values()) {
+			BlockState near = level.getBlockState(pos.relative(d));
+			if (near.is(StarMineBlocks.CREEP) && MultifaceBlock.hasFace(near, d.getOpposite())) return true;
+		}
+		return false;
 	}
 
 	private void afterBreak(ServerLevel level) {

@@ -180,6 +180,21 @@ public final class CreepGrowth {
 		return true;
 	}
 
+	/**
+	 * A block that carried creep was dug out: the creep is not lost but lines the faces of the cavity
+	 * it leaves (the walls, floor and ceiling around the empty cell).
+	 */
+	public static void lineCavity(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.isAir()) return;
+		BlockState lined = null;
+		for (Direction face : Direction.values()) {
+			BlockState next = StarMineBlocks.CREEP.getStateForPlacement(lined == null ? state : lined, level, pos, face);
+			if (next != null) lined = next;
+		}
+		if (lined != null) level.setBlockAndUpdate(pos, lined);
+	}
+
 	/** Forgets a source that is gone (its creep then recedes on its own). */
 	public static void forget(ServerLevel level, BlockPos source) {
 		SOURCES.remove(new Key(level.dimension(), source.asLong()));
