@@ -1,7 +1,13 @@
 package dev.starmine.entity;
 
 import dev.starmine.StarMine;
+import dev.starmine.creep.CreepGrowth;
+import dev.starmine.creep.CreepTouch;
 import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveTerrain;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
 import java.util.List;
@@ -135,6 +141,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			return;
 		}
 		if (kind == ZergKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
+		if (kind == ZergKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
 		if (kind == ZergKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
 		else this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 24));
 		switch (kind.attack) {
@@ -187,6 +194,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			climbing = this.horizontalCollision;
 			defendOnly();
 		}
+		if (this.tickCount % 10 == 0) creepEffects(server);
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
 			overseerNear = !this.level().getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(20), mob -> mob.kind == ZergKind.OVERSEER).isEmpty();
@@ -256,6 +264,29 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;
 	}
 
+	/**
+	 * Creep (owner): on creep zerg run 30 % faster (SC2) and regenerate 4x; all zerg regenerate slowly
+	 * (SC2 0.27 hit points a second, scaled); a player standing on creep draws the zerg on creep nearby.
+	 */
+	private void creepEffects(ServerLevel server) {
+		boolean onCreep = CreepTouch.onCreep(this);
+		AttributeInstance speed = this.getAttribute(Attributes.MOVEMENT_SPEED);
+		if (speed != null) {
+			boolean has = speed.hasModifier(CREEP_SPEED);
+			if (onCreep && !has) speed.addTransientModifier(new AttributeModifier(CREEP_SPEED, 0.3, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+			else if (!onCreep && has) speed.removeModifier(CREEP_SPEED);
+		}
+		if (this.tickCount % 20 == 0 && this.getHealth() < this.getMaxHealth())
+			this.heal((float) (0.27 * ZergKind.SCALE * (onCreep ? 4 : 1)));
+		if (onCreep && this.getTarget() == null && kind.aggressive && kind.attack != ZergKind.Attack.NONE && this.tickCount % 20 == 0) {
+			Player intruder = server.getNearestPlayer(this.getX(), this.getY(), this.getZ(), 24,
+				entity -> entity instanceof Player player && !player.isCreative() && !player.isSpectator() && CreepTouch.onCreep(player));
+			if (intruder != null) this.setTarget(intruder);
+		}
+	}
+
+	private static final ResourceLocation CREEP_SPEED = StarMine.id("creep_speed");
+
 	public int unreachableTicks() {
 		return unreachable;
 	}
@@ -313,7 +344,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			HiveSavedData data = HiveSavedData.get(server.getServer());
 			Hive hive = data.get(hiveId);
 			if (kind == ZergKind.HATCHERY) {
-				if (hiveId.equals(this.getUUID())) data.remove(hiveId);
+				if (hiveId.equals(this.getUUID()) && hive != null) {
+					if (hive.foundation) HiveTerrain.ruin(server, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
+					CreepGrowth.forget(server, hive.hatchery);
+					data.remove(hiveId);
+				}
 			} else if (hive != null) {
 				hive.leave(kind);
 				if (kind == ZergKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);

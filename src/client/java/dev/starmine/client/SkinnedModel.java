@@ -26,6 +26,8 @@ public final class SkinnedModel {
 	public final int vertexCount;
 	public final int slots;
 	public final float fps;
+	/** Model size in blocks (x, y, z) at rest. */
+	public final float[] size = new float[3];
 	public final float[] positions, normals, uvs, weights;
 	public final byte[] joints;
 	public final int[] indices;
@@ -70,6 +72,7 @@ public final class SkinnedModel {
 		int indexCount = header.get("indexCount").getAsInt();
 		slots = header.get("slots").getAsInt();
 		fps = header.get("fps").getAsFloat();
+		if (header.has("size")) for (int i = 0; i < 3; i++) size[i] = header.getAsJsonArray("size").get(i).getAsFloat();
 		positions = new float[vertexCount * 3];
 		normals = new float[vertexCount * 3];
 		uvs = new float[vertexCount * 2];

@@ -53,6 +53,7 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 			if (!load(manager, kind.id)) missing++;
 			load(manager, kind.id + "_death");
 		}
+		load(manager, "creeptumor");
 		if (missing > 0) LOG.warn("StarMine: {} zerg models are missing; import StarCraft II assets with Modkit", missing);
 		LOG.info("StarMine: {} zerg models loaded", MODELS.size());
 	}

@@ -2,7 +2,13 @@ package dev.starmine.entity;
 
 import java.util.EnumSet;
 import java.util.List;
+import dev.starmine.block.StarMineBlocks;
+import dev.starmine.creep.CreepGrowth;
+import dev.starmine.creep.CreepSources;
+import java.util.ArrayList;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -50,6 +56,53 @@ final class ZergGoals {
 			double z = cz + (mob.getRandom().nextDouble() * 2 - 1) * radius;
 			double y = ground(mob, x, z) + mob.kind.hoverHeight() + mob.getRandom().nextDouble() * 3;
 			mob.getMoveControl().setWantedPosition(x, y, z, 1.0);
+		}
+	}
+
+	/**
+	 * Queen: every 32 s (SC2: 25 energy at 0.7875/s) she walks to a creep cell at least 7 blocks from
+	 * every other creep source and plants a creep tumor there, on whatever face the creep lies.
+	 */
+	static final class PlantTumor extends Goal {
+		private final ZergMob queen;
+		private BlockPos spot;
+		private int cooldown = 200, timeout;
+
+		PlantTumor(ZergMob queen) {
+			this.queen = queen;
+			this.setFlags(EnumSet.of(Flag.MOVE));
+		}
+
+		@Override
+		public boolean canUse() {
+			if (--cooldown > 0 || queen.getTarget() != null || !(queen.level() instanceof ServerLevel level)) return false;
+			cooldown = 640;
+			List<BlockPos> spots = new ArrayList<>();
+			BlockPos centre = queen.blockPosition();
+			for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-10, -6, -10), centre.offset(10, 6, 10)))
+				if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepSources.nearestSource(level, pos) >= 7) spots.add(pos.immutable());
+			if (spots.isEmpty()) return false;
+			spot = spots.get(queen.getRandom().nextInt(spots.size()));
+			timeout = 300;
+			return true;
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return spot != null && --timeout > 0 && queen.getTarget() == null;
+		}
+
+		@Override
+		public void start() {
+			queen.getNavigation().moveTo(spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5, 1.0);
+		}
+
+		@Override
+		public void tick() {
+			if (spot == null || queen.distanceToSqr(Vec3.atCenterOf(spot)) > 16) return;
+			queen.swing(InteractionHand.MAIN_HAND);
+			CreepGrowth.placeTumor((ServerLevel) queen.level(), spot, 7);
+			spot = null;
 		}
 	}
 

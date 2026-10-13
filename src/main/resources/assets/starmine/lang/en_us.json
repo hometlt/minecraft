@@ -138,5 +138,8 @@
 	"subtitles.starmine.hatchery.death": "Hatchery dies",
 	"subtitles.starmine.hatchery.ambient": "Hatchery hisses",
 	"subtitles.starmine.hatchery.hurt": "Hatchery hurts",
-	"message.starmine.hive_limit": "A world holds at most %s zerg hives"
+	"message.starmine.hive_limit": "A world holds at most %s zerg hives",
+	"block.starmine.thick_creep": "Thick Creep",
+	"block.starmine.creep": "Creep",
+	"block.starmine.creep_tumor": "Creep Tumor"
 }

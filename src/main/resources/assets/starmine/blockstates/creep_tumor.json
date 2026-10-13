@@ -1,0 +1,22 @@
+{
+	"variants": {
+		"facing=up": {
+			"model": "starmine:block/creep_tumor"
+		},
+		"facing=down": {
+			"model": "starmine:block/creep_tumor"
+		},
+		"facing=north": {
+			"model": "starmine:block/creep_tumor"
+		},
+		"facing=south": {
+			"model": "starmine:block/creep_tumor"
+		},
+		"facing=east": {
+			"model": "starmine:block/creep_tumor"
+		},
+		"facing=west": {
+			"model": "starmine:block/creep_tumor"
+		}
+	}
+}

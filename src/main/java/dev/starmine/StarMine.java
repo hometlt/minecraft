@@ -1,5 +1,6 @@
 package dev.starmine;
 
+import dev.starmine.block.StarMineBlocks;
 import dev.starmine.entity.ZergKind;
 import dev.starmine.entity.ZergMob;
 import dev.starmine.entity.ZergSpit;
@@ -61,6 +62,10 @@ public final class StarMine implements ModInitializer {
 		}
 	}
 
+	/** Creep grows from hatcheries and tumors (on by default). */
+	public static final GameRules.Key<GameRules.BooleanValue> CREEP_SPREAD =
+		GameRuleRegistry.register("starmineCreepSpread", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
+
 	/** Drones chop trees and dig (owner: on by default); off, they only explore. */
 	public static final GameRules.Key<GameRules.BooleanValue> HIVE_GRIEFING =
 		GameRuleRegistry.register("starmineHiveGriefing", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
@@ -97,6 +102,7 @@ public final class StarMine implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		StarMineBlocks.load();
 		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));

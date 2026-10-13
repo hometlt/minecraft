@@ -1,0 +1,187 @@
+package dev.starmine.creep;
+
+import dev.starmine.StarMine;
+import dev.starmine.block.CreepBlock;
+import dev.starmine.block.CreepTumorBlock;
+import dev.starmine.block.StarMineBlocks;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.MultifaceBlock;
+import net.minecraft.world.level.block.MultifaceSpreader;
+import net.minecraft.world.level.block.state.BlockState;
+
+/**
+ * How creep grows (stage 3 of docs/HIVE_DESIGN.md). Every source (a hatchery, a creep tumor) keeps a
+ * list of its creep cells and, each tick, spreads a random one toward a random neighbouring face with
+ * the game's multiface spreader — onto the same block's other faces, the next block, around corners —
+ * so floors, walls and ceilings are covered alike. Faces beyond the source's radius are undone.
+ *
+ * Creep kills vegetation (owner): plants next to it go (tag `starmine:creep_destroys`), natural leaves
+ * fall, and grass-like ground under it turns to dirt (tag `starmine:creep_withers`). The list is
+ * transient: after a reload a source re-seeds around itself and walks back over its old creep.
+ */
+public final class CreepGrowth {
+	public static final TagKey<Block> DESTROYS = TagKey.create(Registries.BLOCK, StarMine.id("creep_destroys"));
+	public static final TagKey<Block> WITHERS = TagKey.create(Registries.BLOCK, StarMine.id("creep_withers"));
+	private static final int MAX_CELLS = 6000, STEPS_PER_TICK = 2;
+	private static final Direction[] SEED_FACES = {Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP};
+
+	private record Key(ResourceKey<Level> dimension, long pos) {
+	}
+
+	private static final class Source {
+		final List<BlockPos> cells = new ArrayList<>();
+		final Set<BlockPos> known = new HashSet<>();
+	}
+
+	private static final Map<Key, Source> SOURCES = new HashMap<>();
+
+	private CreepGrowth() {
+	}
+
+	/** One tick of a source's growth; `seed` is how far around the source new creep may start. */
+	public static void grow(ServerLevel level, BlockPos source, int radius) {
+		grow(level, source, radius, 1);
+	}
+
+	public static void grow(ServerLevel level, BlockPos source, int radius, int seed) {
+		if (!level.getGameRules().getBoolean(StarMine.CREEP_SPREAD)) return;
+		Source s = SOURCES.computeIfAbsent(new Key(level.dimension(), source.asLong()), key -> new Source());
+		if (s.cells.isEmpty() || level.random.nextInt(400) == 0) seed(level, source, seed, s);
+		CreepBlock creep = StarMineBlocks.CREEP;
+		MultifaceSpreader spreader = creep.getSpreader();
+		for (int step = 0; step < STEPS_PER_TICK && !s.cells.isEmpty(); step++) {
+			int index = level.random.nextInt(s.cells.size());
+			BlockPos cell = s.cells.get(index);
+			BlockState state = level.getBlockState(cell);
+			if (!state.is(creep)) {
+				drop(s, index);
+				continue;
+			}
+			clearAround(level, cell);
+			Optional<MultifaceSpreader.SpreadPos> spread = spreader.spreadFromRandomFaceTowardRandomDirection(state, level, cell, level.random);
+			if (spread.isEmpty()) continue;
+			BlockPos grown = spread.get().pos();
+			if (grown.distSqr(source) > (radius + 0.5) * (radius + 0.5)) {
+				undo(level, grown, spread.get().face());
+				continue;
+			}
+			wither(level, grown);
+			if (s.known.add(grown)) s.cells.add(grown);
+			if (s.cells.size() > MAX_CELLS) drop(s, level.random.nextInt(s.cells.size()));
+		}
+	}
+
+	/** Creep starts on every free face around the source (the ring of a hatchery's foundation). */
+	private static void seed(ServerLevel level, BlockPos source, int range, Source s) {
+		for (BlockPos pos : BlockPos.betweenClosed(source.offset(-range, -1, -range), source.offset(range, 1, range))) {
+			BlockState state = level.getBlockState(pos);
+			if (state.is(DESTROYS)) {
+				level.destroyBlock(pos, false);
+				state = level.getBlockState(pos);
+			}
+			if (state.is(StarMineBlocks.CREEP)) {
+				if (s.known.add(pos.immutable())) s.cells.add(pos.immutable());
+				continue;
+			}
+			if (!state.isAir()) continue;
+			for (Direction face : SEED_FACES) {
+				BlockState placed = StarMineBlocks.CREEP.getStateForPlacement(state, level, pos, face);
+				if (placed == null) continue;
+				level.setBlockAndUpdate(pos, placed);
+				wither(level, pos);
+				if (s.known.add(pos.immutable())) s.cells.add(pos.immutable());
+				break;
+			}
+		}
+	}
+
+	private static void drop(Source s, int index) {
+		BlockPos last = s.cells.remove(s.cells.size() - 1);
+		if (index < s.cells.size()) {
+			s.known.remove(s.cells.get(index));
+			s.cells.set(index, last);
+		} else {
+			s.known.remove(last);
+		}
+	}
+
+	private static void undo(ServerLevel level, BlockPos pos, Direction face) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.is(StarMineBlocks.CREEP)) return;
+		BlockState without = state.setValue(MultifaceBlock.getFaceProperty(face), false);
+		level.setBlockAndUpdate(pos, MultifaceBlock.availableFaces(without).isEmpty() ? Blocks.AIR.defaultBlockState() : without);
+	}
+
+	/** Plants and natural leaves next to creep die, so creep can grow where they stood. */
+	private static void clearAround(ServerLevel level, BlockPos cell) {
+		for (Direction d : Direction.values()) {
+			BlockPos near = cell.relative(d);
+			BlockState state = level.getBlockState(near);
+			if (state.is(DESTROYS)
+				|| state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT))
+				level.destroyBlock(near, false);
+		}
+	}
+
+	/** Grass, podzol, mycelium and paths under creep turn to dirt. */
+	private static void wither(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.is(StarMineBlocks.CREEP)) return;
+		for (Direction face : MultifaceBlock.availableFaces(state)) {
+			BlockPos ground = pos.relative(face);
+			if (level.getBlockState(ground).is(WITHERS)) level.setBlockAndUpdate(ground, Blocks.DIRT.defaultBlockState());
+		}
+	}
+
+	/**
+	 * A new tumor on the creep of `from`: a creep cell between `min` and `max` blocks away and at least
+	 * `min` from every other source, standing on the face its creep lies on.
+	 */
+	public static boolean spawnTumor(ServerLevel level, BlockPos from, int min, int max) {
+		if (CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
+		Source s = SOURCES.get(new Key(level.dimension(), from.asLong()));
+		if (s == null || s.cells.isEmpty()) return false;
+		for (int attempt = 0; attempt < 24; attempt++) {
+			BlockPos cell = s.cells.get(level.random.nextInt(s.cells.size()));
+			double distance = Math.sqrt(cell.distSqr(from));
+			if (distance < min || distance > max) continue;
+			if (placeTumor(level, cell, min)) return true;
+		}
+		return false;
+	}
+
+	/** Puts a tumor on a creep cell (any face); false when it cannot stand there. */
+	public static boolean placeTumor(ServerLevel level, BlockPos cell, int spacing) {
+		BlockState state = level.getBlockState(cell);
+		if (!state.is(StarMineBlocks.CREEP) || CreepSources.nearestSource(level, cell) < spacing) return false;
+		Set<Direction> faces = MultifaceBlock.availableFaces(state);
+		Direction face = faces.contains(Direction.DOWN) ? Direction.DOWN : faces.stream().findFirst().orElse(null);
+		if (face == null) return false;
+		BlockState tumor = StarMineBlocks.CREEP_TUMOR.defaultBlockState().setValue(CreepTumorBlock.FACING, face.getOpposite());
+		if (!tumor.canSurvive(level, cell)) return false;
+		level.setBlockAndUpdate(cell, tumor);
+		return true;
+	}
+
+	/** Forgets a source that is gone (its creep then recedes on its own). */
+	public static void forget(ServerLevel level, BlockPos source) {
+		SOURCES.remove(new Key(level.dimension(), source.asLong()));
+	}
+}

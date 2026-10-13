@@ -26,6 +26,8 @@ public final class Hive {
 	/** Minerals ever brought in: the worker target grows with it. */
 	public int mineralsCollected;
 	public int larvaTimer, decisionTimer, queenTicks = -1;
+	/** The thick creep under the hatchery has been laid. */
+	public boolean foundation;
 	public final Map<ZergKind, Integer> members = new EnumMap<>(ZergKind.class);
 	/** Units paid for but not yet born (in cocoons, a queen in training). */
 	public final Map<ZergKind, Integer> pending = new EnumMap<>(ZergKind.class);
@@ -95,6 +97,7 @@ public final class Hive {
 		tag.putInt("mineralsCollected", mineralsCollected);
 		tag.putInt("larvaTimer", larvaTimer);
 		tag.putInt("queenTicks", queenTicks);
+		tag.putBoolean("foundation", foundation);
 		CompoundTag counts = new CompoundTag();
 		members.forEach((kind, n) -> counts.putInt(kind.name(), n));
 		tag.put("members", counts);
@@ -113,6 +116,7 @@ public final class Hive {
 		hive.mineralsCollected = tag.getInt("mineralsCollected");
 		hive.larvaTimer = tag.getInt("larvaTimer");
 		hive.queenTicks = tag.getInt("queenTicks");
+		hive.foundation = tag.getBoolean("foundation");
 		readCounts(tag.getCompound("members"), hive.members);
 		readCounts(tag.getCompound("pending"), hive.pending);
 		return hive;

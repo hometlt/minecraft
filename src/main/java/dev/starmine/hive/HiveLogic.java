@@ -1,6 +1,8 @@
 package dev.starmine.hive;
 
 import dev.starmine.StarMine;
+import dev.starmine.creep.CreepGrowth;
+import dev.starmine.creep.CreepSources;
 import dev.starmine.entity.ZergKind;
 import dev.starmine.entity.ZergMob;
 import java.util.List;
@@ -19,6 +21,7 @@ import net.minecraft.world.phys.Vec3;
  * one per 200 minerals collected, at most 8); otherwise zerglings. The hatchery trains one queen. Costs,
  * supply and times are SC2's ({@link ZergKind#economy()}). Building requirements (spawning pool for
  * zerglings and queens) come with the buildings stage; until then they are treated as met.
+ * The hatchery stands on its thick-creep foundation ({@link HiveTerrain}) and grows creep around it.
  */
 public final class HiveLogic {
 	public static final int LARVA_TICKS = 60 * 20;
@@ -50,6 +53,11 @@ public final class HiveLogic {
 		if (hive == null) return;
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		hive.hatchery = hatchery.blockPosition();
+		if (!hive.foundation) {
+			HiveTerrain.lay(level, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
+			hive.foundation = true;
+		}
+		CreepGrowth.grow(level, hive.hatchery, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
 		if (hive.count(ZergKind.LARVA) < MAX_LARVAE && ++hive.larvaTimer >= LARVA_TICKS) {
 			hive.larvaTimer = 0;
 			spawn(level, hive, ZergKind.LARVA, around(hatchery, level), null);

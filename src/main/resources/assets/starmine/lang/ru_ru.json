@@ -138,5 +138,8 @@
 	"subtitles.starmine.hatchery.death": "Инкубатор: умирает",
 	"subtitles.starmine.hatchery.ambient": "Инкубатор: шипит",
 	"subtitles.starmine.hatchery.hurt": "Инкубатор: ранен",
-	"message.starmine.hive_limit": "В мире может быть не больше %s ульев зергов"
+	"message.starmine.hive_limit": "В мире может быть не больше %s ульев зергов",
+	"block.starmine.thick_creep": "Густая слизь",
+	"block.starmine.creep": "Слизь",
+	"block.starmine.creep_tumor": "Опухоль слизи"
 }
