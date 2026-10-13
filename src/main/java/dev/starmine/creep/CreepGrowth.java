@@ -165,6 +165,11 @@ public final class CreepGrowth {
 		return true;
 	}
 
+	/** A growth on this creep floor cell now (generated hives), with the usual 2-block spacing. */
+	public static boolean growthAt(ServerLevel level, BlockPos pos) {
+		return grow(level, pos, false);
+	}
+
 	private static boolean isGrowth(BlockState state) {
 		return state.is(StarMineBlocks.CREEP_TENDRIL) || state.is(StarMineBlocks.CREEP_PUSTULE)
 			|| state.is(StarMineBlocks.CREEP_VESSELS) || state.is(StarMineBlocks.CREEP_TENTACLE);

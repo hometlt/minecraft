@@ -74,6 +74,10 @@ public final class StarMine implements ModInitializer {
 	public static final GameRules.Key<GameRules.BooleanValue> HIVE_GRIEFING =
 		GameRuleRegistry.register("starmineHiveGriefing", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
 
+	/** A hive is generated near the world spawn (owner); off: none is. */
+	public static final GameRules.Key<GameRules.BooleanValue> SPAWN_HIVE =
+		GameRuleRegistry.register("starmineSpawnHive", GameRules.Category.SPAWNING, GameRuleFactory.createBooleanRule(true));
+
 	public static final EntityType<ZergSpit> SPIT = Registry.register(BuiltInRegistries.ENTITY_TYPE, id("zerg_spit"),
 		EntityType.Builder.<ZergSpit>of(ZergSpit::new, MobCategory.MISC)
 			.sized(0.3f, 0.3f)
@@ -114,6 +118,7 @@ public final class StarMine implements ModInitializer {
 			if (entity instanceof Monster monster && !(entity instanceof ZergMob))
 				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, ZergMob.class, true));
 		});
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));

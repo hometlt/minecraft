@@ -323,6 +323,17 @@ public final class HiveLogic {
 		return mob;
 	}
 
+	/** A nest dweller of a hall (not counted in the hive); `hive` may be gone, then it is on its own. */
+	public static ZergMob spawnNest(ServerLevel level, Hive hive, ZergKind kind, Vec3 at, BlockPos hall) {
+		ZergMob mob = StarMine.type(kind).create(level);
+		if (mob == null) return null;
+		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
+		mob.makeNest(hall);
+		if (hive != null) mob.joinHive(hive);
+		level.addFreshEntity(mob);
+		return mob;
+	}
+
 	/** A spot on the ground just outside the hatchery. */
 	private static Vec3 around(ZergMob hatchery, ServerLevel level) {
 		double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + 1;

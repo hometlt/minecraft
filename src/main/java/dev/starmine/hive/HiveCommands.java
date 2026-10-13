@@ -12,7 +12,8 @@ import net.minecraft.network.chat.Component;
 
 /**
  * Hive debugging: `/starmine hive list`, `/starmine hive info` (the nearest hive) and
- * `/starmine hive give <minerals> [vespene]` (adds to the nearest hive). Operators only.
+ * `/starmine hive give <minerals> [vespene]` (adds to the nearest hive), `/starmine hive generate`
+ * (builds a generated hive with tunnels where the player stands; see {@link HiveStructure}). Operators only.
  */
 public final class HiveCommands {
 	private HiveCommands() {
@@ -23,6 +24,7 @@ public final class HiveCommands {
 			.then(Commands.literal("hive")
 				.then(Commands.literal("list").executes(HiveCommands::list))
 				.then(Commands.literal("info").executes(HiveCommands::info))
+				.then(Commands.literal("generate").executes(HiveCommands::generate))
 				.then(Commands.literal("give")
 					.then(Commands.argument("minerals", IntegerArgumentType.integer(0))
 						.executes(context -> give(context, IntegerArgumentType.getInteger(context, "minerals"), 0))
@@ -64,6 +66,20 @@ public final class HiveCommands {
 			+ ", larva in " + (HiveLogic.LARVA_TICKS - hive.larvaTimer) / 20 + " s\n members:" + members + "\n in cocoons:" + pending
 			+ (hive.queenTicks >= 0 ? "\n queen in " + hive.queenTicks / 20 + " s" : "");
 		context.getSource().sendSuccess(() -> Component.literal(text), false);
+		return 1;
+	}
+
+	private static int generate(CommandContext<CommandSourceStack> context) {
+		var source = context.getSource();
+		if (HiveSavedData.get(source.getServer()).full()) {
+			source.sendFailure(Component.literal("The world already has " + HiveSavedData.MAX_HIVES + " hives"));
+			return 0;
+		}
+		var at = net.minecraft.core.BlockPos.containing(source.getPosition());
+		HiveStructure.Report report = HiveStructure.build(source.getLevel(), at, source.getLevel().random);
+		source.sendSuccess(() -> Component.literal("Hive generated at " + at.toShortString() + ": " + report.halls() + " halls ("
+			+ report.hallBuildings() + " with buildings), " + report.eggs() + " eggs, " + report.tumors() + " tumors, "
+			+ report.tunnelCells() + " blocks dug"), true);
 		return 1;
 	}
 

@@ -41,6 +41,44 @@ public class DroneGameTests implements FabricGameTest {
 		for (BlockPos rel : BlockPos.betweenClosed(x0, y0, z0, x1, y1, z1)) helper.getLevel().setBlock(helper.absolutePos(rel), block.defaultBlockState(), 2);
 	}
 
+	/**
+	 * A generated hive (far from the arena, in real terrain): hatchery and surface buildings wait to be
+	 * put in the world, tunnels are dug with halls, sleeping eggs and creep tumors near the hatchery.
+	 */
+	@GameTest(template = ARENA, batch = "hiveStructure", timeoutTicks = 200)
+	public void generatedHiveHasTunnelsAndHalls(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		HiveSavedData data = HiveSavedData.get(level.getServer());
+		data.clear();
+		data.pending.clear();
+		// the test world is superflat: lay 34 blocks of stone to dig in
+		BlockPos site = new BlockPos(20000, -26, 20000);
+		var stone = Blocks.STONE.defaultBlockState();
+		for (int x = -84; x <= 84; x++)
+			for (int z = -84; z <= 84; z++) {
+				if ((x & 15) == 0 && (z & 15) == 0) level.getChunk((site.getX() + x) >> 4, (site.getZ() + z) >> 4);
+				for (int y = -60; y < -27; y++) level.setBlock(new BlockPos(site.getX() + x, y, site.getZ() + z), stone, 2);
+				level.setBlock(new BlockPos(site.getX() + x, -27, site.getZ() + z), Blocks.GRASS_BLOCK.defaultBlockState(), 2);
+			}
+		dev.starmine.hive.HiveStructure.Report report = dev.starmine.hive.HiveStructure.build(level, site, net.minecraft.util.RandomSource.create(7));
+		helper.assertTrue(data.all().size() == 1, "no hive was added");
+		Hive hive = data.all().iterator().next();
+		helper.assertTrue(report.halls() >= 4, "too few halls: " + report + " at " + site);
+		helper.assertTrue(report.tunnelCells() > 1000, "too few blocks dug: " + report.tunnelCells());
+		helper.assertTrue(report.eggs() >= 8, "too few eggs: " + report.eggs());
+		helper.assertTrue(report.tumors() >= 3, "too few tumors: " + report.tumors());
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.HATCHERY && p.hive().equals(hive.id)), "no hatchery waits");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.SPIRE && p.hall() == null), "no spire on the surface");
+		helper.assertTrue(data.pending.stream().noneMatch(p -> p.kind() == ZergKind.SPIRE && p.pos().getY() < hive.hatchery.getY() - 5), "a spire underground");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.EGG && p.brood() != null), "no sleeping eggs");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.LARVA && p.hall() != null), "no larvae in halls");
+		long deep = data.pending.stream().filter(p -> p.hall() != null && p.pos().getY() < hive.hatchery.getY() - 8).count();
+		helper.assertTrue(deep > 5, "too few zerg underground: " + deep);
+		data.clear();
+		data.pending.clear();
+		helper.succeed();
+	}
+
 	private static Vec3 centre(GameTestHelper helper, int x, int y, int z) {
 		return Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(x, y, z)));
 	}

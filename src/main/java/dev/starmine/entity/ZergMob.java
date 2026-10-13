@@ -95,6 +95,14 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	/** A cocoon's future: what hatches, how many, in how many ticks. */
 	private ZergKind cocoonKind;
 	private int cocoonCount, cocoonTicks;
+	/**
+	 * A nest dweller of a generated hive (see {@link dev.starmine.hive.HiveStructure}): it keeps to its
+	 * hall underground instead of the hatchery and is not counted in the hive's members or supply.
+	 * A nest egg sleeps until a creature disturbs it (or, rarely, by itself) and then hatches guards.
+	 */
+	private BlockPos nest;
+	/** Cocoon ticks meaning "dormant": far more than any real train time. */
+	public static final int DORMANT = 1 << 30;
 	/** Ticks this ground zerg has had a target it has no path to (the overlord ferries such zerg). */
 	private int unreachable;
 	/** An overseer is near: invisible players and creatures are seen (see the visibility mixin). */
@@ -228,6 +236,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		if (constructTicks > 0 && --constructTicks == 0) finishConstruction(server);
 		if (kind.crawler() && constructTicks == 0) crawlerAttack(server);
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
+		if (kind == ZergKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
 		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
@@ -610,9 +619,35 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		return home;
 	}
 
+	/** Makes this zerg a nest dweller of the hall at `hall` (call before {@link #joinHive}). */
+	public void makeNest(BlockPos hall) {
+		this.nest = hall.immutable();
+		this.home = this.nest;
+		this.setPersistenceRequired();
+	}
+
+	public BlockPos nest() {
+		return nest;
+	}
+
+	/**
+	 * A sleeping nest egg wakes when a player (not creative or spectator) or another creature that is
+	 * not zerg comes within 10 blocks — a chance each second — and, very rarely, by itself while few
+	 * zerg are about (about once an hour). It then hatches in 3–9 seconds.
+	 */
+	private void wakeNestEgg(ServerLevel server) {
+		boolean disturbed = !server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(10),
+			other -> other.isAlive() && !(other instanceof ZergMob) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)
+				&& !(other instanceof Player player && (player.isCreative() || player.isSpectator()))).isEmpty();
+		boolean wake = disturbed ? this.random.nextInt(15) == 0
+			: this.random.nextInt(3600) == 0 && server.getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(16), mob -> !mob.kind.structure()).size() < 6;
+		if (wake) cocoonTicks = 60 + this.random.nextInt(120);
+	}
+
 	/** Joins a hive: counted in its members and supply, kept in the world, returns home when idle. */
 	public void joinHive(Hive hive) {
 		this.hiveId = hive.id;
+		if (nest != null) return;
 		this.home = hive.hatchery;
 		if (!kind.structure() || kind == ZergKind.EGG) hive.join(kind);
 		this.setPersistenceRequired();
@@ -629,7 +664,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		ZergKind born = cocoonKind;
 		int count = cocoonCount;
 		cocoonKind = null;
-		if (hive != null) HiveLogic.hatch(this, server, hive, born, count);
+		if (nest != null) {
+			for (int i = 0; i < count; i++)
+				HiveLogic.spawnNest(server, hive, born, this.position().add(this.random.nextGaussian() * 0.3, 0, this.random.nextGaussian() * 0.3), nest);
+		} else if (hive != null) HiveLogic.hatch(this, server, hive, born, count);
 		this.discard();
 	}
 
@@ -645,7 +683,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 					CreepGrowth.forget(server, hive.hatchery);
 					data.remove(hiveId);
 				}
-			} else if (hive != null) {
+			} else if (hive != null && nest == null) {
 				if (kind.building()) {
 					if (constructTicks > 0) hive.born(kind, 1);
 					else hive.leave(kind);
@@ -664,6 +702,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	public void addAdditionalSaveData(CompoundTag tag) {
 		super.addAdditionalSaveData(tag);
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
+		if (nest != null) tag.put("StarMineNest", NbtUtils.writeBlockPos(nest));
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
 		if (raidTarget != null) {
 			tag.put("StarMineRaid", NbtUtils.writeBlockPos(raidTarget));
@@ -693,6 +732,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	public void readAdditionalSaveData(CompoundTag tag) {
 		super.readAdditionalSaveData(tag);
 		if (tag.hasUUID("StarMineHive")) hiveId = tag.getUUID("StarMineHive");
+		nest = NbtUtils.readBlockPos(tag, "StarMineNest").orElse(null);
 		home = NbtUtils.readBlockPos(tag, "StarMineHome").orElse(null);
 		raidTarget = NbtUtils.readBlockPos(tag, "StarMineRaid").orElse(null);
 		raidUntil = tag.getLong("StarMineRaidUntil");
