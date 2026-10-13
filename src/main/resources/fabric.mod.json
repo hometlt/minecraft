@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "starmine",
+	"version": "${version}",
+	"name": "StarMine",
+	"description": "StarCraft II zerg in Minecraft. Models, textures and sounds are imported by Modkit from your own StarCraft II installation; this mod ships none of them.",
+	"authors": ["StarMine"],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["dev.starmine.StarMine"],
+		"client": ["dev.starmine.client.StarMineClient"]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

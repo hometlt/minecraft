@@ -1,0 +1,8 @@
+{
+	"entity.starmine.zergling": "Zergling",
+	"item.starmine.zergling_spawn_egg": "Zergling Spawn Egg",
+	"subtitles.starmine.zergling.attack": "Zergling slashes",
+	"subtitles.starmine.zergling.death": "Zergling dies",
+	"subtitles.starmine.zergling.ambient": "Zergling hisses",
+	"subtitles.starmine.zergling.hurt": "Zergling hurts"
+}

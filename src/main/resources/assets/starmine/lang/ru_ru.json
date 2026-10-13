@@ -1,0 +1,8 @@
+{
+	"entity.starmine.zergling": "Зерглинг",
+	"item.starmine.zergling_spawn_egg": "Яйцо призыва зерглинга",
+	"subtitles.starmine.zergling.attack": "Зерглинг атакует",
+	"subtitles.starmine.zergling.death": "Зерглинг умирает",
+	"subtitles.starmine.zergling.ambient": "Зерглинг шипит",
+	"subtitles.starmine.zergling.hurt": "Зерглингу больно"
+}
