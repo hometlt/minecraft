@@ -24,6 +24,9 @@ jobs:
           ./gradlew compileJava compileClientJava 
       - name: Game tests
         run: ./gradlew runGametest 
+      - name: Measurements
+        if: always()
+        run: grep -h "\\[pathfinding\\]" build/gametest/logs/latest.log || true
       - name: Test report
         if: always()
         run: |

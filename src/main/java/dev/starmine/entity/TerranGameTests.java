@@ -117,9 +117,15 @@ public class TerranGameTests implements FabricGameTest {
 				java.util.Set<java.util.UUID> taken = dev.starmine.colony.Engineering.order(level, base, java.util.List.of(tank, marine), StarUnit.Order.MOVE, goal);
 				helper.assertTrue(taken.contains(tank.getUUID()), "the army was not given a way to cut");
 				helper.succeedWhen(() -> {
-					helper.assertTrue(tank.position().distanceTo(goal) < 4,
-						"the tank is at " + helper.relativePos(tank.blockPosition()).toShortString() + ", order " + tank.order()
-						+ ", job " + dev.starmine.colony.Engineering.describe(tank.getUUID()));
+					if (tank.position().distanceTo(goal) < 4) return;
+					net.minecraft.world.level.pathfinder.Path path = tank.getNavigation().createPath(net.minecraft.core.BlockPos.containing(goal), 1);
+					StringBuilder others = new StringBuilder();
+					for (StarUnit other : level.getEntitiesOfClass(StarUnit.class, tank.getBoundingBox().inflate(8), other -> other != tank && !other.kind.structure()))
+						others.append(other.kind.id).append(' ').append(dev.starmine.ability.TestArena.where(helper, other)).append("; ");
+					helper.fail("the tank is at " + dev.starmine.ability.TestArena.where(helper, tank) + ", order " + tank.order()
+						+ ", job " + dev.starmine.colony.Engineering.describe(tank.getUUID()) + ", a way now "
+						+ (path == null ? "none" : path.canReach() + " to " + path.getTarget() + " in " + path.getNodeCount() + " nodes")
+						+ ", near it " + others);
 				});
 			});
 		});

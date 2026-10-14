@@ -214,14 +214,14 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
 			.add(Attributes.FOLLOW_RANGE, kind.worker() ? 64.0 : kind.race != UnitKind.Race.ZERG ? kind.sight() + 4 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
-			// zerglings leap up 2 blocks (owner); the pathfinder plans with the step height
-			.add(Attributes.STEP_HEIGHT, kind == UnitKind.ZERGLING || kind == UnitKind.REAPER ? 2.0 : 1.0)
+			// SC2 cliff walkers: the colossus strides and the reaper jumps up to 4 blocks; zerglings leap 2 (owner)
+			.add(Attributes.STEP_HEIGHT, kind == UnitKind.COLOSSUS || kind == UnitKind.REAPER ? 4.0 : kind == UnitKind.ZERGLING ? 2.0 : 1.0)
 			.add(Attributes.JUMP_STRENGTH, kind == UnitKind.ZERGLING ? 0.62 : 0.42);
 	}
 
 	@Override
 	protected PathNavigation createNavigation(Level level) {
-		if (!StarMine.kindOf(this.getType()).flying) return super.createNavigation(level);
+		if (!StarMine.kindOf(this.getType()).flying) return new UnitNavigation(this, level); // buildings in the way, long ways
 		FlyingPathNavigation navigation = new FlyingPathNavigation(this, level);
 		navigation.setCanOpenDoors(false);
 		navigation.setCanFloat(true);
@@ -1461,7 +1461,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				this.setDeltaMovement(this.getDeltaMovement().add(0, 0.4, 0));
 			} else {
 				this.moveControl = new net.minecraft.world.entity.ai.control.MoveControl(this);
-				this.navigation = new net.minecraft.world.entity.ai.navigation.GroundPathNavigation(this, this.level());
+				this.navigation = new UnitNavigation(this, this.level());
 			}
 			this.setNoGravity(air);
 		}

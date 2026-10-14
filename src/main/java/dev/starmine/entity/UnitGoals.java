@@ -96,12 +96,15 @@ final class UnitGoals {
 	/**
 	 * A player's order. Move: there, ignoring enemies. Attack-move and patrol: there (patrol back and
 	 * forth), fighting what they meet on the way. Hold: stay, shooting what comes into range. A unit
-	 * that cannot get closer for 5 s gives the order up where it is.
+	 * that neither gets closer nor moves for 5 s gives the order up where it is (a unit walking a detour
+	 * round a cliff or a river, away from the goal for a while, keeps going). A flyer keeps its height
+	 * over the ground ahead of it, so it climbs before a hill instead of flying into it.
 	 */
 	static final class Orders extends Goal {
 		private final StarUnit unit;
 		private int repath, stuck;
 		private double best;
+		private Vec3 last;
 
 		Orders(StarUnit unit) {
 			this.unit = unit;
@@ -154,7 +157,7 @@ final class UnitGoals {
 			if (goal == null) return; // the order changed this tick (a new command, a way cut for the army)
 			double dx = unit.getX() - goal.x, dz = unit.getZ() - goal.z;
 			double flat = Math.sqrt(dx * dx + dz * dz);
-			if (flat < 1.0 + unit.kind.width / 2) {
+			if (flat < Math.min(1.0 + unit.kind.width / 2, 1.5)) {
 				if (order == StarUnit.Order.PATROL) {
 					unit.turnPatrol();
 					best = Double.MAX_VALUE;
@@ -163,16 +166,35 @@ final class UnitGoals {
 				}
 				return;
 			}
+			boolean moving = last != null && unit.position().distanceToSqr(last) > 0.03 * 0.03;
+			last = unit.position();
 			if (flat < best - 0.3) {
 				best = flat;
 				stuck = 0;
+			} else if (moving) {
+				stuck = Math.max(0, stuck - 1);
 			} else if (++stuck > 100) {
 				unit.finishOrder();
 				return;
 			}
 			if (unit.flying()) { // a flying move control steers one tick per wanted position: give it every tick
-				double y = ZergGoals.ground(unit, goal.x, goal.z) + Math.max(3, unit.kind.hoverHeight());
+				double above = Math.max(3, unit.kind.hoverHeight());
+				double y = ZergGoals.cruise(unit, goal.x, goal.z, above);
+				// the ground ahead on the way: climb before a hill, not into it
+				double toX = goal.x - unit.getX(), toZ = goal.z - unit.getZ();
+				for (double ahead = 1; ahead <= Math.min(12, flat); ahead += 1.5)
+					y = Math.max(y, ZergGoals.cruise(unit, unit.getX() + toX / flat * ahead, unit.getZ() + toZ / flat * ahead, above));
 				unit.getMoveControl().setWantedPosition(goal.x, y, goal.z, 1.0);
+				return;
+			}
+			// the last blocks straight when nothing stands between: the game's path lets a big unit off up to
+			// half its width short of its point (a thor sent onto a tunnel's axis stopped 3 blocks aside of it)
+			if (flat < 2.5 + unit.getBbWidth() / 2 && Math.abs(unit.getY() - goal.y) < 1.5
+				&& unit.level().clip(new net.minecraft.world.level.ClipContext(unit.position().add(0, 0.5, 0), new Vec3(goal.x, unit.getY() + 0.5, goal.z),
+					net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, unit)).getType()
+					== net.minecraft.world.phys.HitResult.Type.MISS) {
+				unit.getNavigation().stop();
+				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 				return;
 			}
 			if (--repath > 0) return;

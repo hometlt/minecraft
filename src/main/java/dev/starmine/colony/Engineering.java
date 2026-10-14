@@ -41,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Engineering {
 	public static final int WORKERS = 3, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400, MIND_TICKS = 1200;
+	private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("StarMine/engineering");
 
 	/**
 	 * A worker's next piece of work: a block to break, or one to place (`fill`); `stand` is where it works
@@ -67,6 +68,9 @@ public final class Engineering {
 		final Map<BlockPos, UUID> claims = new HashMap<>();
 		List<DronePlanner.Step> steps;
 		BlockPos start;
+		/** Where the way begins (its first segment's start) and the units that have come to it. */
+		final BlockPos mouth;
+		final Set<UUID> entered = new java.util.HashSet<>();
 		int done = -1, segments = 1, lastWork;
 		long lastProgress;
 		/** Game time the way was opened (the army sent on); the job still minds stragglers for {@link #MIND_TICKS}. */
@@ -82,6 +86,10 @@ public final class Engineering {
 			this.arrive = arrive;
 			this.body = body;
 			this.start = start;
+			// the way's mouth: where its first cut begins (the army lines up on the way's axis there)
+			int cut = 0;
+			while (cut < steps.size() && steps.get(cut).dig().isEmpty() && steps.get(cut).fill().isEmpty()) cut++;
+			this.mouth = cut == 0 || cut >= steps.size() ? start : steps.get(cut - 1).feet();
 			this.steps = steps;
 			this.lastProgress = now;
 		}
@@ -114,7 +122,7 @@ public final class Engineering {
 		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
 		double arrive = 2 + body.width() / 2.0;
 		BlockPos start = DronePlanner.feetOf(lead.position(), body);
-		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, BUDGET, body);
+		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, DronePlanner.budgetFor(body, BUDGET), body);
 		if (steps == null || steps.isEmpty()) return Set.of();
 		// nothing to cut on this stretch (the goal was only too far for the game's pathfinder): walk as usual
 		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) return Set.of();
@@ -131,6 +139,9 @@ public final class Engineering {
 			BY_UNIT.put(unit.getUUID(), job);
 		}
 		JOBS.add(job);
+		LOG.info("A way for an army: body {}x{}, from {} (lead {} at {}), {} steps to {}, {} blocks to cut", body.width(), body.height(), start.toShortString(),
+			lead.kind.id, lead.blockPosition().toShortString(), steps.size(), steps.get(steps.size() - 1).feet().toShortString(),
+			steps.stream().mapToInt(step -> step.dig().size()).sum());
 		BaseLogic.tell(level, base, "message.starmine.engineering", job.workers.size(), steps.size());
 		update(level, job);
 		return Set.copyOf(job.army);
@@ -228,7 +239,7 @@ public final class Engineering {
 				open(level, job, army);
 				return true;
 			}
-			List<DronePlanner.Step> next = DronePlanner.plan(level, end, job.goal, job.arrive, null, true, 4096, BUDGET, job.body);
+			List<DronePlanner.Step> next = DronePlanner.plan(level, end, job.goal, job.arrive, null, true, 4096, DronePlanner.budgetFor(job.body, BUDGET), job.body);
 			if (next == null || next.isEmpty()) {
 				open(level, job, army);
 				return true;
@@ -240,6 +251,8 @@ public final class Engineering {
 			job.lastProgress = now;
 		}
 		if (now - job.lastProgress > STALL_TICKS) {
+			LOG.info("A way for an army stalled: steps {}/{}, segment {}, workers {}, body {}x{}, at {}", job.done, job.steps.size(), job.segments,
+				job.workers.size(), job.body.width(), job.body.height(), job.done < job.steps.size() ? job.steps.get(Math.max(0, job.done)) : "end");
 			Hive base = HiveSavedData.get(level.getServer()).get(job.base);
 			if (base != null) BaseLogic.tell(level, base, "message.starmine.engineering_stalled");
 			for (StarUnit unit : army) if (job.raid) unit.endRaid(); else unit.command(StarUnit.Order.NONE, null);
@@ -248,13 +261,35 @@ public final class Engineering {
 		// the army waits at the end of the finished part
 		int behind = job.done - WAIT_BEHIND;
 		Vec3 wait = DronePlanner.centre(behind <= 0 ? job.start : job.steps.get(behind - 1).feet(), job.body);
-		if (job.waitAt == null || job.waitAt.distanceToSqr(wait) > 0.25) {
-			job.waitAt = wait;
-			for (StarUnit unit : army) send(level, job, unit, wait, false);
+		boolean moved = job.waitAt == null || job.waitAt.distanceToSqr(wait) > 0.25;
+		if (moved) job.waitAt = wait;
+		for (StarUnit unit : army) {
+			boolean was = job.entered.contains(unit.getUUID());
+			if (inside(level, job, unit) && (moved || !was)) send(level, job, unit, job.waitAt, false);
 		}
 		job.workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit worker) || !worker.isAlive());
 		if (job.workers.size() < WORKERS) hireWorkers(level, job, wait);
 		return true;
+	}
+
+	/**
+	 * Whether the unit has come to the way's mouth (or past it); one that has not is sent there first,
+	 * onto the way's axis: a tank waiting a few blocks aside of a tunnel cut for a thor's width walked
+	 * at the rock beside its mouth and stood there.
+	 */
+	private static boolean inside(ServerLevel level, Job job, StarUnit unit) {
+		// a zerg wave roams about its raid point and cannot line up: it goes as it is
+		if (job.raid || job.entered.contains(unit.getUUID())) return true;
+		Vec3 mouth = DronePlanner.centre(job.mouth, job.body);
+		double flat = Math.hypot(unit.getX() - mouth.x, unit.getZ() - mouth.z);
+		// within 2 blocks (an order to a point is done within 1.5 of it), or already past it
+		if (flat <= 2.0 || unit.position().distanceTo(job.goal) < mouth.distanceTo(job.goal) - 2) {
+			job.entered.add(unit.getUUID());
+			return true;
+		}
+		boolean sent = unit.order() != StarUnit.Order.NONE && unit.orderPos() != null && unit.orderPos().distanceToSqr(mouth) <= 1;
+		if (!sent) send(level, job, unit, mouth, false);
+		return false;
 	}
 
 	/** Sends a unit of the job's army to a point: an order for terrans, the raid target for a zerg wave. */
@@ -279,8 +314,17 @@ public final class Engineering {
 	/** The way is open: the army goes on with its order, the workers are free. */
 	private static void open(ServerLevel level, Job job, List<StarUnit> army) {
 		job.opened = level.getGameTime();
+		army = army.stream().filter(unit -> inside(level, job, unit)).toList();
+		BlockPos end = job.steps.isEmpty() ? job.start : job.steps.get(job.steps.size() - 1).feet();
+		LOG.info("A way for an army is open: segment {}, steps {}, its end {} from the goal, body {}x{}", job.segments, job.steps.size(),
+			String.format("%.1f", DronePlanner.centre(end, job.body).distanceTo(job.goal)), job.body.width(), job.body.height());
 		for (StarUnit unit : army) send(level, job, unit, job.goal, true);
-		for (UUID worker : job.workers) BY_UNIT.remove(worker, job);
+		// the workers stand in the way they cut: they walk on to its end, out of the army's way (a tank
+		// stood behind three SCVs in a tunnel's mouth and gave up)
+		for (UUID worker : job.workers) {
+			BY_UNIT.remove(worker, job);
+			if (level.getEntity(worker) instanceof StarUnit unit && unit.isAlive()) unit.command(StarUnit.Order.MOVE, job.goal);
+		}
 		job.workers.clear();
 		job.claims.clear();
 	}
@@ -295,6 +339,10 @@ public final class Engineering {
 		for (StarUnit unit : army) {
 			if (unit.position().distanceTo(job.goal) <= job.arrive + 2) continue;
 			all = false;
+			if (!job.entered.contains(unit.getUUID())) {
+				if (inside(level, job, unit)) send(level, job, unit, job.goal, true); // at the mouth now: on through the way
+				continue;
+			}
 			boolean idle = job.raid ? unit.raidTarget() == null : unit.order() == StarUnit.Order.NONE;
 			if (idle) send(level, job, unit, job.goal, true);
 		}

@@ -38,9 +38,13 @@ public final class DronePlanner {
 	public record Body(int width, int height, int reach) {
 		public static final Body DRONE = new Body(2, 2, 40);
 
-		/** The body for a unit of this size (blocks rounded up, at least 1x2). */
+		/**
+		 * The body for a unit of this size: the blocks the game's own pathfinder wants free for it (its
+		 * size plus one, rounded down: a thor 5.0 wide walks only where 6 are free; a tunnel 5 wide let
+		 * the marine and the tank through and the thor stood at its mouth), at least 1x2.
+		 */
 		public static Body of(double width, double height, int reach) {
-			return new Body(Math.max(1, (int) Math.ceil(width - 0.05)), Math.max(2, (int) Math.ceil(height - 0.05)), reach);
+			return new Body(Math.max(1, (int) Math.floor(width + 1)), Math.max(2, (int) Math.floor(height + 1)), reach);
 		}
 	}
 
@@ -82,9 +86,48 @@ public final class DronePlanner {
 		return plan(level, start, target, arrive, routes, dig, fill, budget, Body.DRONE);
 	}
 
+	/**
+	 * What the planner has cost so far (for the pathfinding tests' measurements, docs/CLOUD_REPORT.md):
+	 * searches, positions expanded (all and the most in one search), time spent (all and the longest).
+	 */
+	public static final class Stats {
+		public long searches, expanded, maxExpanded, nanos, maxNanos;
+
+		public void reset() {
+			searches = expanded = maxExpanded = nanos = maxNanos = 0;
+		}
+
+		@Override
+		public String toString() {
+			return String.format(java.util.Locale.ROOT, "searches %d, expanded %d (max %d in one), time %.2f ms (max %.2f ms in one)",
+				searches, expanded, maxExpanded, nanos / 1e6, maxNanos / 1e6);
+		}
+	}
+
+	public static final Stats STATS = new Stats();
+
 	/** {@link #plan} for any body; costs follow how long a worker takes: walking, digging by hardness, bridging. */
 	public static List<Step> plan(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body) {
+		long began = System.nanoTime();
+		int[] expanded = new int[1];
+		List<Step> steps = search(level, start, target, arrive, routes, dig, fill, budget, body, expanded);
+		long spent = System.nanoTime() - began;
+		STATS.searches++;
+		STATS.expanded += expanded[0];
+		STATS.maxExpanded = Math.max(STATS.maxExpanded, expanded[0]);
+		STATS.nanos += spent;
+		STATS.maxNanos = Math.max(STATS.maxNanos, spent);
+		return steps;
+	}
+
+	private static List<Step> search(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body,
+			int[] count) {
 		Set<Long> buildings = buildings(level, start, body.reach());
+		Cells cells = new Cells(level, routes);
+		// a wide body pays its whole face of rock (a thor: 30 blocks, ~110) for every step of a tunnel: a plain
+		// A* first walked every free cell in front of a ridge and ran out of nodes there. Weighted toward the
+		// goal by about that price, it cuts its tunnel straight (weighted A*: a way not the cheapest, but found)
+		double weight = body.width() <= 2 ? 1.1 : 1.1 + body.width() * body.height() * 4;
 		PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f, b.f));
 		Map<Long, Double> best = new HashMap<>();
 		Node first = new Node(start, 0, heuristic(centre(start, body), target), null, null);
@@ -96,12 +139,13 @@ public final class DronePlanner {
 			Node node = open.poll();
 			if (node.g > best.getOrDefault(node.feet.asLong(), Double.MAX_VALUE)) continue;
 			expanded++;
+			count[0] = expanded;
 			double h = centre(node.feet, body).distanceTo(target);
 			if (h <= arrive) return path(node);
 			if (h < centre(closest.feet, body).distanceTo(target)) closest = node;
 			for (Direction dir : HORIZONTAL)
 				for (int dy = -1; dy <= 1; dy++) {
-					Step step = move(level, node.feet, dir, dy, routes, dig, fill, body, buildings);
+					Step step = move(cells, node.feet, dir, dy, dig, fill, body, buildings);
 					if (step == null) continue;
 					BlockPos to = step.feet;
 					if (Math.abs(to.getX() - start.getX()) > body.reach || Math.abs(to.getZ() - start.getZ()) > body.reach) continue;
@@ -111,7 +155,7 @@ public final class DronePlanner {
 					if (!step.dig.isEmpty() && to.getY() == node.feet.getY() && Math.abs(rise) > 2) cost += 4;
 					if (cost >= best.getOrDefault(to.asLong(), Double.MAX_VALUE)) continue;
 					best.put(to.asLong(), cost);
-					open.add(new Node(to, cost, cost + heuristic(centre(to, body), target) * 1.1, node, step));
+					open.add(new Node(to, cost, cost + heuristic(centre(to, body), target) * weight, node, step));
 				}
 		}
 		return closest == first || centre(closest.feet, body).distanceTo(target) > centre(start, body).distanceTo(target) - 2 ? null : path(closest);
@@ -146,29 +190,29 @@ public final class DronePlanner {
 		return cells;
 	}
 
-	private static Step move(ServerLevel level, BlockPos from, Direction dir, int dy, Set<Long> routes, boolean dig, int fill, Body body, Set<Long> buildings) {
+	private static Step move(Cells cells, BlockPos from, Direction dir, int dy, boolean dig, int fill, Body body, Set<Long> buildings) {
 		BlockPos to = from.relative(dir).above(dy);
 		List<BlockPos> breaks = new ArrayList<>();
 		int w = body.width, h = body.height;
 		// the body's space at its new place; a step up also needs headroom over the old place,
 		// a step down needs the old height above the new place to pass through
-		if (!clear(level, to, 0, h - 1, w, breaks, routes, dig, buildings)) return null;
-		if (dy > 0 && !clear(level, from, h, h, w, breaks, routes, dig, buildings)) return null;
-		if (dy < 0 && !clear(level, to, h, h, w, breaks, routes, dig, buildings)) return null;
+		if (!clear(cells, to, 0, h - 1, w, breaks, dig, buildings)) return null;
+		if (dy > 0 && !clear(cells, from, h, h, w, breaks, dig, buildings)) return null;
+		if (dy < 0 && !clear(cells, to, h, h, w, breaks, dig, buildings)) return null;
 		List<BlockPos> bridge = new ArrayList<>();
 		int floor = 0;
 		for (int x = 0; x < w; x++)
 			for (int z = 0; z < w; z++) {
 				BlockPos under = to.offset(x, -1, z);
-				if (!breaks.contains(under) && solid(level, under)) floor++;
+				if (!breaks.contains(under) && cells.solid(under)) floor++;
 			}
 		if (floor == 0) {
 			// a gap: a short drop to a floor below, else a bridge of fill
 			for (int drop = 1; drop <= 3; drop++) {
 				BlockPos lower = to.below(drop);
-				if (!clear(level, lower, 0, 0, w, null, routes, false, buildings)) break;
+				if (!clear(cells, lower, 0, 0, w, null, false, buildings)) break;
 				int support = 0;
-				for (int x = 0; x < w; x++) for (int z = 0; z < w; z++) if (solid(level, lower.offset(x, -1, z))) support++;
+				for (int x = 0; x < w; x++) for (int z = 0; z < w; z++) if (cells.solid(lower.offset(x, -1, z))) support++;
 				if (support > 0 && breaks.isEmpty()) return new Step(lower, List.of(), List.of());
 			}
 			if (w == 2) { // a drone: two blocks on a diagonal hold it
@@ -178,7 +222,7 @@ public final class DronePlanner {
 				for (int x = 0; x < w; x++)
 					for (int z = 0; z < w; z++) {
 						BlockPos under = to.offset(x, -1, z);
-						if (!solid(level, under) && level.getFluidState(under).isEmpty()) bridge.add(under);
+						if (!cells.solid(under) && !cells.fluid(under)) bridge.add(under);
 					}
 			}
 			if (fill < bridge.size()) return null;
@@ -190,21 +234,69 @@ public final class DronePlanner {
 	 * Whether the body's cells at `feet` from height `fromY` to `toY` are free or may be dug (added
 	 * to `breaks`); `breaks` null means they must already be free.
 	 */
-	private static boolean clear(ServerLevel level, BlockPos feet, int fromY, int toY, int w, List<BlockPos> breaks, Set<Long> routes, boolean dig,
-			Set<Long> buildings) {
+	private static boolean clear(Cells cells, BlockPos feet, int fromY, int toY, int w, List<BlockPos> breaks, boolean dig, Set<Long> buildings) {
 		for (int y = fromY; y <= toY; y++)
 			for (int x = 0; x < w; x++)
 				for (int z = 0; z < w; z++) {
 					BlockPos cell = feet.offset(x, y, z);
 					if (buildings.contains(cell.asLong())) return false; // a building stands there
-					if (!solid(level, cell)) {
-						if (!level.getFluidState(cell).isEmpty()) return false;
+					if (!cells.solid(cell)) {
+						if (cells.fluid(cell)) return false;
 						continue;
 					}
-					if (breaks == null || !dig || !breakable(level, cell, routes)) return false;
+					if (breaks == null || !dig || !cells.breakable(cell)) return false;
 					if (!breaks.contains(cell)) breaks.add(cell);
 				}
 		return true;
+	}
+
+	/**
+	 * The search budget for a body: `budget` positions for a drone's 2x2x2, fewer for a wider body (each
+	 * of its positions reads as many more cells), so one search stays within a few milliseconds of a
+	 * server tick whatever the body (a thor's 5x5x6 way: 1/19 of the positions).
+	 */
+	public static int budgetFor(Body body, int budget) {
+		return Math.max(600, budget * 8 / Math.max(8, body.width() * body.width() * body.height()));
+	}
+
+	/**
+	 * What one search knows of the cells it looked at (solid, fluid, breakable), so a wide body's many
+	 * overlapping cells are read from the world once: a thor's way looked at each cell dozens of times.
+	 */
+	private static final class Cells {
+		private static final byte KNOWN = 1, SOLID = 2, FLUID = 4, BREAKABLE = 8;
+		final ServerLevel level;
+		final Set<Long> routes;
+		private final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap known = new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap();
+
+		Cells(ServerLevel level, Set<Long> routes) {
+			this.level = level;
+			this.routes = routes;
+		}
+
+		private byte of(BlockPos pos) {
+			long key = pos.asLong();
+			byte info = known.get(key);
+			if ((info & KNOWN) != 0) return info;
+			info = KNOWN;
+			if (DronePlanner.solid(level, pos)) info |= SOLID;
+			if (!level.getFluidState(pos).isEmpty()) info |= FLUID;
+			if ((info & SOLID) != 0 && DronePlanner.breakable(level, pos, routes)) info |= BREAKABLE;
+			known.put(key, info);
+			return info;
+		}
+
+		boolean solid(BlockPos pos) {
+			return (of(pos) & SOLID) != 0;
+		}
+
+		boolean fluid(BlockPos pos) {
+			return (of(pos) & FLUID) != 0;
+		}
+
+		boolean breakable(BlockPos pos) {
+			return (of(pos) & BREAKABLE) != 0;
+		}
 	}
 
 	public static boolean solid(ServerLevel level, BlockPos pos) {
