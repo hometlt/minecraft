@@ -1,0 +1,55 @@
+# Build and in-game tests (Fabric GameTest on a server) for every push and pull request.
+# The test report (build/gametest/junit.xml) is printed in the log and kept as an artifact.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile (common and client)
+        run: |
+          chmod +x gradlew
+          ./gradlew compileJava compileClientJava --stacktrace
+      - name: Game tests
+        run: ./gradlew runGametest --stacktrace
+      - name: Test report
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, xml.etree.ElementTree as ET
+          path = 'build/gametest/junit.xml'
+          if not os.path.exists(path):
+              print('no report'); raise SystemExit
+          root = ET.parse(path).getroot()
+          cases = root.iter('testcase')
+          total = failed = 0
+          for case in cases:
+              total += 1
+              time = case.get('time')
+              problem = case.find('failure') if case.find('failure') is not None else case.find('error')
+              status = 'FAIL' if problem is not None else 'ok'
+              if problem is not None: failed += 1
+              print(f"{status:4} {case.get('name')} {time}s" + (f" :: {(problem.get('message') or problem.text or '')[:1500]}" if problem is not None else ''))
+          print(f'TOTAL {total} FAILED {failed}')
+          PY
+      - name: Keep the report and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gametest
+          path: |
+            build/gametest/junit.xml
+            build/gametest/logs/latest.log
+          if-no-files-found: ignore
