@@ -78,6 +78,10 @@ public final class StarMine implements ModInitializer {
 	public static final GameRules.Key<GameRules.BooleanValue> SPAWN_HIVE =
 		GameRuleRegistry.register("starmineSpawnHive", GameRules.Category.SPAWNING, GameRuleFactory.createBooleanRule(true));
 
+	/** Terran and protoss bases (with their dungeons and sky ships) and a leviathan over the lair are generated (owner 14.10); off: none are. */
+	public static final GameRules.Key<GameRules.BooleanValue> SPAWN_BASES =
+		GameRuleRegistry.register("starmineSpawnBases", GameRules.Category.SPAWNING, GameRuleFactory.createBooleanRule(true));
+
 	public static final EntityType<ZergSpit> SPIT = Registry.register(BuiltInRegistries.ENTITY_TYPE, id("zerg_spit"),
 		EntityType.Builder.<ZergSpit>of(ZergSpit::new, MobCategory.MISC)
 			.sized(0.3f, 0.3f)
@@ -126,6 +130,7 @@ public final class StarMine implements ModInitializer {
 				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, StarUnit.class, true));
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);
 		dev.starmine.colony.ColonyNetwork.register();
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
 			dev.starmine.colony.BaseLogic.onDamage(entity, source));

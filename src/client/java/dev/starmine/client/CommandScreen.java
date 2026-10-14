@@ -326,6 +326,7 @@ public final class CommandScreen extends Screen {
 	 * The command card for the selection, for every race (owner 14.10): units get move, stop, hold,
 	 * patrol, attack; workers also gather, return and build (the race's buildings,
 	 * {@link dev.starmine.race.RaceRules#buildings}, 10 on the first page, the rest on the second);
+	 * units that morph (zergling, roach, hydralisk, corruptor, overlord) get their morphs;
 	 * producers (a building, zerg larvae) train what they make ({@link UnitKind#trains}) with its
 	 * SC2 hotkey, research what they research ({@link Research}) and set a rally point.
 	 */
@@ -361,6 +362,12 @@ public final class CommandScreen extends Screen {
 				buttons.add(simple(6, "return", 'C', () -> CommandView.send("return", Vec3.ZERO, -1, null)));
 				buttons.add(simple(10, "build", 'B', () -> page = Page.BUILD));
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
+			}
+			// morphs of the first selected kind (a zergling into a baneling…): every selected one of that kind morphs
+			List<UnitKind> morphs = mobile.get(0).kind.trains();
+			for (int i = 0; i < morphs.size() && i < 3; i++) {
+				UnitKind kind = morphs.get(i);
+				buttons.add(unitButton(7 + i, kind, kind.hotkey(), () -> CommandView.send("train", Vec3.ZERO, -1, kind.name()), true));
 			}
 			return buttons;
 		}
@@ -419,7 +426,7 @@ public final class CommandScreen extends Screen {
 	/** A button for a unit or building: its icon, cost tooltip, greyed when locked or too dear. */
 	private Button unitButton(int slot, UnitKind kind, char key, Runnable run, boolean supply) {
 		ColonyNetwork.BaseStatus status = BaseStatusClient.status;
-		UnitKind.Economy cost = kind.economy();
+		UnitKind.Economy cost = dev.starmine.race.Morph.price(kind); // a morph costs what it adds to its unit
 		boolean unlocked = ColonyNetwork.unlocked(status.counts(), kind);
 		boolean affordable = status.minerals() >= cost.minerals() && status.vespene() >= cost.vespene()
 			&& (!supply || status.supplyUsed() + cost.food() <= status.supplyCap());

@@ -125,7 +125,8 @@ public final class BaseLogic {
 			List<Hive> dead = new ArrayList<>();
 			for (Hive hive : data.all())
 				if (hive.race != UnitKind.Race.ZERG || hive.owner != null) // wild hives end with their hatchery
-					if (java.util.Arrays.stream(UnitKind.values()).noneMatch(kind -> (kind.main() || kind.worker()) && (hive.count(kind) > 0 || hive.pending(kind) > 0)))
+					if (java.util.Arrays.stream(UnitKind.values()).noneMatch(kind -> (kind.main() || kind.worker()) && (hive.count(kind) > 0 || hive.pending(kind) > 0))
+						&& data.pending.stream().noneMatch(p -> p.hive().equals(hive.id))) // a generated base still waiting for its units
 						dead.add(hive);
 			for (Hive hive : dead) data.remove(hive.id);
 		}

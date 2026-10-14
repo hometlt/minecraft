@@ -22,6 +22,9 @@ public final class HiveSavedData extends SavedData {
 	/** The hive generated near the world spawn: its chosen site and whether it has been built. */
 	public net.minecraft.core.BlockPos spawnHiveSite;
 	public boolean spawnHiveDone;
+	/** Other generated structures (dev.starmine.world.RaceBases): their chosen sites and which are built (or given up), by key. */
+	public final Map<String, net.minecraft.core.BlockPos> structureSites = new LinkedHashMap<>();
+	public final java.util.Set<String> structuresDone = new java.util.LinkedHashSet<>();
 	/**
 	 * Zerg of generated hives not yet in the world: each is added when its chunk is entity-ticking
 	 * (a player is near), so far tunnels and halls are not filled while nobody can see them.
@@ -77,6 +80,12 @@ public final class HiveSavedData extends SavedData {
 		ListTag waiting = new ListTag();
 		for (HiveStructure.Pending p : pending) waiting.add(p.save());
 		tag.put("pending", waiting);
+		CompoundTag sites = new CompoundTag();
+		structureSites.forEach((key, site) -> sites.putLong(key, site.asLong()));
+		tag.put("structureSites", sites);
+		ListTag done = new ListTag();
+		for (String key : structuresDone) done.add(net.minecraft.nbt.StringTag.valueOf(key));
+		tag.put("structuresDone", done);
 		return tag;
 	}
 
@@ -92,6 +101,9 @@ public final class HiveSavedData extends SavedData {
 			HiveStructure.Pending p = HiveStructure.Pending.load((CompoundTag) entry);
 			if (p != null) data.pending.add(p);
 		}
+		CompoundTag sites = tag.getCompound("structureSites");
+		for (String key : sites.getAllKeys()) data.structureSites.put(key, net.minecraft.core.BlockPos.of(sites.getLong(key)));
+		for (Tag entry : tag.getList("structuresDone", Tag.TAG_STRING)) data.structuresDone.add(entry.getAsString());
 		return data;
 	}
 }

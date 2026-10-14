@@ -13,7 +13,8 @@ import net.minecraft.network.chat.Component;
 /**
  * Hive debugging: `/starmine hive list`, `/starmine hive info` (the nearest hive) and
  * `/starmine hive give <minerals> [vespene]` (adds to the nearest hive), `/starmine hive generate`
- * (builds a generated hive with tunnels where the player stands; see {@link HiveStructure}). Operators only.
+ * (builds a generated hive with tunnels where the player stands; see {@link HiveStructure}), `/starmine structure
+ * <terran|protoss|hyperion|mothership|leviathan>` (a generated base or sky ship, {@link dev.starmine.world.RaceBases}). Operators only.
  */
 public final class HiveCommands {
 	private HiveCommands() {
@@ -30,7 +31,33 @@ public final class HiveCommands {
 						.executes(context -> give(context, IntegerArgumentType.getInteger(context, "minerals"), 0))
 						.then(Commands.argument("vespene", IntegerArgumentType.integer(0))
 							.executes(context -> give(context, IntegerArgumentType.getInteger(context, "minerals"),
-								IntegerArgumentType.getInteger(context, "vespene"))))))));
+								IntegerArgumentType.getInteger(context, "vespene")))))))
+			.then(Commands.literal("structure")
+				.then(Commands.argument("what", com.mojang.brigadier.arguments.StringArgumentType.word())
+					.suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(STRUCTURES, builder))
+					.executes(HiveCommands::structure))));
+	}
+
+	private static final java.util.List<String> STRUCTURES = java.util.List.of("terran", "protoss", "hyperion", "mothership", "leviathan");
+
+	/** `/starmine structure <terran|protoss|hyperion|mothership|leviathan>`: a generated base or sky ship where the player stands. */
+	private static int structure(CommandContext<CommandSourceStack> context) {
+		var source = context.getSource();
+		String what = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "what");
+		if (!STRUCTURES.contains(what)) {
+			source.sendFailure(Component.literal("One of " + STRUCTURES));
+			return 0;
+		}
+		var at = net.minecraft.core.BlockPos.containing(source.getPosition());
+		var random = source.getLevel().random;
+		dev.starmine.world.RaceBases.Report report = switch (what) {
+			case "terran" -> dev.starmine.world.RaceBases.build(source.getLevel(), UnitKind.Race.TERRAN, at, random);
+			case "protoss" -> dev.starmine.world.RaceBases.build(source.getLevel(), UnitKind.Race.PROTOSS, at, random);
+			default -> dev.starmine.world.RaceBases.ship(source.getLevel(), what, at.above(dev.starmine.world.RaceBases.SKY), random);
+		};
+		source.sendSuccess(() -> Component.literal(what + " generated at " + at.toShortString() + ": " + report.blocks() + " blocks, "
+			+ report.units() + " units waiting"), true);
+		return 1;
 	}
 
 	private static Hive nearest(CommandContext<CommandSourceStack> context) {

@@ -117,6 +117,12 @@ public final class HiveStructure {
 
 	/** A dry, fairly flat place 96–144 blocks from `spawn`; null when none is found. */
 	public static BlockPos chooseSite(ServerLevel level, BlockPos spawn, RandomSource random) {
+		return chooseSite(level, spawn, random, MIN_DISTANCE, MAX_DISTANCE);
+	}
+
+	/** A dry, fairly flat place `min`–`max` blocks from `spawn`; null when none is found (also used for other races' bases). */
+	public static BlockPos chooseSite(ServerLevel level, BlockPos spawn, RandomSource random, int min, int max) {
+		final int MIN_DISTANCE = min, MAX_DISTANCE = max;
 		BlockPos best = null;
 		int bestRange = Integer.MAX_VALUE;
 		for (int attempt = 0; attempt < 32 && bestRange > 2; attempt++) {
@@ -144,7 +150,7 @@ public final class HiveStructure {
 	 * The ground (feet level) of a column: the highest free cell over a solid block, not counting trees,
 	 * plants or snow (it may be in water: callers check). Loads the chunk.
 	 */
-	static int ground(ServerLevel level, int x, int z) {
+	public static int ground(ServerLevel level, int x, int z) {
 		level.getChunk(x >> 4, z >> 4);
 		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
 		while (y > level.getMinBuildHeight() + 1) {
@@ -176,14 +182,15 @@ public final class HiveStructure {
 	private static void spawn(ServerLevel level, HiveSavedData data, Pending p) {
 		Hive hive = data.get(p.hive());
 		Vec3 at = Vec3.atBottomCenterOf(p.pos());
-		if (p.kind() == UnitKind.HATCHERY) {
+		if (p.kind().main() && p.hall() == null) { // the base's anchor: hatchery, command center, nexus
 			if (hive == null) return;
-			StarUnit hatchery = StarMine.type(UnitKind.HATCHERY).create(level);
-			if (hatchery == null) return;
-			hatchery.setUUID(hive.id);
-			hatchery.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
-			hatchery.joinHive(hive);
-			level.addFreshEntity(hatchery);
+			StarUnit main = StarMine.type(p.kind()).create(level);
+			if (main == null) return;
+			main.setUUID(hive.id);
+			main.moveTo(at.x, at.y, at.z, p.kind() == UnitKind.HATCHERY ? level.random.nextFloat() * 360 : 0, 0);
+			main.joinHive(hive);
+			if (p.kind() != UnitKind.HATCHERY) hive.join(p.kind());
+			level.addFreshEntity(main);
 		} else if (p.hall() != null) {
 			StarUnit mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
 			if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
@@ -267,23 +274,8 @@ public final class HiveStructure {
 			data.pending.add(new Pending(hive.id, kind, pos.immutable(), hall == null ? null : hall.immutable(), brood, broodCount));
 		}
 
-		/** Clears a square site (trees, plants, earth above) and fills holes under it, up to `height`. */
 		private void flatten(BlockPos feet, int half, int height) {
-			for (int dx = -half; dx <= half; dx++)
-				for (int dz = -half; dz <= half; dz++) {
-					for (int dy = 0; dy <= height + 12; dy++) {
-						BlockPos pos = feet.offset(dx, dy, dz);
-						BlockState state = level.getBlockState(pos);
-						if (state.isAir() || state.getDestroySpeed(level, pos) < 0) continue;
-						if (dy <= height || state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
-					}
-					for (int dy = 1; dy <= 6; dy++) {
-						BlockPos pos = feet.offset(dx, -dy, dz);
-						BlockState state = level.getBlockState(pos);
-						if (!state.canBeReplaced() && state.getFluidState().isEmpty() && !state.is(BlockTags.LOGS)) break;
-						level.setBlock(pos, Blocks.DIRT.defaultBlockState(), 2);
-					}
-				}
+			HiveStructure.flatten(level, feet, half, height);
 		}
 
 		/**
@@ -439,5 +431,24 @@ public final class HiveStructure {
 			level.setBlockAndUpdate(cell, placed);
 			return true;
 		}
+	}
+
+	/** Clears a square site (trees, plants, earth above) and fills holes under it, up to `height`. */
+	public static void flatten(ServerLevel level, BlockPos feet, int half, int height) {
+		for (int dx = -half; dx <= half; dx++)
+			for (int dz = -half; dz <= half; dz++) {
+				for (int dy = 0; dy <= height + 12; dy++) {
+					BlockPos pos = feet.offset(dx, dy, dz);
+					BlockState state = level.getBlockState(pos);
+					if (state.isAir() || state.getDestroySpeed(level, pos) < 0) continue;
+					if (dy <= height || state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
+				}
+				for (int dy = 1; dy <= 6; dy++) {
+					BlockPos pos = feet.offset(dx, -dy, dz);
+					BlockState state = level.getBlockState(pos);
+					if (!state.canBeReplaced() && state.getFluidState().isEmpty() && !state.is(BlockTags.LOGS)) break;
+					level.setBlock(pos, Blocks.DIRT.defaultBlockState(), 2);
+				}
+			}
 	}
 }

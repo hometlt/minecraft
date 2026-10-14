@@ -81,7 +81,7 @@ public class RaceGameTests implements FabricGameTest {
 		});
 	}
 
-	/** A wild base (no owner) runs the common AI: supply, workers, its buildings and warriors. */
+	/** A wild base (no owner) runs the common AI: supply, workers, its buildings and warriors (`warrior` or another its tech allows). */
 	private static void wildBaseGrows(GameTestHelper helper, UnitKind mainKind, UnitKind building, UnitKind warrior) {
 		arena(helper);
 		StarUnit main = StarMine.type(mainKind).create(helper.getLevel());
@@ -93,7 +93,9 @@ public class RaceGameTests implements FabricGameTest {
 			helper.assertTrue(base != null && base.owner == null, "no wild base");
 			base.minerals = 3000;
 			base.vespene = 1000;
-			helper.succeedWhen(() -> helper.assertTrue(base.count(building) > 0 && base.count(warrior) > 0,
+			// the AI picks its warriors at random among what its tech allows: any warrior of the race counts
+			helper.succeedWhen(() -> helper.assertTrue(base.count(building) > 0 && base.members.keySet().stream().anyMatch(kind -> kind == warrior
+					|| kind.race == warrior.race && kind.aggressive && !kind.worker() && !kind.structure()),
 				"the AI has " + base.members + " pending " + base.pending + " order " + base.buildOrder + " minerals " + base.minerals));
 		});
 	}
@@ -106,6 +108,31 @@ public class RaceGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "wildProtoss", timeoutTicks = 4800)
 	public void wildProtossBaseTrainsZealots(GameTestHelper helper) {
 		wildBaseGrows(helper, UnitKind.NEXUS, UnitKind.GATEWAY, UnitKind.ZEALOT);
+	}
+
+	/** A zergling of a player's hive morphs into a baneling (owner 14.10): pays the difference, a cocoon, a baneling. */
+	@GameTest(template = ARENA, batch = "zergMorph", timeoutTicks = 1200)
+	public void zerglingMorphsIntoBaneling(GameTestHelper helper) {
+		arena(helper);
+		StarUnit hatchery = main(helper, UnitKind.HATCHERY, 24, 24);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, hatchery);
+			helper.assertTrue(base != null, "no hive");
+			base.join(UnitKind.SPAWNING_POOL);
+			base.join(UnitKind.BANELING_NEST);
+			StarUnit zergling = StarMine.type(UnitKind.ZERGLING).create(helper.getLevel());
+			Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(34, 2, 24)));
+			zergling.moveTo(at.x, at.y, at.z, 0, 0);
+			zergling.joinHive(base);
+			helper.getLevel().addFreshEntity(zergling);
+			base.minerals = 100;
+			base.vespene = 100;
+			helper.assertTrue(Morph.price(UnitKind.BANELING).minerals() == 25 && Morph.price(UnitKind.BANELING).vespene() == 25, "a baneling morph is not 25/25");
+			helper.assertTrue(Morph.start(zergling, helper.getLevel(), base, UnitKind.BANELING), "the zergling did not morph");
+			helper.assertTrue(base.minerals == 75 && base.vespene == 75 && base.pending(UnitKind.BANELING) == 1, "not paid");
+			helper.succeedWhen(() -> helper.assertTrue(base.count(UnitKind.BANELING) == 1 && base.count(UnitKind.ZERGLING) == 0,
+				"no baneling yet: " + base.members));
+		});
 	}
 
 	@GameTest(template = ARENA, batch = "zergPlayer", timeoutTicks = 1600)

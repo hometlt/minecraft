@@ -48,8 +48,13 @@ public interface RaceRules {
 		return 1;
 	}
 
-	/** What trains a unit: a building, or a zerg larva; null for buildings and summons. */
+	/** What trains a unit: a building, a zerg larva, or the unit it morphs from ({@link #morphFrom}); null for buildings and summons. */
 	@Nullable UnitKind producer(UnitKind kind);
+
+	/** The unit a kind morphs from (zerg: a zergling becomes a baneling…), or null; see {@link Morph}. */
+	default @Nullable UnitKind morphFrom(UnitKind kind) {
+		return null;
+	}
 
 	/** The kind's SC2 grid hotkey on the command card. */
 	char hotkey(UnitKind kind);

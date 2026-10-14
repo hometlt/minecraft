@@ -15,7 +15,7 @@ import static dev.starmine.race.Times.seconds;
 
 /**
  * Zerg (SC2 LotV, from VoidMulti Data): units hatch from larvae of a hatchery (the queen trains at the
- * hatchery), a drone mutates into a building (it is used up), overlords give supply, the hatchery
+ * hatchery), some morph from other units ({@link Morph}), a drone mutates into a building (it is used up), overlords give supply, the hatchery
  * becomes a lair and a hive (tier, {@link Research#LAIR}, {@link Research#HIVE}).
  */
 public final class ZergRace implements RaceRules {
@@ -120,13 +120,27 @@ public final class ZergRace implements RaceRules {
 		};
 	}
 
-	/** Every zerg unit hatches from a larva (morphs from other units are not modelled); the queen trains at a hatchery. */
+	/** Units hatch from larvae, the queen trains at a hatchery, morphs come from their unit ({@link #morphFrom}). */
 	@Override
 	public @Nullable UnitKind producer(UnitKind kind) {
+		UnitKind from = morphFrom(kind);
+		if (from != null) return from;
 		return switch (kind) {
 			case QUEEN -> HATCHERY;
-			case DRONE, ZERGLING, OVERLORD, OVERSEER, ROACH, RAVAGER, BANELING, HYDRALISK, LURKER, MUTALISK, CORRUPTOR, BROOD_LORD,
-				INFESTOR, SWARM_HOST, VIPER, ULTRALISK -> LARVA;
+			case DRONE, ZERGLING, OVERLORD, ROACH, HYDRALISK, MUTALISK, CORRUPTOR, INFESTOR, SWARM_HOST, VIPER, ULTRALISK -> LARVA;
+			default -> null;
+		};
+	}
+
+	/** SC2 morphs: zergling to baneling, roach to ravager, hydralisk to lurker, corruptor to brood lord, overlord to overseer. */
+	@Override
+	public @Nullable UnitKind morphFrom(UnitKind kind) {
+		return switch (kind) {
+			case BANELING -> ZERGLING;
+			case RAVAGER -> ROACH;
+			case LURKER -> HYDRALISK;
+			case BROOD_LORD -> CORRUPTOR;
+			case OVERSEER -> OVERLORD;
 			default -> null;
 		};
 	}

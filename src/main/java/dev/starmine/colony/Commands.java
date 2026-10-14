@@ -5,6 +5,7 @@ import dev.starmine.entity.UnitKind;
 import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
+import dev.starmine.race.Morph;
 import dev.starmine.race.Placement;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -20,7 +21,7 @@ import net.minecraft.world.phys.Vec3;
  * of their base within {@link #COMMAND_RANGE}, for every race (owner 14.10): move, attack-move,
  * patrol, hold, stop, attack; workers gather, return cargo and build (the building is put down its
  * race's way, {@link dev.starmine.race.RaceRules#placeBuilding}); producers train (a zerg larva
- * morphs, a building queues); buildings cancel, set a rally point and research
+ * morphs, a building queues, a unit morphs into another — {@link Morph}); buildings cancel, set a rally point and research
  * ({@link dev.starmine.race.Research}). Only with a command panel ({@link CommandPanel}).
  */
 public final class Commands {
@@ -89,6 +90,17 @@ public final class Commands {
 	/** A selected producer of the kind trains it: a zerg larva morphs (zerglings come in pairs), a building queues it. */
 	private static void train(ServerLevel level, Hive base, List<StarUnit> units, UnitKind kind) {
 		if (kind == null) return;
+		if (Morph.from(kind) != null) { // every selected unit it comes from morphs while the base can pay
+			List<StarUnit> sources = units.stream().filter(unit -> Morph.able(unit, base, kind)).toList();
+			if (sources.isEmpty()) return;
+			String refusal = Morph.refusal(base, kind);
+			if (refusal != null) {
+				BaseLogic.tell(level, base, refusal);
+				return;
+			}
+			for (StarUnit unit : sources) if (!Morph.start(unit, level, base, kind)) break;
+			return;
+		}
 		String refusal = Placement.refusal(base, kind);
 		List<StarUnit> producers = units.stream().filter(unit -> unit.kind.trains().contains(kind) && !unit.underConstruction()).toList();
 		if (producers.isEmpty()) return;

@@ -7,6 +7,7 @@ import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
 import dev.starmine.hive.HiveTerrain;
+import dev.starmine.race.Morph;
 import dev.starmine.race.Placement;
 import dev.starmine.race.ProtossRace;
 import dev.starmine.race.RaceRules;
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * trains workers (more as minerals come in) and then warriors its tech allows. When it has gathered a
  * wave ({@link #waveSize}) and a foe's base is within {@link #WAVE_RANGE} — a player's base, or a wild
  * base of another race — it sends the wave there (cutting a way if needed, {@link Engineering}).
- * Production goes the race's way: a zerg larva morphs, a building queues.
+ * Production goes the race's way: a zerg larva morphs, a building queues, a unit morphs ({@link Morph}).
  */
 public final class AiCommander {
 	public static final int DECISION_TICKS = 100, MAX_WORKERS = 8;
@@ -86,19 +87,29 @@ public final class AiCommander {
 		List<UnitKind> choices = new ArrayList<>();
 		for (UnitKind kind : UnitKind.values())
 			if (kind.race == rules.race() && kind.producer() != null && kind != worker && kind != supply && kind != UnitKind.QUEEN
-				&& kind.attack != UnitKind.Attack.NONE && base.unlocked(kind) && base.canAfford(kind, kind == UnitKind.ZERGLING ? 2 : 1)) choices.add(kind);
+				&& kind.attack != UnitKind.Attack.NONE && affordable(base, kind)) choices.add(kind);
 		if (choices.isEmpty()) return;
 		UnitKind pick = choices.get(level.random.nextInt(choices.size()));
 		train(main, level, base, pick, pick == UnitKind.ZERGLING ? 2 : 1, false);
 	}
 
-	/** Trains a unit its race's way: a larva of the base morphs, or a producer building of the base queues it. */
+	/** Whether the base can make the kind now: a morph pays its difference ({@link Morph}), zerglings come in pairs. */
+	private static boolean affordable(Hive base, UnitKind kind) {
+		if (Morph.from(kind) != null) return Morph.refusal(base, kind) == null && base.count(Morph.from(kind)) > 0;
+		return base.unlocked(kind) && base.canAfford(kind, kind == UnitKind.ZERGLING ? 2 : 1);
+	}
+
+	/** Trains a unit its race's way: a larva of the base morphs, a producer building queues it, a unit of the base morphs into it. */
 	private static boolean train(StarUnit main, ServerLevel level, Hive base, UnitKind kind, int count, boolean free) {
 		UnitKind producer = kind.producer();
 		if (producer == null) return false;
 		List<StarUnit> producers = level.getEntitiesOfClass(StarUnit.class, main.getBoundingBox().inflate(48),
 			mob -> mob.kind == producer && base.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction());
 		if (producers.isEmpty()) return false;
+		if (Morph.from(kind) != null) {
+			for (StarUnit unit : producers) if (unit.order() == StarUnit.Order.NONE && Morph.start(unit, level, base, kind)) return true;
+			return false;
+		}
 		if (producer == UnitKind.LARVA) {
 			HiveLogic.morph(producers.get(level.random.nextInt(producers.size())), level, base, kind, count, free);
 			return true;
