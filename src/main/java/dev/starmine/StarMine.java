@@ -82,6 +82,10 @@ public final class StarMine implements ModInitializer {
 	public static final GameRules.Key<GameRules.BooleanValue> SPAWN_BASES =
 		GameRuleRegistry.register("starmineSpawnBases", GameRules.Category.SPAWNING, GameRuleFactory.createBooleanRule(true));
 
+	/** A ghost's nuke breaks blocks (owner 14.10, docs/ABILITIES.md: off by default; the blast hurts units either way). */
+	public static final GameRules.Key<GameRules.BooleanValue> NUKE_GRIEFING =
+		GameRuleRegistry.register("starmineNukeGriefing", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(false));
+
 	public static final EntityType<ZergSpit> SPIT = Registry.register(BuiltInRegistries.ENTITY_TYPE, id("zerg_spit"),
 		EntityType.Builder.<ZergSpit>of(ZergSpit::new, MobCategory.MISC)
 			.sized(0.3f, 0.3f)

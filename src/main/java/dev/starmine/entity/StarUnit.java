@@ -286,7 +286,6 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
-		if (kind == UnitKind.QUEEN && this.tickCount % 200 == 0) transfuse();
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
@@ -295,7 +294,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		}
 		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
-		if (kind.defender() && constructTicks == 0) crawlerAttack(server);
+		if ((kind.defender() || mode() == dev.starmine.ability.Modes.PLANETARY) && constructTicks == 0) crawlerAttack(server);
 		if (this.tickCount % 20 == 3) powered = kind.race.rules().powered(this);
 		if ((kind.building() || kind.main()) && constructTicks == 0 && powered) {
 			produce(server);
@@ -308,10 +307,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
-		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE)) keepAloft();
+		if (kind.hoverHeight() > 0 && flying() && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE))
+			keepAloft();
 		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
 		if (kind == UnitKind.DRONE) defendOnly();
-		if (kind.structure()) pushOffTop();
+		if (kind.structure() && mode() != dev.starmine.ability.Modes.LOWERED) pushOffTop();
 		if (this.tickCount % 10 == 0) creepEffects(server);
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
@@ -322,7 +322,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Flying kinds stay above their hover height over the ground below. */
 	private void keepAloft() {
-		double floor = ZergGoals.ground(this, this.getX(), this.getZ()) + kind.hoverHeight() - 1;
+		double floor = ZergGoals.cruise(this, this.getX(), this.getZ(), kind.hoverHeight()) - 1;
 		if (this.getY() < floor) {
 			Vec3 motion = this.getDeltaMovement();
 			this.setDeltaMovement(motion.x, Math.max(motion.y, 0.12), motion.z);
@@ -331,7 +331,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Ground zerg note how long their target has been out of reach (for the overlord's ferry). */
 	private void trackReachability() {
-		if (kind.flying || this.getTarget() == null || this.isPassenger()) {
+		if (flying() || this.getTarget() == null || this.isPassenger()) {
 			unreachable = 0;
 			return;
 		}
@@ -396,6 +396,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Whoever hurts a hive's zerg (or its hatchery) has its warriors on them. */
 	@Override
 	public boolean hurt(DamageSource source, float amount) {
+		if (this.getVehicle() instanceof StarUnit transport && dev.starmine.ability.Transport.capacity(transport.kind) > 0
+			&& !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false; // cargo is out of harm's way (SC2)
+		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
+		// SC2 has no moment of invulnerability after a hit: every shot of a StarMine weapon or spell counts (a vanilla
+		// mob's or player's own blows keep vanilla's half second)
+		if (source.getEntity() instanceof StarUnit || source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player
+			&& dev.starmine.possess.Possession.piloting(player)) this.invulnerableTime = 0;
 		amount = absorbByShield(source, amount);
 		boolean hurt;
 		if (amount > 0) hurt = super.hurt(source, amount);
@@ -473,16 +480,22 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	 * damage every 1.32 s), a spore crawler shoots the nearest flying one (SC2 15 every 0.61 s).
 	 */
 	private void crawlerAttack(ServerLevel server) {
-		if (this.tickCount % kind.interval != 0) return;
+		if (kind == UnitKind.BUNKER) return; // a bunker fires only with its garrison (dev.starmine.ability.TerranAbilities#bunkerTick)
+		dev.starmine.ability.Modes.Weapon weapon = weapon();
+		if (weapon.interval() <= 0 || this.tickCount % weapon.interval() != 0) return;
 		LivingEntity foe = null;
-		double best = kind.range * kind.range;
+		double best = weapon.range() * weapon.range();
 		boolean terran = kind.race == UnitKind.Race.TERRAN;
-		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.range),
+		boolean planetary = mode() == dev.starmine.ability.Modes.PLANETARY;
+		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(weapon.range()),
 			entity -> dev.starmine.faction.Faction.hostile(this, entity) && !(entity instanceof StarUnit unit && !dev.starmine.ability.Cloak.seen(unit, this)))) {
 			boolean flying = other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
 				|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Blaze
-				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3;
-			if (flying ? !kind.antiAir() : !kind.antiGround()) continue;
+				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3
+				|| other instanceof StarUnit unit && unit.flying();
+			boolean tall = other instanceof StarUnit unit && unit.kind.hitByAntiAir() && !unit.flying(); // a colossus: both
+			boolean air = kind.antiAir() && !planetary, ground = kind.antiGround() || planetary;
+			if (flying ? !air : !(ground || tall && air)) continue;
 			double d = other.distanceToSqr(this);
 			if (d < best) {
 				best = d;
@@ -492,7 +505,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (foe == null) return;
 		this.swing(InteractionHand.MAIN_HAND);
 		this.getLookControl().setLookAt(foe);
-		foe.hurt(attackSource(), (float) (kind.damage + attackBonus()));
+		if (!(planetary && dev.starmine.ability.Modes.siegeShot(this, foe)))
+			foe.hurt(attackSource(), (float) (weapon.damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, foe)));
+		dev.starmine.ability.Passives.onHit(this, foe);
 		if (terran) tracer(server, foe);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 1.0f);
 	}
@@ -503,6 +518,15 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (hive == null) return;
 		modifier(Attributes.ATTACK_DAMAGE, UPGRADE_ATTACK, hive.attackLevel * 0.5);
 		modifier(Attributes.ARMOR, UPGRADE_ARMOR, hive.armorLevel * 2.0);
+		// unit upgrades (dev.starmine.race.Research): speed and health
+		double speed = dev.starmine.race.Research.speedFactor(hive, kind) - 1;
+		modifier(Attributes.MOVEMENT_SPEED, UPGRADE_SPEED, speed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+		double health = dev.starmine.race.Research.extraHealth(hive, kind) * UnitKind.SCALE;
+		AttributeInstance max = this.getAttribute(Attributes.MAX_HEALTH);
+		if (max != null && (max.getModifier(UPGRADE_HEALTH) == null ? 0 : max.getModifier(UPGRADE_HEALTH).amount()) != health) {
+			modifier(Attributes.MAX_HEALTH, UPGRADE_HEALTH, health);
+			if (health > 0) this.heal((float) health);
+		}
 	}
 
 	private void modifier(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, ResourceLocation id, double amount) {
@@ -521,7 +545,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return bonus == null ? 0 : bonus.amount();
 	}
 
-	private static final ResourceLocation UPGRADE_ATTACK = StarMine.id("upgrade_attack"), UPGRADE_ARMOR = StarMine.id("upgrade_armor");
+	private static final ResourceLocation UPGRADE_ATTACK = StarMine.id("upgrade_attack"), UPGRADE_ARMOR = StarMine.id("upgrade_armor"),
+		UPGRADE_SPEED = StarMine.id("upgrade_speed"), UPGRADE_HEALTH = StarMine.id("upgrade_health");
 
 	/** A weapon in hand: swords, axes, bows, crossbows, tridents, maces. */
 	private static boolean armed(LivingEntity attacker) {
@@ -809,7 +834,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 					CreepGrowth.forget(server, hive.hatchery);
 					data.remove(hiveId);
 				}
-			} else if (hive != null && nest == null) {
+			} else if (hive != null && nest == null && !summoned) {
 				if (kind.building()) {
 					if (constructTicks > 0) hive.born(kind, 1);
 					else hive.leave(kind);
@@ -871,9 +896,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			tag.putInt("StarMineCocoonCount", cocoonCount);
 			tag.putInt("StarMineCocoonTicks", cocoonTicks);
 		}
-		if (kind.maxEnergy() > 0) tag.putFloat("StarMineEnergy", energy());
+		if (maxEnergy() > 0) tag.putFloat("StarMineEnergy", energy());
 		if (cloaked()) tag.putBoolean("StarMineCloaked", true);
 		if (mode() != 0) tag.putInt("StarMineMode", mode());
+		if (summoned) tag.putBoolean("StarMineSummoned", true);
+		if (summoner != null) tag.putUUID("StarMineSummoner", summoner);
+		if (orbitalCharged) tag.putBoolean("StarMineOrbitalCharged", true);
 		abilities.save(tag);
 	}
 
@@ -913,7 +941,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		setCloaked(tag.getBoolean("StarMineCloaked"));
 		setMode(tag.getInt("StarMineMode"));
 		abilities.load(tag);
-		if (mode() != 0 && !abilities.changingMode()) applyWeapon(dev.starmine.ability.Modes.weapon(kind, mode()));
+		summoned = tag.getBoolean("StarMineSummoned");
+		summoner = tag.hasUUID("StarMineSummoner") ? tag.getUUID("StarMineSummoner") : null;
+		orbitalCharged = tag.getBoolean("StarMineOrbitalCharged");
+		if (mode() != 0) applyModeBody();
 		constructTicks = tag.getInt("StarMineConstruct");
 		constructing = tag.hasUUID("StarMineConstructing") ? tag.getUUID("StarMineConstructing") : null;
 		try {
@@ -952,7 +983,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	public boolean isPushable() {
-		return !kind.structure() && super.isPushable();
+		return !kind.structure() && mode() != dev.starmine.ability.Modes.BURROWED && super.isPushable();
 	}
 
 	@Override
@@ -981,21 +1012,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	protected void positionRider(Entity passenger, Entity.MoveFunction move) {
 		int index = this.getPassengers().indexOf(passenger);
 		double angle = index * 2.4, spread = index == 0 ? 0 : 0.6;
-		move.accept(passenger, this.getX() + Math.cos(angle) * spread, this.getY() - passenger.getBbHeight() + 0.6, this.getZ() + Math.sin(angle) * spread);
+		double y = kind.structure() ? this.getY() + 0.1 : this.getY() - passenger.getBbHeight() + 0.6; // in a bunker, behind its walls
+		move.accept(passenger, this.getX() + Math.cos(angle) * spread, y, this.getZ() + Math.sin(angle) * spread);
 	}
 
-
-	/** Queen: heal the most wounded zerg nearby (Transfusion). */
-	private void transfuse() {
-		List<StarUnit> wounded = this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(8),
-			mob -> mob != this && mob.isAlive() && mob.getHealth() < mob.getMaxHealth());
-		wounded.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth())).ifPresent(mob -> {
-			this.swing(InteractionHand.MAIN_HAND);
-			mob.heal((float) (75 * UnitKind.SCALE));
-			if (this.level() instanceof ServerLevel server)
-				server.sendParticles(ParticleTypes.HEART, mob.getX(), mob.getY() + mob.getBbHeight(), mob.getZ(), 5, 0.4, 0.3, 0.4, 0.0);
-		});
-	}
 
 	@Override
 	public boolean doHurtTarget(Entity target) {
@@ -1003,7 +1023,15 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			explode();
 			return true;
 		}
+		if (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.HALLUCINATION)) { // an illusion strikes for show
+			this.swing(InteractionHand.MAIN_HAND);
+			return false;
+		}
+		double bonus = target instanceof LivingEntity living ? dev.starmine.ability.Passives.bonus(this, living) : 0;
+		modifier(Attributes.ATTACK_DAMAGE, BONUS_DAMAGE, bonus);
 		boolean hurt = super.doHurtTarget(target);
+		modifier(Attributes.ATTACK_DAMAGE, BONUS_DAMAGE, 0);
+		if (hurt && target instanceof LivingEntity living) dev.starmine.ability.Passives.onHit(this, living);
 		if (hurt && kind.attack == UnitKind.Attack.SPLASH) {
 			for (LivingEntity other : enemiesAround(target.position(), 2.0))
 				if (other != target) other.hurt(attackSource(), (float) kind.damage * 0.5f);
@@ -1016,7 +1044,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private void explode() {
 		this.swing(InteractionHand.MAIN_HAND);
 		for (LivingEntity other : enemiesAround(this.position(), 2.5))
-			other.hurt(attackSource(), (float) kind.damage);
+			other.hurt(attackSource(), (float) (kind.damage + dev.starmine.ability.Passives.bonus(this, other)));
 		if (this.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY() + 0.5, this.getZ(), 40, 1.2, 0.5, 1.2, 0.1);
 		this.kill();
@@ -1031,18 +1059,26 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void performRangedAttack(LivingEntity target, float power) {
 		this.swing(InteractionHand.MAIN_HAND);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
-		if (mode() == dev.starmine.ability.Modes.SIEGED && dev.starmine.ability.Modes.siegeShot(this, target)) return;
+		if (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.HALLUCINATION)) return; // an illusion shoots for show
+		if (kind == UnitKind.CARRIER) { // its interceptors are its weapon
+			dev.starmine.ability.ProtossAbilities.launchInterceptors(this, target);
+			return;
+		}
+		if (dev.starmine.ability.Modes.siegeShot(this, target)) {
+			dev.starmine.ability.Passives.onHit(this, target);
+			return;
+		}
 		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED) { // terran shots, protoss beams: hitscan
-			target.hurt(attackSource(), (float) (kind.damage + attackBonus()));
+			target.hurt(attackSource(), (float) (weapon().damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, target)));
+			dev.starmine.ability.Passives.onHit(this, target);
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
 			return;
 		}
 		switch (kind.attack) {
 			case LINE -> spineLine(target);
-			case PULL -> {
-				Vec3 pull = this.position().subtract(target.position()).normalize().scale(1.6).add(0, 0.5, 0);
-				target.setDeltaMovement(pull);
-				target.hurtMarked = true;
+			case PULL -> { // the viper: its abduct is its weapon when it has the energy
+				if (this.level() instanceof ServerLevel server)
+					dev.starmine.ability.Abilities.cast(this, server, dev.starmine.ability.Ability.ABDUCT, target, null);
 			}
 			case SPAWN_LOCUSTS -> {
 				for (int i = 0; i < 2; i++) summon(StarMine.type(UnitKind.LOCUST), this.position().add(this.random.nextGaussian(), 0, this.random.nextGaussian()), target);
@@ -1073,12 +1109,17 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Lurker: spines burst out of the ground along a line toward the target, hitting all in it. */
 	private void spineLine(LivingEntity target) {
 		Vec3 from = this.position(), direction = target.position().subtract(from).multiply(1, 0, 1).normalize();
-		for (double step = 1; step <= kind.range; step += 0.5) {
+		dev.starmine.ability.Modes.Weapon weapon = weapon();
+		java.util.Set<LivingEntity> hit = new java.util.HashSet<>(); // each once along the line
+		for (double step = 1; step <= weapon.range(); step += 0.5) {
 			Vec3 point = from.add(direction.scale(step));
 			if (this.level() instanceof ServerLevel server)
 				server.sendParticles(kind == UnitKind.HELLION ? ParticleTypes.FLAME : ParticleTypes.CRIT, point.x, point.y + 0.3, point.z, 3, 0.2, 0.3, 0.2, 0.05);
 			for (LivingEntity other : enemiesAround(point, 0.6))
-				if (other.invulnerableTime == 0) other.hurt(attackSource(), (float) kind.damage);
+				if (hit.add(other)) {
+					other.hurt(attackSource(), (float) (weapon.damage() + dev.starmine.ability.Passives.bonus(this, other)));
+					dev.starmine.ability.Passives.onHit(this, other);
+				}
 		}
 	}
 
@@ -1096,7 +1137,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	protected void tickDeath() {
 		++this.deathTime;
 		if (kind.flying) this.setNoGravity(false);
-		if (this.isVehicle()) this.ejectPassengers();
+		if (this.isVehicle()) {
+			if (kind == UnitKind.BUNKER) dev.starmine.ability.Transport.unloadHere(this); // a bunker's garrison walks out
+			else this.ejectPassengers();
+		}
 		if (this.deathTime >= kind.deathTicks() && !this.level().isClientSide() && !this.isRemoved()) {
 			this.level().broadcastEntityEvent(this, (byte) 60);
 			this.remove(Entity.RemovalReason.KILLED);
@@ -1105,12 +1149,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {
-		return !kind.flying && super.causeFallDamage(distance, multiplier, source);
+		return !flying() && super.causeFallDamage(distance, multiplier, source);
 	}
 
 	@Override
 	protected void checkFallDamage(double y, boolean onGround, BlockState state, BlockPos pos) {
-		if (!kind.flying) super.checkFallDamage(y, onGround, state, pos);
+		if (!flying()) super.checkFallDamage(y, onGround, state, pos);
 	}
 
 	@Override
@@ -1209,7 +1253,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Queues a unit this building trains: paid now, supply reserved; false when it cannot. */
 	public boolean train(UnitKind unit) {
-		if (!(this.level() instanceof ServerLevel server) || constructTicks > 0 || !kind.trains().contains(unit) || queue.size() >= QUEUE) return false;
+		if (!(this.level() instanceof ServerLevel server) || constructTicks > 0 || !kind.trains().contains(unit) || queue.size() >= QUEUE
+			|| !kind.race.rules().producerReady(this, unit)) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || !hive.unlocked(unit) || !hive.canAfford(unit, 1)) return false;
 		hive.pay(unit, 1);
@@ -1256,25 +1301,46 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	/** The first queued unit trains; done, it walks out to the rally point (or next to the building). */
+	/**
+	 * The first queued unit trains (with a reactor the first two at once; under chrono boost 50 % faster);
+	 * done, it walks out to the rally point (or next to the building). A warp gate warps it in at the
+	 * rally point when that is in pylon power (or a phasing warp prism's).
+	 */
 	private void produce(ServerLevel server) {
-		if (queue.isEmpty()) return;
-		UnitKind unit = queue.get(0);
-		if (++trainTicks < unit.economy().trainTicks()) return;
+		if (queue.isEmpty() || abilities.changingMode()) return;
+		int step = workTicks();
+		trainTicks += step;
+		boolean reactor = mode() == dev.starmine.ability.Modes.REACTOR && queue.size() > 1;
+		int ready = trainTicks >= queue.get(0).economy().trainTicks() ? reactor ? 2 : 1 : 0;
+		if (ready == 0) return;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
-		queue.remove(0);
 		trainTicks = 0;
-		if (hive == null) return;
-		hive.born(unit, 1);
-		double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + 1;
-		Vec3 at = new Vec3(this.getX() + Math.cos(angle) * radius, this.getY(), this.getZ() + Math.sin(angle) * radius);
-		BlockPos ground = BlockPos.containing(at.x, this.getY() + 2, at.z);
-		for (int i = 0; i < 6 && server.getBlockState(ground.below()).isAir(); i++) ground = ground.below();
-		StarUnit born = HiveLogic.spawn(server, hive, unit, unit.flying ? at.add(0, 2, 0) : Vec3.atBottomCenterOf(ground), null);
-		if (born != null) {
-			if (rally != null) born.command(Order.MOVE, rally);
-			else born.home = born.blockPosition();
+		for (int n = 0; n < ready && !queue.isEmpty(); n++) {
+			UnitKind unit = queue.remove(0);
+			if (hive == null) return;
+			hive.born(unit, 1);
+			Vec3 spot = null;
+			if (mode() == dev.starmine.ability.Modes.WARPGATE && rally != null
+				&& dev.starmine.race.ProtossRace.poweredAt(server, rally.x, rally.y, rally.z, hiveId)) spot = rally;
+			if (spot == null) {
+				double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + 1;
+				Vec3 at = new Vec3(this.getX() + Math.cos(angle) * radius, this.getY(), this.getZ() + Math.sin(angle) * radius);
+				BlockPos ground = BlockPos.containing(at.x, this.getY() + 2, at.z);
+				for (int i = 0; i < 6 && server.getBlockState(ground.below()).isAir(); i++) ground = ground.below();
+				spot = unit.flying ? at.add(0, 2, 0) : Vec3.atBottomCenterOf(ground);
+			} else server.sendParticles(ParticleTypes.END_ROD, spot.x, spot.y + 1, spot.z, 30, 0.5, 1, 0.5, 0.02);
+			StarUnit born = HiveLogic.spawn(server, hive, unit, spot, null);
+			if (born != null) {
+				if (rally != null && spot != rally) born.command(Order.MOVE, rally);
+				else born.home = born.blockPosition();
+			}
 		}
 		HiveSavedData.get(server.getServer()).setDirty();
+	}
+
+	/** Ticks of work a building does this tick: 1, or 1.5 on average under chrono boost (SC2 +50 %). */
+	private int workTicks() {
+		return dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.CHRONO) && this.tickCount % 2 == 0 ? 2 : 1;
 	}
 
 	/** SC2 engineering bay upgrade cost by level (minerals = vespene): 100, 175, 250. */
@@ -1288,6 +1354,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || what.refusal(hive, kind) != null) return false;
+		if (what == dev.starmine.race.Research.COMBAT_SHIELD && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
 		int level = what.nextLevel(hive);
 		int[] cost = what.cost(level);
 		hive.minerals -= cost[0];
@@ -1299,7 +1366,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	private void researchTick(ServerLevel server) {
-		if (research == null || --researchTicks > 0) return;
+		if (research == null || (researchTicks -= workTicks()) > 0) return;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		dev.starmine.race.Research what = dev.starmine.race.Research.byId(research);
 		if (hive != null && what != null) {
@@ -1347,16 +1414,141 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Its weapon and mobility in a mode: the ranged attack goal is rebuilt with the reach and pace, an immobile mode stops it. */
 	public void applyWeapon(dev.starmine.ability.Modes.Weapon weapon) {
+		this.weapon = weapon;
 		if (kind.attack != UnitKind.Attack.NONE && kind.attack != UnitKind.Attack.MELEE && kind.attack != UnitKind.Attack.SPLASH
 			&& kind.attack != UnitKind.Attack.EXPLODE) {
+			// a running goal is stopped before it goes: removed while running, it kept its move and look flags
+			// locked for good and the unit never shot or moved after a target again (after a stimpack, a mode change)
+			for (net.minecraft.world.entity.ai.goal.WrappedGoal wrapped : List.copyOf(this.goalSelector.getAvailableGoals()))
+				if (wrapped.getGoal() instanceof net.minecraft.world.entity.ai.goal.RangedAttackGoal && wrapped.isRunning()) wrapped.stop();
 			this.goalSelector.removeAllGoals(goal -> goal instanceof net.minecraft.world.entity.ai.goal.RangedAttackGoal);
-			if (weapon.range() > 0)
-				this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.RangedAttackGoal(this, 1.0, weapon.interval(),
-					weapon.interval() + 10, (float) weapon.range()));
+			if (weapon.range() > 0) this.goalSelector.addGoal(2, new UnitGoals.Shoot(this, weapon.interval(), (float) weapon.range()));
 		}
-		modifier(Attributes.MOVEMENT_SPEED, MODE_SPEED, weapon.mobile() ? 0 : -kind.speed);
-		modifier(Attributes.FLYING_SPEED, MODE_SPEED, weapon.mobile() ? 0 : -kind.speed * 1.5);
-		if (!weapon.mobile()) this.getNavigation().stop();
+		double factor = weapon.mobile() ? dev.starmine.ability.Modes.speedFactor(kind, mode()) * dev.starmine.ability.Status.speedFactor(this) : 0;
+		modifier(Attributes.MOVEMENT_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+		modifier(Attributes.FLYING_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+		if (factor <= 0) this.getNavigation().stop();
+	}
+
+	/** The weapon it fights with now (its mode's, as its states leave it). */
+	public dev.starmine.ability.Modes.Weapon weapon() {
+		if (weapon == null) weapon = dev.starmine.ability.Modes.weapon(kind, mode());
+		return weapon;
+	}
+
+	private dev.starmine.ability.Modes.Weapon weapon;
+
+	/** Rebuilds its weapon and speed from its mode and timed states (dev.starmine.ability.Status); not while a mode change is under way. */
+	public void refreshWeapon() {
+		if (abilities.changingMode()) return;
+		applyWeapon(dev.starmine.ability.Status.adjust(this, dev.starmine.ability.Modes.weapon(kind, mode())));
+	}
+
+	/**
+	 * The body of its mode: a landed viking walks (ground navigation, gravity), taking off it flies again;
+	 * a hellbat and a planetary fortress have more health; an orbital command gets energy.
+	 */
+	public void applyModeBody() {
+		boolean air = flying();
+		if (kind.flying && air != (this.moveControl instanceof FlyingMoveControl)) {
+			if (air) {
+				this.moveControl = new FlyingMoveControl(this, 10, true);
+				FlyingPathNavigation navigation = new FlyingPathNavigation(this, this.level());
+				navigation.setCanOpenDoors(false);
+				navigation.setCanFloat(true);
+				navigation.setCanPassDoors(true);
+				this.navigation = navigation;
+				this.setDeltaMovement(this.getDeltaMovement().add(0, 0.4, 0));
+			} else {
+				this.moveControl = new net.minecraft.world.entity.ai.control.MoveControl(this);
+				this.navigation = new net.minecraft.world.entity.ai.navigation.GroundPathNavigation(this, this.level());
+			}
+			this.setNoGravity(air);
+		}
+		double extra = dev.starmine.ability.Modes.extraHealth(kind, mode()) * UnitKind.SCALE;
+		AttributeInstance health = this.getAttribute(Attributes.MAX_HEALTH);
+		if (health != null && (health.getModifier(MODE_HEALTH) == null ? 0 : health.getModifier(MODE_HEALTH).amount()) != extra) {
+			float ratio = this.getHealth() / this.getMaxHealth();
+			modifier(Attributes.MAX_HEALTH, MODE_HEALTH, extra);
+			this.setHealth(Math.max(1, ratio * this.getMaxHealth()));
+		}
+		if (mode() == dev.starmine.ability.Modes.ORBITAL && energy() == 0 && maxEnergy() > 0 && kind.maxEnergy() == 0 && !orbitalCharged) {
+			setEnergy(50); // SC2: an orbital command starts with 50
+			orbitalCharged = true;
+		}
+	}
+
+	private boolean orbitalCharged;
+	private static final ResourceLocation MODE_HEALTH = StarMine.id("mode_health"), BONUS_DAMAGE = StarMine.id("bonus_damage");
+
+	/** Whether it is in the air now: a flying kind, unless a viking has landed. */
+	public boolean flying() {
+		return kind.flying && mode() != dev.starmine.ability.Modes.LANDED;
+	}
+
+	/** SC2 energy it holds at most: its kind's, or an orbital command's 200. */
+	public int maxEnergy() {
+		return kind == UnitKind.COMMAND_CENTER && mode() == dev.starmine.ability.Modes.ORBITAL ? 200 : kind.maxEnergy();
+	}
+
+	/** Biological (a medivac heals it, steady targeting hits it): its kind's, a hellbat too. */
+	public boolean biological() {
+		return kind.biological() || kind == UnitKind.HELLION && mode() == dev.starmine.ability.Modes.HELLBAT;
+	}
+
+	/**
+	 * A summon that belongs to its base without counting in it (a MULE, a changeling, a hallucination, an
+	 * interceptor): it joins its base's side and work but takes no supply and leaves no gap when it dies.
+	 */
+	public void joinAsSummon(Hive hive, @org.jetbrains.annotations.Nullable UUID summoner) {
+		this.hiveId = hive.id;
+		this.entityData.set(OWNER, java.util.Optional.ofNullable(hive.owner));
+		this.home = hive.hatchery;
+		this.summoned = true;
+		this.summoner = summoner;
+	}
+
+	/** A summon's side without a base (a wild unit's summon): its summoner's owner. */
+	public void summonedBy(StarUnit summoner) {
+		this.summoned = true;
+		this.summoner = summoner.getUUID();
+		setOwner(summoner.owner().orElse(null));
+		this.home = summoner.blockPosition();
+	}
+
+	public boolean summoned() {
+		return summoned;
+	}
+
+	/** A MULE (an orbital command's calldown): a summoned SCV that mines 4 times as much for 64 s. */
+	public boolean mule() {
+		return summoned && kind == UnitKind.SCV;
+	}
+
+	/** Who summoned it (an interceptor's carrier), or null. */
+	public @org.jetbrains.annotations.Nullable UUID summoner() {
+		return summoner;
+	}
+
+	private boolean summoned;
+	private UUID summoner;
+
+	/** A lowered supply depot lets the units of its side walk over it. */
+	@Override
+	public boolean canCollideWith(Entity other) {
+		if (other instanceof StarUnit depot && depot.kind == UnitKind.SUPPLY_DEPOT && depot.mode() == dev.starmine.ability.Modes.LOWERED
+			&& dev.starmine.faction.Faction.allied(this, depot)) return false;
+		return super.canCollideWith(other);
+	}
+
+	private void modifier(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, ResourceLocation id, double amount,
+			AttributeModifier.Operation operation) {
+		AttributeInstance instance = this.getAttribute(attribute);
+		if (instance == null) return;
+		AttributeModifier current = instance.getModifier(id);
+		if (current != null && current.amount() == amount && current.operation() == operation) return;
+		instance.removeModifier(id);
+		if (amount != 0) instance.addTransientModifier(new AttributeModifier(id, amount, operation));
 	}
 
 	private static final ResourceLocation MODE_SPEED = StarMine.id("mode_speed");
@@ -1378,6 +1570,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** The damage its weapons and spells deal: a player's attack when piloted (kills and anger go to the player). */
 	public DamageSource attackSource() {
 		return pilot != null ? this.damageSources().playerAttack(pilot) : this.damageSources().mobAttack(this);
+	}
+
+	/** The height this flyer keeps over a point: its hover height over the ground, lower under a roof. */
+	public double cruiseHeight(double x, double z) {
+		return ZergGoals.cruise(this, x, z, Math.max(3, kind.hoverHeight()));
 	}
 
 	/** The ground (feet level) under a point, as flying units and transports see it. */
@@ -1417,7 +1614,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second). */
 	private void heal(ServerLevel server) {
 		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(6),
-				mob -> mob.isAlive() && mob.kind.biological() && dev.starmine.faction.Faction.allied(this, mob) && mob.getHealth() < mob.getMaxHealth())
+				mob -> mob.isAlive() && mob.biological() && dev.starmine.faction.Faction.allied(this, mob) && mob.getHealth() < mob.getMaxHealth())
 			.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth()))
 			.ifPresent(mob -> {
 				mob.heal((float) (12.6 * UnitKind.SCALE / 2));

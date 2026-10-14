@@ -35,6 +35,13 @@ public final class StarMineBlocks {
 	public static final CreepDecorBlock CREEP_VESSELS = register("creep_vessels", new CreepDecorBlock(decor()));
 	public static final CreepTentacleBlock CREEP_TENTACLE = register("creep_tentacle", new CreepTentacleBlock(decor()));
 
+	/** The sentry's force field (owner 14.10): a see-through wall for 11 s ({@link ForceFieldBlock}). */
+	public static final ForceFieldBlock FORCE_FIELD = register("force_field", new ForceFieldBlock(BlockBehaviour.Properties.of()
+		.mapColor(MapColor.COLOR_LIGHT_BLUE).strength(-1f, 3_600_000f).sound(SoundType.AMETHYST).noOcclusion().noLootTable()
+		.lightLevel(state -> 7).pushReaction(PushReaction.BLOCK).isValidSpawn((state, level, pos, type) -> false)
+		.isRedstoneConductor((state, level, pos) -> false).isSuffocating((state, level, pos) -> false)
+		.isViewBlocking((state, level, pos) -> false)));
+
 	private static BlockBehaviour.Properties decor() {
 		return BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).noCollission().instabreak()
 			.sound(SoundType.SLIME_BLOCK).noLootTable().pushReaction(PushReaction.DESTROY).randomTicks();

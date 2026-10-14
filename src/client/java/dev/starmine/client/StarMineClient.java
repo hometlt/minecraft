@@ -65,6 +65,7 @@ public final class StarMineClient implements ClientModInitializer {
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
+		BlockRenderLayerMap.INSTANCE.putBlock(StarMineBlocks.FORCE_FIELD, RenderType.translucent());
 		// a spawn egg shows its SC2 icon (textures/item/sc2/<kind>.png, imported by Modkit) when there is one,
 		// drawn untinted; without it the plain two-colour egg
 		net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin.register(

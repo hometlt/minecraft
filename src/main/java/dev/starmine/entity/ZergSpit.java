@@ -45,14 +45,23 @@ public class ZergSpit extends ThrowableItemProjectile {
 		return kind == UnitKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
 	}
 
+	/**
+	 * It hurts what it hits unless that is of the shooter's side (StarMine units of other sides too: a
+	 * missile that spared every StarMine unit left the zerg's spitters harmless against terrans and
+	 * protoss); the shooter's upgrades and SC2 bonus damage count, and its on-hit passives.
+	 */
 	@Override
 	protected void onHitEntity(EntityHitResult hit) {
 		super.onHitEntity(hit);
-		if (!(hit.getEntity() instanceof LivingEntity target) || target instanceof StarUnit) return;
+		if (!(hit.getEntity() instanceof LivingEntity target)) return;
 		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
-		double bonus = owner instanceof StarUnit zerg ? zerg.attackBonus() : 0;
-		target.hurt(this.damageSources().mobProjectile(this, owner), (float) (kind.damage + bonus));
-		if (kind.attack == UnitKind.Attack.SLOW) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 4));
+		StarUnit zerg = owner instanceof StarUnit unit ? unit : null;
+		if (owner != null && dev.starmine.faction.Faction.allied(owner, target)) return;
+		double bonus = zerg != null ? zerg.attackBonus() + dev.starmine.ability.Passives.bonus(zerg, target) : 0;
+		double damage = zerg != null ? zerg.weapon().damage() : kind.damage;
+		if (target.hurt(this.damageSources().mobProjectile(this, owner), (float) (damage + bonus)) && zerg != null)
+			dev.starmine.ability.Passives.onHit(zerg, target);
+		if (kind.attack == UnitKind.Attack.SLOW) dev.starmine.ability.Status.apply(target, dev.starmine.ability.Status.SLOW, 60);
 	}
 
 	@Override

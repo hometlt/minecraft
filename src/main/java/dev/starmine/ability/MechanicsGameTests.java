@@ -1,0 +1,292 @@
+package dev.starmine.ability;
+
+import dev.starmine.StarMine;
+import dev.starmine.entity.StarUnit;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.possess.ModuleItem;
+import dev.starmine.possess.Possession;
+import java.util.List;
+import java.util.UUID;
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.Vec3;
+
+import static dev.starmine.ability.TestArena.ARENA;
+import static dev.starmine.ability.TestArena.clear;
+import static dev.starmine.ability.TestArena.point;
+import static dev.starmine.ability.TestArena.unit;
+
+/**
+ * The common ability mechanics of stage A (owner 14.10, docs/CLOUD_TASK.md): timed states (speed,
+ * saved with the unit), burrowing (cloaked, still, found by an overseer), the lurker's weapon only
+ * burrowed, passives on a hit (concussive shells), on damage (guardian shield, barrier) and every tick
+ * (shield battery, interceptors), the engine's refusals (energy, health, cooldown), a spell ordered out
+ * of reach (the caster walks up and casts) and abilities cast as modules by a player who plays as a unit.
+ */
+public class MechanicsGameTests implements FabricGameTest {
+	private static double speed(StarUnit unit) {
+		return unit.getAttributeValue(Attributes.MOVEMENT_SPEED);
+	}
+
+	@GameTest(template = ARENA, batch = "mechStatus", timeoutTicks = 100)
+	public void statusChangesSpeedAndIsSaved(GameTestHelper helper) {
+		clear(helper);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 24, UUID.randomUUID());
+		helper.runAfterDelay(3, () -> {
+			double normal = speed(marine);
+			Status.apply(marine, Status.STIM, 200);
+			helper.assertTrue(Math.abs(speed(marine) - normal * 1.5) < 1e-6, "stim speed " + speed(marine) + " against " + normal);
+			helper.assertTrue(marine.weapon().interval() < UnitKind.MARINE.interval, "stim does not quicken the weapon");
+			CompoundTag tag = new CompoundTag();
+			marine.saveWithoutId(tag);
+			StarUnit copy = StarMine.type(UnitKind.MARINE).create(helper.getLevel());
+			copy.load(tag);
+			helper.assertTrue(Status.left(copy, Status.STIM) > 150, "the stimpack was not saved: " + Status.left(copy, Status.STIM));
+			Status.end(marine, Status.STIM);
+			helper.assertTrue(Math.abs(speed(marine) - normal) < 1e-6, "the speed did not come back: " + speed(marine));
+			Status.apply(marine, Status.ROOTED, 5);
+			helper.assertTrue(speed(marine) == 0, "rooted but moving");
+		});
+		helper.runAfterDelay(12, () -> {
+			helper.assertTrue(!Status.has(marine, Status.ROOTED) && speed(marine) > 0, "the roots did not run out");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechBurrow", timeoutTicks = 200)
+	public void burrowedUnitIsHiddenUntilAnOverseerComes(GameTestHelper helper) {
+		clear(helper);
+		UUID zerg = UUID.randomUUID(), other = UUID.randomUUID();
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 10, 24, zerg);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 20, 24, other);
+		marine.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(zergling, level, Ability.BURROW, null, null), "no burrow: " + Abilities.refusal(zergling, Ability.BURROW)));
+		helper.runAfterDelay(30, () -> {
+			helper.assertTrue(zergling.mode() == Modes.BURROWED && zergling.cloaked(), "not burrowed and hidden");
+			helper.assertTrue(speed(zergling) == 0, "a burrowed zergling moves");
+			helper.assertTrue(!zergling.isPushable(), "a burrowed zergling can be pushed");
+			helper.assertTrue(!Cloak.seen(zergling, marine), "another side sees a burrowed zergling without a detector");
+			helper.assertTrue(!Abilities.on(zergling, Ability.CLOAK), "burrowing counts as the unit's own cloak");
+			StarUnit overseer = unit(helper, UnitKind.OVERSEER, 16, 24, other);
+			overseer.setNoAi(true);
+		});
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(Cloak.seen(zergling, marine) && zergling.revealed(), "the overseer does not reveal the burrowed zergling");
+			helper.assertTrue(Abilities.cast(zergling, level, Ability.BURROW, null, null), "no unburrow");
+		});
+		helper.runAfterDelay(80, () -> {
+			helper.assertTrue(zergling.mode() == Modes.NORMAL && !zergling.cloaked() && speed(zergling) > 0, "not up again");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechLurker", timeoutTicks = 400)
+	public void lurkerAttacksOnlyBurrowed(GameTestHelper helper) {
+		clear(helper);
+		StarUnit lurker = unit(helper, UnitKind.LURKER, 10, 24, UUID.randomUUID());
+		StarUnit marine = unit(helper, UnitKind.MARINE, 16, 24, null);
+		marine.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(80, () -> {
+			helper.assertTrue(marine.getHealth() == marine.getMaxHealth(), "an unburrowed lurker attacked");
+			helper.assertTrue(Abilities.cast(lurker, level, Ability.BURROW, null, null), "no burrow");
+			helper.succeedWhen(() -> helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the burrowed lurker does not attack"));
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechConcussive", timeoutTicks = 200)
+	public void marauderSlowsWhatItHits(GameTestHelper helper) {
+		clear(helper);
+		StarUnit marauder = unit(helper, UnitKind.MARAUDER, 10, 24, UUID.randomUUID());
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 15, 24, null);
+		zergling.setNoAi(true);
+		helper.runAfterDelay(2, () -> marauder.commandAttack(zergling));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(zergling.getHealth() < zergling.getMaxHealth(), "not hit yet; target " + marauder.getTarget() + " goals "
+				+ marauder.goalsRunning() + " weapon " + marauder.weapon() + " at " + TestArena.where(helper, marauder));
+			helper.assertTrue(Status.has(zergling, Status.SLOW), "hit but not slowed");
+		});
+	}
+
+	/** Zerg missiles hurt StarMine units of other sides (they used to spare every StarMine unit). */
+	@GameTest(template = ARENA, batch = "mechSpit", timeoutTicks = 200)
+	public void roachSpitHurtsAMarine(GameTestHelper helper) {
+		clear(helper);
+		unit(helper, UnitKind.ROACH, 10, 24, UUID.randomUUID());
+		StarUnit marine = unit(helper, UnitKind.MARINE, 14, 24, null);
+		marine.setNoAi(true);
+		helper.succeedWhen(() -> helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the roach's acid does nothing to a marine"));
+	}
+
+	/** Terran rifles hurt what they shoot at (a stand fight showed marines dealing next to nothing). */
+	@GameTest(template = ARENA, batch = "mechRifle", timeoutTicks = 200)
+	public void marinesShootAZealot(GameTestHelper helper) {
+		clear(helper);
+		StarUnit a = unit(helper, UnitKind.MARINE, 10, 23, null), b = unit(helper, UnitKind.MARINE, 10, 25, null);
+		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 15, 24, null);
+		zealot.setNoAi(true);
+		helper.succeedWhen(() -> helper.assertTrue(zealot.shield() < zealot.kind.shields || zealot.getHealth() < zealot.getMaxHealth(),
+			"the marines do nothing; targets " + a.getTarget() + " / " + b.getTarget() + " goals " + a.goalsRunning() + " weapon " + a.weapon()));
+	}
+
+	@GameTest(template = ARENA, batch = "mechGuardian", timeoutTicks = 100)
+	public void guardianShieldTakesFromRangedHits(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		StarUnit sentry = unit(helper, UnitKind.SENTRY, 10, 24, player);
+		StarUnit near = unit(helper, UnitKind.ZEALOT, 12, 24, player), far = unit(helper, UnitKind.ZEALOT, 10, 40, player);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 30, 24, null);
+		for (StarUnit unit : List.of(sentry, near, far, marine)) unit.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(2, () -> {
+			sentry.setEnergy(75);
+			helper.assertTrue(Abilities.cast(sentry, level, Ability.GUARDIAN_SHIELD, null, null), "no guardian shield");
+		});
+		helper.runAfterDelay(15, () -> {
+			float shot = (float) (6 * UnitKind.SCALE);
+			float guarded = Passives.onHurt(near, marine.attackSource(), shot), open = Passives.onHurt(far, marine.attackSource(), shot);
+			helper.assertTrue(Math.abs(guarded - (shot - 2 * UnitKind.SCALE)) < 1e-4, "under the shield a shot does " + guarded);
+			helper.assertTrue(open == shot, "outside the shield a shot does " + open);
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechBarrier", timeoutTicks = 100)
+	public void immortalBarrierTakesTheFirstHit(GameTestHelper helper) {
+		clear(helper);
+		StarUnit immortal = unit(helper, UnitKind.IMMORTAL, 10, 24, UUID.randomUUID());
+		StarUnit marine = unit(helper, UnitKind.MARINE, 30, 24, null);
+		immortal.setNoAi(true);
+		marine.setNoAi(true);
+		helper.runAfterDelay(3, () -> {
+			float shield = immortal.shield();
+			immortal.hurt(marine.attackSource(), 10);
+			helper.assertTrue(immortal.shield() == shield && immortal.getHealth() == immortal.getMaxHealth(), "the barrier did not take the hit");
+			helper.assertTrue(Status.has(immortal, Status.BARRIER), "no barrier");
+		});
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(!Status.has(immortal, Status.BARRIER), "the barrier lasts more than 2 s");
+			float shield = immortal.shield();
+			immortal.invulnerableTime = 0;
+			immortal.hurt(marine.attackSource(), 5);
+			helper.assertTrue(immortal.shield() < shield, "the barrier came back before its cooldown");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechBattery", timeoutTicks = 100)
+	public void shieldBatteryRestoresShields(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		unit(helper, UnitKind.PYLON, 8, 24, player);
+		StarUnit battery = unit(helper, UnitKind.SHIELD_BATTERY, 12, 24, player);
+		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 17, 24, player);
+		zealot.setNoAi(true);
+		helper.runAfterDelay(3, () -> zealot.setShield(0));
+		helper.runAfterDelay(33, () -> {
+			helper.assertTrue(zealot.shield() >= 10, "the battery restored only " + zealot.shield());
+			helper.assertTrue(battery.energy() < 100, "the battery spent no energy");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechCarrier", timeoutTicks = 500)
+	public void carrierFightsWithInterceptors(GameTestHelper helper) {
+		clear(helper);
+		StarUnit carrier = unit(helper, UnitKind.CARRIER, 10, 24, UUID.randomUUID());
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 18, 24, null);
+		zergling.setNoAi(true);
+		helper.succeedWhen(() -> {
+			List<StarUnit> out = ProtossAbilities.launched(carrier, helper.getLevel());
+			helper.assertTrue(!out.isEmpty() || zergling.isDeadOrDying(), "no interceptor out");
+			helper.assertTrue(zergling.getHealth() < zergling.getMaxHealth(), "the interceptors did not hit");
+			helper.assertTrue(carrier.abilities.interceptors() + out.size() <= ProtossAbilities.INTERCEPTORS, "too many interceptors");
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechRefusals", timeoutTicks = 100)
+	public void castsAreRefusedWithoutEnergyHealthOrCooldown(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		StarUnit ghost = unit(helper, UnitKind.GHOST, 10, 24, player), marine = unit(helper, UnitKind.MARINE, 12, 24, player);
+		StarUnit stalker = unit(helper, UnitKind.STALKER, 14, 24, player);
+		for (StarUnit unit : List.of(ghost, marine, stalker)) unit.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(2, () -> {
+			ghost.setEnergy(10);
+			helper.assertTrue("message.starmine.need_energy".equals(Abilities.refusal(ghost, Ability.EMP)), "EMP without energy");
+			helper.assertTrue(!Abilities.cast(ghost, level, Ability.EMP, null, ghost.position()), "EMP cast without energy");
+			marine.setHealth(2);
+			helper.assertTrue(!Abilities.cast(marine, level, Ability.STIMPACK, null, null), "a stimpack on 2 health");
+			helper.assertTrue(Abilities.cast(stalker, level, Ability.BLINK, null, point(helper, 18, 24)), "no blink");
+			helper.assertTrue("message.starmine.cooldown".equals(Abilities.refusal(stalker, Ability.BLINK)), "blink without a cooldown");
+			helper.assertTrue(!Abilities.cast(stalker, level, Ability.BLINK, null, point(helper, 14, 24)), "a second blink at once");
+			helper.assertTrue(!Abilities.cast(marine, level, Ability.BLINK, null, point(helper, 14, 24)), "a marine blinked");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "mechApproach", timeoutTicks = 600)
+	public void anOrderOutOfReachWalksUpAndCasts(GameTestHelper helper) {
+		clear(helper);
+		StarUnit ghost = unit(helper, UnitKind.GHOST, 4, 24, UUID.randomUUID());
+		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 40, 24, null);
+		zealot.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(2, () -> {
+			ghost.setEnergy(100);
+			helper.assertTrue(Abilities.order(level, List.of(ghost), Ability.EMP, null, zealot.position()), "the order was refused");
+			helper.assertTrue(ghost.energy() == 100, "cast from out of reach");
+			// energy comes back slowly (0.79 a second), shields too (once 7 s have passed): the EMP is seen for a while after
+			helper.succeedWhen(() -> {
+				helper.assertTrue(ghost.energy() < 60, "the ghost has not cast yet, at " + TestArena.where(helper, ghost));
+				helper.assertTrue(zealot.shield() < zealot.kind.shields / 2, "EMP left shields: " + zealot.shield());
+			});
+		});
+	}
+
+	/** One player plays as a marine, a roach and a stalker in turn: a module of each casts the unit's ability. */
+	@GameTest(template = ARENA, batch = "mechModules", timeoutTicks = 200)
+	public void modulesCastForEveryRace(GameTestHelper helper) {
+		clear(helper);
+		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
+		Vec3 start = point(helper, 5, 5);
+		player.teleportTo(start.x, start.y, start.z);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 24, player.getUUID());
+		StarUnit roach = unit(helper, UnitKind.ROACH, 10, 30, player.getUUID());
+		StarUnit stalker = unit(helper, UnitKind.STALKER, 10, 36, player.getUUID());
+		helper.runAfterDelay(2, () -> {
+			try {
+				helper.assertTrue(Possession.start(player, marine), "no possession of the marine");
+				float health = player.getHealth();
+				helper.assertTrue(Possession.useModule(player, ModuleItem.of(Ability.STIMPACK), InteractionHand.MAIN_HAND), "the stimpack module failed");
+				StarUnit puppet = Possession.puppet(player);
+				helper.assertTrue(puppet != null && Status.has(puppet, Status.STIM), "the stimpack is not on the unit");
+				helper.assertTrue(player.getHealth() < health, "the stimpack cost no health");
+				Possession.end(player, false);
+				helper.assertTrue(Possession.start(player, roach), "no possession of the roach");
+				helper.assertTrue(Possession.useModule(player, ModuleItem.of(Ability.BURROW), InteractionHand.MAIN_HAND), "the burrow module failed");
+				helper.assertTrue(Possession.puppet(player).abilities.changingMode(), "the roach does not burrow");
+				Possession.end(player, false);
+				helper.assertTrue(Possession.start(player, stalker), "no possession of the stalker");
+				Vec3 from = player.position(), to = point(helper, 16, 36);
+				player.lookAt(EntityAnchorArgument.Anchor.EYES, to.add(0, -0.4, 0));
+				helper.assertTrue(Possession.useModule(player, ModuleItem.of(Ability.BLINK), InteractionHand.MAIN_HAND), "the blink module failed");
+				helper.assertTrue(player.position().distanceTo(from) > 4, "the player did not blink: " + player.position() + " from " + from);
+			} finally { // a mock player left in the world would make every other test's mobs despawn (far from a player)
+				if (Possession.piloting(player)) Possession.end(player, false);
+				helper.getLevel().removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);
+			}
+			helper.succeed();
+		});
+	}
+}

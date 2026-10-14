@@ -140,6 +140,19 @@ public final class TerranRace implements RaceRules {
 		return level == 1 || base.count(ARMORY) > 0;
 	}
 
+	/**
+	 * SC2: the marauder, ghost, siege tank, thor, banshee and battlecruiser need a tech lab on their
+	 * building ({@link dev.starmine.ability.Modes#TECHLAB}, built with its ability).
+	 */
+	@Override
+	public boolean producerReady(StarUnit producer, UnitKind kind) {
+		return !needsTechLab(kind) || producer.mode() == dev.starmine.ability.Modes.TECHLAB;
+	}
+
+	public static boolean needsTechLab(UnitKind kind) {
+		return kind == MARAUDER || kind == GHOST || kind == SIEGE_TANK || kind == THOR || kind == BANSHEE || kind == BATTLECRUISER;
+	}
+
 	/** The SCV places the building and then builds it: it grows only while the SCV stays ({@link StarUnit#setConstructing}). */
 	@Override
 	public @Nullable StarUnit placeBuilding(StarUnit worker, ServerLevel level, Hive base, UnitKind kind, BlockPos site) {

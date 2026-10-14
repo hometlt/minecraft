@@ -774,5 +774,14 @@
 	"race.starmine.zerg": "Зерги",
 	"race.starmine.terran": "Терраны",
 	"race.starmine.protoss": "Протоссы",
-	"message.starmine.wave_attack": "%s атакуют вашу базу!"
+	"message.starmine.wave_attack": "%s атакуют вашу базу!",
+	"block.starmine.force_field": "Силовое поле",
+	"gamerule.starmineNukeGriefing": "StarMine: ядерный удар призрака разрушает блоки",
+	"message.starmine.rooted": "Юнит обездвижен",
+	"message.starmine.no_partner": "Рядом нет второго храмовника для слияния",
+	"message.starmine.pilot_transport": "Транспорт, которым вы управляете, не перевозит: выйдите из него и загрузите из командного вида",
+	"message.starmine.need_techlab": "Нужна техлаборатория на здании",
+	"command.starmine.metabolic_boost": "Метаболический ускоритель",
+	"command.starmine.centrifugal_hooks": "Центробежные крюки",
+	"command.starmine.combat_shield": "Боевой щит"
 }

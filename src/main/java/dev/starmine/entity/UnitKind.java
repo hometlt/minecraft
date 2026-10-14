@@ -322,7 +322,7 @@ public enum UnitKind {
 	/** SC2 energy of casters (owner 14.10, abilities): the most it holds; 0 for kinds without energy. */
 	public int maxEnergy() {
 		return switch (this) {
-			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, MOTHERSHIP, NEXUS -> 200;
+			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS -> 200;
 			case SHIELD_BATTERY -> 100;
 			default -> 0;
 		};
@@ -346,6 +346,68 @@ public enum UnitKind {
 	/** Always cloaked (SC2): the dark templar and the observer. */
 	public boolean permanentlyCloaked() {
 		return this == DARK_TEMPLAR || this == OBSERVER;
+	}
+
+	/** SC2 armored units (every building too): bonus damage and some spells look at it ({@link #bonusDamage}). */
+	public boolean armored() {
+		if (structure()) return true;
+		return switch (this) {
+			case OVERLORD, OVERSEER, ROACH, RAVAGER, LURKER, CORRUPTOR, BROOD_LORD, INFESTOR, SWARM_HOST, VIPER, ULTRALISK,
+				MARAUDER, SIEGE_TANK, THOR, VIKING, MEDIVAC, BATTLECRUISER,
+				STALKER, IMMORTAL, COLOSSUS, DISRUPTOR, WARP_PRISM, VOID_RAY, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> true;
+			default -> false;
+		};
+	}
+
+	/** SC2 light units. */
+	public boolean light() {
+		return switch (this) {
+			case ZERGLING, DRONE, BROODLING, LOCUST, HYDRALISK, MUTALISK, CHANGELING, LARVA, SCV, MARINE, REAPER, HELLION, BANSHEE,
+				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR -> true;
+			default -> false;
+		};
+	}
+
+	/** SC2 massive units: a graviton beam cannot lift them, force fields do not stop them. */
+	public boolean massive() {
+		return this == ULTRALISK || this == BROOD_LORD || this == THOR || this == BATTLECRUISER || this == COLOSSUS || this == ARCHON
+			|| this == TEMPEST || this == CARRIER || this == MOTHERSHIP;
+	}
+
+	/** SC2 mechanical units and terran and protoss buildings: an SCV repairs the terran ones ({@link dev.starmine.ability.TerranAbilities}). */
+	public boolean mechanical() {
+		if (structure()) return race != Race.ZERG;
+		return race != Race.ZERG && !biological() && this != HIGH_TEMPLAR && this != ARCHON;
+	}
+
+	/**
+	 * SC2 bonus damage of its weapon against an attribute (light, armored), in SC2 hit points: the
+	 * counters of SC2 (the marauder against stalkers, the immortal against tanks, banelings against
+	 * marines…) come from it. Applied with every hit ({@link dev.starmine.ability.Passives#bonus}).
+	 */
+	public double bonusDamage(UnitKind target) {
+		boolean armored = target.armored(), light = target.light();
+		return switch (this) {
+			case MARAUDER -> armored ? 10 : 0;
+			case STALKER -> armored ? 5 : 0;
+			case IMMORTAL -> armored ? 30 : 0;
+			case SIEGE_TANK, VIKING -> armored ? 10 : 0;
+			case VOID_RAY -> armored ? 4 : 0;
+			case SPINE_CRAWLER -> armored ? 5 : 0;
+			case ADEPT, HELLION -> light ? (this == ADEPT ? 12 : 6) : 0;
+			case BANELING -> light ? 15 : 0;
+			case COLOSSUS -> light ? 10 : 0;
+			case GHOST, PHOENIX -> light ? (this == GHOST ? 10 : 5) : 0;
+			case ORACLE -> light ? 7 : 0;
+			case ARCHON -> target.biological() ? 10 : 0;
+			case CORRUPTOR -> target.massive() ? 6 : 0;
+			default -> 0;
+		};
+	}
+
+	/** Ground units the anti-air also hits (SC2: the colossus is tall enough). */
+	public boolean hitByAntiAir() {
+		return flying || this == COLOSSUS;
 	}
 
 	/** Ticks the body stays after death so the death animation can play. */

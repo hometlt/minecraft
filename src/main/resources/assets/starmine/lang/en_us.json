@@ -774,5 +774,14 @@
 	"race.starmine.zerg": "Zerg",
 	"race.starmine.terran": "Terran",
 	"race.starmine.protoss": "Protoss",
-	"message.starmine.wave_attack": "%s are attacking your base!"
+	"message.starmine.wave_attack": "%s are attacking your base!",
+	"block.starmine.force_field": "Force Field",
+	"gamerule.starmineNukeGriefing": "StarMine: a ghost's nuke breaks blocks",
+	"message.starmine.rooted": "The unit is rooted",
+	"message.starmine.no_partner": "No other templar near to merge with",
+	"message.starmine.pilot_transport": "A transport you play as cannot carry: leave it and command the load from the command view",
+	"message.starmine.need_techlab": "Needs a tech lab on the building",
+	"command.starmine.metabolic_boost": "Metabolic Boost",
+	"command.starmine.centrifugal_hooks": "Centrifugal Hooks",
+	"command.starmine.combat_shield": "Combat Shield"
 }

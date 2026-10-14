@@ -279,10 +279,10 @@ public final class CommandScreen extends Screen {
 					panelLeft + 120, panelTop + 18, 0xFF80C0FF);
 				bar(graphics, panelLeft + 6, panelTop + 25, panelWidth - 12, (float) (unit.shield() / unit.kind.shields), 0xFF40A0FF);
 			}
-			if (unit.kind.maxEnergy() > 0) { // casters' energy under the health
-				graphics.drawString(font, Component.translatable("command.starmine.energy", (int) unit.energy(), unit.kind.maxEnergy()),
+			if (unit.maxEnergy() > 0) { // casters' energy under the health
+				graphics.drawString(font, Component.translatable("command.starmine.energy", (int) unit.energy(), unit.maxEnergy()),
 					panelLeft + 200, panelTop + 18, 0xFFC080FF);
-				bar(graphics, panelLeft + 6, panelTop + 35, panelWidth - 12, unit.energy() / unit.kind.maxEnergy(), 0xFFA040FF);
+				bar(graphics, panelLeft + 6, panelTop + 35, panelWidth - 12, unit.energy() / unit.maxEnergy(), 0xFFA040FF);
 			}
 			if (unit.kind.structure() && CommandView.own(unit)) {
 				int progress = unit.progress();
@@ -370,7 +370,7 @@ public final class CommandScreen extends Screen {
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
 			}
 			// abilities of the first selected kind (dev.starmine.ability): the bottom row, a worker's beside its gather keys
-			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(mobile.get(0).kind);
+			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(mobile.get(0));
 			int[] slots = worker == null ? new int[] {10, 11, 12, 13} : new int[] {7, 8, 9};
 			for (int i = 0; i < abilities.size() && i < slots.length; i++) buttons.add(abilityButton(slots[i], abilities.get(i), mobile));
 			if (own.size() == 1) // owner 14.10: play as this unit (dev.starmine.possess)
@@ -394,7 +394,7 @@ public final class CommandScreen extends Screen {
 		List<Research> researches = Research.of(producer);
 		for (int i = 0; i < researches.size(); i++) buttons.add(research(trains.size() + i, researches.get(i), producer));
 		if (!trains.isEmpty() && producer.structure()) buttons.add(simple(10, "rally", 'Y', () -> targeting = "rally"));
-		List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(producer); // a building's (an orbital, a nexus…)
+		List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(own.get(0)); // a building's (an orbital, a nexus…), as it is now
 		for (int i = 0; i < abilities.size() && i < 3; i++) buttons.add(abilityButton(11 + i, abilities.get(i), own));
 		if (producer.structure())
 			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
@@ -437,6 +437,7 @@ public final class CommandScreen extends Screen {
 			case ARMOR -> status.armorLevel() + 1;
 			case LAIR -> 2;
 			case HIVE -> 3;
+			default -> 1;
 		};
 		UnitKind need = switch (what) {
 			case WEAPONS, ARMOR -> level <= 1 ? null : switch (building.race) {
@@ -446,10 +447,12 @@ public final class CommandScreen extends Screen {
 			};
 			case LAIR -> UnitKind.SPAWNING_POOL;
 			case HIVE -> UnitKind.INFESTATION_PIT;
+			default -> null;
 		};
-		boolean done = what == Research.LAIR ? tier >= 2 : what == Research.HIVE ? tier >= 3 : level > 3;
+		boolean done = what.once() ? status.counts().getOrDefault("research:" + what.id(), 0) > 0
+			: what == Research.LAIR ? tier >= 2 : what == Research.HIVE ? tier >= 3 : level > 3;
 		boolean tech = (need == null || status.counts().getOrDefault(need.name(), 0) > 0)
-			&& (building.race != UnitKind.Race.ZERG || what == Research.LAIR || tier >= level);
+			&& (building.race != UnitKind.Race.ZERG || what == Research.LAIR || what.once() || tier >= level);
 		int[] cost = what.cost(level);
 		boolean enabled = !done && tech && status.minerals() >= cost[0] && status.vespene() >= cost[1];
 		Component label = Component.translatable("command.starmine." + what.id());

@@ -73,8 +73,14 @@ public interface RaceRules {
 	 */
 	@Nullable StarUnit placeBuilding(StarUnit worker, ServerLevel level, Hive base, UnitKind kind, BlockPos site);
 
+	/** Whether this producer may train `kind` now (terran: advanced units need a tech lab on the building). */
+	default boolean producerReady(StarUnit producer, UnitKind kind) {
+		return true;
+	}
+
 	/** Whether this building works now (protoss: powered by a pylon). */
 	default boolean powered(StarUnit building) {
 		return true;
 	}
+
 }

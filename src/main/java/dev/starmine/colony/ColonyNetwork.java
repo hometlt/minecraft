@@ -128,6 +128,7 @@ public final class ColonyNetwork {
 		base.members.forEach((kind, count) -> counts.put(kind.name(), count));
 		base.pending.forEach((kind, count) -> counts.merge("pending:" + kind.name(), count, Integer::sum));
 		counts.put("tier", base.tier); // zerg: lair 2, hive 3
+		for (String done : base.researched) counts.put("research:" + done, 1); // unit upgrades done
 		ServerPlayNetworking.send(player, new BaseStatus(true, base.minerals, base.vespene, base.diamonds, (float) base.supplyUsed(),
 			base.supplyCap(), base.attackLevel, base.armorLevel, tallies, counts));
 	}

@@ -34,21 +34,63 @@ final class UnitGoals {
 			case MELEE, SPLASH, EXPLODE -> goals.addGoal(2, new MeleeAttackGoal(unit, 1.15, false) {
 				@Override
 				protected int getAttackInterval() {
-					return this.adjustedTickDelay(kind.interval);
+					return this.adjustedTickDelay(Math.max(4, unit.weapon().interval()));
+				}
+
+				/** Not while it cannot fight (burrowed, lifted, changing its mode…: its weapon is none) or rides a transport. */
+				@Override
+				public boolean canUse() {
+					return armed(unit) && super.canUse();
+				}
+
+				@Override
+				public boolean canContinueToUse() {
+					return armed(unit) && super.canContinueToUse();
 				}
 			});
-			default -> goals.addGoal(2, new RangedAttackGoal(unit, 1.0, kind.interval, kind.interval + 10, (float) kind.range));
+			default -> goals.addGoal(2, new Shoot(unit, kind.interval, (float) kind.range));
 		}
 		if (kind.worker()) goals.addGoal(3, new DroneWork(unit));
 		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, kind.race == UnitKind.Race.ZERG ? 24 : 4));
 		goals.addGoal(6, new LookAtPlayerGoal(unit, Player.class, 8.0f));
 		goals.addGoal(7, new RandomLookAroundGoal(unit));
 		if (kind.attack == UnitKind.Attack.NONE) return;
-		targets.addGoal(1, new HurtByTargetGoal(unit).setAlertOthers(StarUnit.class));
+		// whoever hurts it, unless it cannot see them: a cloaked ghost shooting a marine stays hidden (SC2)
+		targets.addGoal(1, new HurtByTargetGoal(unit) {
+			@Override
+			public boolean canUse() {
+				return !(unit.getLastHurtByMob() instanceof StarUnit hidden && !dev.starmine.ability.Cloak.seen(hidden, unit)) && super.canUse();
+			}
+		}.setAlertOthers(StarUnit.class));
 		if (!kind.worker() && kind.aggressive)
 			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
 				other -> dev.starmine.faction.Faction.hostile(unit, other)
 					&& !(other instanceof StarUnit cloaked && !dev.starmine.ability.Cloak.seen(cloaked, unit))));
+	}
+
+	/** Whether it may fight now: it has a weapon in its mode and states, and does not ride a transport (a bunker's garrison does fight). */
+	static boolean armed(StarUnit unit) {
+		return unit.weapon().range() > 0 && (!unit.isPassenger() || dev.starmine.ability.Transport.firesFrom(unit.getVehicle()));
+	}
+
+	/** The ranged attack: vanilla's, while the unit is {@link #armed}. */
+	static final class Shoot extends RangedAttackGoal {
+		private final StarUnit unit;
+
+		Shoot(StarUnit unit, int interval, float range) {
+			super(unit, 1.0, interval, interval + 10, range);
+			this.unit = unit;
+		}
+
+		@Override
+		public boolean canUse() {
+			return armed(unit) && super.canUse();
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return armed(unit) && super.canContinueToUse();
+		}
 	}
 
 	/**
@@ -73,7 +115,7 @@ final class UnitGoals {
 			LivingEntity target = unit.getTarget();
 			return switch (order) {
 				case MOVE -> true;
-				case HOLD -> target == null || unit.distanceTo(target) > unit.kind.range + 1;
+				case HOLD -> target == null || unit.distanceTo(target) > unit.weapon().range() + 1;
 				default -> target == null;
 			};
 		}
@@ -128,7 +170,7 @@ final class UnitGoals {
 				unit.finishOrder();
 				return;
 			}
-			if (unit.kind.flying) { // a flying move control steers one tick per wanted position: give it every tick
+			if (unit.flying()) { // a flying move control steers one tick per wanted position: give it every tick
 				double y = ZergGoals.ground(unit, goal.x, goal.z) + Math.max(3, unit.kind.hoverHeight());
 				unit.getMoveControl().setWantedPosition(goal.x, y, goal.z, 1.0);
 				return;

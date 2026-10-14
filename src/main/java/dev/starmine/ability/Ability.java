@@ -9,11 +9,14 @@ import static dev.starmine.entity.UnitKind.*;
 
 /**
  * A unit ability (owner 14.10, docs/ABILITIES.md): its SC2 numbers and how it is aimed. What it does is
- * in {@link Abilities#effect} (common mechanics: {@link Cloak}, {@link Modes}, {@link Transport}; the
- * races' own: {@link ZergAbilities}, {@link TerranAbilities}, {@link ProtossAbilities}); the engine pays
- * energy, health and resources, keeps cooldowns, channels and delays ({@link Abilities}). A player who
- * plays as a unit uses them through modules ({@link dev.starmine.possess.ModuleItem}). A new ability
- * is a constant here, its users in {@link #users()}, its effect in its race's class.
+ * in {@link Abilities#effect} (common mechanics: {@link Cloak}, {@link Modes}, {@link Transport},
+ * timed states {@link Status}, passives {@link Passives}, lasting channels {@link Channels}; the races'
+ * own: {@link ZergAbilities}, {@link TerranAbilities}, {@link ProtossAbilities}); the engine pays
+ * energy, health and resources, keeps cooldowns, channels and delays ({@link Abilities}); wild units cast
+ * by {@link AbilityAi}. A player who plays as a unit uses them through modules
+ * ({@link dev.starmine.possess.ModuleItem}). A new ability is a constant here, its users in
+ * {@link #users()}, its effect in its race's class called from {@link Abilities#effect}, a rule in
+ * {@link AbilityAi}, a game test.
  *
  * Numbers: energy in SC2 units (a caster has up to 200), times in real seconds (LotV, Faster), range
  * in SC2 units (blocks = x {@link UnitKind#BLOCKS_PER_UNIT} + 1, like weapons; 0 = anywhere), health
@@ -94,10 +97,12 @@ public enum Ability {
 	public final int energy, cooldownTicks, channelTicks, delayTicks;
 	/** Reach in blocks (0: anywhere). */
 	public final double range;
-	/** Base resources it costs (an orbital command, an add-on). */
+	/** Base resources it costs when cast (a nuke, an orbital command, an add-on); a repair is paid as it goes ({@link TerranAbilities#repairTick}). */
 	public int minerals, vespene;
 
 	static {
+		NUKE.minerals = 100; // SC2: armed at the ghost academy
+		NUKE.vespene = 100;
 		ORBITAL_COMMAND.minerals = 150;
 		PLANETARY_FORTRESS.minerals = 150;
 		PLANETARY_FORTRESS.vespene = 150;

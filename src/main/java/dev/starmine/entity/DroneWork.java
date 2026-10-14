@@ -115,7 +115,8 @@ final class DroneWork extends Goal {
 
 	@Override
 	public boolean canUse() {
-		return drone.hiveId() != null && drone.getTarget() == null && !drone.isPassenger() && drone.order() == StarUnit.Order.NONE;
+		return drone.hiveId() != null && drone.getTarget() == null && !drone.isPassenger() && drone.order() == StarUnit.Order.NONE
+			&& !drone.abilities.repairing();
 	}
 
 	/** A player's worker (any race): takes orders, waits near its base instead of roaming, digs no hive tunnels. */
@@ -592,7 +593,8 @@ final class DroneWork extends Goal {
 		double rim = half + 3.5;
 		// delivered anywhere a walk to the rim may end (it arrives within 2.5 blocks of it)
 		if (flat < rim + 2.8 && Math.abs(drone.getY() - centre.y) < 4) {
-			hive.deliver(drone.cargoMinerals, drone.cargoVespene, drone.cargoDiamonds, drone.cargoLabel, drone.cargoBlocks);
+			int yield = drone.mule() ? dev.starmine.ability.TerranAbilities.MULE_YIELD : 1; // a MULE mines 4 times as much (SC2)
+			hive.deliver(drone.cargoMinerals * yield, drone.cargoVespene, drone.cargoDiamonds, drone.cargoLabel, drone.cargoBlocks);
 			HiveSavedData.get(level.getServer()).setDirty();
 			drone.clearCargo();
 			drone.getNavigation().stop();

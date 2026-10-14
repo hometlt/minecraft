@@ -23,9 +23,37 @@ final class ZergGoals {
 	private ZergGoals() {
 	}
 
-	/** Ground height under a point (top of motion-blocking blocks). */
+	/**
+	 * Ground height under a point: the top of the motion-blocking blocks, or — for a unit under a roof (a
+	 * cave, a ceiling, the arena's barrier ceiling) — the floor under the unit's own height there.
+	 */
 	static double ground(StarUnit mob, double x, double z) {
-		return mob.level().getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
+		int top = mob.level().getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
+		int from = (int) Math.floor(mob.getY() + 0.5);
+		if (from >= top) return top;
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos((int) Math.floor(x), from, (int) Math.floor(z));
+		// at the unit's height that column is rock (a hill, a ridge ahead): its top is the ground; air with a roof over it: a cave
+		if (!mob.level().getBlockState(pos).getCollisionShape(mob.level(), pos).isEmpty()) return top;
+		for (int i = 0; i < 64 && pos.getY() > mob.level().getMinBuildHeight(); i++) {
+			pos.move(net.minecraft.core.Direction.DOWN);
+			if (!mob.level().getBlockState(pos).getCollisionShape(mob.level(), pos).isEmpty()) return pos.getY() + 1;
+		}
+		return top;
+	}
+
+	/**
+	 * The height a flyer keeps over a point: `above` blocks over the ground, but under a roof no higher
+	 * than leaves room for its body (it flies through caves without scraping their ceiling).
+	 */
+	static double cruise(StarUnit mob, double x, double z, double above) {
+		double floor = ground(mob, x, z);
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos((int) Math.floor(x), (int) floor, (int) Math.floor(z));
+		for (int i = 0; i < above + mob.getBbHeight() + 1; i++) {
+			if (!mob.level().getBlockState(pos).getCollisionShape(mob.level(), pos).isEmpty())
+				return Math.max(floor, Math.min(floor + above, pos.getY() - mob.getBbHeight() - 0.3));
+			pos.move(net.minecraft.core.Direction.UP);
+		}
+		return floor + above;
 	}
 
 	/** Flying kinds wander through the air at their hover height instead of skimming the ground. */
@@ -61,8 +89,9 @@ final class ZergGoals {
 	}
 
 	/**
-	 * Queen: every 32 s (SC2: 25 energy at 0.7875/s) she walks to a creep cell at least 7 blocks from
-	 * every other creep source and plants a creep tumor there, on whatever face the creep lies.
+	 * Queen: every 32 s (SC2: 25 energy at 0.7875/s), when she has the energy, she walks to a creep cell
+	 * at least 7 blocks from every other creep source and plants a creep tumor there with her ability, on
+	 * whatever face the creep lies.
 	 */
 	static final class PlantTumor extends Goal {
 		private final StarUnit queen;
@@ -76,7 +105,8 @@ final class ZergGoals {
 
 		@Override
 		public boolean canUse() {
-			if (--cooldown > 0 || queen.getTarget() != null || !(queen.level() instanceof ServerLevel level)) return false;
+			if (--cooldown > 0 || queen.getTarget() != null || !(queen.level() instanceof ServerLevel level)
+				|| queen.energy() < dev.starmine.ability.Ability.CREEP_TUMOR.energy) return false;
 			cooldown = 640;
 			List<BlockPos> spots = new ArrayList<>();
 			BlockPos centre = queen.blockPosition();
@@ -102,8 +132,8 @@ final class ZergGoals {
 		@Override
 		public void tick() {
 			if (spot == null || queen.distanceToSqr(Vec3.atCenterOf(spot)) > 16) return;
-			queen.swing(InteractionHand.MAIN_HAND);
-			CreepGrowth.placeTumor((ServerLevel) queen.level(), spot, CreepSources.TUMOR_SPACING);
+			// the queen's ability (dev.starmine.ability): it costs her 25 energy, so she plants only when she has it
+			dev.starmine.ability.Abilities.cast(queen, (ServerLevel) queen.level(), dev.starmine.ability.Ability.CREEP_TUMOR, null, Vec3.atCenterOf(spot));
 			spot = null;
 		}
 	}

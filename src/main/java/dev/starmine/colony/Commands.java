@@ -116,6 +116,10 @@ public final class Commands {
 		String refusal = Placement.refusal(base, kind);
 		List<StarUnit> producers = units.stream().filter(unit -> unit.kind.trains().contains(kind) && !unit.underConstruction()).toList();
 		if (producers.isEmpty()) return;
+		if (producers.stream().noneMatch(producer -> producer.kind.race.rules().producerReady(producer, kind))) {
+			BaseLogic.tell(level, base, "message.starmine.need_techlab");
+			return;
+		}
 		if (producers.get(0).kind == UnitKind.LARVA) {
 			int count = kind == UnitKind.ZERGLING ? 2 : 1;
 			if (!base.unlocked(kind) || !base.canAfford(kind, count)) {

@@ -99,6 +99,12 @@ public final class Possession {
 		return PUPPETS.get(player.getUUID());
 	}
 
+	/** The unit with this UUID a player plays as now, or null (an interceptor looks for its carrier). */
+	public static @Nullable StarUnit puppetById(MinecraftServer server, UUID unit) {
+		for (StarUnit puppet : PUPPETS.values()) if (puppet.getUUID().equals(unit)) return puppet;
+		return null;
+	}
+
 	// ---- start and end ----
 
 	/** Why `player` cannot take `unit` (a lang key), or null. */
@@ -261,7 +267,7 @@ public final class Possession {
 		player.getInventory().clearContent();
 		for (ItemStack module : modules(puppet, weapons, armor)) player.getInventory().add(module);
 		player.getInventory().selected = 0;
-		if (kind.flying) {
+		if (puppet.flying()) {
 			player.getAbilities().mayfly = true;
 			player.getAbilities().flying = true;
 			player.onUpdateAbilities();
@@ -296,7 +302,7 @@ public final class Possession {
 		boolean still = puppet.abilities.channelling() || puppet.abilities.changingMode();
 		double speed = still ? 0 : puppet.getAttributeValue(Attributes.MOVEMENT_SPEED) * SPEED_FACTOR;
 		base(player, Attributes.MOVEMENT_SPEED, Math.max(0, speed));
-		if (puppet.kind.flying) {
+		if (puppet.flying()) {
 			float flying = (float) (still ? 0 : puppet.getAttributeValue(Attributes.MOVEMENT_SPEED) * SPEED_FACTOR * 0.5);
 			if (Math.abs(player.getAbilities().getFlyingSpeed() - flying) > 1e-4) {
 				player.getAbilities().setFlyingSpeed(flying);
@@ -333,17 +339,22 @@ public final class Possession {
 			&& level.getGameTime() - LAST_HURT.getOrDefault(player.getUUID(), 0L) >= StarUnit.SHIELD_DELAY)
 			player.setAbsorptionAmount((float) Math.min(puppet.kind.shields, player.getAbsorptionAmount() + UnitKind.SCALE));
 		player.getFoodData().setFoodLevel(20);
-		if (puppet.kind.flying) {
+		if (puppet.flying()) {
 			player.fallDistance = 0;
 			if (!player.getAbilities().mayfly) {
 				player.getAbilities().mayfly = true;
+				player.getAbilities().flying = true;
 				player.onUpdateAbilities();
 			}
+		} else if (puppet.kind.flying && player.getAbilities().mayfly) { // a landed viking walks
+			player.getAbilities().mayfly = false;
+			player.getAbilities().flying = false;
+			player.onUpdateAbilities();
 		}
 		if (player.containerMenu != player.inventoryMenu) player.closeContainer();
 		if (puppet.tickCount % 20 == 0) resyncModules(player, puppet);
 		if (puppet.tickCount % 5 == 0)
-			ServerPlayNetworking.send(player, new PossessNetwork.PilotHud(puppet.energy(), puppet.kind.maxEnergy(), puppet.mode(),
+			ServerPlayNetworking.send(player, new PossessNetwork.PilotHud(puppet.energy(), puppet.maxEnergy(), puppet.mode(),
 				puppet.abilities.channelling() || puppet.abilities.changingMode()));
 		if (cloaked != puppet.cloaked() || revealed != puppet.revealed()) PossessNetwork.sendState(player);
 		if (puppet.tickCount % 200 == 0) {
@@ -371,7 +382,7 @@ public final class Possession {
 	// ---- modules ----
 
 	/** A module used in a hand: the weapon fires, an ability is cast. */
-	static boolean useModule(ServerPlayer player, ModuleItem item, InteractionHand hand) {
+	public static boolean useModule(ServerPlayer player, ModuleItem item, InteractionHand hand) {
 		StarUnit puppet = puppet(player);
 		if (puppet == null || player.getCooldowns().isOnCooldown(item)) return false;
 		boolean done = item.type == ModuleItem.Type.WEAPON ? fire(player, puppet) : item.ability != null && cast(player, puppet, item.ability);
@@ -382,7 +393,7 @@ public final class Possession {
 	/** The unit's weapon at what the crosshair is on (its reach, its pace). */
 	private static boolean fire(ServerPlayer player, StarUnit puppet) {
 		UnitKind kind = puppet.kind;
-		Modes.Weapon weapon = Modes.weapon(kind, puppet.mode());
+		Modes.Weapon weapon = puppet.weapon();
 		ServerLevel level = player.serverLevel();
 		switch (kind.attack) {
 			case NONE -> {
@@ -397,9 +408,11 @@ public final class Possession {
 				return true;
 			}
 			case MELEE, SPLASH -> {
+				if (weapon.range() <= 0) return false; // burrowed, lifted…
 				LivingEntity target = aimed(player, player.entityInteractionRange(), false);
 				if (target == null) return false;
-				target.hurt(puppet.attackSource(), (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE));
+				target.hurt(puppet.attackSource(), (float) (player.getAttributeValue(Attributes.ATTACK_DAMAGE) + dev.starmine.ability.Passives.bonus(puppet, target)));
+				dev.starmine.ability.Passives.onHit(puppet, target);
 				if (kind.attack == UnitKind.Attack.SPLASH)
 					for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(2),
 						other -> other != target && other != player && Faction.hostile(puppet, other)))

@@ -13,12 +13,14 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Transports (owner 14.10, docs/ABILITIES.md): the medivac, the warp prism and the overlord carry up to
  * {@link #CAPACITY} cargo slots (SC2 cargo size of each kind) of ground units of their own race and
- * side. Load: the transport takes such units within {@link #LOAD_RANGE}. Unload: it flies to the point
- * and puts them down on the ground under it. The overlord's own ferry of stuck zerg
- * ({@link dev.starmine.entity.ZergGoals}) rides the same rules.
+ * side; the bunker {@link #BUNKER_CAPACITY} slots of infantry (and SCVs), who shoot from inside it.
+ * Load: the transport takes such units within {@link #LOAD_RANGE}. Unload: it flies to the point and
+ * puts them down on the ground under it (a bunker lets them out where it stands). Cargo is out of harm's
+ * way (SC2): only the transport can be hit; cargo inside a medivac, prism or overlord does not fight.
+ * The overlord's own ferry of stuck zerg ({@link dev.starmine.entity.ZergGoals}) rides the same rules.
  */
 public final class Transport {
-	public static final int CAPACITY = 8;
+	public static final int CAPACITY = 8, BUNKER_CAPACITY = 4;
 	public static final double LOAD_RANGE = 5;
 
 	private Transport() {
@@ -26,7 +28,7 @@ public final class Transport {
 
 	/** Cargo slots of a kind (0: it carries nothing). */
 	public static int capacity(UnitKind kind) {
-		return kind == UnitKind.MEDIVAC || kind == UnitKind.WARP_PRISM || kind == UnitKind.OVERLORD ? CAPACITY : 0;
+		return kind == UnitKind.MEDIVAC || kind == UnitKind.WARP_PRISM || kind == UnitKind.OVERLORD ? CAPACITY : kind == UnitKind.BUNKER ? BUNKER_CAPACITY : 0;
 	}
 
 	/** Slots taken now. */
@@ -40,7 +42,8 @@ public final class Transport {
 	public static boolean carries(StarUnit transport, Entity passenger) {
 		if (!(passenger instanceof StarUnit unit) || capacity(transport.kind) == 0) return false;
 		int size = unit.kind.economy().cargo();
-		return !unit.kind.flying && !unit.kind.structure() && size > 0 && unit.kind.race == transport.kind.race
+		if (transport.kind == UnitKind.BUNKER && !(unit.biological() || unit.kind == UnitKind.SCV)) return false; // infantry only
+		return !unit.kind.flying && !unit.kind.structure() && size > 0 && unit.kind.race == transport.kind.race && !unit.underConstruction()
 			&& Faction.allied(transport, unit) && used(transport) + size <= capacity(transport.kind);
 	}
 
@@ -60,6 +63,10 @@ public final class Transport {
 
 	/** Flies to the point; {@link #tick} puts the cargo down there. */
 	static void unloadAt(StarUnit transport, @Nullable Vec3 point) {
+		if (transport.kind.structure()) { // a bunker: out at its door
+			unloadHere(transport);
+			return;
+		}
 		if (point == null) return;
 		transport.abilities.unloadAt = point;
 		transport.command(StarUnit.Order.MOVE, point);
@@ -77,12 +84,18 @@ public final class Transport {
 		transport.abilities.unloadAt = null;
 	}
 
+	/** Whether a rider fights from where it is: from a bunker yes, from a flying transport no (SC2). */
+	public static boolean firesFrom(Entity vehicle) {
+		return vehicle instanceof StarUnit transport && transport.kind == UnitKind.BUNKER;
+	}
+
 	/** Every passenger to the ground under the transport, a little apart. */
 	public static void unloadHere(StarUnit transport) {
 		int i = 0;
 		for (Entity passenger : List.copyOf(transport.getPassengers())) {
 			passenger.stopRiding();
 			double angle = i++ * 2.4, spread = 1 + i * 0.3;
+			if (transport.kind.structure()) spread += transport.getBbWidth() / 2 + 0.5;
 			double x = transport.getX() + Math.cos(angle) * spread, z = transport.getZ() + Math.sin(angle) * spread;
 			passenger.teleportTo(x, transport.groundBelow(x, z), z);
 			if (passenger instanceof StarUnit unit) unit.command(StarUnit.Order.NONE, null);

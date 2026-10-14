@@ -25,7 +25,10 @@ import org.jetbrains.annotations.Nullable;
 public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	/** The side of an entity: a unit's owner or its wild race, a player's own side; null for anything else. */
 	public static @Nullable Faction of(Entity entity) {
-		if (entity instanceof StarUnit unit) return new Faction(unit.owner().orElse(null), unit.kind.race);
+		if (entity instanceof StarUnit unit) {
+			Faction parasite = unit.abilities.parasiteSide(); // a neural parasite's hold: the infestor's side for a while
+			return parasite != null ? parasite : new Faction(unit.owner().orElse(null), unit.kind.race);
+		}
 		if (entity instanceof Player player) return new Faction(player.getUUID(), null);
 		return null;
 	}
@@ -46,6 +49,7 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	/** Whether `unit` attacks `other` unprovoked (targets, crawlers, splash). */
 	public static boolean hostile(StarUnit unit, LivingEntity other) {
 		if (!other.isAlive() || other instanceof ArmorStand || allied(unit, other)) return false;
+		if (other instanceof StarUnit changeling && changeling.kind == UnitKind.CHANGELING) return false; // SC2: nobody attacks a changeling unprovoked
 		if (other instanceof Player player && (player.isCreative() || player.isSpectator())) return false;
 		Faction self = of(unit), them = of(other);
 		boolean wild = self == null || self.wild();

@@ -60,6 +60,8 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				sink = dying / (entity.kind.deathTicks() / 20f) * entity.kind.height;
 			}
 		}
+		if (entity.mode() == dev.starmine.ability.Modes.BURROWED && entity.deathTime == 0)
+			sink = entity.kind.height * 0.8f; // burrowed (dev.starmine.ability.Modes): only the back shows above the ground
 		if (visible) {
 			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			choosePose(model, entity, partialTick);

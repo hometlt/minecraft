@@ -171,12 +171,20 @@ public final class ProtossRace implements RaceRules {
 		return kind.race == Race.PROTOSS && kind.building() && kind != NEXUS && kind != PYLON && kind != ASSIMILATOR;
 	}
 
-	/** A finished pylon of the base (`baseId`, null: any) within power range of a point. */
+	/**
+	 * A finished pylon of the base (`baseId`, null: any) within power range of a point, or a warp prism of
+	 * the base in phasing mode within its smaller field (SC2 radius 3.75).
+	 */
 	public static boolean poweredAt(Level level, double x, double y, double z, @Nullable UUID baseId) {
-		AABB area = new AABB(x, y, z, x, y, z).inflate(POWER_RADIUS, 6, POWER_RADIUS);
-		return !level.getEntitiesOfClass(StarUnit.class, area, mob -> mob.kind == PYLON && mob.isAlive() && !mob.underConstruction()
-			&& (baseId == null || baseId.equals(mob.hiveId())) && Math.hypot(mob.getX() - x, mob.getZ() - z) <= POWER_RADIUS).isEmpty();
+		AABB area = new AABB(x, y, z, x, y, z).inflate(POWER_RADIUS, 12, POWER_RADIUS);
+		return !level.getEntitiesOfClass(StarUnit.class, area, mob -> mob.isAlive() && (baseId == null || baseId.equals(mob.hiveId()))
+			&& (mob.kind == PYLON && !mob.underConstruction() && Math.hypot(mob.getX() - x, mob.getZ() - z) <= POWER_RADIUS
+				|| mob.kind == WARP_PRISM && mob.mode() == dev.starmine.ability.Modes.PHASING && Math.hypot(mob.getX() - x, mob.getZ() - z) <= PRISM_RADIUS))
+			.isEmpty();
 	}
+
+	/** SC2 warp prism phasing field radius 3.75 x 1.153 blocks per unit + 1. */
+	public static final double PRISM_RADIUS = 3.75 * BLOCKS_PER_UNIT + 1;
 
 	@Override
 	public @Nullable String siteRefusal(Level level, UnitKind kind, BlockPos site, @Nullable UUID baseId) {
