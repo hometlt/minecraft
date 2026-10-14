@@ -50,6 +50,17 @@ public final class ProtossRace implements RaceRules {
 	}
 
 	@Override
+	public UnitKind supply() {
+		return PYLON;
+	}
+
+	@Override
+	public List<UnitKind> aiBuildOrder() {
+		return List.of(GATEWAY, FORGE, CYBERNETICS_CORE, PHOTON_CANNON, GATEWAY, TWILIGHT_COUNCIL, ROBOTICS_FACILITY, SHIELD_BATTERY,
+			STARGATE, TEMPLAR_ARCHIVES, ROBOTICS_BAY, FLEET_BEACON, DARK_SHRINE);
+	}
+
+	@Override
 	public List<UnitKind> buildings() {
 		return List.of(NEXUS, PYLON, ASSIMILATOR, GATEWAY, FORGE, CYBERNETICS_CORE, PHOTON_CANNON, SHIELD_BATTERY, TWILIGHT_COUNCIL,
 			ROBOTICS_FACILITY, STARGATE, TEMPLAR_ARCHIVES, DARK_SHRINE, ROBOTICS_BAY, FLEET_BEACON);

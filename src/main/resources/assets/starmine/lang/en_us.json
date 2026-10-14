@@ -622,5 +622,9 @@
 	"command.starmine.shields": "Shields %s / %s",
 	"command.starmine.needs_power": "Needs pylon power",
 	"message.starmine.need_power": "Must be built in pylon power",
-	"message.starmine.research_done": "Already researched"
+	"message.starmine.research_done": "Already researched",
+	"race.starmine.zerg": "Zerg",
+	"race.starmine.terran": "Terran",
+	"race.starmine.protoss": "Protoss",
+	"message.starmine.wave_attack": "%s are attacking your base!"
 }

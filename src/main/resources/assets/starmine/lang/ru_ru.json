@@ -622,5 +622,9 @@
 	"command.starmine.shields": "Щиты %s / %s",
 	"command.starmine.needs_power": "Нужна энергия пилона",
 	"message.starmine.need_power": "Строится только в поле пилона",
-	"message.starmine.research_done": "Уже исследовано"
+	"message.starmine.research_done": "Уже исследовано",
+	"race.starmine.zerg": "Зерги",
+	"race.starmine.terran": "Терраны",
+	"race.starmine.protoss": "Протоссы",
+	"message.starmine.wave_attack": "%s атакуют вашу базу!"
 }

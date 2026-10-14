@@ -81,6 +81,33 @@ public class RaceGameTests implements FabricGameTest {
 		});
 	}
 
+	/** A wild base (no owner) runs the common AI: supply, workers, its buildings and warriors. */
+	private static void wildBaseGrows(GameTestHelper helper, UnitKind mainKind, UnitKind building, UnitKind warrior) {
+		arena(helper);
+		StarUnit main = StarMine.type(mainKind).create(helper.getLevel());
+		Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(24, 2, 24)));
+		main.moveTo(at.x, at.y, at.z, 0, 0);
+		helper.getLevel().addFreshEntity(main);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, main);
+			helper.assertTrue(base != null && base.owner == null, "no wild base");
+			base.minerals = 3000;
+			base.vespene = 1000;
+			helper.succeedWhen(() -> helper.assertTrue(base.count(building) > 0 && base.count(warrior) > 0,
+				"the AI has " + base.members + " pending " + base.pending + " order " + base.buildOrder + " minerals " + base.minerals));
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "wildTerran", timeoutTicks = 4800)
+	public void wildTerranBaseTrainsMarines(GameTestHelper helper) {
+		wildBaseGrows(helper, UnitKind.COMMAND_CENTER, UnitKind.BARRACKS, UnitKind.MARINE);
+	}
+
+	@GameTest(template = ARENA, batch = "wildProtoss", timeoutTicks = 4800)
+	public void wildProtossBaseTrainsZealots(GameTestHelper helper) {
+		wildBaseGrows(helper, UnitKind.NEXUS, UnitKind.GATEWAY, UnitKind.ZEALOT);
+	}
+
 	@GameTest(template = ARENA, batch = "zergPlayer", timeoutTicks = 1600)
 	public void playerHiveMorphsLarva(GameTestHelper helper) {
 		arena(helper);

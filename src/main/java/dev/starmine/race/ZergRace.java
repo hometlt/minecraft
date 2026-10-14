@@ -45,6 +45,17 @@ public final class ZergRace implements RaceRules {
 	}
 
 	@Override
+	public UnitKind supply() {
+		return OVERLORD;
+	}
+
+	@Override
+	public List<UnitKind> aiBuildOrder() {
+		return List.of(SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, ROACH_WARREN, SPORE_CRAWLER, BANELING_NEST, HYDRALISK_DEN,
+			SPINE_CRAWLER, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
+	}
+
+	@Override
 	public List<UnitKind> buildings() {
 		return List.of(HATCHERY, EXTRACTOR, SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST,
 			HYDRALISK_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);

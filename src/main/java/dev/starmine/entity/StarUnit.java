@@ -276,6 +276,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind == UnitKind.QUEEN && this.tickCount % 200 == 0) transfuse();
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
+		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
+			Hive base = HiveSavedData.get(server.getServer()).get(hiveId);
+			if (base != null && base.owner == null) dev.starmine.ai.AiCommander.tick(this, server, base);
+		}
 		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
 		if (kind.defender() && constructTicks == 0) crawlerAttack(server);

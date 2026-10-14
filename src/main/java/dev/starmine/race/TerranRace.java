@@ -43,6 +43,16 @@ public final class TerranRace implements RaceRules {
 	}
 
 	@Override
+	public UnitKind supply() {
+		return SUPPLY_DEPOT;
+	}
+
+	@Override
+	public List<UnitKind> aiBuildOrder() {
+		return List.of(BARRACKS, ENGINEERING_BAY, BUNKER, FACTORY, MISSILE_TURRET, BARRACKS, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
+	}
+
+	@Override
 	public List<UnitKind> buildings() {
 		return List.of(COMMAND_CENTER, SUPPLY_DEPOT, REFINERY, BARRACKS, ENGINEERING_BAY, BUNKER, MISSILE_TURRET,
 			FACTORY, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);

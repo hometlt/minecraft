@@ -28,6 +28,12 @@ public interface RaceRules {
 
 	UnitKind gasBuilding();
 
+	/** What gives supply (a unit for zerg, a building for the others). */
+	UnitKind supply();
+
+	/** The buildings a wild base of the race puts up, in order (a kind listed twice: two of them). */
+	List<UnitKind> aiBuildOrder();
+
 	/** What its worker builds, in command-card order (the first page holds 10, the rest go on the second). */
 	List<UnitKind> buildings();
 

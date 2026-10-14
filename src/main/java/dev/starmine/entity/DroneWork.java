@@ -338,7 +338,7 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		if (commanded()) { // a player's workers wait near their base for something to gather (or an order)
+		if (commanded() || drone.kind.race != UnitKind.Race.ZERG) { // only zerg drones roam and dig tunnels; others wait near their base
 			seekCooldown = 100;
 			return;
 		}
