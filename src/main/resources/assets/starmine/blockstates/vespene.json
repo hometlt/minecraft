@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"outlet=false": {
+			"model": "starmine:block/vespene"
+		},
+		"outlet=true": {
+			"model": "starmine:block/vespene"
+		}
+	}
+}

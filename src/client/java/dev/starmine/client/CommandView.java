@@ -45,7 +45,7 @@ import org.joml.Vector3f;
  *   wheel zooms, Q/E or the middle button turn. It stays within {@link #REACH} of the player.
  * - Fog of war: only what the base's units and buildings and the player's body see is shown
  *   ({@link #visible}); other entities are not drawn ({@link dev.starmine.mixin.client.HideInFogMixin})
- *   and the ground out of sight is covered with dark quads.
+ *   and the ground is fogged: clear in sight, dimmed where seen before, dark where never seen ({@link #drawFog}).
  * - Selection: unit ids; rings under selected (green for the base's own, red for others) and hovered
  *   units; a building being placed is drawn translucent where it would stand, green when the site is
  *   good ({@link HiveTerrain#prepare} check, no building in the way), red when not.
@@ -289,23 +289,57 @@ public final class CommandView {
 		pose.popPose();
 	}
 
+	/**
+	 * Fog of war as in SC2 (owner 14.10: improved): ground in sight is clear, ground seen before is
+	 * dimmed (its creatures are not shown), ground never seen is dark. The fog lies on the surface on a
+	 * {@link #FOG_CELL}-block grid with a darkness per corner, so its edges are soft and it follows the
+	 * terrain. What was seen is remembered per dimension for the session.
+	 */
+	private static final int FOG_CELL = 2, FOG_RADIUS = 104;
+	private static final float FOG_EXPLORED = 0.5f, FOG_UNSEEN = 0.85f;
+	private static final java.util.Map<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, it.unimi.dsi.fastutil.longs.LongOpenHashSet> EXPLORED = new java.util.HashMap<>();
+	private static int exploreFrame;
+
 	private static void drawFog(ClientLevel level, PoseStack pose, VertexConsumer consumer) {
-		int cell = 4, radius = 112;
-		int cx = Mth.floor(targetX / cell) * cell, cz = Mth.floor(targetZ / cell) * cell;
+		int cell = FOG_CELL, radius = FOG_RADIUS, n = radius * 2 / cell + 1;
+		int x0 = Mth.floor(targetX / cell) * cell - radius, z0 = Mth.floor(targetZ / cell) * cell - radius;
+		it.unimi.dsi.fastutil.longs.LongOpenHashSet explored = EXPLORED.computeIfAbsent(level.dimension(), k -> new it.unimi.dsi.fastutil.longs.LongOpenHashSet());
+		// what is in sight now: corners within a sight circle (and what was seen is remembered)
+		boolean[] lit = new boolean[n * n];
+		boolean remember = exploreFrame++ % 10 == 0;
+		for (Sight sight : sights) {
+			int r = (int) Math.ceil(sight.radius / cell);
+			int si = Mth.floor((sight.x - x0) / cell), sk = Mth.floor((sight.z - z0) / cell);
+			for (int i = Math.max(0, si - r - 1); i <= Math.min(n - 1, si + r + 1); i++)
+				for (int k = Math.max(0, sk - r - 1); k <= Math.min(n - 1, sk + r + 1); k++) {
+					double dx = x0 + i * cell - sight.x, dz = z0 + k * cell - sight.z;
+					if (dx * dx + dz * dz > sight.radius * sight.radius) continue;
+					lit[i * n + k] = true;
+					if (remember) explored.add(net.minecraft.world.level.ChunkPos.asLong((x0 + i * cell) >> 1, (z0 + k * cell) >> 1));
+				}
+		}
+		float[] dark = new float[n * n];
+		float[] height = new float[n * n];
+		for (int i = 0; i < n; i++)
+			for (int k = 0; k < n; k++) {
+				int x = x0 + i * cell, z = z0 + k * cell;
+				dark[i * n + k] = lit[i * n + k] ? 0 : explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
+				int top = Math.max(Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z)),
+					Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z - 1)));
+				height[i * n + k] = top + 0.06f;
+			}
 		PoseStack.Pose last = pose.last();
-		for (int x = cx - radius; x <= cx + radius; x += cell)
-			for (int z = cz - radius; z <= cz + radius; z += cell) {
-				double mx = x + cell / 2.0, mz = z + cell / 2.0;
-				if ((mx - targetX) * (mx - targetX) + (mz - targetZ) * (mz - targetZ) > radius * radius) continue;
-				if (seen(mx, mz, 1.5)) continue;
-				int top = Math.max(Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), level.getHeight(Heightmap.Types.WORLD_SURFACE, x + cell - 1, z)),
-					Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z + cell - 1), level.getHeight(Heightmap.Types.WORLD_SURFACE, x + cell - 1, z + cell - 1)));
-				float y = top + 0.05f;
-				int color = 0xC8000008;
-				consumer.addVertex(last, x, y, z).setColor(color);
-				consumer.addVertex(last, x, y, z + cell).setColor(color);
-				consumer.addVertex(last, x + cell, y, z + cell).setColor(color);
-				consumer.addVertex(last, x + cell, y, z).setColor(color);
+		for (int i = 0; i + 1 < n; i++)
+			for (int k = 0; k + 1 < n; k++) {
+				int a = i * n + k, b = i * n + k + 1, c = (i + 1) * n + k + 1, d = (i + 1) * n + k;
+				if (dark[a] == 0 && dark[b] == 0 && dark[c] == 0 && dark[d] == 0) continue;
+				double mx = x0 + i * cell + cell / 2.0 - targetX, mz = z0 + k * cell + cell / 2.0 - targetZ;
+				if (mx * mx + mz * mz > radius * radius) continue;
+				float x = x0 + i * cell, z = z0 + k * cell;
+				consumer.addVertex(last, x, height[a], z).setColor(0f, 0f, 0.03f, dark[a]);
+				consumer.addVertex(last, x, height[b], z + cell).setColor(0f, 0f, 0.03f, dark[b]);
+				consumer.addVertex(last, x + cell, height[c], z + cell).setColor(0f, 0f, 0.03f, dark[c]);
+				consumer.addVertex(last, x + cell, height[d], z).setColor(0f, 0f, 0.03f, dark[d]);
 			}
 	}
 
@@ -350,6 +384,14 @@ public final class CommandView {
 			return;
 		}
 		BlockPos site = hit.getBlockPos().above();
+		if (placing.gas()) { // on a vein outlet only
+			BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(mc.level, site);
+			if (outlet != null) site = outlet.above();
+			ghostSite = site;
+			boolean taken = !mc.level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
+			ghostValid = outlet != null && !taken && seen(site.getX(), site.getZ(), 0);
+			return;
+		}
 		ghostSite = site;
 		int half = (int) Math.ceil(placing.width / 2);
 		AABB box = new AABB(site).inflate(half, 0, half).expandTowards(0, placing.height, 0);

@@ -50,6 +50,7 @@ public enum UnitKind {
 	SPIRE(             850,  0, false, Attack.NONE,      0,  0,    0, false, 2.8f, 4.4f, 0x5a2050, 0x40c0a0),
 	INFESTATION_PIT(   850,  0, false, Attack.NONE,      0,  0,    0, false, 3.8f, 1.2f, 0x40303a, 0xa0e060),
 	ULTRALISK_CAVERN(  850,  0, false, Attack.NONE,      0,  0,    0, false, 4.6f, 3.0f, 0x5a4a3a, 0xe0d0b0),
+	EXTRACTOR(         500,  0, false, Attack.NONE,      0,  0,    0, false, 4.2f, 4.3f, 0x3a5a2a, 0x60e060),
 	SPINE_CRAWLER(     300,  0, false, Attack.NONE,      25, 1.32, 7, true,  2.0f, 2.0f, 0x6a3a3a, 0xe0b0a0),
 	SPORE_CRAWLER(     400,  0, false, Attack.NONE,      15, 0.61, 7, true,  2.0f, 2.4f, 0x3a5a3a, 0xc0e0a0),
 
@@ -77,7 +78,8 @@ public enum UnitKind {
 	GHOST_ACADEMY( Race.TERRAN, 1250, 0,     false, Attack.NONE,   0,    0,     0,    false, 3.7f, 3.8f,  0x3a5a8a, 0x30b0e0),
 	FUSION_CORE(   Race.TERRAN, 750,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.8f, 2.5f,  0x3a5a8a, 0xe0e060),
 	BUNKER(        Race.TERRAN, 400,  0,     false, Attack.NONE,   12,   0.61,  6,    true,  3.0f, 1.0f,  0x3a5a8a, 0x605040),
-	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040);
+	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040),
+	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -178,6 +180,7 @@ public enum UnitKind {
 			case SPIRE -> new Economy(200, 200, 0, seconds(71), 0, 0);
 			case INFESTATION_PIT -> new Economy(100, 100, 0, seconds(36), 0, 0);
 			case ULTRALISK_CAVERN -> new Economy(150, 200, 0, seconds(46), 0, 0);
+			case EXTRACTOR -> new Economy(25, 0, 0, seconds(21), 0, 0);
 			case SPINE_CRAWLER -> new Economy(100, 0, 0, seconds(36), 0, 0);
 			case SPORE_CRAWLER -> new Economy(75, 0, 0, seconds(21), 0, 0);
 			case BROODLING, LOCUST, CHANGELING, LARVA, EGG -> new Economy(0, 0, 0, 0, 0, this == LARVA || this == EGG ? 0 : 1);
@@ -205,6 +208,7 @@ public enum UnitKind {
 			case FUSION_CORE -> new Economy(150, 150, 0, seconds(46), 0, 0);
 			case BUNKER -> new Economy(100, 0, 0, seconds(29), 0, 0);
 			case MISSILE_TURRET -> new Economy(100, 0, 0, seconds(18), 0, 0);
+			case REFINERY -> new Economy(75, 0, 0, seconds(21), 0, 0);
 		};
 	}
 
@@ -221,6 +225,11 @@ public enum UnitKind {
 	/** The building a hive or base is anchored to: the hatchery, the command center. */
 	public boolean main() {
 		return this == HATCHERY || this == COMMAND_CENTER;
+	}
+
+	/** Vespene buildings (owner 14.10): put on a vein outlet; workers draw vespene inside them. */
+	public boolean gas() {
+		return this == EXTRACTOR || this == REFINERY;
 	}
 
 	/** Workers gather and build: the drone, the SCV. */
@@ -259,8 +268,8 @@ public enum UnitKind {
 	}
 
 	/** What an SCV builds, in command-card order. */
-	public static final java.util.List<UnitKind> TERRAN_BUILDINGS = java.util.List.of(COMMAND_CENTER, SUPPLY_DEPOT, BARRACKS,
-		ENGINEERING_BAY, BUNKER, MISSILE_TURRET, FACTORY, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
+	public static final java.util.List<UnitKind> TERRAN_BUILDINGS = java.util.List.of(COMMAND_CENTER, SUPPLY_DEPOT, REFINERY,
+		BARRACKS, ENGINEERING_BAY, BUNKER, MISSILE_TURRET, FACTORY, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
 
 	/** How far it sees, in blocks (about SC2 sight x {@link #BLOCKS_PER_UNIT}): fog of war in command mode. */
 	public double sight() {

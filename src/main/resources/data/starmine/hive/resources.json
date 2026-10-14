@@ -2,10 +2,13 @@
 	"deepslateBonus": 1.5,
 	"entries": [
 		{
-			"block": "#minecraft:logs",
-			"minerals": 1,
-			"label": "wood",
-			"icon": "minecraft:oak_log"
+			"block": "starmine:vespene",
+			"vespene": 4,
+			"label": "vespene",
+			"icon": "starmine:vespene_bucket",
+			"items": [
+				"starmine:vespene_bucket"
+			]
 		},
 		{
 			"block": "#minecraft:copper_ores",
@@ -59,33 +62,33 @@
 		},
 		{
 			"block": "#minecraft:coal_ores",
-			"vespene": 2,
 			"label": "coal",
 			"icon": "minecraft:coal",
 			"items": [
 				"minecraft:coal",
 				"minecraft:charcoal"
-			]
+			],
+			"minerals": 2
 		},
 		{
 			"block": "#minecraft:redstone_ores",
-			"vespene": 6,
 			"precious": true,
 			"label": "redstone",
 			"icon": "minecraft:redstone",
 			"items": [
 				"minecraft:redstone"
-			]
+			],
+			"minerals": 6
 		},
 		{
 			"block": "#minecraft:lapis_ores",
-			"vespene": 8,
 			"precious": true,
 			"label": "lapis",
 			"icon": "minecraft:lapis_lazuli",
 			"items": [
 				"minecraft:lapis_lazuli"
-			]
+			],
+			"minerals": 8
 		},
 		{
 			"block": "#minecraft:diamond_ores",
@@ -99,14 +102,14 @@
 		},
 		{
 			"block": "minecraft:ancient_debris",
-			"vespene": 25,
 			"diamonds": 1,
 			"precious": true,
 			"label": "netherite",
 			"icon": "minecraft:ancient_debris",
 			"items": [
 				"minecraft:netherite_scrap"
-			]
+			],
+			"minerals": 25
 		}
 	]
 }

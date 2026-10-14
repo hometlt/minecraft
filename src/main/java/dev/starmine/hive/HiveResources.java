@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
  * What drones get from blocks: `data/starmine/hive/resources.json` (datapacks can override it).
  *
  * Entries match a block id or a block tag (`#minecraft:logs`) and give minerals, vespene or hoarded
- * diamonds; `deepslateBonus` multiplies blocks whose id contains "deepslate". Trees are chopped for
- * minerals; coal, redstone and lapis give vespene; diamonds are only hoarded at the hatchery.
+ * diamonds; `deepslateBonus` multiplies blocks whose id contains "deepslate". Ores give minerals
+ * (owner 14.10: no wood any more, vespene only from vespene veins); diamonds are only hoarded at the hatchery.
  * `precious` ores (gold, emerald, redstone, lapis, diamond) send a drone home as soon as it has one.
  * `label` names the resource on the player's resource panel (wood, iron, ...), `icon` is the item shown
  * for it; `items` are what a player may hand in at a command center for one block of it (raw ore,
@@ -84,9 +84,9 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 		return labels;
 	}
 
-	/** Ores and other underground yields (not logs): what drones dig tunnels toward. */
+	/** Ores: what drones break and dig tunnels toward (not vespene: it is drawn from outlets, {@link dev.starmine.vespene.Vespene}). */
 	public static boolean isOre(BlockState state) {
-		return yieldOf(state).any() && !state.is(net.minecraft.tags.BlockTags.LOGS);
+		return yieldOf(state).any() && !state.is(net.minecraft.tags.BlockTags.LOGS) && !state.is(dev.starmine.vespene.Vespene.VESPENE);
 	}
 
 	@Override

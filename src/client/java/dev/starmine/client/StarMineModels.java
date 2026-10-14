@@ -22,6 +22,12 @@ import org.slf4j.LoggerFactory;
 public final class StarMineModels implements SimpleSynchronousResourceReloadListener {
 	private static final Logger LOG = LoggerFactory.getLogger("StarMine");
 	private static final Map<String, SkinnedModel> MODELS = new HashMap<>();
+	/** Kinds whose spawn egg shows its SC2 icon (`textures/item/sc2/<kind>.png`, imported by Modkit). */
+	private static final java.util.Set<UnitKind> ICONS = java.util.EnumSet.noneOf(UnitKind.class);
+
+	public static boolean hasIcon(UnitKind kind) {
+		return ICONS.contains(kind);
+	}
 
 	public static SkinnedModel get(String name) {
 		return MODELS.get(name);
@@ -48,8 +54,10 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 	@Override
 	public void onResourceManagerReload(ResourceManager manager) {
 		MODELS.clear();
+		ICONS.clear();
 		int missing = 0;
 		for (UnitKind kind : UnitKind.values()) {
+			if (manager.getResource(StarMine.id("textures/item/sc2/" + kind.id + ".png")).isPresent()) ICONS.add(kind);
 			if (!load(manager, kind.id)) missing++;
 			load(manager, kind.id + "_death");
 		}

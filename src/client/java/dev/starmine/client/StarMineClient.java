@@ -41,6 +41,26 @@ public final class StarMineClient implements ClientModInitializer {
 		for (UnitKind kind : UnitKind.values()) EntityRendererRegistry.register(StarMine.type(kind), UnitRenderer::new);
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
+		// a spawn egg shows its SC2 icon (textures/item/sc2/<kind>.png, imported by Modkit) when there is one,
+		// drawn untinted; without it the plain two-colour egg
+		net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin.register(
+			(manager, executor) -> java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+				java.util.Set<net.minecraft.resources.ResourceLocation> eggs = new java.util.HashSet<>();
+				for (UnitKind kind : UnitKind.values())
+					if (manager.getResource(StarMine.id("textures/item/sc2/" + kind.id + ".png")).isPresent()) eggs.add(StarMine.id("item/" + kind.id + "_spawn_egg"));
+				return eggs;
+			}, executor),
+			(eggs, context) -> context.modifyModelOnLoad().register((model, at) -> {
+				net.minecraft.resources.ResourceLocation id = at.resourceId();
+				if (id == null || !eggs.contains(id)) return model;
+				String kind = id.getPath().substring("item/".length(), id.getPath().length() - "_spawn_egg".length());
+				return net.minecraft.client.renderer.block.model.BlockModel.fromString(
+					"{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\"starmine:item/sc2/" + kind + "\"}}");
+			}));
+		for (UnitKind kind : UnitKind.values())
+			net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.ITEM.register((stack, tint) ->
+				StarMineModels.hasIcon(kind) ? -1 : net.minecraft.util.FastColor.ARGB32.opaque(tint == 0 ? kind.eggBase : kind.eggSpots), StarMine.egg(kind));
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), StarMineBlocks.CREEP, StarMineBlocks.CREEP_TUMOR,
 			StarMineBlocks.CREEP_TENDRIL, StarMineBlocks.CREEP_PUSTULE, StarMineBlocks.CREEP_VESSELS, StarMineBlocks.CREEP_TENTACLE);
 	}

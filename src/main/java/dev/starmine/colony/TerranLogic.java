@@ -84,8 +84,13 @@ public final class TerranLogic {
 		Hive base = HiveSavedData.get(level.getServer()).get(scv.hiveId());
 		if (base == null || !UnitKind.TERRAN_BUILDINGS.contains(kind)) return null;
 		String refusal = refusal(base, kind);
+		if (kind.gas()) { // a refinery stands on a vein outlet, wherever it is (owner 14.10: underground too)
+			BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(level, site);
+			if (outlet == null && refusal == null) refusal = "message.starmine.need_outlet";
+			if (outlet != null) site = outlet.above();
+		}
 		if (refusal == null && !siteFree(level, kind, site)) refusal = "message.starmine.site_blocked";
-		if (refusal == null && !HiveTerrain.prepare(level, site, half(kind), (int) Math.ceil(kind.height), true)) refusal = "message.starmine.site_blocked";
+		if (refusal == null && !kind.gas() && !HiveTerrain.prepare(level, site, half(kind), (int) Math.ceil(kind.height), true)) refusal = "message.starmine.site_blocked";
 		if (refusal != null) {
 			tell(level, base, refusal);
 			return null;
@@ -121,6 +126,35 @@ public final class TerranLogic {
 		return null;
 	}
 
+	/** How long a village keeps a base for dangerous after its terrans hurt a villager or a golem (10 min). */
+	public static final int VILLAGE_GRUDGE = 12_000;
+
+	/** Whether villages count this terran's base as dangerous (golems attack it, villagers flee). */
+	public static boolean villageHostile(StarUnit terran) {
+		if (!(terran.level() instanceof ServerLevel level) || terran.hiveId() == null) return false;
+		Hive base = HiveSavedData.get(level.getServer()).get(terran.hiveId());
+		return base != null && level.getGameTime() < base.villageHostileUntil;
+	}
+
+	/**
+	 * Villagers and iron golems are neutral to terrans (owner 14.10); a terran that hurts one makes its base
+	 * dangerous to villages for {@link #VILLAGE_GRUDGE}, and golems nearby go for it at once.
+	 */
+	public static boolean onDamage(LivingEntity victim, net.minecraft.world.damagesource.DamageSource source) {
+		if (!(victim instanceof net.minecraft.world.entity.npc.AbstractVillager || victim instanceof net.minecraft.world.entity.animal.IronGolem)) return true;
+		if (!(source.getEntity() instanceof StarUnit terran) || terran.kind.race != UnitKind.Race.TERRAN || !(victim.level() instanceof ServerLevel level)) return true;
+		Hive base = terran.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(terran.hiveId());
+		if (base == null) return true;
+		boolean fresh = level.getGameTime() >= base.villageHostileUntil;
+		base.villageHostileUntil = level.getGameTime() + VILLAGE_GRUDGE;
+		HiveSavedData.get(level.getServer()).setDirty();
+		if (fresh) tell(level, base, "message.starmine.village_hostile");
+		for (net.minecraft.world.entity.animal.IronGolem golem : level.getEntitiesOfClass(net.minecraft.world.entity.animal.IronGolem.class,
+				victim.getBoundingBox().inflate(32), golem -> golem.getTarget() == null))
+			golem.setTarget(terran);
+		return true;
+	}
+
 	/** A short message on the base player's action bar. */
 	public static void tell(ServerLevel level, Hive base, String key, Object... args) {
 		if (base.owner == null) return;
@@ -135,6 +169,8 @@ public final class TerranLogic {
 	public static InteractionResult handIn(Player player, Level level, InteractionHand hand, Entity entity) {
 		if (!(entity instanceof StarUnit cc) || cc.kind != UnitKind.COMMAND_CENTER || cc.underConstruction()) return InteractionResult.PASS;
 		ItemStack stack = player.getItemInHand(hand);
+		boolean canister = stack.is(dev.starmine.vespene.Vespene.CANISTER_ITEM);
+		if (canister) return handInCanister(player, level, stack, cc);
 		HiveResources.Yield yield = HiveResources.yieldOfItem(stack);
 		if (!yield.any()) return InteractionResult.PASS;
 		if (level.isClientSide) return InteractionResult.SUCCESS;
@@ -145,8 +181,28 @@ public final class TerranLogic {
 		HiveSavedData.get(level.getServer()).setDirty();
 		player.displayClientMessage(Component.translatable("message.starmine.handed_in", count, stack.getHoverName(),
 			yield.minerals() * count, yield.vespene() * count), true);
-		if (!player.getAbilities().instabuild) stack.shrink(count);
+		if (!player.getAbilities().instabuild) {
+			boolean bucket = stack.is(dev.starmine.vespene.Vespene.BUCKET);
+			stack.shrink(count);
+			if (bucket) player.setItemInHand(hand, new ItemStack(net.minecraft.world.item.Items.BUCKET)); // the bucket is kept
+		}
 		cc.playSound(net.minecraft.sounds.SoundEvents.ITEM_PICKUP, 1.0f, 0.8f);
+		return InteractionResult.SUCCESS;
+	}
+
+	/** A vespene canister handed in: its vespene (4 per bucket) goes to the base, the canister stays, empty. */
+	private static InteractionResult handInCanister(Player player, Level level, ItemStack stack, StarUnit cc) {
+		int buckets = dev.starmine.vespene.VespeneCanisterBlock.fill(stack);
+		if (buckets == 0) return InteractionResult.PASS;
+		if (level.isClientSide) return InteractionResult.SUCCESS;
+		Hive base = HiveSavedData.get(level.getServer()).get(cc.hiveId());
+		if (base == null || base.owner != null && !base.owner.equals(player.getUUID())) return InteractionResult.PASS;
+		int vespene = buckets * dev.starmine.vespene.Vespene.PER_TRIP;
+		base.deliver(0, vespene, 0, "vespene", buckets);
+		HiveSavedData.get(level.getServer()).setDirty();
+		dev.starmine.vespene.VespeneCanisterBlock.setFill(stack, 0);
+		player.displayClientMessage(Component.translatable("message.starmine.handed_in", buckets, stack.getHoverName(), 0, vespene), true);
+		cc.playSound(net.minecraft.sounds.SoundEvents.BUCKET_EMPTY, 1.0f, 0.8f);
 		return InteractionResult.SUCCESS;
 	}
 

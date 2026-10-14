@@ -22,28 +22,31 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
+import dev.starmine.vespene.Vespene;
+import dev.starmine.vespene.VespeneBlock;
 
 /**
  * A worker's work: the zerg drone and the terran SCV (stage 2 of docs/HIVE_DESIGN.md, reworked on the
  * owner's play tests). It always has a goal, and goes there through {@link #moveTo}:
  *
- * - SEEK: an ore within a scan, else a natural tree nearby (logs with non-persistent leaves, so log
- *   houses stay), else (sometimes) a tunnel for the hive's network, else EXPLORE;
- * - TREE (only when no ore is in reach): to the trunk's foot; standing there it takes the tree from
- *   its top down, leaves with it, leaving a stump of 1-3 logs;
+ * - SEEK: a vespene building of its hive or base short of 3 workers, else an ore within a scan, else
+ *   (sometimes) a tunnel for the hive's network, else EXPLORE (owner 14.10: no wood any more);
+ * - GAS (owner 14.10): vespene from a vein outlet. With its hive's or base's extractor or refinery on
+ *   the outlet the worker walks in, stays hidden {@link #INSIDE} ticks and comes out with
+ *   {@link Vespene#PER_TRIP} vespene; at a bare outlet (an order, digging down to it if needed) it pumps
+ *   for {@link #PUMP} ticks beside it. An empty outlet is waited for (its vein fills it again);
  * - MINE: to the ore (the planner digs the way), then the whole vein and ores met on the way;
  * - CARRY: to the edge of its hatchery with its valuable slot — when it holds 8, or a precious ore,
  *   or before a second kind of resource would be taken;
@@ -56,7 +59,7 @@ import net.minecraft.world.phys.Vec3;
  * of stone fill, never through the floors of the hive's routes. Blocks are broken only within reach,
  * and a block once started is finished unless an enemy takes the drone's attention. Creep on a dug
  * block lines the new cavity. Yields come from `data/starmine/hive/resources.json`; with
- * `starmineHiveGriefing` off drones neither dig nor chop. Trees and ores are claimed per drone.
+ * `starmineHiveGriefing` off drones do not dig. Ores are claimed per drone.
  *
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
  * gather at a block, return the cargo; build: to the site, then build until the building is done,
@@ -64,7 +67,7 @@ import net.minecraft.world.phys.Vec3;
  * base, dig no hive tunnels, go on no raids and, with nothing in reach, wait instead of exploring far.
  */
 final class DroneWork extends Goal {
-	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL }
+	private enum State { SEEK, GAS, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL }
 
 	/** Owner: a drone marks a group of up to 8 blocks of the resource it goes for; others leave them. */
 	private static final int GROUP = 8;
@@ -81,8 +84,14 @@ final class DroneWork extends Goal {
 
 	private final StarUnit drone;
 	private State state = State.SEEK, resume = State.SEEK;
-	private final List<BlockPos> logs = new ArrayList<>(), leaves = new ArrayList<>();
-	private BlockPos treeFoot, mineTarget;
+	private BlockPos mineTarget;
+	/** Vespene: the outlet worked, whether the worker is inside its building, ticks left inside or pumping. */
+	private BlockPos gasOutlet;
+	private boolean inside;
+	private int gasTicks;
+	static final int INSIDE = 60, PUMP = 160, GAS_WORKERS = 3;
+	/** Workers per outlet (a vespene building takes 3, as in SC2). */
+	private static final Map<BlockPos, Set<UUID>> GAS = new HashMap<>();
 	private boolean deep;
 	private BlockPos breaking;
 	private int breakTicks, breakNeeded, stateTicks, misses, seekCooldown;
@@ -121,9 +130,11 @@ final class DroneWork extends Goal {
 		BlockPos pos = drone.workPos();
 		if (pos == null) return;
 		BlockState state = level.getBlockState(pos);
-		if (state.is(BlockTags.LOGS) && collectTree(level, pos)) {
-			to(State.TREE);
+		BlockPos outlet = Vespene.isOutlet(state) ? pos.immutable() : Vespene.outletUnder(level, pos);
+		if (outlet != null) {
+			startGas(outlet);
 		} else if (HiveResources.isOre(state)) {
+			endGas();
 			releaseAll(drone.getUUID());
 			claimGroup(level, pos);
 			mineTarget = pos.immutable();
@@ -140,7 +151,7 @@ final class DroneWork extends Goal {
 	/** Debug: state, goal and plan. */
 	@Override
 	public String toString() {
-		return state + (mineTarget != null ? " ore " + mineTarget.toShortString() : "") + (moveGoal != null ? " to " + BlockPos.containing(moveGoal).toShortString() : "")
+		return state + (mineTarget != null ? " ore " + mineTarget.toShortString() : "") + (gasOutlet != null ? " gas " + gasOutlet.toShortString() + " t" + gasTicks + (inside ? " inside" : "") : "") + (moveGoal != null ? " to " + BlockPos.containing(moveGoal).toShortString() : "")
 			+ (plan != null ? " plan " + stepIndex + "/" + plan.size() : "") + " fail " + failures;
 	}
 
@@ -153,6 +164,11 @@ final class DroneWork extends Goal {
 	public void stop() {
 		// an enemy took its attention: the cracks fade, the block is left, the plan is redone later
 		cancelBreak();
+		if (inside) { // it comes out of the building with what it drew
+			inside = false;
+			drone.setInvisible(false);
+			drone.takeVespene(Vespene.PER_TRIP);
+		}
 		resetMove();
 	}
 
@@ -160,6 +176,7 @@ final class DroneWork extends Goal {
 	public void tick() {
 		if (!(drone.level() instanceof ServerLevel level)) return;
 		stateTicks++;
+		if (!inside && drone.isInvisible()) drone.setInvisible(false); // saved while inside a building
 		if (breaking != null) { // a block once started is finished first
 			if (breakBlock(level, breaking)) afterBreak(level);
 			return;
@@ -181,7 +198,7 @@ final class DroneWork extends Goal {
 		}
 		switch (state) {
 			case SEEK -> seek(level, griefing);
-			case TREE -> tree(level);
+			case GAS -> gas(level);
 			case MINE -> mine(level, griefing);
 			case CARRY -> carry(level, griefing);
 			case EXPLORE -> explore(level, griefing);
@@ -192,7 +209,7 @@ final class DroneWork extends Goal {
 	}
 
 	private void to(State next) {
-		if (next == State.CARRY && state != State.CARRY) resume = state == State.TREE || state == State.MINE ? state : State.SEEK;
+		if (next == State.CARRY && state != State.CARRY) resume = state == State.GAS || state == State.MINE ? state : State.SEEK;
 		state = next;
 		stateTicks = 0;
 		resetMove();
@@ -288,7 +305,11 @@ final class DroneWork extends Goal {
 	private void seek(ServerLevel level, boolean griefing) {
 		if (--seekCooldown > 0) return;
 		seekCooldown = 40;
-		// ores first (owner: wood only makes the first drones), trees when no ore is in reach
+		BlockPos gas = freeGasBuilding(level);
+		if (gas != null) {
+			startGas(gas);
+			return;
+		}
 		if (griefing) {
 			BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID());
 			if (ore != null) {
@@ -298,10 +319,6 @@ final class DroneWork extends Goal {
 				to(State.MINE);
 				return;
 			}
-		}
-		if (griefing && findTree(level)) {
-			to(State.TREE);
-			return;
 		}
 		if (drone.cargoBlocks > 0) {
 			to(State.CARRY);
@@ -315,119 +332,128 @@ final class DroneWork extends Goal {
 		startExplore(level);
 	}
 
-	// ---- TREE ----
+	// ---- GAS ----
 
-	private boolean findTree(ServerLevel level) {
-		BlockPos centre = drone.blockPosition();
+	/** Works this outlet from now on (it gives up any other one); a load of another kind goes home first. */
+	private void startGas(BlockPos outlet) {
+		endGas();
+		gasOutlet = outlet.immutable();
+		GAS.computeIfAbsent(gasOutlet, k -> new HashSet<>()).add(drone.getUUID());
+		to(drone.cargoBlocks > 0 && !"vespene".equals(drone.cargoLabel) ? State.CARRY : State.GAS);
+		resume = State.GAS;
+	}
+
+	private void endGas() {
+		if (gasOutlet != null) {
+			Set<UUID> workers = GAS.get(gasOutlet);
+			if (workers != null && workers.remove(drone.getUUID()) && workers.isEmpty()) GAS.remove(gasOutlet);
+		}
+		gasOutlet = null;
+	}
+
+	/** Living workers on an outlet (entries of dead or unloaded ones are dropped). */
+	private static int workersOn(ServerLevel level, BlockPos outlet) {
+		Set<UUID> workers = GAS.get(outlet);
+		if (workers == null) return 0;
+		workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit unit) || !unit.isAlive());
+		return workers.size();
+	}
+
+	/** The outlet of a finished vespene building of its own hive or base nearby that wants another worker. */
+	private BlockPos freeGasBuilding(ServerLevel level) {
+		if (drone.hiveId() == null) return null;
 		BlockPos best = null;
 		double bestDist = Double.MAX_VALUE;
-		for (int dx = -16; dx <= 16; dx++)
-			for (int dz = -16; dz <= 16; dz++) {
-				int x = centre.getX() + dx, z = centre.getZ() + dz;
-				BlockPos pos = new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1, z);
-				for (int i = 0; i < 24 && pos.getY() > level.getMinBuildHeight(); i++, pos = pos.below()) {
-					BlockState state = level.getBlockState(pos);
-					if (state.is(BlockTags.LOGS)) {
-						double d = pos.distSqr(centre);
-						if (!CLAIMS.containsKey(pos) && d < bestDist) {
-							best = pos;
-							bestDist = d;
-						}
-						break;
-					}
-					if (!state.is(BlockTags.LEAVES)) break;
-				}
-			}
-		return best != null && collectTree(level, best);
-	}
-
-	/** The connected logs of a natural tree (some of its leaves are not player-placed). */
-	private boolean collectTree(ServerLevel level, BlockPos seed) {
-		logs.clear();
-		leaves.clear();
-		Set<BlockPos> seen = new HashSet<>();
-		ArrayDeque<BlockPos> queue = new ArrayDeque<>(List.of(seed));
-		boolean natural = false;
-		while (!queue.isEmpty() && logs.size() < 300) {
-			BlockPos pos = queue.poll();
-			if (!seen.add(pos)) continue;
-			BlockState state = level.getBlockState(pos);
-			if (state.is(BlockTags.LOGS)) {
-				logs.add(pos);
-				for (BlockPos near : BlockPos.betweenClosed(pos.offset(-1, -1, -1), pos.offset(1, 1, 1))) queue.add(near.immutable());
-			} else if (naturalLeaves(state)) {
-				natural = true;
+		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(48),
+				mob -> mob.kind.gas() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
+			BlockPos outlet = Vespene.outletUnder(level, building.blockPosition());
+			if (outlet == null || workersOn(level, outlet) >= GAS_WORKERS) continue;
+			double d = building.distanceToSqr(drone);
+			if (d < bestDist) {
+				best = outlet;
+				bestDist = d;
 			}
 		}
-		if (!natural || logs.isEmpty()) {
-			for (BlockPos log : logs) CLAIMS.putIfAbsent(log, NOBODY);
-			logs.clear();
-			return false;
-		}
-		Set<BlockPos> leafSeen = new HashSet<>();
-		ArrayDeque<BlockPos> frontier = new ArrayDeque<>();
-		for (BlockPos log : logs) for (Direction d : Direction.values()) frontier.add(log.relative(d));
-		for (int depth = 0; depth < 6 && !frontier.isEmpty() && leaves.size() < 800; depth++) {
-			ArrayDeque<BlockPos> next = new ArrayDeque<>();
-			for (BlockPos pos : frontier) {
-				if (!leafSeen.add(pos)) continue;
-				if (naturalLeaves(level.getBlockState(pos))) {
-					leaves.add(pos);
-					for (Direction d : Direction.values()) next.add(pos.relative(d));
-				}
-			}
-			frontier = next;
-		}
-		logs.sort((a, b) -> Integer.compare(b.getY(), a.getY()));
-		leaves.sort((a, b) -> Integer.compare(b.getY(), a.getY()));
-		treeFoot = logs.get(logs.size() - 1);
-		// owner: a stump of 1 to 3 logs is left standing (claimed for good, never taken)
-		int stump = treeFoot.getY() + 1 + drone.getRandom().nextInt(3);
-		for (BlockPos log : logs) claim(log);
-		for (BlockPos log : logs) if (log.getY() < stump) CLAIMS.put(log, NOBODY);
-		logs.removeIf(log -> log.getY() < stump);
-		if (logs.isEmpty()) return false;
-		return true;
+		return best;
 	}
 
-	private static boolean naturalLeaves(BlockState state) {
-		return state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT);
+	/** The vespene building standing on the outlet, if any (`own`: a finished one of its hive or base). */
+	private StarUnit buildingOn(ServerLevel level, BlockPos outlet, boolean own) {
+		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, new AABB(outlet).inflate(2, 3, 2),
+				mob -> mob.kind.gas() && mob.isAlive()))
+			if (!own || drone.hiveId() != null && drone.hiveId().equals(building.hiveId()) && !building.underConstruction()) return building;
+		return null;
 	}
 
-	private void tree(ServerLevel level) {
-		while (!logs.isEmpty() && !level.getBlockState(logs.get(0)).is(BlockTags.LOGS)) release(logs.remove(0));
-		if (logs.isEmpty()) {
-			for (BlockPos leaf : leaves) if (level.getBlockState(leaf).is(BlockTags.LEAVES)) level.destroyBlock(leaf, false, drone);
-			leaves.clear();
+	private void gas(ServerLevel level) {
+		if (gasOutlet == null) {
 			to(State.SEEK);
 			return;
 		}
-		if (!reach(treeFoot) && !reach(treeFoot.above())) {
-			if (moveTo(level, Vec3.atBottomCenterOf(treeFoot), 2.5, true) == Move.FAILED) {
-				for (BlockPos log : logs) release(log);
-				logs.clear();
-				to(State.SEEK);
-			}
-			return;
-		}
-		drone.getNavigation().stop();
-		BlockPos top = logs.get(0);
-		if (!drone.canTake(level.getBlockState(top))) { // another resource in its slot: deliver it first
+		BlockState at = level.getBlockState(gasOutlet);
+		if (inside) {
+			drone.getNavigation().stop();
+			if (--gasTicks > 0) return;
+			inside = false;
+			drone.setInvisible(false);
+			drone.takeVespene(Vespene.PER_TRIP);
 			to(State.CARRY);
 			return;
 		}
-		int removed = 0;
-		while (!leaves.isEmpty() && leaves.get(0).getY() >= top.getY() - 1 && removed < 12) {
-			BlockPos leaf = leaves.remove(0);
-			if (level.getBlockState(leaf).is(BlockTags.LEAVES)) {
-				level.destroyBlock(leaf, false, drone);
-				removed++;
-			}
+		if (!Vespene.isOutlet(at)) { // the vein is gone
+			endGas();
+			to(State.SEEK);
+			return;
 		}
-		// taken from the top while the drone works at the foot
-		breaking = top;
-		breakTicks = 0;
-		breakNeeded = Math.max(6, (int) (level.getBlockState(top).getDestroySpeed(level, top) * 12));
+		if (drone.cargoBlocks > 0) {
+			to(State.CARRY);
+			return;
+		}
+		StarUnit building = buildingOn(level, gasOutlet, true);
+		if (building != null) {
+			Move move = moveTo(level, building.position(), building.kind.width / 2 + 1.8, false);
+			if (move == Move.ARRIVED) {
+				drone.getNavigation().stop();
+				if (at.is(Vespene.VESPENE)) { // in it goes; the outlet is emptied and its vein refills it
+					VespeneBlock.take(level, gasOutlet, at);
+					inside = true;
+					gasTicks = INSIDE;
+					drone.setInvisible(true);
+					drone.playSound(net.minecraft.sounds.SoundEvents.BUCKET_FILL, 0.6f, 0.7f);
+				}
+			} else if (move == Move.FAILED) {
+				resetMove();
+			}
+			return;
+		}
+		if (buildingOn(level, gasOutlet, false) != null) { // another base's building, or one being built
+			endGas();
+			to(State.SEEK);
+			return;
+		}
+		// a bare outlet: pumped by hand beside it
+		if (!reach(gasOutlet)) {
+			if (moveTo(level, Vec3.atBottomCenterOf(gasOutlet.above()), 2.2, true) == Move.FAILED) {
+				endGas();
+				to(State.SEEK);
+			}
+			gasTicks = PUMP;
+			return;
+		}
+		drone.getNavigation().stop();
+		drone.getLookControl().setLookAt(Vec3.atCenterOf(gasOutlet));
+		if (!at.is(Vespene.VESPENE)) return; // empty: it waits for the vein
+		if (stateTicks % 20 == 0) {
+			drone.swing(InteractionHand.MAIN_HAND);
+			level.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.3f, 1f, 0.4f), 1.2f),
+				gasOutlet.getX() + 0.5, gasOutlet.getY() + 1.1, gasOutlet.getZ() + 0.5, 6, 0.3, 0.3, 0.3, 0);
+		}
+		if (--gasTicks > 0) return;
+		VespeneBlock.take(level, gasOutlet, at);
+		drone.playSound(net.minecraft.sounds.SoundEvents.BUCKET_FILL, 0.8f, 0.8f);
+		drone.takeVespene(Vespene.PER_TRIP);
+		gasTicks = PUMP;
+		to(State.CARRY);
 	}
 
 	// ---- MINE ----
@@ -557,7 +583,7 @@ final class DroneWork extends Goal {
 			drone.clearCargo();
 			drone.getNavigation().stop();
 			State back = resume;
-			to(back == State.TREE && !logs.isEmpty() ? State.TREE : back == State.MINE && mineTarget != null ? State.MINE : State.SEEK);
+			to(back == State.GAS && gasOutlet != null ? State.GAS : back == State.MINE && mineTarget != null ? State.MINE : State.SEEK);
 			return;
 		}
 		Vec3 edge = flat < 0.01 ? centre.add(rim, 0, 0) : centre.add(dx / flat * rim, 0, dz / flat * rim);
@@ -612,7 +638,7 @@ final class DroneWork extends Goal {
 			terranBuild(level, site);
 			return;
 		}
-		Move move = moveTo(level, Vec3.atBottomCenterOf(site), 3, false);
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), 3, drone.buildKind().gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
 			if (!HiveLogic.mutate(drone, level, drone.buildKind(), site)) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
@@ -643,7 +669,7 @@ final class DroneWork extends Goal {
 			}
 			return;
 		}
-		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, false);
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
 			if (dev.starmine.colony.TerranLogic.place(drone, level, kind, site) == null) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
@@ -815,9 +841,7 @@ final class DroneWork extends Goal {
 	private void afterBreak(ServerLevel level) {
 		BlockPos done = breaking;
 		breaking = null;
-		if (state == State.TREE && !logs.isEmpty() && logs.get(0).equals(done)) {
-			release(logs.remove(0));
-		} else if (state == State.MINE && done.equals(mineTarget)) {
+		if (state == State.MINE && done.equals(mineTarget)) {
 			release(mineTarget);
 			if (!nextInVein(level) && !deep) to(State.SEEK);
 		}

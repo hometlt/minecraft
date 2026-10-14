@@ -1,6 +1,9 @@
 {
 	"replace": false,
 	"values": [
-		"starmine:thick_creep"
+		"starmine:thick_creep",
+		"starmine:vespene",
+		"starmine:vespene_vent",
+		"starmine:vespene_root"
 	]
 }

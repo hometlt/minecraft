@@ -592,6 +592,16 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return false;
 	}
 
+	/** Vespene drawn from an outlet (owner 14.10): a full load, carried home in a vespene bucket. */
+	public void takeVespene(int amount) {
+		cargoVespene += amount;
+		cargoBlocks++;
+		cargoLabel = "vespene";
+		precious = true;
+		valuable = new ItemStack(dev.starmine.vespene.Vespene.BUCKET);
+		updateCarried();
+	}
+
 	/** The load is delivered; the fill stays with the drone. */
 	public void clearCargo() {
 		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;

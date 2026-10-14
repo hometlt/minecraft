@@ -45,6 +45,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 
 	@Override
 	public void render(StarUnit entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int packedLight) {
+		if (entity.isInvisible()) return; // a worker inside a vespene building
 		SkinnedModel model = StarMineModels.get(entity.kind.id);
 		float sink = 0f;
 		boolean visible = model != null;

@@ -549,8 +549,8 @@ public final class CommandScreen extends Screen {
 	}
 
 	/**
-	 * Right click: buildings set their rally point; units attack an enemy unit, gather a tree or an
-	 * ore, return cargo at an own command center, otherwise move there.
+	 * Right click: buildings set their rally point; units attack an enemy unit, gather an ore, a vein
+	 * outlet or at an own refinery, return cargo at an own command center, otherwise move there.
 	 */
 	private void smart(double mouseX, double mouseY) {
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
@@ -568,6 +568,8 @@ public final class CommandScreen extends Screen {
 			CommandView.send("attack", at, unit.getId(), null);
 		} else if (unit != null && workers && unit.kind == UnitKind.COMMAND_CENTER && CommandView.own(unit)) {
 			CommandView.send("return", at, -1, null);
+		} else if (unit != null && workers && unit.kind.gas() && CommandView.own(unit)) {
+			CommandView.send("gather", unit.position(), -1, null);
 		} else if (unit == null && workers && block != null && resource(Minecraft.getInstance().level.getBlockState(block.getBlockPos()))) {
 			CommandView.send("gather", Vec3.atCenterOf(block.getBlockPos()), -1, null);
 		} else {
@@ -575,10 +577,10 @@ public final class CommandScreen extends Screen {
 		}
 	}
 
-	/** Trees and ores (what workers gather; the server's resources.json decides what they yield). */
+	/** Ores and vein outlets (what workers gather; the server's resources.json decides what ores yield). */
 	private static boolean resource(BlockState state) {
 		String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
-		return state.is(BlockTags.LOGS) || path.endsWith("_ore") || path.equals("ancient_debris");
+		return path.endsWith("_ore") || path.equals("ancient_debris") || dev.starmine.vespene.Vespene.isOutlet(state);
 	}
 
 }

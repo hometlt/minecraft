@@ -11,7 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Villagers see zerg as a threat (owner: they hide from them): within 12 blocks, a drone within 6.
- * Their brain then panics and sends them indoors as it does for zombies.
+ * Their brain then panics and sends them indoors as it does for zombies. Terrans only while their base
+ * is dangerous to the village (owner 14.10, {@link dev.starmine.colony.TerranLogic#villageHostile}).
  */
 @Mixin(VillagerHostilesSensor.class)
 abstract class VillagerZergFearMixin {
@@ -20,6 +21,9 @@ abstract class VillagerZergFearMixin {
 		if (other instanceof StarUnit zerg && zerg.kind.race == UnitKind.Race.ZERG && !zerg.kind.structure()) {
 			double reach = zerg.kind == UnitKind.DRONE ? 6 : 12;
 			result.setReturnValue(villager.distanceToSqr(zerg) <= reach * reach);
+		} else if (other instanceof StarUnit terran && terran.kind.race == UnitKind.Race.TERRAN && !terran.kind.structure()
+			&& dev.starmine.colony.TerranLogic.villageHostile(terran)) {
+			result.setReturnValue(villager.distanceToSqr(terran) <= 12 * 12);
 		}
 	}
 }

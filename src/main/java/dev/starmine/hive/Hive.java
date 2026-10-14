@@ -35,6 +35,8 @@ public final class Hive {
 	public String dimension;
 	public BlockPos hatchery;
 	public int minerals = 50, vespene, diamonds;
+	/** Game time until which villages count this base as dangerous (its terrans hurt a villager or a golem). */
+	public long villageHostileUntil;
 	/** Minerals ever brought in: the worker target grows with it. */
 	public int mineralsCollected;
 	public int larvaTimer, decisionTimer, queenTicks = -1;
@@ -166,6 +168,7 @@ public final class Hive {
 		tag.put("hatchery", NbtUtils.writeBlockPos(hatchery));
 		tag.putInt("minerals", minerals);
 		tag.putInt("vespene", vespene);
+		tag.putLong("villageHostileUntil", villageHostileUntil);
 		tag.putInt("diamonds", diamonds);
 		tag.putInt("mineralsCollected", mineralsCollected);
 		tag.putInt("larvaTimer", larvaTimer);
@@ -204,6 +207,7 @@ public final class Hive {
 		hive.nextWave = tag.getLong("nextWave");
 		hive.minerals = tag.getInt("minerals");
 		hive.vespene = tag.getInt("vespene");
+		hive.villageHostileUntil = tag.getLong("villageHostileUntil");
 		hive.diamonds = tag.getInt("diamonds");
 		hive.mineralsCollected = tag.getInt("mineralsCollected");
 		hive.larvaTimer = tag.getInt("larvaTimer");
