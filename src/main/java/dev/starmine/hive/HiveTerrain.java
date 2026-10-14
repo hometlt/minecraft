@@ -18,17 +18,17 @@ public final class HiveTerrain {
 	public static final int HATCHERY_FOUNDATION = 7;
 
 	/** Foundation half-size of a building: its base plus the 1-block ring. */
-	public static int foundation(dev.starmine.entity.ZergKind kind) {
-		return kind == dev.starmine.entity.ZergKind.HATCHERY ? HATCHERY_FOUNDATION : (int) Math.ceil(kind.width / 2) + 1;
+	public static int foundation(dev.starmine.entity.UnitKind kind) {
+		return kind == dev.starmine.entity.UnitKind.HATCHERY ? HATCHERY_FOUNDATION : (int) Math.ceil(kind.width / 2) + 1;
 	}
 
 	/**
 	 * Levels a building site (owner): within the footprint and up to the building's height, earth,
 	 * stone, sand, gravel and plants are cleared away. Trees, fences, walls, anything harder than stone
 	 * or with a block entity forbid the site: false, and nothing is changed. With `apply` false it only
-	 * checks.
+	 * checks (the command view uses that on the client for the ghost of a building being placed).
 	 */
-	public static boolean prepare(ServerLevel level, BlockPos feet, int halfSize, int height, boolean apply) {
+	public static boolean prepare(net.minecraft.world.level.Level level, BlockPos feet, int halfSize, int height, boolean apply) {
 		List<BlockPos> clear = new java.util.ArrayList<>();
 		for (BlockPos pos : BlockPos.betweenClosed(feet.offset(-halfSize, 0, -halfSize), feet.offset(halfSize, height, halfSize))) {
 			BlockState state = level.getBlockState(pos);
@@ -46,7 +46,7 @@ public final class HiveTerrain {
 		return true;
 	}
 
-	private static boolean levelable(ServerLevel level, BlockPos pos, BlockState state) {
+	private static boolean levelable(net.minecraft.world.level.Level level, BlockPos pos, BlockState state) {
 		if (state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || state.is(BlockTags.FENCES) || state.is(BlockTags.WALLS)
 			|| state.is(BlockTags.FENCE_GATES) || level.getBlockEntity(pos) != null || !state.getFluidState().isEmpty()) return false;
 		if (state.canBeReplaced() || StarMineBlocks.isCreep(state)) return true;

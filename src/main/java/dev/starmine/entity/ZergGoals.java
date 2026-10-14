@@ -24,15 +24,15 @@ final class ZergGoals {
 	}
 
 	/** Ground height under a point (top of motion-blocking blocks). */
-	static double ground(ZergMob mob, double x, double z) {
+	static double ground(StarUnit mob, double x, double z) {
 		return mob.level().getHeight(Heightmap.Types.MOTION_BLOCKING, (int) Math.floor(x), (int) Math.floor(z));
 	}
 
 	/** Flying kinds wander through the air at their hover height instead of skimming the ground. */
 	static final class HoverWander extends Goal {
-		private final ZergMob mob;
+		private final StarUnit mob;
 
-		HoverWander(ZergMob mob) {
+		HoverWander(StarUnit mob) {
 			this.mob = mob;
 			this.setFlags(EnumSet.of(Flag.MOVE));
 		}
@@ -64,11 +64,11 @@ final class ZergGoals {
 	 * every other creep source and plants a creep tumor there, on whatever face the creep lies.
 	 */
 	static final class PlantTumor extends Goal {
-		private final ZergMob queen;
+		private final StarUnit queen;
 		private BlockPos spot;
 		private int cooldown = 200, timeout;
 
-		PlantTumor(ZergMob queen) {
+		PlantTumor(StarUnit queen) {
 			this.queen = queen;
 			this.setFlags(EnumSet.of(Flag.MOVE));
 		}
@@ -112,10 +112,10 @@ final class ZergGoals {
 	 * the hostile target goals pick the creatures to kill on the way and there.
 	 */
 	static final class Raid extends Goal {
-		private final ZergMob mob;
+		private final StarUnit mob;
 		private int repath;
 
-		Raid(ZergMob mob) {
+		Raid(StarUnit mob) {
 			this.mob = mob;
 			this.setFlags(EnumSet.of(Flag.MOVE));
 		}
@@ -150,10 +150,10 @@ final class ZergGoals {
 
 	/** Hive members without a target drift back toward their hatchery. */
 	static final class ReturnHome extends Goal {
-		private final ZergMob mob;
+		private final StarUnit mob;
 		private final double radius;
 
-		ReturnHome(ZergMob mob, double radius) {
+		ReturnHome(StarUnit mob, double radius) {
 			this.mob = mob;
 			this.radius = radius;
 			this.setFlags(EnumSet.of(Flag.MOVE));
@@ -187,11 +187,11 @@ final class ZergGoals {
 	 */
 	static final class Transport extends Goal {
 		static final int CAPACITY = 8;
-		private final ZergMob overlord;
-		private ZergMob cargo;
+		private final StarUnit overlord;
+		private StarUnit cargo;
 		private int timeout;
 
-		Transport(ZergMob overlord) {
+		Transport(StarUnit overlord) {
 			this.overlord = overlord;
 			this.setFlags(EnumSet.of(Flag.MOVE));
 		}
@@ -199,7 +199,7 @@ final class ZergGoals {
 		@Override
 		public boolean canUse() {
 			if (overlord.tickCount % 20 != 0 || !overlord.getPassengers().isEmpty()) return false;
-			List<ZergMob> stuck = overlord.level().getEntitiesOfClass(ZergMob.class, overlord.getBoundingBox().inflate(32),
+			List<StarUnit> stuck = overlord.level().getEntitiesOfClass(StarUnit.class, overlord.getBoundingBox().inflate(32),
 				mob -> !mob.kind.flying && mob.isAlive() && !mob.isPassenger() && mob.getTarget() != null
 					&& mob.unreachableTicks() >= 60 && mob.kind.economy().cargo() > 0 && mob.kind.economy().cargo() <= CAPACITY);
 			if (stuck.isEmpty()) return false;
@@ -223,7 +223,7 @@ final class ZergGoals {
 					cargo.startRiding(overlord, true);
 					// pick the cargo mates: others stuck near it with the same target
 					int room = CAPACITY - cargo.kind.economy().cargo();
-					for (ZergMob mate : overlord.level().getEntitiesOfClass(ZergMob.class, cargo.getBoundingBox().inflate(4),
+					for (StarUnit mate : overlord.level().getEntitiesOfClass(StarUnit.class, cargo.getBoundingBox().inflate(4),
 						m -> m != cargo && !m.kind.flying && !m.isPassenger() && m.getTarget() == cargo.getTarget() && m.unreachableTicks() >= 60)) {
 						int size = mate.kind.economy().cargo();
 						if (size <= 0 || size > room) continue;
@@ -245,7 +245,7 @@ final class ZergGoals {
 			if (distance < 3 && overlord.getY() - target.getY() < 6) {
 				for (Entity passenger : List.copyOf(overlord.getPassengers())) {
 					passenger.stopRiding();
-					if (passenger instanceof ZergMob zerg) zerg.clearUnreachable();
+					if (passenger instanceof StarUnit zerg) zerg.clearUnreachable();
 				}
 			}
 		}

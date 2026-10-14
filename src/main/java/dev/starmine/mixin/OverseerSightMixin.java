@@ -1,6 +1,6 @@
 package dev.starmine.mixin;
 
-import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.StarUnit;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class OverseerSightMixin {
 	@Inject(method = "getVisibilityPercent", at = @At("HEAD"), cancellable = true)
 	private void starmine$overseerSight(Entity looker, CallbackInfoReturnable<Double> result) {
-		if (looker instanceof ZergMob zerg && zerg.seesInvisible()) result.setReturnValue(1.0);
+		if (looker instanceof StarUnit zerg && zerg.seesInvisible()) result.setReturnValue(1.0);
 	}
 }

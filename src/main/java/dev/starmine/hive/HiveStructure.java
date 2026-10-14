@@ -4,8 +4,8 @@ import dev.starmine.StarMine;
 import dev.starmine.block.StarMineBlocks;
 import dev.starmine.creep.CreepGrowth;
 import dev.starmine.creep.CreepSources;
-import dev.starmine.entity.ZergKind;
-import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.entity.StarUnit;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,13 +33,13 @@ import net.minecraft.world.phys.Vec3;
  *   chamber, roach warren, spire (always on the surface), spine and spore crawlers, creep tumors,
  *   drones, zerglings, a queen, roaches, hydralisks and overlords. The hive starts as a lair.
  * - Tunnels: 4–6 branches leave the hatchery in different directions, go down by steps (3 wide, 4
- *   high, walkable by every ground zerg) to 12–22 blocks under the surface and wander 40–60 blocks,
+ *   high, walkable by every ground zerg) to 20–40 blocks under the surface and wander 80–130 blocks,
  *   some forking. Halls open at their ends, at forks and (most branches) 14–20 blocks out. Water
  *   and lava next to a tunnel are sealed off.
  * - Near the hatchery (within {@link #NEAR}) tunnels and halls are lined with creep and tumors, and
  *   halls hold growths, larvae and sleeping eggs; farther halls hold eggs and guards. Some halls hold a
  *   building (never the spire). Nest dwellers keep to their hall and are not counted in the hive
- *   ({@link ZergMob#makeNest}); a nest egg wakes when disturbed and hatches warriors.
+ *   ({@link StarUnit#makeNest}); a nest egg wakes when disturbed and hatches warriors.
  * - Zerg are not put in the world at once: each waits in {@link HiveSavedData#pending} until its chunk
  *   is entity-ticking (a player near), so remote halls are filled when someone comes.
  *
@@ -50,16 +50,18 @@ public final class HiveStructure {
 	public static final int MIN_DISTANCE = 96, MAX_DISTANCE = 144, TRIGGER = 112;
 	/** Tunnels and halls this close to the hatchery are the hive's own: creep, tumors, larvae. */
 	public static final int NEAR = 40;
-	private static final ZergKind[] SURFACE = {ZergKind.SPAWNING_POOL, ZergKind.SPINE_CRAWLER, ZergKind.EVOLUTION_CHAMBER,
-		ZergKind.SPORE_CRAWLER, ZergKind.SPIRE, ZergKind.SPINE_CRAWLER, ZergKind.ROACH_WARREN};
-	private static final ZergKind[] UNDERGROUND = {ZergKind.HYDRALISK_DEN, ZergKind.BANELING_NEST, ZergKind.INFESTATION_PIT,
-		ZergKind.ULTRALISK_CAVERN, ZergKind.EVOLUTION_CHAMBER};
-	private static final ZergKind[] GUARDS = {ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ROACH, ZergKind.HYDRALISK};
-	private static final ZergKind[] BROOD = {ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ROACH, ZergKind.HYDRALISK,
-		ZergKind.BANELING, ZergKind.ROACH, ZergKind.ULTRALISK};
+	/** How far from the hatchery tunnels may reach (owner 14.10: farther and deeper); chunks are loaded so far. */
+	private static final int REACH = 150;
+	private static final UnitKind[] SURFACE = {UnitKind.SPAWNING_POOL, UnitKind.SPINE_CRAWLER, UnitKind.EVOLUTION_CHAMBER,
+		UnitKind.SPORE_CRAWLER, UnitKind.SPIRE, UnitKind.SPINE_CRAWLER, UnitKind.ROACH_WARREN};
+	private static final UnitKind[] UNDERGROUND = {UnitKind.HYDRALISK_DEN, UnitKind.BANELING_NEST, UnitKind.INFESTATION_PIT,
+		UnitKind.ULTRALISK_CAVERN, UnitKind.EVOLUTION_CHAMBER};
+	private static final UnitKind[] GUARDS = {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.HYDRALISK};
+	private static final UnitKind[] BROOD = {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.HYDRALISK,
+		UnitKind.BANELING, UnitKind.ROACH, UnitKind.ULTRALISK};
 
 	/** A zerg of a generated hive waiting to be put in the world (see the class comment). */
-	public record Pending(UUID hive, ZergKind kind, BlockPos pos, BlockPos hall, ZergKind brood, int broodCount) {
+	public record Pending(UUID hive, UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount) {
 		CompoundTag save() {
 			CompoundTag tag = new CompoundTag();
 			tag.putUUID("hive", hive);
@@ -75,9 +77,9 @@ public final class HiveStructure {
 
 		static Pending load(CompoundTag tag) {
 			try {
-				return new Pending(tag.getUUID("hive"), ZergKind.valueOf(tag.getString("kind")), BlockPos.of(tag.getLong("pos")),
+				return new Pending(tag.getUUID("hive"), UnitKind.valueOf(tag.getString("kind")), BlockPos.of(tag.getLong("pos")),
 					tag.contains("hall") ? BlockPos.of(tag.getLong("hall")) : null,
-					tag.contains("brood") ? ZergKind.valueOf(tag.getString("brood")) : null, tag.getInt("broodCount"));
+					tag.contains("brood") ? UnitKind.valueOf(tag.getString("brood")) : null, tag.getInt("broodCount"));
 			} catch (IllegalArgumentException e) {
 				return null;
 			}
@@ -174,17 +176,17 @@ public final class HiveStructure {
 	private static void spawn(ServerLevel level, HiveSavedData data, Pending p) {
 		Hive hive = data.get(p.hive());
 		Vec3 at = Vec3.atBottomCenterOf(p.pos());
-		if (p.kind() == ZergKind.HATCHERY) {
+		if (p.kind() == UnitKind.HATCHERY) {
 			if (hive == null) return;
-			ZergMob hatchery = StarMine.type(ZergKind.HATCHERY).create(level);
+			StarUnit hatchery = StarMine.type(UnitKind.HATCHERY).create(level);
 			if (hatchery == null) return;
 			hatchery.setUUID(hive.id);
 			hatchery.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
 			hatchery.joinHive(hive);
 			level.addFreshEntity(hatchery);
 		} else if (p.hall() != null) {
-			ZergMob mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
-			if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), ZergMob.DORMANT);
+			StarUnit mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
+			if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
 		} else if (hive != null) {
 			HiveLogic.spawn(level, hive, p.kind(), at, null);
 			if (p.kind().building()) hive.join(p.kind());
@@ -199,7 +201,7 @@ public final class HiveStructure {
 		private Hive hive;
 		private BlockPos centre;
 		private int cells, halls, hallBuildings, eggs, tumors;
-		private final List<ZergKind> undergroundLeft = new ArrayList<>(List.of(UNDERGROUND));
+		private final List<UnitKind> undergroundLeft = new ArrayList<>(List.of(UNDERGROUND));
 
 		Builder(ServerLevel level, RandomSource random) {
 			this.level = level;
@@ -209,8 +211,8 @@ public final class HiveStructure {
 
 		Report build(BlockPos site) {
 			centre = new BlockPos(site.getX(), ground(level, site.getX(), site.getZ()), site.getZ());
-			for (int cx = (centre.getX() - 80) >> 4; cx <= (centre.getX() + 80) >> 4; cx++)
-				for (int cz = (centre.getZ() - 80) >> 4; cz <= (centre.getZ() + 80) >> 4; cz++) level.getChunk(cx, cz);
+			for (int cx = (centre.getX() - REACH) >> 4; cx <= (centre.getX() + REACH) >> 4; cx++)
+				for (int cz = (centre.getZ() - REACH) >> 4; cz <= (centre.getZ() + REACH) >> 4; cz++) level.getChunk(cx, cz);
 			hive = new Hive(UUID.randomUUID(), level.dimension().location().toString(), centre);
 			hive.minerals = 400;
 			hive.vespene = 200;
@@ -219,7 +221,7 @@ public final class HiveStructure {
 			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 10);
 			HiveTerrain.lay(level, centre, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
-			wait(ZergKind.HATCHERY, centre, null, null, 0);
+			wait(UnitKind.HATCHERY, centre, null, null, 0);
 
 			double turn = Math.PI * 2 / SURFACE.length, start = random.nextDouble() * Math.PI * 2;
 			// tunnels leave between the buildings
@@ -230,10 +232,10 @@ public final class HiveStructure {
 			for (int b = 0; b < branches; b++) {
 				double angle = start + (gaps.get(b) + 0.5) * turn;
 				tunnel(centre.getX() + Math.cos(angle) * 9.5, centre.getY(), centre.getZ() + Math.sin(angle) * 9.5, angle,
-					40 + random.nextInt(21), centre.getY() - 12 - random.nextInt(11), true);
+					80 + random.nextInt(51), centre.getY() - 20 - random.nextInt(21), true);
 			}
 			for (int i = 0; i < SURFACE.length; i++) {
-				ZergKind kind = SURFACE[i];
+				UnitKind kind = SURFACE[i];
 				double angle = start + i * turn, distance = 8 + HiveTerrain.foundation(kind) + 3 + random.nextInt(2);
 				int x = Mth.floor(centre.getX() + 0.5 + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + 0.5 + Math.sin(angle) * distance);
 				BlockPos feet = new BlockPos(x, Mth.clamp(ground(level, x, z), centre.getY() - 3, centre.getY() + 3), z);
@@ -249,10 +251,10 @@ public final class HiveStructure {
 				BlockPos cell = new BlockPos(x, ground(level, x, z), z);
 				if (creepFloor(cell) && CreepGrowth.placeTumor(level, cell, CreepSources.TUMOR_SPACING)) tumors++;
 			}
-			ZergKind[] army = {ZergKind.DRONE, ZergKind.DRONE, ZergKind.DRONE, ZergKind.DRONE, ZergKind.DRONE, ZergKind.DRONE,
-				ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ZERGLING, ZergKind.ZERGLING,
-				ZergKind.QUEEN, ZergKind.ROACH, ZergKind.ROACH, ZergKind.HYDRALISK, ZergKind.HYDRALISK, ZergKind.OVERLORD, ZergKind.OVERLORD};
-			for (ZergKind kind : army) {
+			UnitKind[] army = {UnitKind.DRONE, UnitKind.DRONE, UnitKind.DRONE, UnitKind.DRONE, UnitKind.DRONE, UnitKind.DRONE,
+				UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING,
+				UnitKind.QUEEN, UnitKind.ROACH, UnitKind.ROACH, UnitKind.HYDRALISK, UnitKind.HYDRALISK, UnitKind.OVERLORD, UnitKind.OVERLORD};
+			for (UnitKind kind : army) {
 				double angle = random.nextDouble() * Math.PI * 2, distance = 8.5 + random.nextDouble() * 3;
 				int x = Mth.floor(centre.getX() + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + Math.sin(angle) * distance);
 				wait(kind, new BlockPos(x, ground(level, x, z), z), null, null, 0);
@@ -261,7 +263,7 @@ public final class HiveStructure {
 			return new Report(cells, halls, hallBuildings, eggs, tumors);
 		}
 
-		private void wait(ZergKind kind, BlockPos pos, BlockPos hall, ZergKind brood, int broodCount) {
+		private void wait(UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount) {
 			data.pending.add(new Pending(hive.id, kind, pos.immutable(), hall == null ? null : hall.immutable(), brood, broodCount));
 		}
 
@@ -307,6 +309,7 @@ public final class HiveStructure {
 				if (step % 18 == 17 && random.nextInt(3) == 0 && !near(feet))
 					wait(GUARDS[random.nextInt(GUARDS.length)], feet, feet, null, 0);
 				if (step == nestAt) hall(feet);
+				else if (step % 40 == 39 && step + 10 < length && random.nextBoolean()) hall(feet);
 				if (step == forkAt) {
 					if (random.nextBoolean()) hall(feet);
 					tunnel(x, y, z, angle + (random.nextBoolean() ? 0.9 : -0.9), length / 2 + random.nextInt(10), bottom + random.nextInt(5) - 2, false);
@@ -365,7 +368,7 @@ public final class HiveStructure {
 		private void hall(BlockPos feet) {
 			if (feet.getY() <= level.getMinBuildHeight() + 6) return;
 			boolean close = near(feet);
-			ZergKind building = !undergroundLeft.isEmpty() && random.nextInt(100) < 45
+			UnitKind building = !undergroundLeft.isEmpty() && random.nextInt(100) < 45
 				? undergroundLeft.remove(random.nextInt(undergroundLeft.size())) : null;
 			int radius = building != null ? 7 : 5 + random.nextInt(3), height = building != null ? 6 : 5;
 			List<BlockPos> floor = new ArrayList<>(), opened = new ArrayList<>();
@@ -399,14 +402,14 @@ public final class HiveStructure {
 				for (BlockPos pos : floor) if (random.nextInt(4) == 0) CreepGrowth.growthAt(level, pos);
 				for (int i = 1 + random.nextInt(3); i > 0; i--) {
 					BlockPos at = pick(floor, feet, clear);
-					if (at != null) wait(ZergKind.LARVA, at, feet, null, 0);
+					if (at != null) wait(UnitKind.LARVA, at, feet, null, 0);
 				}
 			}
 			for (int i = (close ? 3 : 2) + random.nextInt(3); i > 0; i--) {
 				BlockPos at = pick(floor, feet, clear);
 				if (at == null) continue;
-				ZergKind brood = BROOD[random.nextInt(BROOD.length)];
-				wait(ZergKind.EGG, at, feet, brood, brood == ZergKind.ZERGLING ? 2 : 1);
+				UnitKind brood = BROOD[random.nextInt(BROOD.length)];
+				wait(UnitKind.EGG, at, feet, brood, brood == UnitKind.ZERGLING ? 2 : 1);
 				eggs++;
 			}
 			for (int i = 1 + random.nextInt(3); i > 0; i--) {

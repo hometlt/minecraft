@@ -1,8 +1,8 @@
 package dev.starmine;
 
 import dev.starmine.block.StarMineBlocks;
-import dev.starmine.entity.ZergKind;
-import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.ZergSpit;
 import dev.starmine.hive.HiveCommands;
 import dev.starmine.mixin.MobAccessor;
@@ -33,10 +33,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SpawnEggItem;
 
 /**
- * StarMine: StarCraft II zerg as Minecraft mobs.
+ * StarMine: StarCraft II zerg and terrans as Minecraft mobs; terran bases are commanded by players.
  *
  * Common side: one entity type, spawn egg and four sound events (attack, death, ambient, hurt) per
- * {@link ZergKind}, plus the zerg missile. Models, textures and sound files are not part of the mod;
+ * {@link UnitKind}, plus the zerg missile. Models, textures and sound files are not part of the mod;
  * Modkit imports them from the player's own StarCraft II installation (see README).
  */
 public final class StarMine implements ModInitializer {
@@ -46,15 +46,15 @@ public final class StarMine implements ModInitializer {
 	public record KindSounds(SoundEvent attack, SoundEvent death, SoundEvent ambient, SoundEvent hurt) {
 	}
 
-	private static final Map<ZergKind, EntityType<ZergMob>> TYPES = new EnumMap<>(ZergKind.class);
-	private static final Map<EntityType<?>, ZergKind> KINDS = new IdentityHashMap<>();
-	private static final Map<ZergKind, KindSounds> SOUNDS = new EnumMap<>(ZergKind.class);
-	private static final Map<ZergKind, Item> EGGS = new EnumMap<>(ZergKind.class);
+	private static final Map<UnitKind, EntityType<StarUnit>> TYPES = new EnumMap<>(UnitKind.class);
+	private static final Map<EntityType<?>, UnitKind> KINDS = new IdentityHashMap<>();
+	private static final Map<UnitKind, KindSounds> SOUNDS = new EnumMap<>(UnitKind.class);
+	private static final Map<UnitKind, Item> EGGS = new EnumMap<>(UnitKind.class);
 
 	static {
-		for (ZergKind kind : ZergKind.values()) {
-			EntityType<ZergMob> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, id(kind.id),
-				EntityType.Builder.<ZergMob>of(ZergMob::new, MobCategory.MONSTER)
+		for (UnitKind kind : UnitKind.values()) {
+			EntityType<StarUnit> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, id(kind.id),
+				EntityType.Builder.<StarUnit>of(StarUnit::new, MobCategory.MONSTER)
 					.sized(kind.width, kind.height)
 					.clientTrackingRange(kind.flying ? 12 : 10)
 					.build(kind.id));
@@ -85,17 +85,22 @@ public final class StarMine implements ModInitializer {
 			.updateInterval(10)
 			.build("zerg_spit"));
 
-	public static EntityType<ZergMob> type(ZergKind kind) {
+	public static EntityType<StarUnit> type(UnitKind kind) {
 		return TYPES.get(kind);
 	}
 
-	public static ZergKind kindOf(EntityType<?> type) {
-		ZergKind kind = KINDS.get(type);
+	public static UnitKind kindOf(EntityType<?> type) {
+		UnitKind kind = KINDS.get(type);
 		if (kind == null) throw new IllegalStateException("not a StarMine zerg: " + type);
 		return kind;
 	}
 
-	public static KindSounds sounds(ZergKind kind) {
+	/** The spawn egg of a kind (also the kind's icon in the command view). */
+	public static Item egg(UnitKind kind) {
+		return EGGS.get(kind);
+	}
+
+	public static KindSounds sounds(UnitKind kind) {
 		return SOUNDS.get(kind);
 	}
 
@@ -111,17 +116,22 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		StarMineBlocks.load();
-		for (ZergKind kind : ZergKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), ZergMob.attributes(kind));
+		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		// owner: hostile mobs (creepers, zombies, skeletons...) attack zerg as zerg attack them
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
-			if (entity instanceof Monster monster && !(entity instanceof ZergMob))
-				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, ZergMob.class, true));
+			if (entity instanceof Monster monster && !(entity instanceof StarUnit))
+				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, StarUnit.class, true));
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
+		dev.starmine.colony.ColonyNetwork.register();
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.TerranLogic::serverTick);
+		// owner: a player may bring resources to a command center of their base
+		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hit) ->
+			dev.starmine.colony.TerranLogic.handIn(player, world, hand, entity));
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
-			for (ZergKind kind : ZergKind.values()) entries.accept(EGGS.get(kind));
+			for (UnitKind kind : UnitKind.values()) entries.accept(EGGS.get(kind));
 		});
 	}
 }

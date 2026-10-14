@@ -1,7 +1,7 @@
 package dev.starmine.mixin;
 
-import dev.starmine.entity.ZergKind;
-import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.entity.StarUnit;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.sensing.VillagerHostilesSensor;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +17,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class VillagerZergFearMixin {
 	@Inject(method = "isMatchingEntity", at = @At("HEAD"), cancellable = true)
 	private void starmine$fearZerg(LivingEntity villager, LivingEntity other, CallbackInfoReturnable<Boolean> result) {
-		if (other instanceof ZergMob zerg && !zerg.kind.structure()) {
-			double reach = zerg.kind == ZergKind.DRONE ? 6 : 12;
+		if (other instanceof StarUnit zerg && zerg.kind.race == UnitKind.Race.ZERG && !zerg.kind.structure()) {
+			double reach = zerg.kind == UnitKind.DRONE ? 6 : 12;
 			result.setReturnValue(villager.distanceToSqr(zerg) <= reach * reach);
 		}
 	}

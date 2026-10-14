@@ -40,8 +40,16 @@ public final class HiveSavedData extends SavedData {
 		return hives.values();
 	}
 
+	/** The world holds at most {@link #MAX_HIVES} zerg hives (terran bases are not counted). */
 	public boolean full() {
-		return hives.size() >= MAX_HIVES;
+		return hives.values().stream().filter(hive -> hive.race == dev.starmine.entity.UnitKind.Race.ZERG).count() >= MAX_HIVES;
+	}
+
+	/** The terran base a player commands in a dimension, or null. */
+	public Hive baseOf(UUID player, String dimension) {
+		for (Hive hive : hives.values())
+			if (hive.race == dev.starmine.entity.UnitKind.Race.TERRAN && player.equals(hive.owner) && hive.dimension.equals(dimension)) return hive;
+		return null;
 	}
 
 	public void add(Hive hive) {

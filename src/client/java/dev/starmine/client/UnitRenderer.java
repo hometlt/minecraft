@@ -4,8 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.starmine.StarMine;
-import dev.starmine.entity.ZergMob;
-import dev.starmine.entity.ZergKind;
+import dev.starmine.entity.StarUnit;
+import dev.starmine.entity.UnitKind;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -26,25 +26,25 @@ import net.minecraft.util.Mth;
  * nothing once its clip has ended; with no death at all the body sinks into the ground. Each model
  * part is drawn with its own texture; triangles go out as quads whose last corner repeats the third.
  */
-public class ZergRenderer extends EntityRenderer<ZergMob> {
+public class UnitRenderer extends EntityRenderer<StarUnit> {
 	private float[] palette = new float[0], second = new float[0];
 	private final SkinnedModelDrawer drawer = new SkinnedModelDrawer();
 
 	private final ItemRenderer items;
 
-	public ZergRenderer(EntityRendererProvider.Context context) {
+	public UnitRenderer(EntityRendererProvider.Context context) {
 		super(context);
 		this.items = context.getItemRenderer();
 		this.shadowRadius = 0.5f;
 	}
 
 	@Override
-	public ResourceLocation getTextureLocation(ZergMob entity) {
+	public ResourceLocation getTextureLocation(StarUnit entity) {
 		return StarMine.id("textures/entity/sc2/" + entity.kind.id + ".png");
 	}
 
 	@Override
-	public void render(ZergMob entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int packedLight) {
+	public void render(StarUnit entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int packedLight) {
 		SkinnedModel model = StarMineModels.get(entity.kind.id);
 		float sink = 0f;
 		boolean visible = model != null;
@@ -71,14 +71,14 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 			if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
 			drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
-			if (entity.kind == ZergKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
+			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
 	}
 
 	/** The drone's valuable slot held in front of it: one small block per unit, up to 8 (2x2x2). */
-	private void drawCarried(ZergMob drone, SkinnedModel model, PoseStack poseStack, MultiBufferSource buffers, int light) {
+	private void drawCarried(StarUnit drone, SkinnedModel model, PoseStack poseStack, MultiBufferSource buffers, int light) {
 		ItemStack carried = drone.carried();
 		if (carried.isEmpty()) return;
 		int cubes = Math.min(8, carried.getCount());
@@ -92,7 +92,7 @@ public class ZergRenderer extends EntityRenderer<ZergMob> {
 		}
 	}
 
-	private void choosePose(SkinnedModel model, ZergMob entity, float partialTick) {
+	private void choosePose(SkinnedModel model, StarUnit entity, float partialTick) {
 		int size = model.slots * 12;
 		if (palette.length != size) {
 			palette = new float[size];

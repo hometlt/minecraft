@@ -3,48 +3,110 @@
 	"entries": [
 		{
 			"block": "#minecraft:logs",
-			"minerals": 1
+			"minerals": 1,
+			"label": "wood",
+			"icon": "minecraft:oak_log"
 		},
 		{
 			"block": "#minecraft:copper_ores",
-			"minerals": 4
+			"minerals": 4,
+			"label": "copper",
+			"icon": "minecraft:raw_copper",
+			"items": [
+				"minecraft:raw_copper",
+				"minecraft:copper_ingot"
+			]
 		},
 		{
 			"block": "#minecraft:iron_ores",
-			"minerals": 8
+			"minerals": 8,
+			"label": "iron",
+			"icon": "minecraft:raw_iron",
+			"items": [
+				"minecraft:raw_iron",
+				"minecraft:iron_ingot"
+			]
 		},
 		{
 			"block": "#minecraft:gold_ores",
 			"minerals": 12,
-			"precious": true
+			"precious": true,
+			"label": "gold",
+			"icon": "minecraft:raw_gold",
+			"items": [
+				"minecraft:raw_gold",
+				"minecraft:gold_ingot"
+			]
 		},
 		{
 			"block": "minecraft:nether_quartz_ore",
-			"minerals": 4
+			"minerals": 4,
+			"label": "quartz",
+			"icon": "minecraft:quartz",
+			"items": [
+				"minecraft:quartz"
+			]
 		},
 		{
 			"block": "#minecraft:emerald_ores",
 			"minerals": 15,
-			"precious": true
+			"precious": true,
+			"label": "emerald",
+			"icon": "minecraft:emerald",
+			"items": [
+				"minecraft:emerald"
+			]
 		},
 		{
 			"block": "#minecraft:coal_ores",
-			"vespene": 2
+			"vespene": 2,
+			"label": "coal",
+			"icon": "minecraft:coal",
+			"items": [
+				"minecraft:coal",
+				"minecraft:charcoal"
+			]
 		},
 		{
 			"block": "#minecraft:redstone_ores",
 			"vespene": 6,
-			"precious": true
+			"precious": true,
+			"label": "redstone",
+			"icon": "minecraft:redstone",
+			"items": [
+				"minecraft:redstone"
+			]
 		},
 		{
 			"block": "#minecraft:lapis_ores",
 			"vespene": 8,
-			"precious": true
+			"precious": true,
+			"label": "lapis",
+			"icon": "minecraft:lapis_lazuli",
+			"items": [
+				"minecraft:lapis_lazuli"
+			]
 		},
 		{
 			"block": "#minecraft:diamond_ores",
 			"diamonds": 1,
-			"precious": true
+			"precious": true,
+			"label": "diamond",
+			"icon": "minecraft:diamond",
+			"items": [
+				"minecraft:diamond"
+			]
+		},
+		{
+			"block": "minecraft:ancient_debris",
+			"vespene": 25,
+			"diamonds": 1,
+			"precious": true,
+			"label": "netherite",
+			"icon": "minecraft:ancient_debris",
+			"items": [
+				"minecraft:netherite_scrap"
+			]
 		}
 	]
 }

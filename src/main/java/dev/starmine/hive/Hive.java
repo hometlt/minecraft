@@ -1,6 +1,6 @@
 package dev.starmine.hive;
 
-import dev.starmine.entity.ZergKind;
+import dev.starmine.entity.UnitKind;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
@@ -9,7 +9,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 
 /**
- * One zerg hive: its hatchery (whose entity UUID is the hive id), stores and living members.
+ * One zerg hive or terran base: its main building (the hatchery, whose entity UUID is the hive id; or
+ * the first command center), stores and living members. A terran base belongs to a player
+ * ({@link #owner}), who commands it (dev.starmine.colony).
  *
  * Members are counted by kind while they exist anywhere (also in unloaded chunks); a member leaves
  * when it dies or is discarded. Supply follows SC2 rules with the owner's numbers: every hatchery,
@@ -20,6 +22,16 @@ public final class Hive {
 	public static final int MAX_SUPPLY = 200;
 
 	public final UUID id;
+	public UnitKind.Race race = UnitKind.Race.ZERG;
+	/** The player who commands a terran base (null: nobody, e.g. in tests). */
+	public UUID owner;
+	/** What its workers (and its player) brought in, by resource label (wood, iron, ...): the resource panel. */
+	public final Map<String, Integer> collected = new java.util.LinkedHashMap<>();
+	/** Zerg: warriors gathered before the next attack on a terran base, and when it may start. */
+	public int waveSize = 6;
+	public long nextWave;
+	/** Game time this base's logic last ran (several command centers share one base). */
+	public long lastTick = -1;
 	public String dimension;
 	public BlockPos hatchery;
 	public int minerals = 50, vespene, diamonds;
@@ -56,9 +68,9 @@ public final class Hive {
 	public long nextRaid;
 	/** The thick creep under the hatchery has been laid. */
 	public boolean foundation;
-	public final Map<ZergKind, Integer> members = new EnumMap<>(ZergKind.class);
+	public final Map<UnitKind, Integer> members = new EnumMap<>(UnitKind.class);
 	/** Units paid for but not yet born (in cocoons, a queen in training). */
-	public final Map<ZergKind, Integer> pending = new EnumMap<>(ZergKind.class);
+	public final Map<UnitKind, Integer> pending = new EnumMap<>(UnitKind.class);
 
 	public Hive(UUID id, String dimension, BlockPos hatchery) {
 		this.id = id;
@@ -66,56 +78,76 @@ public final class Hive {
 		this.hatchery = hatchery;
 	}
 
-	public int count(ZergKind kind) {
+	public int count(UnitKind kind) {
 		return members.getOrDefault(kind, 0);
 	}
 
-	public void join(ZergKind kind) {
+	public void join(UnitKind kind) {
 		members.merge(kind, 1, Integer::sum);
 	}
 
-	public void leave(ZergKind kind) {
+	public void leave(UnitKind kind) {
 		members.computeIfPresent(kind, (k, n) -> n > 1 ? n - 1 : null);
 	}
 
-	public int pending(ZergKind kind) {
+	public int pending(UnitKind kind) {
 		return pending.getOrDefault(kind, 0);
 	}
 
-	public void expect(ZergKind kind, int count) {
+	public void expect(UnitKind kind, int count) {
 		pending.merge(kind, count, Integer::sum);
 	}
 
-	public void born(ZergKind kind, int count) {
+	public void born(UnitKind kind, int count) {
 		pending.computeIfPresent(kind, (k, n) -> n > count ? n - count : null);
 	}
 
 	/** Whether the hive has what a unit or building needs (its tech building, its hatchery tier). */
-	public boolean unlocked(ZergKind kind) {
-		ZergKind need = kind.requires();
+	public boolean unlocked(UnitKind kind) {
+		UnitKind need = kind.requires();
 		return (need == null || count(need) > 0) && tier >= kind.tier();
 	}
 
 	public double supplyUsed() {
 		double used = 0;
-		for (Map.Entry<ZergKind, Integer> entry : members.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
-		for (Map.Entry<ZergKind, Integer> entry : pending.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
+		for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
+		for (Map.Entry<UnitKind, Integer> entry : pending.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
 		return used;
 	}
 
 	public int supplyCap() {
-		int cap = ZergKind.HATCHERY.economy().supply();
-		for (ZergKind provider : new ZergKind[] {ZergKind.OVERLORD, ZergKind.OVERSEER}) cap += provider.economy().supply() * count(provider);
+		if (race == UnitKind.Race.TERRAN) {
+			int cap = 0;
+			for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) cap += entry.getKey().economy().supply() * entry.getValue();
+			return Math.min(MAX_SUPPLY, cap);
+		}
+		int cap = UnitKind.HATCHERY.economy().supply();
+		for (UnitKind provider : new UnitKind[] {UnitKind.OVERLORD, UnitKind.OVERSEER}) cap += provider.economy().supply() * count(provider);
 		return Math.min(MAX_SUPPLY, cap);
 	}
 
-	public boolean canAfford(ZergKind kind, int count) {
-		ZergKind.Economy cost = kind.economy();
+	public boolean canAfford(UnitKind kind, int count) {
+		UnitKind.Economy cost = kind.economy();
 		return minerals >= cost.minerals() * count && vespene >= cost.vespene() * count
 			&& supplyUsed() + cost.food() * count <= supplyCap();
 	}
 
-	public void pay(ZergKind kind, int count) {
+	/** Resources brought in: stores, and the panel's tally by resource label. */
+	public void deliver(int minerals, int vespene, int diamonds, String label, int blocks) {
+		this.minerals += minerals;
+		this.mineralsCollected += minerals;
+		this.vespene += vespene;
+		this.diamonds += diamonds;
+		if (label != null && blocks > 0) collected.merge(label, blocks, Integer::sum);
+	}
+
+	/** Gives back what a cancelled order cost. */
+	public void refund(UnitKind kind, int count) {
+		minerals += kind.economy().minerals() * count;
+		vespene += kind.economy().vespene() * count;
+	}
+
+	public void pay(UnitKind kind, int count) {
 		minerals -= kind.economy().minerals() * count;
 		vespene -= kind.economy().vespene() * count;
 	}
@@ -124,6 +156,13 @@ public final class Hive {
 		CompoundTag tag = new CompoundTag();
 		tag.putUUID("id", id);
 		tag.putString("dimension", dimension);
+		tag.putString("race", race.name());
+		if (owner != null) tag.putUUID("owner", owner);
+		CompoundTag tally = new CompoundTag();
+		collected.forEach(tally::putInt);
+		tag.put("collected", tally);
+		tag.putInt("waveSize", waveSize);
+		tag.putLong("nextWave", nextWave);
 		tag.put("hatchery", NbtUtils.writeBlockPos(hatchery));
 		tag.putInt("minerals", minerals);
 		tag.putInt("vespene", vespene);
@@ -153,6 +192,16 @@ public final class Hive {
 	public static Hive load(CompoundTag tag) {
 		Hive hive = new Hive(tag.getUUID("id"), tag.getString("dimension"),
 			NbtUtils.readBlockPos(tag, "hatchery").orElse(BlockPos.ZERO));
+		try {
+			if (tag.contains("race")) hive.race = UnitKind.Race.valueOf(tag.getString("race"));
+		} catch (IllegalArgumentException ignored) {
+			// unknown race: zerg
+		}
+		if (tag.hasUUID("owner")) hive.owner = tag.getUUID("owner");
+		CompoundTag tally = tag.getCompound("collected");
+		for (String key : tally.getAllKeys()) hive.collected.put(key, tally.getInt(key));
+		if (tag.contains("waveSize")) hive.waveSize = tag.getInt("waveSize");
+		hive.nextWave = tag.getLong("nextWave");
 		hive.minerals = tag.getInt("minerals");
 		hive.vespene = tag.getInt("vespene");
 		hive.diamonds = tag.getInt("diamonds");
@@ -174,10 +223,10 @@ public final class Hive {
 		return hive;
 	}
 
-	private static void readCounts(CompoundTag counts, Map<ZergKind, Integer> into) {
+	private static void readCounts(CompoundTag counts, Map<UnitKind, Integer> into) {
 		for (String key : counts.getAllKeys()) {
 			try {
-				into.put(ZergKind.valueOf(key), counts.getInt(key));
+				into.put(UnitKind.valueOf(key), counts.getInt(key));
 			} catch (IllegalArgumentException ignored) {
 				// a kind removed from the mod
 			}

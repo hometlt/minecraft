@@ -63,7 +63,15 @@ import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 
 /**
- * One zerg mob; its {@link ZergKind} (found from the entity type) decides everything.
+ * One StarMine unit or building, zerg or terran; its {@link UnitKind} (found from the entity type)
+ * decides everything. Units of one race are allies; zerg and terrans fight each other.
+ *
+ * Terrans (owner 14.10, dev.starmine.colony): a base the player commands. Units follow orders
+ * ({@link #command}: move, attack-move, patrol, hold, stop; SCVs also gather, return cargo and build),
+ * stand where they were sent and defend themselves; buildings train units in a queue of up to 5
+ * (paid when queued) toward a rally point, the engineering bay researches weapons and armor, the
+ * bunker and missile turret shoot, the medivac heals bio units. A building grows only while an SCV
+ * builds it. Terran shots are instant (no projectile).
  *
  * Ground kinds walk, flying kinds hover with flying navigation and fall when they die. Attacks:
  * melee (zergling, drone, broodling, locust), splash melee (ultralisk), explode on contact
@@ -83,8 +91,8 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
  * front of it (dropped if it dies), never starts a fight and gives up defending itself after 10 s or
  * 6 blocks. Buildings shove off whoever stands on top of them.
  */
-public class ZergMob extends Monster implements RangedAttackMob {
-	public final ZergKind kind;
+public class StarUnit extends Monster implements RangedAttackMob {
+	public final UnitKind kind;
 	/** Client only: tick of the current attack swing and which attack clip it plays. */
 	public int attackStartTick = Integer.MIN_VALUE / 2;
 	public int attackVariant;
@@ -93,7 +101,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private UUID hiveId;
 	private BlockPos home;
 	/** A cocoon's future: what hatches, how many, in how many ticks. */
-	private ZergKind cocoonKind;
+	private UnitKind cocoonKind;
 	private int cocoonCount, cocoonTicks;
 	/**
 	 * A nest dweller of a generated hive (see {@link dev.starmine.hive.HiveStructure}): it keeps to its
@@ -119,11 +127,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private final List<ItemStack> fillSlots = new ArrayList<>();
 	private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> FILL_TAG =
 		net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, StarMine.id("drone_fill"));
-	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(ZergMob.class, EntityDataSerializers.ITEM_STACK);
+	private static final EntityDataAccessor<ItemStack> CARRIED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.ITEM_STACK);
 	/** Drone defending itself: ticks since it took up its attacker. */
 	private int defendTicks;
 	/** Drone sent to mutate into a building at a site; a building still being built (ticks left). */
-	private ZergKind buildKind;
+	private UnitKind buildKind;
 	private BlockPos buildSite;
 	private int constructTicks;
 	/** Drone fleeing from an armed attacker until this game time. */
@@ -132,7 +140,36 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private BlockPos raidTarget;
 	private long raidUntil;
 
-	public ZergMob(EntityType<? extends Monster> type, Level level) {
+	/** A terran unit's order from its player (see {@link TerranGoals.Orders}). */
+	public enum Order { NONE, MOVE, ATTACK_MOVE, PATROL, HOLD }
+
+	private Order order = Order.NONE;
+	private Vec3 orderPos, patrolFrom;
+	/** An SCV's work order: gather at a block, or bring its cargo home (taken by its work goal). */
+	public enum Work { NONE, GATHER, RETURN }
+
+	private Work work = Work.NONE;
+	private BlockPos workPos;
+	/** An SCV building this building (its UUID), and whether a building had a builder at its last check. */
+	private UUID constructing;
+	private boolean builderNear;
+	/** What the cargo is (resource label) for the base's tally. */
+	public String cargoLabel;
+	/** Terran production: kinds queued (paid), ticks into the first, where new units go. */
+	private final List<UnitKind> queue = new ArrayList<>();
+	private int trainTicks;
+	private Vec3 rally;
+	/** Engineering bay research: "weapons" or "armor" and ticks left. */
+	private String research;
+	private int researchTicks;
+	public static final int QUEUE = 5;
+	/** Synced for the command view: the base's player, progress (0-1000) and queue (kind ids). */
+	private static final EntityDataAccessor<java.util.Optional<UUID>> OWNER =
+		SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.OPTIONAL_UUID);
+	private static final EntityDataAccessor<Integer> PROGRESS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<String> QUEUE_IDS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
+
+	public StarUnit(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
 		this.kind = StarMine.kindOf(type);
 		this.xpReward = (int) Math.min(20, 1 + kind.health / 5);
@@ -143,7 +180,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		}
 	}
 
-	public static AttributeSupplier.Builder attributes(ZergKind kind) {
+	public static AttributeSupplier.Builder attributes(UnitKind kind) {
 		if (kind.structure()) return Monster.createMonsterAttributes()
 			.add(Attributes.MAX_HEALTH, kind.health)
 			.add(Attributes.MOVEMENT_SPEED, 0)
@@ -154,11 +191,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			.add(Attributes.MOVEMENT_SPEED, kind.speed)
 			.add(Attributes.FLYING_SPEED, kind.speed * 1.5)
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
-			.add(Attributes.FOLLOW_RANGE, kind == ZergKind.DRONE ? 64.0 : 32.0)
+			.add(Attributes.FOLLOW_RANGE, kind == UnitKind.DRONE || kind == UnitKind.SCV ? 64.0 : kind.race == UnitKind.Race.TERRAN ? kind.sight() + 4 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
 			// zerglings leap up 2 blocks (owner); the pathfinder plans with the step height
-			.add(Attributes.STEP_HEIGHT, kind == ZergKind.ZERGLING ? 2.0 : 1.0)
-			.add(Attributes.JUMP_STRENGTH, kind == ZergKind.ZERGLING ? 0.62 : 0.42);
+			.add(Attributes.STEP_HEIGHT, kind == UnitKind.ZERGLING || kind == UnitKind.REAPER ? 2.0 : 1.0)
+			.add(Attributes.JUMP_STRENGTH, kind == UnitKind.ZERGLING ? 0.62 : 0.42);
 	}
 
 	@Override
@@ -173,18 +210,22 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	protected void registerGoals() {
-		ZergKind kind = StarMine.kindOf(this.getType());
+		UnitKind kind = StarMine.kindOf(this.getType());
 		if (kind.structure()) return;
 		this.goalSelector.addGoal(0, new FloatGoal(this));
-		if (kind == ZergKind.LARVA) {
+		if (kind.race == UnitKind.Race.TERRAN) {
+			TerranGoals.register(this, kind, this.goalSelector, this.targetSelector);
+			return;
+		}
+		if (kind == UnitKind.LARVA) {
 			this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 3));
 			this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.6));
 			return;
 		}
-		if (kind == ZergKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
-		if (kind != ZergKind.DRONE && kind.attack != ZergKind.Attack.NONE) this.goalSelector.addGoal(3, new ZergGoals.Raid(this));
-		if (kind == ZergKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
-		if (kind == ZergKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
+		if (kind == UnitKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
+		if (kind != UnitKind.DRONE && kind.attack != UnitKind.Attack.NONE) this.goalSelector.addGoal(3, new ZergGoals.Raid(this));
+		if (kind == UnitKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
+		if (kind == UnitKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
 		else this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 24));
 		switch (kind.attack) {
 			case NONE -> {
@@ -201,20 +242,25 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			: kind.flying ? new WaterAvoidingRandomFlyingGoal(this, 0.8) : new WaterAvoidingRandomStrollGoal(this, 0.8));
 		this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0f));
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
-		if (kind.attack == ZergKind.Attack.NONE) return;
-		this.targetSelector.addGoal(1, new HurtByTargetGoal(this, ZergMob.class).setAlertOthers(ZergMob.class));
+		if (kind.attack == UnitKind.Attack.NONE) return;
+		this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(StarUnit.class));
 		if (kind.aggressive) {
 			this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
 			this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
-			// owner: zerg are hostile to every creature (animals and villagers too), never to each other
+			// owner: zerg are hostile to every creature (animals, villagers, terrans), never to each other
 			this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
-				other -> !(other instanceof ZergMob) && !(other instanceof Player) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)));
+				other -> !sameRace(other) && !(other instanceof Player) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)));
 		}
 	}
 
 	@Override
 	public boolean isAlliedTo(Entity other) {
-		return other instanceof ZergMob || super.isAlliedTo(other);
+		return sameRace(other) || super.isAlliedTo(other);
+	}
+
+	/** Units of one race never fight each other. */
+	public boolean sameRace(Entity other) {
+		return other instanceof StarUnit unit && unit.kind.race == kind.race;
 	}
 
 	@Override
@@ -231,22 +277,30 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
-		if (kind == ZergKind.QUEEN && this.tickCount % 200 == 0) transfuse();
-		if (kind == ZergKind.HATCHERY) HiveLogic.tick(this, server);
-		if (constructTicks > 0 && --constructTicks == 0) finishConstruction(server);
-		if (kind.crawler() && constructTicks == 0) crawlerAttack(server);
+		if (kind == UnitKind.QUEEN && this.tickCount % 200 == 0) transfuse();
+		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
+		if (kind == UnitKind.COMMAND_CENTER) dev.starmine.colony.TerranLogic.tick(this, server);
+		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
+		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
+		if (kind.defender() && constructTicks == 0) crawlerAttack(server);
+		if (kind.race == UnitKind.Race.TERRAN && kind.building() && constructTicks == 0) {
+			produce(server);
+			researchTick(server);
+		}
+		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
+		if (kind.race == UnitKind.Race.TERRAN && kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
-		if (kind == ZergKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
-		if (kind == ZergKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
-		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == ZergKind.Attack.NONE)) keepAloft();
+		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
+		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
+		if (kind.hoverHeight() > 0 && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE)) keepAloft();
 		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
-		if (kind == ZergKind.DRONE) defendOnly();
+		if (kind == UnitKind.DRONE) defendOnly();
 		if (kind.structure()) pushOffTop();
 		if (this.tickCount % 10 == 0) creepEffects(server);
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
-			overseerNear = !this.level().getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(20), mob -> mob.kind == ZergKind.OVERSEER).isEmpty();
-			if (kind == ZergKind.OVERSEER) revealInvisible();
+			overseerNear = !this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(20), mob -> mob.kind == UnitKind.OVERSEER).isEmpty();
+			if (kind == UnitKind.OVERSEER) revealInvisible();
 		}
 	}
 
@@ -318,10 +372,10 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	public boolean hurt(DamageSource source, float amount) {
 		boolean hurt = super.hurt(source, amount);
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
-			&& !(attacker instanceof ZergMob)) {
+			&& !sameRace(attacker)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
 			// owner: a drone attacked by someone armed runs to the hatchery or to the hive's warriors
-			if (kind == ZergKind.DRONE && armed(attacker)) {
+			if (kind == UnitKind.DRONE && armed(attacker)) {
 				fleeUntil = server.getGameTime() + 200;
 				this.setTarget(null);
 			}
@@ -330,12 +384,12 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	}
 
 	/** A drone's order to mutate into a building at a site (see {@link HiveLogic#mutate}). */
-	public void orderBuild(ZergKind building, BlockPos site) {
+	public void orderBuild(UnitKind building, BlockPos site) {
 		this.buildKind = building;
 		this.buildSite = site.immutable();
 	}
 
-	public ZergKind buildKind() {
+	public UnitKind buildKind() {
 		return buildKind;
 	}
 
@@ -358,6 +412,20 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		return constructTicks > 0;
 	}
 
+	/** A terran building grows only while an SCV of its base builds it (within 8 blocks). */
+	private boolean builderNear(ServerLevel server) {
+		return !server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(8),
+			mob -> mob.kind == UnitKind.SCV && mob.isAlive() && this.getUUID().equals(mob.constructing)).isEmpty();
+	}
+
+	public void setConstructing(UUID building) {
+		this.constructing = building;
+	}
+
+	public UUID constructing() {
+		return constructing;
+	}
+
 	private void finishConstruction(ServerLevel server) {
 		this.setHealth(this.getMaxHealth());
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
@@ -374,16 +442,17 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	 */
 	private void crawlerAttack(ServerLevel server) {
 		if (this.tickCount % kind.interval != 0) return;
-		boolean spore = kind == ZergKind.SPORE_CRAWLER;
 		LivingEntity foe = null;
 		double best = kind.range * kind.range;
+		boolean terran = kind.race == UnitKind.Race.TERRAN;
 		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.range),
-			entity -> entity.isAlive() && !(entity instanceof ZergMob) && !(entity instanceof net.minecraft.world.entity.decoration.ArmorStand)
-				&& !(entity instanceof Player player && (player.isCreative() || player.isSpectator())))) {
+			entity -> entity.isAlive() && !sameRace(entity) && !(entity instanceof net.minecraft.world.entity.decoration.ArmorStand)
+				&& !(entity instanceof Player player && (terran || player.isCreative() || player.isSpectator()))
+				&& (!terran || entity instanceof StarUnit || entity instanceof net.minecraft.world.entity.monster.Enemy))) {
 			boolean flying = other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
 				|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Blaze
 				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3;
-			if (flying != spore) continue;
+			if (flying ? !kind.antiAir() : !kind.antiGround()) continue;
 			double d = other.distanceToSqr(this);
 			if (d < best) {
 				best = d;
@@ -394,6 +463,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		this.swing(InteractionHand.MAIN_HAND);
 		this.getLookControl().setLookAt(foe);
 		foe.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
+		if (terran) tracer(server, foe);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 1.0f);
 	}
 
@@ -440,7 +510,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	private void pushOffTop() {
 		AABB box = this.getBoundingBox();
 		AABB top = new AABB(box.minX, box.maxY - 0.5, box.minZ, box.maxX, box.maxY + 2, box.maxZ);
-		for (Entity other : this.level().getEntities(this, top, entity -> !(entity instanceof ZergMob zerg && zerg.kind.structure()))) {
+		for (Entity other : this.level().getEntities(this, top, entity -> !(entity instanceof StarUnit zerg && zerg.kind.structure()))) {
 			if (other.getY() < box.maxY - 0.6 || other.isPassenger()) continue;
 			double dx = other.getX() - this.getX(), dz = other.getZ() - this.getZ();
 			double length = Math.sqrt(dx * dx + dz * dz);
@@ -476,6 +546,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			cargoVespene += yield.vespene();
 			cargoDiamonds += yield.diamonds();
 			cargoBlocks++;
+			if (yield.label() != null) cargoLabel = yield.label();
 			precious |= yield.precious();
 			if (item != Items.AIR) {
 				if (valuable.isEmpty()) valuable = new ItemStack(item);
@@ -524,6 +595,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	/** The load is delivered; the fill stays with the drone. */
 	public void clearCargo() {
 		cargoMinerals = cargoVespene = cargoDiamonds = cargoBlocks = 0;
+		cargoLabel = null;
 		valuable = ItemStack.EMPTY;
 		precious = false;
 		updateCarried();
@@ -542,6 +614,9 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		super.defineSynchedData(builder);
 		builder.define(CARRIED, ItemStack.EMPTY);
+		builder.define(OWNER, java.util.Optional.empty());
+		builder.define(PROGRESS, 0);
+		builder.define(QUEUE_IDS, "");
 	}
 
 	@Override
@@ -566,8 +641,8 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			else if (!onCreep && has) speed.removeModifier(CREEP_SPEED);
 		}
 		if (this.tickCount % 20 == 0 && this.getHealth() < this.getMaxHealth())
-			this.heal((float) (0.27 * ZergKind.SCALE * (onCreep ? 4 : 1)));
-		if (onCreep && this.getTarget() == null && kind.aggressive && kind.attack != ZergKind.Attack.NONE && this.tickCount % 20 == 0) {
+			this.heal((float) (0.27 * UnitKind.SCALE * (onCreep ? 4 : 1)));
+		if (onCreep && this.getTarget() == null && kind.aggressive && kind.attack != UnitKind.Attack.NONE && this.tickCount % 20 == 0) {
 			Player intruder = server.getNearestPlayer(this.getX(), this.getY(), this.getZ(), 24,
 				entity -> entity instanceof Player player && !player.isCreative() && !player.isSpectator() && CreepTouch.onCreep(player));
 			if (intruder != null) this.setTarget(intruder);
@@ -592,7 +667,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	/** Zerg near an overseer see invisible players and creatures. */
 	public boolean seesInvisible() {
-		return overseerNear || kind == ZergKind.OVERSEER;
+		return overseerNear || kind == UnitKind.OVERSEER;
 	}
 
 	/** Joins a raid: go to the target until the given game time. */
@@ -637,23 +712,24 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	 */
 	private void wakeNestEgg(ServerLevel server) {
 		boolean disturbed = !server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(10),
-			other -> other.isAlive() && !(other instanceof ZergMob) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)
+			other -> other.isAlive() && !(other instanceof StarUnit) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)
 				&& !(other instanceof Player player && (player.isCreative() || player.isSpectator()))).isEmpty();
 		boolean wake = disturbed ? this.random.nextInt(15) == 0
-			: this.random.nextInt(3600) == 0 && server.getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(16), mob -> !mob.kind.structure()).size() < 6;
+			: this.random.nextInt(3600) == 0 && server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(16), mob -> !mob.kind.structure()).size() < 6;
 		if (wake) cocoonTicks = 60 + this.random.nextInt(120);
 	}
 
 	/** Joins a hive: counted in its members and supply, kept in the world, returns home when idle. */
 	public void joinHive(Hive hive) {
 		this.hiveId = hive.id;
+		this.entityData.set(OWNER, java.util.Optional.ofNullable(hive.owner));
 		if (nest != null) return;
 		this.home = hive.hatchery;
-		if (!kind.structure() || kind == ZergKind.EGG) hive.join(kind);
+		if (!kind.structure() || kind == UnitKind.EGG) hive.join(kind);
 		this.setPersistenceRequired();
 	}
 
-	public void becomeCocoon(ZergKind kind, int count, int ticks) {
+	public void becomeCocoon(UnitKind kind, int count, int ticks) {
 		this.cocoonKind = kind;
 		this.cocoonCount = count;
 		this.cocoonTicks = ticks;
@@ -661,7 +737,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	private void hatchCocoon(ServerLevel server) {
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
-		ZergKind born = cocoonKind;
+		UnitKind born = cocoonKind;
 		int count = cocoonCount;
 		cocoonKind = null;
 		if (nest != null) {
@@ -673,11 +749,16 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	public void remove(Entity.RemovalReason reason) {
-		if (kind == ZergKind.DRONE && !this.level().isClientSide) DroneWork.releaseAll(this.getUUID());
+		if (kind.worker() && !this.level().isClientSide) DroneWork.releaseAll(this.getUUID());
+		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null && !queue.isEmpty()) {
+			Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+			if (hive != null) for (UnitKind queued : queue) hive.born(queued, 1); // their supply is free again
+			queue.clear();
+		}
 		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null) {
 			HiveSavedData data = HiveSavedData.get(server.getServer());
 			Hive hive = data.get(hiveId);
-			if (kind == ZergKind.HATCHERY) {
+			if (kind == UnitKind.HATCHERY) {
 				if (hiveId.equals(this.getUUID()) && hive != null) {
 					if (hive.foundation) HiveTerrain.ruin(server, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
 					CreepGrowth.forget(server, hive.hatchery);
@@ -691,7 +772,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 				} else {
 					hive.leave(kind);
 				}
-				if (kind == ZergKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
+				if (kind == UnitKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
 				data.setDirty();
 			}
 		}
@@ -717,6 +798,24 @@ public class ZergMob extends Monster implements RangedAttackMob {
 			tag.put("StarMineFill", items);
 		}
 		if (constructTicks > 0) tag.putInt("StarMineConstruct", constructTicks);
+		if (constructing != null) tag.putUUID("StarMineConstructing", constructing);
+		if (order != Order.NONE && orderPos != null) {
+			tag.putString("StarMineOrder", order.name());
+			tag.putDouble("StarMineOrderX", orderPos.x);
+			tag.putDouble("StarMineOrderY", orderPos.y);
+			tag.putDouble("StarMineOrderZ", orderPos.z);
+			if (patrolFrom != null) tag.put("StarMinePatrol", NbtUtils.writeBlockPos(BlockPos.containing(patrolFrom)));
+		}
+		if (!queue.isEmpty()) {
+			tag.putString("StarMineQueue", String.join(",", queue.stream().map(Enum::name).toList()));
+			tag.putInt("StarMineTrain", trainTicks);
+		}
+		if (rally != null) tag.put("StarMineRally", NbtUtils.writeBlockPos(BlockPos.containing(rally)));
+		if (research != null) {
+			tag.putString("StarMineResearch", research);
+			tag.putInt("StarMineResearchTicks", researchTicks);
+		}
+		if (cargoLabel != null) tag.putString("StarMineCargoLabel", cargoLabel);
 		if (buildKind != null && buildSite != null) {
 			tag.putString("StarMineBuild", buildKind.name());
 			tag.put("StarMineBuildSite", NbtUtils.writeBlockPos(buildSite));
@@ -748,21 +847,41 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		fillSlots.clear();
 		for (Tag item : tag.getList("StarMineFill", Tag.TAG_COMPOUND))
 			ItemStack.parse(this.registryAccess(), item).ifPresent(fillSlots::add);
-		if (kind == ZergKind.DRONE) updateCarried();
+		if (kind.worker()) updateCarried();
 		if (tag.contains("StarMineCocoon")) {
 			try {
-				cocoonKind = ZergKind.valueOf(tag.getString("StarMineCocoon"));
+				cocoonKind = UnitKind.valueOf(tag.getString("StarMineCocoon"));
 				cocoonCount = tag.getInt("StarMineCocoonCount");
 				cocoonTicks = tag.getInt("StarMineCocoonTicks");
 			} catch (IllegalArgumentException ignored) {
 				cocoonKind = null;
 			}
 		}
-		if (kind == ZergKind.HATCHERY) hiveId = this.getUUID();
+		if (kind == UnitKind.HATCHERY) hiveId = this.getUUID();
 		constructTicks = tag.getInt("StarMineConstruct");
+		constructing = tag.hasUUID("StarMineConstructing") ? tag.getUUID("StarMineConstructing") : null;
+		try {
+			order = tag.contains("StarMineOrder") ? Order.valueOf(tag.getString("StarMineOrder")) : Order.NONE;
+		} catch (IllegalArgumentException ignored) {
+			order = Order.NONE;
+		}
+		orderPos = order == Order.NONE ? null : new Vec3(tag.getDouble("StarMineOrderX"), tag.getDouble("StarMineOrderY"), tag.getDouble("StarMineOrderZ"));
+		patrolFrom = NbtUtils.readBlockPos(tag, "StarMinePatrol").map(Vec3::atBottomCenterOf).orElse(null);
+		queue.clear();
+		for (String name : tag.getString("StarMineQueue").split(","))
+			if (!name.isEmpty()) try {
+				queue.add(UnitKind.valueOf(name));
+			} catch (IllegalArgumentException ignored) {
+				// a kind removed from the mod
+			}
+		trainTicks = tag.getInt("StarMineTrain");
+		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
+		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
+		researchTicks = tag.getInt("StarMineResearchTicks");
+		cargoLabel = tag.contains("StarMineCargoLabel") ? tag.getString("StarMineCargoLabel") : null;
 		if (tag.contains("StarMineBuild")) {
 			try {
-				buildKind = ZergKind.valueOf(tag.getString("StarMineBuild"));
+				buildKind = UnitKind.valueOf(tag.getString("StarMineBuild"));
 				buildSite = NbtUtils.readBlockPos(tag, "StarMineBuildSite").orElse(null);
 			} catch (IllegalArgumentException ignored) {
 				buildKind = null;
@@ -793,14 +912,14 @@ public class ZergMob extends Monster implements RangedAttackMob {
 	/** Zerg ride an overlord as cargo; nobody steers it but its own AI. */
 	@Override
 	public LivingEntity getControllingPassenger() {
-		return kind == ZergKind.OVERLORD ? null : super.getControllingPassenger();
+		return kind == UnitKind.OVERLORD ? null : super.getControllingPassenger();
 	}
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
-		if (kind != ZergKind.OVERLORD || !(passenger instanceof ZergMob zerg)) return false;
+		if (kind != UnitKind.OVERLORD || !(passenger instanceof StarUnit zerg)) return false;
 		int used = 0;
-		for (Entity rider : this.getPassengers()) if (rider instanceof ZergMob riding) used += riding.kind.economy().cargo();
+		for (Entity rider : this.getPassengers()) if (rider instanceof StarUnit riding) used += riding.kind.economy().cargo();
 		return used + zerg.kind.economy().cargo() <= ZergGoals.Transport.CAPACITY;
 	}
 
@@ -815,11 +934,11 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	/** Queen: heal the most wounded zerg nearby (Transfusion). */
 	private void transfuse() {
-		List<ZergMob> wounded = this.level().getEntitiesOfClass(ZergMob.class, this.getBoundingBox().inflate(8),
+		List<StarUnit> wounded = this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(8),
 			mob -> mob != this && mob.isAlive() && mob.getHealth() < mob.getMaxHealth());
 		wounded.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth())).ifPresent(mob -> {
 			this.swing(InteractionHand.MAIN_HAND);
-			mob.heal((float) (75 * ZergKind.SCALE));
+			mob.heal((float) (75 * UnitKind.SCALE));
 			if (this.level() instanceof ServerLevel server)
 				server.sendParticles(ParticleTypes.HEART, mob.getX(), mob.getY() + mob.getBbHeight(), mob.getZ(), 5, 0.4, 0.3, 0.4, 0.0);
 		});
@@ -827,12 +946,12 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	public boolean doHurtTarget(Entity target) {
-		if (kind.attack == ZergKind.Attack.EXPLODE) {
+		if (kind.attack == UnitKind.Attack.EXPLODE) {
 			explode();
 			return true;
 		}
 		boolean hurt = super.doHurtTarget(target);
-		if (hurt && kind.attack == ZergKind.Attack.SPLASH) {
+		if (hurt && kind.attack == UnitKind.Attack.SPLASH) {
 			for (LivingEntity other : enemiesAround(target.position(), 2.0))
 				if (other != target) other.hurt(this.damageSources().mobAttack(this), (float) kind.damage * 0.5f);
 		}
@@ -852,14 +971,19 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	private List<LivingEntity> enemiesAround(Vec3 centre, double radius) {
 		return this.level().getEntitiesOfClass(LivingEntity.class, new AABB(centre, centre).inflate(radius),
-			other -> other != this && other.isAlive() && !(other instanceof ZergMob)
-				&& !(other instanceof Player player && (player.isCreative() || player.isSpectator())));
+			other -> other != this && other.isAlive() && !sameRace(other)
+				&& !(other instanceof Player player && (kind.race == UnitKind.Race.TERRAN || player.isCreative() || player.isSpectator())));
 	}
 
 	@Override
 	public void performRangedAttack(LivingEntity target, float power) {
 		this.swing(InteractionHand.MAIN_HAND);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
+		if (kind.race == UnitKind.Race.TERRAN && kind.attack == UnitKind.Attack.RANGED) {
+			target.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
+			if (this.level() instanceof ServerLevel server) tracer(server, target);
+			return;
+		}
 		switch (kind.attack) {
 			case LINE -> spineLine(target);
 			case PULL -> {
@@ -868,7 +992,7 @@ public class ZergMob extends Monster implements RangedAttackMob {
 				target.hurtMarked = true;
 			}
 			case SPAWN_LOCUSTS -> {
-				for (int i = 0; i < 2; i++) summon(StarMine.type(ZergKind.LOCUST), this.position().add(this.random.nextGaussian(), 0, this.random.nextGaussian()), target);
+				for (int i = 0; i < 2; i++) summon(StarMine.type(UnitKind.LOCUST), this.position().add(this.random.nextGaussian(), 0, this.random.nextGaussian()), target);
 			}
 			default -> {
 				ZergSpit spit = new ZergSpit(this.level(), this, kind);
@@ -876,10 +1000,21 @@ public class ZergMob extends Monster implements RangedAttackMob {
 				double dy = target.getY(0.4) - spit.getY();
 				double dz = target.getZ() - this.getZ();
 				double flat = Math.sqrt(dx * dx + dz * dz);
-				spit.shoot(dx, dy + flat * (kind == ZergKind.BROOD_LORD ? 0.0 : 0.15), dz, 1.4f, 4.0f);
+				spit.shoot(dx, dy + flat * (kind == UnitKind.BROOD_LORD ? 0.0 : 0.15), dz, 1.4f, 4.0f);
 				this.level().addFreshEntity(spit);
 			}
 		}
+	}
+
+	/** A terran shot: a line of sparks from the muzzle to the target and a puff where it hits. */
+	private void tracer(ServerLevel server, LivingEntity target) {
+		Vec3 from = this.position().add(0, this.getBbHeight() * 0.6, 0), to = target.position().add(0, target.getBbHeight() * 0.5, 0);
+		int steps = (int) Math.min(24, from.distanceTo(to) * 2);
+		for (int i = 1; i <= steps; i++) {
+			Vec3 point = from.lerp(to, i / (double) steps);
+			server.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 1, 0, 0, 0, 0);
+		}
+		server.sendParticles(ParticleTypes.SMOKE, to.x, to.y, to.z, 3, 0.1, 0.1, 0.1, 0.01);
 	}
 
 	/** Lurker: spines burst out of the ground along a line toward the target, hitting all in it. */
@@ -888,16 +1023,16 @@ public class ZergMob extends Monster implements RangedAttackMob {
 		for (double step = 1; step <= kind.range; step += 0.5) {
 			Vec3 point = from.add(direction.scale(step));
 			if (this.level() instanceof ServerLevel server)
-				server.sendParticles(ParticleTypes.CRIT, point.x, point.y + 0.3, point.z, 3, 0.2, 0.3, 0.2, 0.05);
+				server.sendParticles(kind == UnitKind.HELLION ? ParticleTypes.FLAME : ParticleTypes.CRIT, point.x, point.y + 0.3, point.z, 3, 0.2, 0.3, 0.2, 0.05);
 			for (LivingEntity other : enemiesAround(point, 0.6))
 				if (other.invulnerableTime == 0) other.hurt(this.damageSources().mobAttack(this), (float) kind.damage);
 		}
 	}
 
 	/** A zerg this one calls (broodlings from eggs, locusts), already hunting its target. */
-	public static void summon(EntityType<ZergMob> type, Vec3 at, LivingEntity target) {
+	public static void summon(EntityType<StarUnit> type, Vec3 at, LivingEntity target) {
 		Level level = target.level();
-		ZergMob mob = type.create(level);
+		StarUnit mob = type.create(level);
 		if (mob == null) return;
 		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
 		mob.setTarget(target);
@@ -942,5 +1077,217 @@ public class ZergMob extends Monster implements RangedAttackMob {
 
 	@Override
 	protected void playStepSound(BlockPos pos, BlockState state) {
+	}
+
+	// ---- terran orders, production and research (owner 14.10) ----
+
+	/** A player's order: move, attack-move, patrol (from here to `pos` and back), hold, stop. */
+	public void command(Order order, Vec3 pos) {
+		this.work = Work.NONE;
+		this.order = order;
+		this.orderPos = pos;
+		this.patrolFrom = order == Order.PATROL ? this.position() : null;
+		if (order == Order.MOVE || order == Order.HOLD) this.setTarget(null);
+		if (order == Order.NONE) { // stop: stay here
+			this.getNavigation().stop();
+			this.setTarget(null);
+			this.home = this.blockPosition();
+		}
+		if (kind.worker()) {
+			cancelBuild();
+			constructing = null;
+		}
+		this.getNavigation().stop();
+	}
+
+	public Order order() {
+		return order;
+	}
+
+	public Vec3 orderPos() {
+		return orderPos;
+	}
+
+	/** The order is done: the unit stays where it got to. */
+	void finishOrder() {
+		this.order = Order.NONE;
+		this.orderPos = null;
+		this.home = this.blockPosition();
+	}
+
+	/** Patrol: turn back toward where it came from. */
+	void turnPatrol() {
+		Vec3 back = patrolFrom;
+		patrolFrom = orderPos;
+		orderPos = back;
+	}
+
+	/** A worker's order: gather at a block, or bring the cargo home. */
+	public void commandWork(Work work, BlockPos pos) {
+		command(Order.NONE, null);
+		this.work = work;
+		this.workPos = pos == null ? null : pos.immutable();
+	}
+
+	/** The worker goal takes a new work order (once). */
+	Work takeWork() {
+		Work taken = work;
+		work = Work.NONE;
+		return taken;
+	}
+
+	BlockPos workPos() {
+		return workPos;
+	}
+
+	/** Attack this one (a player's order); the unit stays near it afterwards. */
+	public void commandAttack(LivingEntity target) {
+		command(Order.NONE, null);
+		this.setTarget(target);
+	}
+
+	public java.util.Optional<UUID> owner() {
+		return this.entityData.get(OWNER);
+	}
+
+	public List<UnitKind> queue() {
+		return queue;
+	}
+
+	/** Queues a unit this building trains: paid now, supply reserved; false when it cannot. */
+	public boolean train(UnitKind unit) {
+		if (!(this.level() instanceof ServerLevel server) || constructTicks > 0 || !kind.trains().contains(unit) || queue.size() >= QUEUE) return false;
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (hive == null || !hive.unlocked(unit) || !hive.canAfford(unit, 1)) return false;
+		hive.pay(unit, 1);
+		hive.expect(unit, 1);
+		queue.add(unit);
+		HiveSavedData.get(server.getServer()).setDirty();
+		syncProgress();
+		return true;
+	}
+
+	/** Cancels the last queued unit (refunded), or a building still under construction (75 % back, SC2). */
+	public void cancelLast() {
+		if (!(this.level() instanceof ServerLevel server)) return;
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (!queue.isEmpty()) {
+			UnitKind last = queue.remove(queue.size() - 1);
+			if (queue.isEmpty()) trainTicks = 0;
+			if (hive != null) {
+				hive.refund(last, 1);
+				hive.born(last, 1);
+			}
+		} else if (constructTicks > 0) {
+			if (hive != null) {
+				hive.minerals += kind.economy().minerals() * 3 / 4;
+				hive.vespene += kind.economy().vespene() * 3 / 4;
+			}
+			this.discard();
+		} else if (research != null) {
+			if (hive != null) {
+				int level = (research.equals("weapons") ? hive.attackLevel : hive.armorLevel) + 1;
+				hive.minerals += researchCost(level);
+				hive.vespene += researchCost(level);
+			}
+			research = null;
+			researchTicks = 0;
+		}
+		if (hive != null) HiveSavedData.get(server.getServer()).setDirty();
+		syncProgress();
+	}
+
+	public void setRally(Vec3 at) {
+		this.rally = at;
+	}
+
+	/** The first queued unit trains; done, it walks out to the rally point (or next to the building). */
+	private void produce(ServerLevel server) {
+		if (queue.isEmpty()) return;
+		UnitKind unit = queue.get(0);
+		if (++trainTicks < unit.economy().trainTicks()) return;
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		queue.remove(0);
+		trainTicks = 0;
+		if (hive == null) return;
+		hive.born(unit, 1);
+		double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + 1;
+		Vec3 at = new Vec3(this.getX() + Math.cos(angle) * radius, this.getY(), this.getZ() + Math.sin(angle) * radius);
+		BlockPos ground = BlockPos.containing(at.x, this.getY() + 2, at.z);
+		for (int i = 0; i < 6 && server.getBlockState(ground.below()).isAir(); i++) ground = ground.below();
+		StarUnit born = HiveLogic.spawn(server, hive, unit, unit.flying ? at.add(0, 2, 0) : Vec3.atBottomCenterOf(ground), null);
+		if (born != null) {
+			if (rally != null) born.command(Order.MOVE, rally);
+			else born.home = born.blockPosition();
+		}
+		HiveSavedData.get(server.getServer()).setDirty();
+	}
+
+	/** SC2 engineering bay upgrade cost by level (minerals = vespene): 100, 175, 250. */
+	public static int researchCost(int level) {
+		return 25 + 75 * level;
+	}
+
+	/** Starts infantry weapons or armor at the engineering bay (levels 2 and 3 need an armory). */
+	public boolean startResearch(String what) {
+		if (!(this.level() instanceof ServerLevel server) || kind != UnitKind.ENGINEERING_BAY || constructTicks > 0 || research != null) return false;
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (hive == null) return false;
+		int level = (what.equals("weapons") ? hive.attackLevel : what.equals("armor") ? hive.armorLevel : 9) + 1;
+		int cost = researchCost(level);
+		if (level > 3 || (level > 1 && hive.count(UnitKind.ARMORY) == 0) || hive.minerals < cost || hive.vespene < cost) return false;
+		hive.minerals -= cost;
+		hive.vespene -= cost;
+		research = what;
+		researchTicks = (int) Math.round((114 + 22 * (level - 1)) * 20);
+		HiveSavedData.get(server.getServer()).setDirty();
+		return true;
+	}
+
+	private void researchTick(ServerLevel server) {
+		if (research == null || --researchTicks > 0) return;
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (hive != null) {
+			if (research.equals("weapons")) hive.attackLevel++;
+			else hive.armorLevel++;
+			HiveSavedData.get(server.getServer()).setDirty();
+		}
+		research = null;
+	}
+
+	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second). */
+	private void heal(ServerLevel server) {
+		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(6),
+				mob -> mob.isAlive() && mob.kind.biological() && sameRace(mob) && mob.getHealth() < mob.getMaxHealth())
+			.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth()))
+			.ifPresent(mob -> {
+				mob.heal((float) (12.6 * UnitKind.SCALE / 2));
+				server.sendParticles(ParticleTypes.HAPPY_VILLAGER, mob.getX(), mob.getY() + mob.getBbHeight(), mob.getZ(), 2, 0.3, 0.2, 0.3, 0);
+			});
+	}
+
+	/** For the command view: construction, training or research progress (0-1000) and the queue. */
+	private void syncProgress() {
+		int progress = 0;
+		if (constructTicks > 0) progress = 1000 - (int) (1000L * constructTicks / Math.max(1, kind.economy().trainTicks()));
+		else if (!queue.isEmpty()) progress = (int) (1000L * trainTicks / Math.max(1, queue.get(0).economy().trainTicks()));
+		else if (research != null) progress = -(int) (1000L * researchTicks / Math.max(1, (114 + 44) * 20));
+		this.entityData.set(PROGRESS, progress);
+		this.entityData.set(QUEUE_IDS, constructTicks > 0 ? "construct"
+			: String.join(",", queue.stream().map(k -> k.id).toList()) + (research != null ? (queue.isEmpty() ? "" : ",") + "research:" + research : ""));
+	}
+
+	/** Debug: the goals running now. */
+	public String goalsRunning() {
+		return this.goalSelector.getAvailableGoals().stream().filter(net.minecraft.world.entity.ai.goal.WrappedGoal::isRunning)
+			.map(goal -> goal.getGoal() instanceof DroneWork work ? work.toString() : goal.getGoal().getClass().getSimpleName()).toList().toString();
+	}
+
+	public int progress() {
+		return this.entityData.get(PROGRESS);
+	}
+
+	public String queueIds() {
+		return this.entityData.get(QUEUE_IDS);
 	}
 }

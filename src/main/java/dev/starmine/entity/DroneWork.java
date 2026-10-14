@@ -37,8 +37,8 @@ import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * A drone's work (stage 2 of docs/HIVE_DESIGN.md, reworked on the owner's play tests). It always has
- * a goal, and goes there through {@link #moveTo}:
+ * A worker's work: the zerg drone and the terran SCV (stage 2 of docs/HIVE_DESIGN.md, reworked on the
+ * owner's play tests). It always has a goal, and goes there through {@link #moveTo}:
  *
  * - SEEK: an ore within a scan, else a natural tree nearby (logs with non-persistent leaves, so log
  *   houses stay), else (sometimes) a tunnel for the hive's network, else EXPLORE;
@@ -57,6 +57,11 @@ import net.minecraft.world.phys.Vec3;
  * and a block once started is finished unless an enemy takes the drone's attention. Creep on a dug
  * block lines the new cavity. Yields come from `data/starmine/hive/resources.json`; with
  * `starmineHiveGriefing` off drones neither dig nor chop. Trees and ores are claimed per drone.
+ *
+ * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
+ * gather at a block, return the cargo; build: to the site, then build until the building is done,
+ * {@link dev.starmine.colony.TerranLogic#place}); they bring loads to the nearest command center of their
+ * base, dig no hive tunnels, go on no raids and, with nothing in reach, wait instead of exploring far.
  */
 final class DroneWork extends Goal {
 	private enum State { SEEK, TREE, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL }
@@ -74,7 +79,7 @@ final class DroneWork extends Goal {
 	private static final double REACH = 3.6;
 	public static final TagKey<Block> MECHANISMS = TagKey.create(Registries.BLOCK, StarMine.id("raid_mechanisms"));
 
-	private final ZergMob drone;
+	private final StarUnit drone;
 	private State state = State.SEEK, resume = State.SEEK;
 	private final List<BlockPos> logs = new ArrayList<>(), leaves = new ArrayList<>();
 	private BlockPos treeFoot, mineTarget;
@@ -90,19 +95,53 @@ final class DroneWork extends Goal {
 	private int stepIndex, stepTicks, failures, stuckTicks;
 	private double bestDistance;
 
-	DroneWork(ZergMob drone) {
+	DroneWork(StarUnit drone) {
 		this.drone = drone;
 		this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
 	}
 
 	@Override
 	public boolean canUse() {
-		return drone.hiveId() != null && drone.getTarget() == null && !drone.isPassenger();
+		return drone.hiveId() != null && drone.getTarget() == null && !drone.isPassenger() && drone.order() == StarUnit.Order.NONE;
+	}
+
+	private boolean terran() {
+		return drone.kind.race == UnitKind.Race.TERRAN;
+	}
+
+	/** A player's work order for an SCV: gather at a block (a tree or an ore), or bring the cargo home. */
+	private void takeOrder(ServerLevel level) {
+		StarUnit.Work work = drone.takeWork();
+		if (work == StarUnit.Work.NONE) return;
+		cancelBreak();
+		if (work == StarUnit.Work.RETURN) {
+			if (drone.cargoBlocks > 0) to(State.CARRY);
+			return;
+		}
+		BlockPos pos = drone.workPos();
+		if (pos == null) return;
+		BlockState state = level.getBlockState(pos);
+		if (state.is(BlockTags.LOGS) && collectTree(level, pos)) {
+			to(State.TREE);
+		} else if (HiveResources.isOre(state)) {
+			releaseAll(drone.getUUID());
+			claimGroup(level, pos);
+			mineTarget = pos.immutable();
+			deep = false;
+			to(State.MINE);
+		}
 	}
 
 	@Override
 	public boolean canContinueToUse() {
 		return canUse();
+	}
+
+	/** Debug: state, goal and plan. */
+	@Override
+	public String toString() {
+		return state + (mineTarget != null ? " ore " + mineTarget.toShortString() : "") + (moveGoal != null ? " to " + BlockPos.containing(moveGoal).toShortString() : "")
+			+ (plan != null ? " plan " + stepIndex + "/" + plan.size() : "") + " fail " + failures;
 	}
 
 	@Override
@@ -126,6 +165,7 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
+		if (terran()) takeOrder(level);
 		if (drone.fleeing()) {
 			flee(level);
 			return;
@@ -265,6 +305,10 @@ final class DroneWork extends Goal {
 		}
 		if (drone.cargoBlocks > 0) {
 			to(State.CARRY);
+			return;
+		}
+		if (terran()) { // SCVs wait near their base for something to gather (or an order)
+			seekCooldown = 100;
 			return;
 		}
 		if (griefing && startTunnel(level)) return;
@@ -488,13 +532,27 @@ final class DroneWork extends Goal {
 			return;
 		}
 		Vec3 centre = Vec3.atBottomCenterOf(hive.hatchery);
+		double half = UnitKind.HATCHERY.width / 2;
+		if (terran()) { // the nearest command center of the base
+			StarUnit nearest = null;
+			double best = Double.MAX_VALUE;
+			for (StarUnit cc : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(160),
+				mob -> mob.kind == UnitKind.COMMAND_CENTER && hive.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
+				double d = cc.distanceToSqr(drone);
+				if (d < best) {
+					best = d;
+					nearest = cc;
+				}
+			}
+			if (nearest != null) centre = nearest.position();
+			half = UnitKind.COMMAND_CENTER.width / 2;
+		}
 		double dx = drone.getX() - centre.x, dz = drone.getZ() - centre.z;
 		double flat = Math.sqrt(dx * dx + dz * dz);
-		if (flat < 11 && Math.abs(drone.getY() - centre.y) < 4) {
-			hive.minerals += drone.cargoMinerals;
-			hive.mineralsCollected += drone.cargoMinerals;
-			hive.vespene += drone.cargoVespene;
-			hive.diamonds += drone.cargoDiamonds;
+		double rim = half + 3.5;
+		// delivered anywhere a walk to the rim may end (it arrives within 2.5 blocks of it)
+		if (flat < rim + 2.8 && Math.abs(drone.getY() - centre.y) < 4) {
+			hive.deliver(drone.cargoMinerals, drone.cargoVespene, drone.cargoDiamonds, drone.cargoLabel, drone.cargoBlocks);
 			HiveSavedData.get(level.getServer()).setDirty();
 			drone.clearCargo();
 			drone.getNavigation().stop();
@@ -502,7 +560,7 @@ final class DroneWork extends Goal {
 			to(back == State.TREE && !logs.isEmpty() ? State.TREE : back == State.MINE && mineTarget != null ? State.MINE : State.SEEK);
 			return;
 		}
-		Vec3 edge = flat < 0.01 ? centre.add(9.5, 0, 0) : centre.add(dx / flat * 9.5, 0, dz / flat * 9.5);
+		Vec3 edge = flat < 0.01 ? centre.add(rim, 0, 0) : centre.add(dx / flat * rim, 0, dz / flat * rim);
 		// leg by leg when far: the plan's reach is 40 blocks
 		Vec3 goal = drone.position().distanceTo(edge) > 36 ? surface(level, drone.position().add(edge.subtract(drone.position()).normalize().scale(32))) : edge;
 		if (moveTo(level, goal, 2.5, griefing) == Move.FAILED) resetMove();
@@ -550,9 +608,44 @@ final class DroneWork extends Goal {
 			drone.cancelBuild();
 			return;
 		}
+		if (terran()) {
+			terranBuild(level, site);
+			return;
+		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), 3, false);
 		if (move == Move.ARRIVED) {
 			if (!HiveLogic.mutate(drone, level, drone.buildKind(), site)) drone.cancelBuild();
+		} else if (move == Move.FAILED || stateTicks > 1200) {
+			drone.cancelBuild();
+		}
+	}
+
+	/**
+	 * SCV: to the site; there the building is placed (paid then; the site is levelled, or refused when
+	 * trees, fences or harder blocks are in the way), and the SCV builds it until it is done.
+	 */
+	private void terranBuild(ServerLevel level, BlockPos site) {
+		UnitKind kind = drone.buildKind();
+		if (drone.constructing() != null) {
+			if (!(level.getEntity(drone.constructing()) instanceof StarUnit building) || !building.isAlive() || !building.underConstruction()) {
+				drone.setConstructing(null);
+				drone.cancelBuild();
+				return;
+			}
+			Move move = moveTo(level, building.position(), kind.width / 2 + 2.5, false);
+			if (move == Move.ARRIVED) {
+				drone.getLookControl().setLookAt(building);
+				if (stateTicks % 20 == 0) {
+					drone.swing(InteractionHand.MAIN_HAND);
+					level.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK, building.getX(), building.getY() + 1, building.getZ(),
+						4, kind.width / 3, 0.5, kind.width / 3, 0.05);
+				}
+			}
+			return;
+		}
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, false);
+		if (move == Move.ARRIVED) {
+			if (dev.starmine.colony.TerranLogic.place(drone, level, kind, site) == null) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			drone.cancelBuild();
 		}
@@ -612,10 +705,10 @@ final class DroneWork extends Goal {
 
 	/** Away from an armed attacker: to the nearest warrior of the hive within 32 blocks, else home. */
 	private void flee(ServerLevel level) {
-		ZergMob guard = null;
+		StarUnit guard = null;
 		double best = 32 * 32;
-		for (ZergMob mob : level.getEntitiesOfClass(ZergMob.class, drone.getBoundingBox().inflate(32),
-			m -> drone.hiveId().equals(m.hiveId()) && m.isAlive() && m.kind != ZergKind.DRONE && m.kind.attack != ZergKind.Attack.NONE && !m.kind.structure())) {
+		for (StarUnit mob : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(32),
+			m -> drone.hiveId().equals(m.hiveId()) && m.isAlive() && !m.kind.worker() && m.kind.attack != UnitKind.Attack.NONE && !m.kind.structure())) {
 			double d = mob.distanceToSqr(drone);
 			if (d < best) {
 				best = d;

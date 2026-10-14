@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "dev.starmine.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["HideInFogMixin"],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

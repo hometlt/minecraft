@@ -67,11 +67,11 @@ public class DroneGameTests implements FabricGameTest {
 		helper.assertTrue(report.tunnelCells() > 1000, "too few blocks dug: " + report.tunnelCells());
 		helper.assertTrue(report.eggs() >= 8, "too few eggs: " + report.eggs());
 		helper.assertTrue(report.tumors() >= 3, "too few tumors: " + report.tumors());
-		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.HATCHERY && p.hive().equals(hive.id)), "no hatchery waits");
-		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.SPIRE && p.hall() == null), "no spire on the surface");
-		helper.assertTrue(data.pending.stream().noneMatch(p -> p.kind() == ZergKind.SPIRE && p.pos().getY() < hive.hatchery.getY() - 5), "a spire underground");
-		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.EGG && p.brood() != null), "no sleeping eggs");
-		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == ZergKind.LARVA && p.hall() != null), "no larvae in halls");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == UnitKind.HATCHERY && p.hive().equals(hive.id)), "no hatchery waits");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == UnitKind.SPIRE && p.hall() == null), "no spire on the surface");
+		helper.assertTrue(data.pending.stream().noneMatch(p -> p.kind() == UnitKind.SPIRE && p.pos().getY() < hive.hatchery.getY() - 5), "a spire underground");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == UnitKind.EGG && p.brood() != null), "no sleeping eggs");
+		helper.assertTrue(data.pending.stream().anyMatch(p -> p.kind() == UnitKind.LARVA && p.hall() != null), "no larvae in halls");
 		long deep = data.pending.stream().filter(p -> p.hall() != null && p.pos().getY() < hive.hatchery.getY() - 8).count();
 		helper.assertTrue(deep > 5, "too few zerg underground: " + deep);
 		data.clear();
@@ -155,7 +155,7 @@ public class DroneGameTests implements FabricGameTest {
 	public void hatcheryRefusedByTree(GameTestHelper helper) {
 		hiveArena(helper);
 		fill(helper, 10, 2, 10, 10, 5, 10, Blocks.OAK_LOG);
-		ZergMob hatchery = helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(12, 2, 12));
+		StarUnit hatchery = helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(12, 2, 12));
 		helper.runAfterDelay(10, () -> {
 			helper.assertTrue(hatchery.isRemoved(), "a hatchery was founded over a tree");
 			helper.succeed();
@@ -167,7 +167,7 @@ public class DroneGameTests implements FabricGameTest {
 	public void hatcheryLevelsItsSite(GameTestHelper helper) {
 		hiveArena(helper);
 		fill(helper, 9, 2, 9, 14, 4, 14, Blocks.DIRT);
-		ZergMob hatchery = helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(12, 2, 12));
+		StarUnit hatchery = helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(12, 2, 12));
 		helper.runAfterDelay(10, () -> {
 			helper.assertTrue(!hatchery.isRemoved(), "the hatchery was refused");
 			helper.assertBlockNotPresent(Blocks.DIRT, new BlockPos(10, 3, 10));
@@ -180,9 +180,9 @@ public class DroneGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hivePool")
 	public void droneBecomesSpawningPool(GameTestHelper helper) {
 		hiveArena(helper);
-		helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(24, 2, 24));
-		List<ZergMob> drones = new java.util.ArrayList<>();
-		for (int i = 0; i < 4; i++) drones.add(helper.spawn(StarMine.type(ZergKind.DRONE), new BlockPos(36 + (i % 2) * 3, 2, 36 + (i / 2) * 3)));
+		helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(24, 2, 24));
+		List<StarUnit> drones = new java.util.ArrayList<>();
+		for (int i = 0; i < 4; i++) drones.add(helper.spawn(StarMine.type(UnitKind.DRONE), new BlockPos(36 + (i % 2) * 3, 2, 36 + (i / 2) * 3)));
 		helper.runAfterDelay(5, () -> {
 			HiveSavedData data = HiveSavedData.get(helper.getLevel().getServer());
 			Hive hive = data.all().stream().min((a, b) -> Double.compare(a.hatchery.distSqr(drones.get(0).blockPosition()), b.hatchery.distSqr(drones.get(0).blockPosition()))).orElse(null);
@@ -191,10 +191,10 @@ public class DroneGameTests implements FabricGameTest {
 				return;
 			}
 			hive.minerals = 1000;
-			for (ZergMob drone : drones) drone.joinHive(hive);
+			for (StarUnit drone : drones) drone.joinHive(hive);
 		});
-		helper.succeedWhen(() -> helper.assertTrue(!helper.getLevel().getEntitiesOfClass(ZergMob.class,
-			new net.minecraft.world.phys.AABB(helper.absolutePos(BlockPos.ZERO)).inflate(48), mob -> mob.kind == ZergKind.SPAWNING_POOL).isEmpty(), "no spawning pool yet"));
+		helper.succeedWhen(() -> helper.assertTrue(!helper.getLevel().getEntitiesOfClass(StarUnit.class,
+			new net.minecraft.world.phys.AABB(helper.absolutePos(BlockPos.ZERO)).inflate(48), mob -> mob.kind == UnitKind.SPAWNING_POOL).isEmpty(), "no spawning pool yet"));
 	}
 
 	/** A real hive's drone digs to an iron ore walled in stone and mines it. */
@@ -204,8 +204,8 @@ public class DroneGameTests implements FabricGameTest {
 		fill(helper, 21, 2, 21, 27, 5, 27, Blocks.STONE);
 		BlockPos ore = new BlockPos(24, 3, 24);
 		helper.setBlock(ore, Blocks.IRON_ORE);
-		helper.spawn(StarMine.type(ZergKind.HATCHERY), new BlockPos(7, 2, 7));
-		ZergMob drone = helper.spawn(StarMine.type(ZergKind.DRONE), new BlockPos(16, 2, 16));
+		helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(7, 2, 7));
+		StarUnit drone = helper.spawn(StarMine.type(UnitKind.DRONE), new BlockPos(16, 2, 16));
 		helper.runAfterDelay(5, () -> {
 			HiveSavedData data = HiveSavedData.get(helper.getLevel().getServer());
 			Hive hive = data.all().stream().min((a, b) -> Double.compare(a.hatchery.distSqr(drone.blockPosition()), b.hatchery.distSqr(drone.blockPosition()))).orElse(null);

@@ -1,7 +1,7 @@
 package dev.starmine.client;
 
 import dev.starmine.StarMine;
-import dev.starmine.entity.ZergKind;
+import dev.starmine.entity.UnitKind;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +49,7 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 	public void onResourceManagerReload(ResourceManager manager) {
 		MODELS.clear();
 		int missing = 0;
-		for (ZergKind kind : ZergKind.values()) {
+		for (UnitKind kind : UnitKind.values()) {
 			if (!load(manager, kind.id)) missing++;
 			load(manager, kind.id + "_death");
 		}

@@ -21,13 +21,13 @@ import net.minecraft.world.phys.HitResult;
  * Drawn as an item until SC2 missile models are imported.
  */
 public class ZergSpit extends ThrowableItemProjectile {
-	private ZergKind kind = ZergKind.ROACH;
+	private UnitKind kind = UnitKind.ROACH;
 
 	public ZergSpit(EntityType<? extends ZergSpit> type, Level level) {
 		super(type, level);
 	}
 
-	public ZergSpit(Level level, LivingEntity shooter, ZergKind kind) {
+	public ZergSpit(Level level, LivingEntity shooter, UnitKind kind) {
 		super(StarMine.SPIT, shooter, level);
 		this.kind = kind;
 		this.setItem(new ItemStack(kind.missile()));
@@ -42,25 +42,25 @@ public class ZergSpit extends ThrowableItemProjectile {
 
 	@Override
 	protected double getDefaultGravity() {
-		return kind == ZergKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
+		return kind == UnitKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
 	}
 
 	@Override
 	protected void onHitEntity(EntityHitResult hit) {
 		super.onHitEntity(hit);
-		if (!(hit.getEntity() instanceof LivingEntity target) || target instanceof ZergMob) return;
+		if (!(hit.getEntity() instanceof LivingEntity target) || target instanceof StarUnit) return;
 		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
-		double bonus = owner instanceof ZergMob zerg ? zerg.attackBonus() : 0;
+		double bonus = owner instanceof StarUnit zerg ? zerg.attackBonus() : 0;
 		target.hurt(this.damageSources().mobProjectile(this, owner), (float) (kind.damage + bonus));
-		if (kind.attack == ZergKind.Attack.SLOW) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 4));
+		if (kind.attack == UnitKind.Attack.SLOW) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 4));
 	}
 
 	@Override
 	protected void onHit(HitResult hit) {
 		super.onHit(hit);
 		if (this.level().isClientSide) return;
-		if (kind == ZergKind.BROOD_LORD && this.getOwner() instanceof ZergMob lord && lord.getTarget() != null)
-			for (int i = 0; i < 2; i++) ZergMob.summon(StarMine.type(ZergKind.BROODLING), this.position(), lord.getTarget());
+		if (kind == UnitKind.BROOD_LORD && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
+			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
 		if (this.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY(), this.getZ(), 6, 0.2, 0.2, 0.2, 0.05);
 		this.discard();

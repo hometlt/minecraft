@@ -3,8 +3,9 @@ package dev.starmine.hive;
 import dev.starmine.StarMine;
 import dev.starmine.creep.CreepGrowth;
 import dev.starmine.creep.CreepSources;
-import dev.starmine.entity.ZergKind;
-import dev.starmine.entity.ZergMob;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.entity.StarUnit;
+import dev.starmine.colony.TerranLogic;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -22,7 +23,7 @@ import net.minecraft.world.phys.Vec3;
  * {@link #DECISION_TICKS} a larva may become a cocoon, in this order: a free drone when the hive has
  * no drone at all; an overlord when supply is nearly used up; drones up to the worker target (2, plus
  * one per 200 minerals collected, at most 8); otherwise zerglings. The hatchery trains one queen. Costs,
- * supply and times are SC2's ({@link ZergKind#economy()}). Building requirements (spawning pool for
+ * supply and times are SC2's ({@link UnitKind#economy()}). Building requirements (spawning pool for
  * zerglings and queens) come with the buildings stage; until then they are treated as met.
  * The hatchery stands on its thick-creep foundation ({@link HiveTerrain}) and grows creep around it.
  */
@@ -36,7 +37,7 @@ public final class HiveLogic {
 	}
 
 	/** Makes a newly placed hatchery a hive, or refuses it when the world already has its maximum. */
-	public static Hive found(ZergMob hatchery, ServerLevel level) {
+	public static Hive found(StarUnit hatchery, ServerLevel level) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		Hive hive = data.get(hatchery.getUUID());
 		if (hive != null) return hive;
@@ -58,7 +59,7 @@ public final class HiveLogic {
 		return hive;
 	}
 
-	public static void tick(ZergMob hatchery, ServerLevel level) {
+	public static void tick(StarUnit hatchery, ServerLevel level) {
 		Hive hive = found(hatchery, level);
 		if (hive == null) return;
 		HiveSavedData data = HiveSavedData.get(level.getServer());
@@ -68,13 +69,13 @@ public final class HiveLogic {
 			hive.foundation = true;
 		}
 		CreepGrowth.grow(level, hive.hatchery, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
-		if (hive.count(ZergKind.LARVA) < MAX_LARVAE && ++hive.larvaTimer >= LARVA_TICKS) {
+		if (hive.count(UnitKind.LARVA) < MAX_LARVAE && ++hive.larvaTimer >= LARVA_TICKS) {
 			hive.larvaTimer = 0;
-			spawn(level, hive, ZergKind.LARVA, around(hatchery, level), null);
+			spawn(level, hive, UnitKind.LARVA, around(hatchery, level), null);
 		}
 		if (hive.queenTicks >= 0 && --hive.queenTicks < 0) {
-			hive.born(ZergKind.QUEEN, 1);
-			spawn(level, hive, ZergKind.QUEEN, around(hatchery, level), null);
+			hive.born(UnitKind.QUEEN, 1);
+			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level), null);
 		}
 		research(level, hive);
 		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
@@ -86,64 +87,64 @@ public final class HiveLogic {
 		data.setDirty();
 	}
 
-	private static void decide(ZergMob hatchery, ServerLevel level, Hive hive) {
+	private static void decide(StarUnit hatchery, ServerLevel level, Hive hive) {
 		orderBuilding(hatchery, level, hive);
-		if (hive.unlocked(ZergKind.QUEEN) && hive.count(ZergKind.QUEEN) + hive.pending(ZergKind.QUEEN) == 0 && hive.queenTicks < 0 && hive.canAfford(ZergKind.QUEEN, 1)) {
-			hive.pay(ZergKind.QUEEN, 1);
-			hive.expect(ZergKind.QUEEN, 1);
-			hive.queenTicks = ZergKind.QUEEN.economy().trainTicks();
+		if (hive.unlocked(UnitKind.QUEEN) && hive.count(UnitKind.QUEEN) + hive.pending(UnitKind.QUEEN) == 0 && hive.queenTicks < 0 && hive.canAfford(UnitKind.QUEEN, 1)) {
+			hive.pay(UnitKind.QUEEN, 1);
+			hive.expect(UnitKind.QUEEN, 1);
+			hive.queenTicks = UnitKind.QUEEN.economy().trainTicks();
 		}
-		List<ZergMob> larvae = level.getEntitiesOfClass(ZergMob.class, new AABB(hatchery.blockPosition()).inflate(16),
-			mob -> mob.kind == ZergKind.LARVA && hive.id.equals(mob.hiveId()) && mob.isAlive());
+		List<StarUnit> larvae = level.getEntitiesOfClass(StarUnit.class, new AABB(hatchery.blockPosition()).inflate(16),
+			mob -> mob.kind == UnitKind.LARVA && hive.id.equals(mob.hiveId()) && mob.isAlive());
 		if (larvae.isEmpty()) return;
-		ZergMob larva = larvae.get(level.random.nextInt(larvae.size()));
-		int drones = hive.count(ZergKind.DRONE) + hive.pending(ZergKind.DRONE);
+		StarUnit larva = larvae.get(level.random.nextInt(larvae.size()));
+		int drones = hive.count(UnitKind.DRONE) + hive.pending(UnitKind.DRONE);
 		if (drones == 0) {
-			morph(larva, level, hive, ZergKind.DRONE, 1, true);
+			morph(larva, level, hive, UnitKind.DRONE, 1, true);
 			return;
 		}
-		double free = hive.supplyCap() + ZergKind.OVERLORD.economy().supply() * hive.pending(ZergKind.OVERLORD) - hive.supplyUsed();
-		if (free < 2 && hive.pending(ZergKind.OVERLORD) == 0 && hive.supplyCap() < Hive.MAX_SUPPLY) {
-			if (hive.canAfford(ZergKind.OVERLORD, 1)) morph(larva, level, hive, ZergKind.OVERLORD, 1, false);
+		double free = hive.supplyCap() + UnitKind.OVERLORD.economy().supply() * hive.pending(UnitKind.OVERLORD) - hive.supplyUsed();
+		if (free < 2 && hive.pending(UnitKind.OVERLORD) == 0 && hive.supplyCap() < Hive.MAX_SUPPLY) {
+			if (hive.canAfford(UnitKind.OVERLORD, 1)) morph(larva, level, hive, UnitKind.OVERLORD, 1, false);
 			return;
 		}
 		int workers = Math.min(MAX_WORKERS, 2 + hive.mineralsCollected / 200);
-		if (drones < workers && hive.canAfford(ZergKind.DRONE, 1)) {
-			morph(larva, level, hive, ZergKind.DRONE, 1, false);
+		if (drones < workers && hive.canAfford(UnitKind.DRONE, 1)) {
+			morph(larva, level, hive, UnitKind.DRONE, 1, false);
 			return;
 		}
 		// warriors the hive's tech allows (SC2: pool, warren, nest, den, spire, pit, cavern)
-		List<ZergKind> choices = new java.util.ArrayList<>();
-		for (ZergKind kind : WARRIORS) {
-			int count = kind == ZergKind.ZERGLING ? 2 : 1;
+		List<UnitKind> choices = new java.util.ArrayList<>();
+		for (UnitKind kind : WARRIORS) {
+			int count = kind == UnitKind.ZERGLING ? 2 : 1;
 			if (hive.unlocked(kind) && hive.canAfford(kind, count)) choices.add(kind);
 		}
 		if (choices.isEmpty()) return;
-		ZergKind pick = choices.get(level.random.nextInt(choices.size()));
-		morph(larva, level, hive, pick, pick == ZergKind.ZERGLING ? 2 : 1, false);
+		UnitKind pick = choices.get(level.random.nextInt(choices.size()));
+		morph(larva, level, hive, pick, pick == UnitKind.ZERGLING ? 2 : 1, false);
 	}
 
-	private static final ZergKind[] WARRIORS = {ZergKind.ZERGLING, ZergKind.ROACH, ZergKind.RAVAGER, ZergKind.BANELING, ZergKind.HYDRALISK,
-		ZergKind.LURKER, ZergKind.MUTALISK, ZergKind.CORRUPTOR, ZergKind.BROOD_LORD, ZergKind.INFESTOR, ZergKind.SWARM_HOST,
-		ZergKind.VIPER, ZergKind.ULTRALISK};
+	private static final UnitKind[] WARRIORS = {UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.RAVAGER, UnitKind.BANELING, UnitKind.HYDRALISK,
+		UnitKind.LURKER, UnitKind.MUTALISK, UnitKind.CORRUPTOR, UnitKind.BROOD_LORD, UnitKind.INFESTOR, UnitKind.SWARM_HOST,
+		UnitKind.VIPER, UnitKind.ULTRALISK};
 
 	/** The order buildings come in (SC2-like), with how many of each. */
-	private static final ZergKind[] BUILD_ORDER = {ZergKind.SPAWNING_POOL, ZergKind.EVOLUTION_CHAMBER, ZergKind.SPINE_CRAWLER,
-		ZergKind.ROACH_WARREN, ZergKind.SPORE_CRAWLER, ZergKind.BANELING_NEST, ZergKind.HYDRALISK_DEN, ZergKind.SPINE_CRAWLER,
-		ZergKind.SPIRE, ZergKind.INFESTATION_PIT, ZergKind.ULTRALISK_CAVERN};
+	private static final UnitKind[] BUILD_ORDER = {UnitKind.SPAWNING_POOL, UnitKind.EVOLUTION_CHAMBER, UnitKind.SPINE_CRAWLER,
+		UnitKind.ROACH_WARREN, UnitKind.SPORE_CRAWLER, UnitKind.BANELING_NEST, UnitKind.HYDRALISK_DEN, UnitKind.SPINE_CRAWLER,
+		UnitKind.SPIRE, UnitKind.INFESTATION_PIT, UnitKind.ULTRALISK_CAVERN};
 
 	/**
 	 * Buildings (owner): with 4 drones or more the hive sends one drone at a time to mutate into the next
 	 * building it lacks and can afford, on a levelled site beside the hatchery.
 	 */
-	private static void orderBuilding(ZergMob hatchery, ServerLevel level, Hive hive) {
+	private static void orderBuilding(StarUnit hatchery, ServerLevel level, Hive hive) {
 		long now = level.getGameTime();
 		if (hive.buildOrder != null && now < hive.buildOrderUntil) return;
 		hive.buildOrder = null;
-		if (hive.count(ZergKind.DRONE) < 4) return;
-		java.util.Map<ZergKind, Integer> wanted = new java.util.EnumMap<>(ZergKind.class);
-		ZergKind next = null;
-		for (ZergKind kind : BUILD_ORDER) {
+		if (hive.count(UnitKind.DRONE) < 4) return;
+		java.util.Map<UnitKind, Integer> wanted = new java.util.EnumMap<>(UnitKind.class);
+		UnitKind next = null;
+		for (UnitKind kind : BUILD_ORDER) {
 			int want = wanted.merge(kind, 1, Integer::sum);
 			if (hive.count(kind) + hive.pending(kind) >= want) continue;
 			if (hive.unlocked(kind) && hive.canAfford(kind, 1)) next = kind;
@@ -152,9 +153,9 @@ public final class HiveLogic {
 		if (next == null) return;
 		BlockPos site = findSite(level, hatchery, next);
 		if (site == null) return;
-		final ZergKind building = next;
-		level.getEntitiesOfClass(ZergMob.class, hatchery.getBoundingBox().inflate(48),
-				mob -> mob.kind == ZergKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.cargoBlocks == 0)
+		final UnitKind building = next;
+		level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48),
+				mob -> mob.kind == UnitKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.cargoBlocks == 0)
 			.stream().min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(Vec3.atCenterOf(site))))
 			.ifPresent(drone -> {
 				drone.orderBuild(building, site);
@@ -164,7 +165,7 @@ public final class HiveLogic {
 	}
 
 	/** A levelled site for a building on the ground around the hatchery, clear of other buildings. */
-	private static BlockPos findSite(ServerLevel level, ZergMob hatchery, ZergKind kind) {
+	private static BlockPos findSite(ServerLevel level, StarUnit hatchery, UnitKind kind) {
 		int half = HiveTerrain.foundation(kind);
 		for (int attempt = 0; attempt < 24; attempt++) {
 			double angle = level.random.nextDouble() * Math.PI * 2;
@@ -173,7 +174,7 @@ public final class HiveLogic {
 			BlockPos feet = groundNear(level, x, hatchery.getBlockY(), z);
 			if (feet == null) continue;
 			AABB area = new AABB(feet).inflate(half + 1, 3, half + 1);
-			if (!level.getEntitiesOfClass(ZergMob.class, area, mob -> mob.kind.structure()).isEmpty()) continue;
+			if (!level.getEntitiesOfClass(StarUnit.class, area, mob -> mob.kind.structure()).isEmpty()) continue;
 			if (HiveTerrain.prepare(level, feet, half - 1, (int) Math.ceil(kind.height), false)) return feet;
 		}
 		return null;
@@ -193,7 +194,7 @@ public final class HiveLogic {
 	}
 
 	/** A drone has reached its site: it becomes the building (paid now; built over the SC2 time). */
-	public static boolean mutate(ZergMob drone, ServerLevel level, ZergKind kind, BlockPos site) {
+	public static boolean mutate(StarUnit drone, ServerLevel level, UnitKind kind, BlockPos site) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		if (hive == null || !hive.unlocked(kind) || !hive.canAfford(kind, 1)) return false;
 		int half = HiveTerrain.foundation(kind);
@@ -201,7 +202,7 @@ public final class HiveLogic {
 		hive.pay(kind, 1);
 		hive.expect(kind, 1);
 		HiveTerrain.lay(level, site, half);
-		ZergMob building = spawn(level, hive, kind, Vec3.atBottomCenterOf(site), null);
+		StarUnit building = spawn(level, hive, kind, Vec3.atBottomCenterOf(site), null);
 		if (building != null) building.startConstruction(kind.economy().trainTicks());
 		hive.buildOrder = null;
 		drone.discard();
@@ -216,8 +217,8 @@ public final class HiveLogic {
 	private static void research(ServerLevel level, Hive hive) {
 		if (hive.tierTicks >= 0 && --hive.tierTicks < 0) hive.tier++;
 		if (hive.tierTicks < 0 && hive.tier < 3) {
-			boolean lair = hive.tier == 1 && hive.count(ZergKind.SPAWNING_POOL) > 0 && hive.minerals >= 150 && hive.vespene >= 100;
-			boolean full = hive.tier == 2 && hive.count(ZergKind.INFESTATION_PIT) > 0 && hive.minerals >= 200 && hive.vespene >= 150;
+			boolean lair = hive.tier == 1 && hive.count(UnitKind.SPAWNING_POOL) > 0 && hive.minerals >= 150 && hive.vespene >= 100;
+			boolean full = hive.tier == 2 && hive.count(UnitKind.INFESTATION_PIT) > 0 && hive.minerals >= 200 && hive.vespene >= 150;
 			if (lair || full) {
 				hive.minerals -= lair ? 150 : 200;
 				hive.vespene -= lair ? 100 : 150;
@@ -228,7 +229,7 @@ public final class HiveLogic {
 			if (hive.attackLevel <= hive.armorLevel) hive.attackLevel++;
 			else hive.armorLevel++;
 		}
-		if (hive.upgradeTicks < 0 && hive.count(ZergKind.EVOLUTION_CHAMBER) > 0 && (hive.attackLevel < 3 || hive.armorLevel < 3)) {
+		if (hive.upgradeTicks < 0 && hive.count(UnitKind.EVOLUTION_CHAMBER) > 0 && (hive.attackLevel < 3 || hive.armorLevel < 3)) {
 			boolean attack = hive.attackLevel <= hive.armorLevel;
 			int levelNext = (attack ? hive.attackLevel : hive.armorLevel) + 1;
 			int cost = attack ? 50 + 50 * levelNext : 75 + 75 * levelNext;
@@ -244,11 +245,11 @@ public final class HiveLogic {
 	 * A player (not in creative or spectator) or a hostile creature within 16 blocks of the hatchery is a
 	 * threat: the hive's warriors attack it.
 	 */
-	private static void watchForThreats(ZergMob hatchery, ServerLevel level, Hive hive) {
+	private static void watchForThreats(StarUnit hatchery, ServerLevel level, Hive hive) {
 		LivingEntity threat = null;
 		double best = 16 * 16;
 		for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, hatchery.getBoundingBox().inflate(16),
-			entity -> entity.isAlive() && !(entity instanceof ZergMob)
+			entity -> entity.isAlive() && !(entity instanceof StarUnit)
 				&& (entity instanceof Player player ? !player.isCreative() && !player.isSpectator() : entity instanceof Enemy))) {
 			double distance = other.distanceToSqr(hatchery);
 			if (distance < best) {
@@ -267,13 +268,17 @@ public final class HiveLogic {
 	 * player — for 3 min. Warriors kill what lives there; drones open the way through walls (not metal
 	 * or very hard blocks), bridge gaps, steal food and break mechanisms and crops.
 	 */
-	private static void maybeRaid(ZergMob hatchery, ServerLevel level, Hive hive) {
+	/** Owner 14.10: zerg gather warriors and attack terran bases within this range, in ever larger waves. */
+	public static final int WAVE_RANGE = 256, WAVE_COOLDOWN = 4 * 60 * 20, WAVE_LENGTH = 6 * 60 * 20, MAX_WAVE = 30;
+
+	private static void maybeRaid(StarUnit hatchery, ServerLevel level, Hive hive) {
 		long now = level.getGameTime();
+		List<StarUnit> home = level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48),
+			mob -> hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && !mob.kind.structure() && mob.nest() == null);
+		List<StarUnit> warriors = home.stream().filter(m -> m.kind != UnitKind.DRONE && m.kind != UnitKind.LARVA && m.kind.attack != UnitKind.Attack.NONE).toList();
+		if (now >= hive.nextWave && attackBase(hatchery, level, hive, warriors, now)) return;
 		if (now < hive.nextRaid) return;
-		List<ZergMob> home = level.getEntitiesOfClass(ZergMob.class, hatchery.getBoundingBox().inflate(48),
-			mob -> hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && !mob.kind.structure());
-		List<ZergMob> warriors = home.stream().filter(m -> m.kind != ZergKind.DRONE && m.kind != ZergKind.LARVA && m.kind.attack != ZergKind.Attack.NONE).toList();
-		List<ZergMob> drones = home.stream().filter(m -> m.kind == ZergKind.DRONE).toList();
+		List<StarUnit> drones = home.stream().filter(m -> m.kind == UnitKind.DRONE).toList();
 		if (warriors.size() < 4 || drones.size() < 2) return;
 		BlockPos target = level.getPoiManager()
 			.findClosest(type -> true, hatchery.blockPosition(), RAID_RANGE, net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy.ANY)
@@ -287,35 +292,62 @@ public final class HiveLogic {
 		hive.nextRaid = now + RAID_COOLDOWN;
 		if (target == null) return;
 		long until = now + RAID_LENGTH;
-		for (ZergMob warrior : warriors.subList(0, Math.min(12, warriors.size()))) warrior.joinRaid(target, until);
-		for (ZergMob drone : drones.subList(0, Math.min(2, drones.size()))) drone.joinRaid(target, until);
+		for (StarUnit warrior : warriors.subList(0, Math.min(12, warriors.size()))) warrior.joinRaid(target, until);
+		for (StarUnit drone : drones.subList(0, Math.min(2, drones.size()))) drone.joinRaid(target, until);
+	}
+
+	/**
+	 * A wave: when a terran base stands within {@link #WAVE_RANGE} and the hive has gathered its wave
+	 * size of warriors, all of them (up to {@link #MAX_WAVE}) go for the base's nearest building; the
+	 * next wave is 3 warriors larger and comes no sooner than 4 minutes later.
+	 */
+	private static boolean attackBase(StarUnit hatchery, ServerLevel level, Hive hive, List<StarUnit> warriors, long now) {
+		if (warriors.size() < hive.waveSize) return false;
+		String dimension = level.dimension().location().toString();
+		Hive base = HiveSavedData.get(level.getServer()).all().stream()
+			.filter(other -> other.race == UnitKind.Race.TERRAN && other.dimension.equals(dimension)
+				&& other.hatchery.distSqr(hatchery.blockPosition()) < (double) WAVE_RANGE * WAVE_RANGE)
+			.min(java.util.Comparator.comparingDouble(other -> other.hatchery.distSqr(hatchery.blockPosition())))
+			.orElse(null);
+		if (base == null) return false;
+		BlockPos target = level.getEntitiesOfClass(StarUnit.class, new AABB(base.hatchery).inflate(64),
+				mob -> base.id.equals(mob.hiveId()) && mob.isAlive() && mob.kind.structure())
+			.stream().min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(hatchery))).map(StarUnit::blockPosition)
+			.orElse(base.hatchery);
+		long until = now + WAVE_LENGTH;
+		for (StarUnit warrior : warriors.subList(0, Math.min(MAX_WAVE, warriors.size()))) warrior.joinRaid(target, until);
+		hive.waveSize = Math.min(MAX_WAVE, hive.waveSize + 3);
+		hive.nextWave = now + WAVE_COOLDOWN;
+		hive.nextRaid = Math.max(hive.nextRaid, now + RAID_COOLDOWN);
+		TerranLogic.tell(level, base, "message.starmine.zerg_attack");
+		return true;
 	}
 
 	/** The hive's warriors within 32 blocks of the alarm and without a target go for the attacker. */
 	public static void alarm(ServerLevel level, java.util.UUID hiveId, Vec3 where, LivingEntity attacker) {
-		for (ZergMob guard : level.getEntitiesOfClass(ZergMob.class, new AABB(where, where).inflate(32),
-			mob -> hiveId.equals(mob.hiveId()) && mob.isAlive() && mob.getTarget() == null && mob.kind != ZergKind.DRONE
-				&& mob.kind.attack != ZergKind.Attack.NONE && !mob.kind.structure()))
+		for (StarUnit guard : level.getEntitiesOfClass(StarUnit.class, new AABB(where, where).inflate(32),
+			mob -> hiveId.equals(mob.hiveId()) && mob.isAlive() && mob.getTarget() == null && mob.kind != UnitKind.DRONE
+				&& mob.kind.attack != UnitKind.Attack.NONE && !mob.kind.structure()))
 			guard.setTarget(attacker);
 	}
 
 	/** Larva to cocoon: pays (unless free), reserves supply, and the cocoon hatches after the SC2 time. */
-	public static void morph(ZergMob larva, ServerLevel level, Hive hive, ZergKind kind, int count, boolean free) {
+	public static void morph(StarUnit larva, ServerLevel level, Hive hive, UnitKind kind, int count, boolean free) {
 		if (!free) hive.pay(kind, count);
 		hive.expect(kind, count);
-		ZergMob egg = spawn(level, hive, ZergKind.EGG, larva.position(), null);
+		StarUnit egg = spawn(level, hive, UnitKind.EGG, larva.position(), null);
 		if (egg != null) egg.becomeCocoon(kind, count, Math.max(20, kind.economy().trainTicks()));
 		larva.discard();
 	}
 
 	/** A cocoon's units are born: they join the hive at the cocoon's place. */
-	public static void hatch(ZergMob egg, ServerLevel level, Hive hive, ZergKind kind, int count) {
+	public static void hatch(StarUnit egg, ServerLevel level, Hive hive, UnitKind kind, int count) {
 		hive.born(kind, count);
 		for (int i = 0; i < count; i++) spawn(level, hive, kind, egg.position().add(level.random.nextGaussian() * 0.3, 0, level.random.nextGaussian() * 0.3), null);
 	}
 
-	public static ZergMob spawn(ServerLevel level, Hive hive, ZergKind kind, Vec3 at, ZergMob unused) {
-		ZergMob mob = StarMine.type(kind).create(level);
+	public static StarUnit spawn(ServerLevel level, Hive hive, UnitKind kind, Vec3 at, StarUnit unused) {
+		StarUnit mob = StarMine.type(kind).create(level);
 		if (mob == null) return null;
 		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
 		mob.joinHive(hive);
@@ -324,8 +356,8 @@ public final class HiveLogic {
 	}
 
 	/** A nest dweller of a hall (not counted in the hive); `hive` may be gone, then it is on its own. */
-	public static ZergMob spawnNest(ServerLevel level, Hive hive, ZergKind kind, Vec3 at, BlockPos hall) {
-		ZergMob mob = StarMine.type(kind).create(level);
+	public static StarUnit spawnNest(ServerLevel level, Hive hive, UnitKind kind, Vec3 at, BlockPos hall) {
+		StarUnit mob = StarMine.type(kind).create(level);
 		if (mob == null) return null;
 		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
 		mob.makeNest(hall);
@@ -335,7 +367,7 @@ public final class HiveLogic {
 	}
 
 	/** A spot on the ground just outside the hatchery. */
-	private static Vec3 around(ZergMob hatchery, ServerLevel level) {
+	private static Vec3 around(StarUnit hatchery, ServerLevel level) {
 		double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + 1;
 		BlockPos column = BlockPos.containing(hatchery.getX() + Math.cos(angle) * radius, hatchery.getY() + 2, hatchery.getZ() + Math.sin(angle) * radius);
 		BlockPos ground = column;

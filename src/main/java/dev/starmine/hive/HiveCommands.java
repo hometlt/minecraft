@@ -3,7 +3,7 @@ package dev.starmine.hive;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import dev.starmine.entity.ZergKind;
+import dev.starmine.entity.UnitKind;
 import java.util.Comparator;
 import java.util.Map;
 import net.minecraft.commands.CommandSourceStack;
@@ -58,9 +58,9 @@ public final class HiveCommands {
 			return 0;
 		}
 		StringBuilder members = new StringBuilder();
-		for (Map.Entry<ZergKind, Integer> entry : hive.members.entrySet()) members.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
+		for (Map.Entry<UnitKind, Integer> entry : hive.members.entrySet()) members.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
 		StringBuilder pending = new StringBuilder();
-		for (Map.Entry<ZergKind, Integer> entry : hive.pending.entrySet()) pending.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
+		for (Map.Entry<UnitKind, Integer> entry : hive.pending.entrySet()) pending.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
 		String text = "Hive " + hive.hatchery.toShortString() + ": minerals " + hive.minerals + ", vespene " + hive.vespene
 			+ ", diamonds " + hive.diamonds + ", supply " + hive.supplyUsed() + "/" + hive.supplyCap()
 			+ ", larva in " + (HiveLogic.LARVA_TICKS - hive.larvaTimer) / 20 + " s\n members:" + members + "\n in cocoons:" + pending

@@ -15,12 +15,25 @@ import net.minecraft.util.Mth;
 public final class SkinnedModelDrawer {
 	private float[] skinned = new float[0], skinnedNormals = new float[0];
 
+	private int color = 0xFFFFFFFF;
+
 	/** Draws the last skinned pose. */
 	public void draw(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay) {
+		color = 0xFFFFFFFF;
 		for (SkinnedModel.Part part : model.parts) {
 			VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(StarMine.id("textures/entity/sc2/" + part.texture() + ".png")));
 			drawPart(model, part, pose, consumer, light, overlay);
 		}
+	}
+
+	/** Draws the last skinned pose see-through and tinted by `argb` (a building being placed). */
+	public void drawTranslucent(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay, int argb) {
+		color = argb;
+		for (SkinnedModel.Part part : model.parts) {
+			VertexConsumer consumer = buffers.getBuffer(RenderType.entityTranslucent(StarMine.id("textures/entity/sc2/" + part.texture() + ".png")));
+			drawPart(model, part, pose, consumer, light, overlay);
+		}
+		color = 0xFFFFFFFF;
 	}
 
 	/** Deforms the model by `palette` (linear-blend skinning) into this drawer's buffers. */
@@ -74,7 +87,7 @@ public final class SkinnedModelDrawer {
 
 	private void vertex(SkinnedModel model, PoseStack.Pose pose, VertexConsumer consumer, int v, int light, int overlay) {
 		consumer.addVertex(pose, skinned[v * 3], skinned[v * 3 + 1], skinned[v * 3 + 2])
-			.setColor(255, 255, 255, 255)
+			.setColor(color)
 			.setUv(model.uvs[v * 2], model.uvs[v * 2 + 1])
 			.setOverlay(overlay)
 			.setLight(light)
