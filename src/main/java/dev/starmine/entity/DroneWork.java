@@ -662,10 +662,18 @@ final class DroneWork extends Goal {
 		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) drone.cancelBuild();
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
 		} else if (move == Move.FAILED || stateTicks > 1200) {
-			drone.cancelBuild();
+			giveUp(kind, site, move == Move.FAILED ? "no way there" : "too long on the way");
 		}
+	}
+
+	private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("StarMine/build");
+
+	/** The build order is given up (logged: a wild base's AI then orders it again elsewhere). */
+	private void giveUp(UnitKind kind, BlockPos site, String why) {
+		LOG.info("A {} gave up building a {} at {} ({}); it stood at {}", drone.kind.id, kind.id, site.toShortString(), why, drone.blockPosition().toShortString());
+		drone.cancelBuild();
 	}
 
 	/**
@@ -693,9 +701,9 @@ final class DroneWork extends Goal {
 		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) drone.cancelBuild();
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
 		} else if (move == Move.FAILED || stateTicks > 1200) {
-			drone.cancelBuild();
+			giveUp(kind, site, move == Move.FAILED ? "no way there" : "too long on the way");
 		}
 	}
 

@@ -83,4 +83,11 @@ public interface RaceRules {
 		return true;
 	}
 
+	/**
+	 * A wild base's AI looks after its buildings under construction (terran: one an SCV left — called
+	 * off, killed — gets a free SCV, as in SC2 any SCV may go on with it). Nothing for the other races:
+	 * their buildings build themselves.
+	 */
+	default void tendConstruction(StarUnit main, ServerLevel level, Hive base) {
+	}
 }

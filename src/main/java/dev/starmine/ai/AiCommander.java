@@ -56,6 +56,7 @@ public final class AiCommander {
 
 	public static void decide(StarUnit main, ServerLevel level, Hive base) {
 		RaceRules rules = base.race.rules();
+		rules.tendConstruction(main, level, base);
 		orderGas(main, level, base, rules);
 		orderBuilding(main, level, base, rules);
 		research(level, base);
@@ -80,7 +81,8 @@ public final class AiCommander {
 		}
 		if (base.unlocked(UnitKind.QUEEN) && rules.race() == UnitKind.Race.ZERG && base.count(UnitKind.QUEEN) + base.pending(UnitKind.QUEEN) == 0
 			&& base.canAfford(UnitKind.QUEEN, 1) && train(main, level, base, UnitKind.QUEEN, 1, false)) return;
-		if (workers < Math.min(MAX_WORKERS, 2 + base.mineralsCollected / 200) && base.canAfford(worker, 1)) {
+		// at least 4 (a base builds only with 4 workers: a fresh zerg hive with 2 drones and no ore near waited for ever)
+		if (workers < Math.min(MAX_WORKERS, Math.max(4, 2 + base.mineralsCollected / 200)) && base.canAfford(worker, 1)) {
 			train(main, level, base, worker, 1, false);
 			return;
 		}

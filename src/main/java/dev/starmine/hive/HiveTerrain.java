@@ -58,14 +58,19 @@ public final class HiveTerrain {
 	private HiveTerrain() {
 	}
 
-	/** Lays the foundation under a building standing at `feet` (its ground cell). */
+	/**
+	 * Lays the foundation under a building standing at `feet` (its ground cell); a vespene vein and its
+	 * outlet stay (a spine crawler put down by a vent buried it under thick creep, and the hive never got
+	 * its extractor).
+	 */
 	public static void lay(ServerLevel level, BlockPos feet, int halfSize) {
 		for (int dx = -halfSize; dx <= halfSize; dx++)
 			for (int dz = -halfSize; dz <= halfSize; dz++)
 				for (int dy = 1; dy <= 2; dy++) {
 					BlockPos pos = feet.offset(dx, -dy, dz);
 					BlockState state = level.getBlockState(pos);
-					if (state.is(Blocks.BEDROCK) || level.getBlockEntity(pos) != null) continue;
+					if (state.is(Blocks.BEDROCK) || level.getBlockEntity(pos) != null || state.getBlock() instanceof dev.starmine.vespene.VespeneBlock
+						|| dev.starmine.vespene.Vespene.isOutlet(state)) continue;
 					level.setBlockAndUpdate(pos, StarMineBlocks.THICK_CREEP.defaultBlockState());
 				}
 	}

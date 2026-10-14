@@ -153,6 +153,25 @@ public final class TerranRace implements RaceRules {
 		return kind == MARAUDER || kind == GHOST || kind == SIEGE_TANK || kind == THOR || kind == BANSHEE || kind == BATTLECRUISER;
 	}
 
+	/**
+	 * A building of the base under construction that no SCV builds gets the nearest free SCV (it went
+	 * on without one forever: the wild base's barracks stood unfinished while the AI waited for it).
+	 */
+	@Override
+	public void tendConstruction(StarUnit main, ServerLevel level, Hive base) {
+		net.minecraft.world.phys.AABB around = main.getBoundingBox().inflate(48);
+		List<StarUnit> scvs = level.getEntitiesOfClass(StarUnit.class, around, unit -> unit.kind == SCV && unit.isAlive() && base.id.equals(unit.hiveId()));
+		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, around, unit -> unit.kind.building() && unit.isAlive()
+				&& unit.underConstruction() && base.id.equals(unit.hiveId()))) {
+			if (scvs.stream().anyMatch(scv -> building.getUUID().equals(scv.constructing()))) continue;
+			scvs.stream().filter(scv -> scv.buildKind() == null && scv.constructing() == null && scv.raidTarget() == null && scv.cargoBlocks == 0)
+				.min(java.util.Comparator.comparingDouble(scv -> scv.distanceToSqr(building))).ifPresent(scv -> {
+					scv.orderBuild(building.kind, building.blockPosition());
+					scv.setConstructing(building.getUUID());
+				});
+		}
+	}
+
 	/** The SCV places the building and then builds it: it grows only while the SCV stays ({@link StarUnit#setConstructing}). */
 	@Override
 	public @Nullable StarUnit placeBuilding(StarUnit worker, ServerLevel level, Hive base, UnitKind kind, BlockPos site) {

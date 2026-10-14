@@ -96,13 +96,43 @@ public class RaceGameTests implements FabricGameTest {
 			// the AI picks its warriors at random among what its tech allows: any warrior of the race counts
 			helper.succeedWhen(() -> helper.assertTrue(base.count(building) > 0 && base.members.keySet().stream().anyMatch(kind -> kind == warrior
 					|| kind.race == warrior.race && kind.aggressive && !kind.worker() && !kind.structure()),
-				"the AI has " + base.members + " pending " + base.pending + " order " + base.buildOrder + " minerals " + base.minerals));
+				"the AI has " + base.members + " pending " + base.pending + " order " + base.buildOrder + " minerals " + base.minerals + " workers "
+					+ helper.getLevel().getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(main.blockPosition()).inflate(48),
+						unit -> unit.kind.worker()).stream().map(unit -> unit.kind.id + " " + helper.relativePos(unit.blockPosition()).toShortString()
+						+ " build " + unit.buildKind() + " at " + (unit.buildSite() == null ? null : helper.relativePos(unit.buildSite()).toShortString())
+						+ " " + unit.goalsRunning()).toList()));
 		});
 	}
 
 	@GameTest(template = ARENA, batch = "wildTerran", timeoutTicks = 4800)
 	public void wildTerranBaseTrainsMarines(GameTestHelper helper) {
 		wildBaseGrows(helper, UnitKind.COMMAND_CENTER, UnitKind.BARRACKS, UnitKind.MARINE);
+	}
+
+	/** A wild terran base sends a free SCV to a building its builder left unfinished (it stood so forever). */
+	@GameTest(template = ARENA, batch = "wildTerranResume", timeoutTicks = 200)
+	public void wildTerranBaseFinishesALeftBuilding(GameTestHelper helper) {
+		arena(helper);
+		StarUnit main = StarMine.type(UnitKind.COMMAND_CENTER).create(helper.getLevel());
+		Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(24, 2, 24)));
+		main.moveTo(at.x, at.y, at.z, 0, 0);
+		helper.getLevel().addFreshEntity(main);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, main);
+			helper.assertTrue(base != null && base.owner == null, "no wild base");
+			base.minerals = 1000;
+			ServerLevel level = helper.getLevel();
+			StarUnit builder = level.getEntitiesOfClass(StarUnit.class, main.getBoundingBox().inflate(32), unit -> unit.kind == UnitKind.SCV).stream()
+				.findFirst().orElse(null);
+			helper.assertTrue(builder != null, "the base has no SCV");
+			StarUnit depot = dev.starmine.race.Placement.put(builder, level, base, UnitKind.SUPPLY_DEPOT, helper.absolutePos(new BlockPos(36, 2, 24)));
+			helper.assertTrue(depot != null && depot.underConstruction(), "no depot under construction");
+			builder.command(StarUnit.Order.NONE, null); // called off: nobody builds it now
+			base.race.rules().tendConstruction(main, level, base);
+			helper.assertTrue(level.getEntitiesOfClass(StarUnit.class, main.getBoundingBox().inflate(48),
+				unit -> unit.kind == UnitKind.SCV && depot.getUUID().equals(unit.constructing())).size() == 1, "no SCV went on with the depot");
+			helper.succeed();
+		});
 	}
 
 	@GameTest(template = ARENA, batch = "wildProtoss", timeoutTicks = 4800)
