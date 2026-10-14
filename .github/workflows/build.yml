@@ -16,14 +16,14 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25 # Loom 1.18 runs on Java 25; the mod is still compiled for Java 21 (release 21)
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile (common and client)
         run: |
           chmod +x gradlew
-          ./gradlew compileJava compileClientJava --stacktrace
+          ./gradlew compileJava compileClientJava 
       - name: Game tests
-        run: ./gradlew runGametest --stacktrace
+        run: ./gradlew runGametest 
       - name: Test report
         if: always()
         run: |
