@@ -197,6 +197,37 @@ public class DroneGameTests implements FabricGameTest {
 			new net.minecraft.world.phys.AABB(helper.absolutePos(BlockPos.ZERO)).inflate(48), mob -> mob.kind == UnitKind.SPAWNING_POOL).isEmpty(), "no spawning pool yet"));
 	}
 
+	/** Owner 14.10: a zerg wave sent into a closed stone room waits while the hive's drones cut it a way. */
+	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hiveEngineering")
+	public void dronesCutAWayForAWave(GameTestHelper helper) {
+		hiveArena(helper);
+		ServerLevel level = helper.getLevel();
+		for (BlockPos rel : BlockPos.betweenClosed(30, 2, 18, 45, 11, 34)) {
+			boolean inside = rel.getX() >= 32 && rel.getX() <= 43 && rel.getZ() >= 20 && rel.getZ() <= 32;
+			if (!inside) level.setBlock(helper.absolutePos(rel), Blocks.STONE.defaultBlockState(), 2);
+		}
+		StarUnit hatchery = helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(10, 2, 10));
+		helper.runAfterDelay(5, () -> {
+			Hive hive = HiveSavedData.get(level.getServer()).get(hatchery.getUUID());
+			helper.assertTrue(hive != null, "no hive");
+			hive.minerals = 500;
+			for (int i = 0; i < 3; i++) helper.spawn(StarMine.type(UnitKind.DRONE), new BlockPos(20 + 3 * i, 2, 24)).joinHive(hive);
+			List<StarUnit> wave = new java.util.ArrayList<>();
+			for (int i = 0; i < 2; i++) {
+				StarUnit ling = helper.spawn(StarMine.type(UnitKind.ZERGLING), new BlockPos(22 + 2 * i, 2, 28));
+				ling.joinHive(hive);
+				wave.add(ling);
+			}
+			BlockPos target = helper.absolutePos(new BlockPos(38, 2, 26));
+			helper.runAfterDelay(5, () -> {
+				java.util.Set<java.util.UUID> taken = dev.starmine.colony.Engineering.raid(level, hive, wave, target, level.getGameTime() + 6000);
+				helper.assertTrue(!taken.isEmpty(), "the wave was not given a way to cut");
+				helper.succeedWhen(() -> helper.assertTrue(wave.stream().anyMatch(ling -> ling.position().distanceTo(Vec3.atBottomCenterOf(target)) < 6),
+					"no zergling got into the room; job " + dev.starmine.colony.Engineering.describe(wave.get(0).getUUID())));
+			});
+		});
+	}
+
 	/** A real hive's drone digs to an iron ore walled in stone and mines it. */
 	@GameTest(template = ARENA, timeoutTicks = 2400, batch = "hiveOre")
 	public void droneMinesOreBehindWall(GameTestHelper helper) {

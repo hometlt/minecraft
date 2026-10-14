@@ -62,7 +62,7 @@ import dev.starmine.vespene.VespeneBlock;
  * block lines the new cavity. Yields come from `data/starmine/hive/resources.json`; with
  * `starmineHiveGriefing` off drones do not dig. Ores are claimed per drone.
  *
- * - ENGINEER (an SCV hired by {@link Engineering}): breaks and bridges the blocks of an army's way, the
+ * - ENGINEER (an SCV or a drone hired by {@link Engineering}): breaks and bridges the blocks of an army's way, the
  *   nearest unfinished ones first; a bridge stone comes from its fill, else costs the base a mineral.
  *
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
@@ -191,7 +191,7 @@ final class DroneWork extends Goal {
 			flee(level);
 			return;
 		}
-		if (terran() && Engineering.engaged(drone)) {
+		if (Engineering.engaged(drone)) {
 			if (state != State.ENGINEER) to(State.ENGINEER);
 		} else if (state == State.ENGINEER) {
 			to(State.SEEK);

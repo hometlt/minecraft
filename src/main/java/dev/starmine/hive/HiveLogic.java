@@ -345,7 +345,10 @@ public final class HiveLogic {
 			.stream().min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(hatchery))).map(StarUnit::blockPosition)
 			.orElse(base.hatchery);
 		long until = now + WAVE_LENGTH;
-		for (StarUnit warrior : warriors.subList(0, Math.min(MAX_WAVE, warriors.size()))) warrior.joinRaid(target, until);
+		List<StarUnit> wave = warriors.subList(0, Math.min(MAX_WAVE, warriors.size()));
+		// owner 14.10: a wave that cannot walk there waits while drones cut it a way
+		java.util.Set<java.util.UUID> waiting = dev.starmine.colony.Engineering.raid(level, hive, wave, target, until);
+		for (StarUnit warrior : wave) if (!waiting.contains(warrior.getUUID())) warrior.joinRaid(target, until);
 		hive.waveSize = Math.min(MAX_WAVE, hive.waveSize + 3);
 		hive.nextWave = now + WAVE_COOLDOWN;
 		hive.nextRaid = Math.max(hive.nextRaid, now + RAID_COOLDOWN);

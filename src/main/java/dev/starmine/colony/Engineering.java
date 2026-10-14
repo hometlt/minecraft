@@ -25,8 +25,10 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Ways for an army (owner 14.10): when a player's ground army cannot walk to where it is sent (a wall,
- * a cliff, a river), workers of the base go ahead and cut it a way — a tunnel and stairs as wide and
+ * Ways for an army (owner 14.10): when a ground army cannot walk to where it is sent (a wall, a cliff,
+ * a river), workers of its own race and base or hive go ahead and cut it a way — SCVs for a player's
+ * terran army ({@link #order}), drones for a zerg wave ({@link #raid}); any race whose workers are
+ * {@link UnitKind#worker()} works the same way — a tunnel and stairs as wide and
  * tall as the army's largest ground unit, bridges of stone over gaps (from the workers' fill, else one
  * mineral a block). The way is planned with {@link DronePlanner} for that body, in segments of up to
  * {@link #REACH} blocks. The army waits at the start and moves up a few steps behind the finished part; once the
@@ -53,6 +55,9 @@ public final class Engineering {
 
 	private static final class Job {
 		final UUID base;
+		/** A zerg wave: its warriors are led by their raid target (until `until`), not by orders. */
+		boolean raid;
+		long until;
 		final ResourceKey<Level> dimension;
 		final StarUnit.Order order;
 		final Vec3 goal;
@@ -92,6 +97,10 @@ public final class Engineering {
 	 * base has no free worker): those orders go as usual.
 	 */
 	public static Set<UUID> order(ServerLevel level, Hive base, List<StarUnit> units, StarUnit.Order order, Vec3 goal) {
+		return begin(level, base, units, order, goal, false, 0);
+	}
+
+	private static Set<UUID> begin(ServerLevel level, Hive base, List<StarUnit> units, StarUnit.Order order, Vec3 goal, boolean raid, long until) {
 		for (StarUnit unit : units) release(unit.getUUID());
 		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
 		if (army.isEmpty()) return Set.of();
@@ -105,7 +114,11 @@ public final class Engineering {
 		BlockPos start = DronePlanner.feetOf(lead.position(), body);
 		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, BUDGET, body);
 		if (steps == null || steps.isEmpty()) return Set.of();
+		// nothing to cut on this stretch (the goal was only too far for the game's pathfinder): walk as usual
+		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) return Set.of();
 		Job job = new Job(base.id, level.dimension(), order, goal, arrive, body, start, steps, level.getGameTime());
+		job.raid = raid;
+		job.until = until;
 		hireWorkers(level, job, Vec3.atCenterOf(start));
 		if (job.workers.isEmpty()) {
 			TerranLogic.tell(level, base, "message.starmine.engineering_no_workers");
@@ -209,12 +222,12 @@ public final class Engineering {
 		if (job.done == job.steps.size()) {
 			BlockPos end = job.steps.get(job.steps.size() - 1).feet();
 			if (DronePlanner.centre(end, job.body).distanceTo(job.goal) <= job.arrive + 1 || job.segments >= MAX_SEGMENTS) {
-				for (StarUnit unit : army) unit.command(job.order, job.goal); // the way is open: on with the order
+				for (StarUnit unit : army) send(level, job, unit, job.goal, true); // the way is open: on with the order
 				return false;
 			}
 			List<DronePlanner.Step> next = DronePlanner.plan(level, end, job.goal, job.arrive, null, true, 4096, BUDGET, job.body);
 			if (next == null || next.isEmpty()) {
-				for (StarUnit unit : army) unit.command(job.order, job.goal);
+				for (StarUnit unit : army) send(level, job, unit, job.goal, true);
 				return false;
 			}
 			job.start = end;
@@ -226,7 +239,7 @@ public final class Engineering {
 		if (now - job.lastProgress > STALL_TICKS) {
 			Hive base = HiveSavedData.get(level.getServer()).get(job.base);
 			if (base != null) TerranLogic.tell(level, base, "message.starmine.engineering_stalled");
-			for (StarUnit unit : army) unit.command(StarUnit.Order.NONE, null);
+			for (StarUnit unit : army) if (job.raid) unit.endRaid(); else unit.command(StarUnit.Order.NONE, null);
 			return false;
 		}
 		// the army waits at the end of the finished part
@@ -234,12 +247,30 @@ public final class Engineering {
 		Vec3 wait = DronePlanner.centre(behind <= 0 ? job.start : job.steps.get(behind - 1).feet(), job.body);
 		if (job.waitAt == null || job.waitAt.distanceToSqr(wait) > 0.25) {
 			job.waitAt = wait;
-			StarUnit.Order moving = job.order == StarUnit.Order.MOVE ? StarUnit.Order.MOVE : StarUnit.Order.ATTACK_MOVE;
-			for (StarUnit unit : army) unit.command(moving, wait);
+			for (StarUnit unit : army) send(level, job, unit, wait, false);
 		}
 		job.workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit worker) || !worker.isAlive());
 		if (job.workers.size() < WORKERS) hireWorkers(level, job, wait);
 		return true;
+	}
+
+	/** Sends a unit of the job's army to a point: an order for terrans, the raid target for a zerg wave. */
+	private static void send(ServerLevel level, Job job, StarUnit unit, Vec3 to, boolean last) {
+		if (job.raid) {
+			job.until = Math.max(job.until, level.getGameTime() + 1200); // the wave lasts while its way is cut
+			unit.joinRaid(BlockPos.containing(to), job.until);
+			return;
+		}
+		StarUnit.Order moving = last || job.order == StarUnit.Order.MOVE ? job.order : StarUnit.Order.ATTACK_MOVE;
+		unit.command(moving, to);
+	}
+
+	/**
+	 * A zerg wave sent at a target: the warriors that cannot walk there wait while drones of the hive cut
+	 * the way (an ultralisk's width). Returns the warriors it took; the others raid as usual.
+	 */
+	public static Set<UUID> raid(ServerLevel level, Hive hive, List<StarUnit> warriors, BlockPos target, long until) {
+		return begin(level, hive, warriors, StarUnit.Order.ATTACK_MOVE, Vec3.atBottomCenterOf(target), true, until);
 	}
 
 	private static boolean finished(ServerLevel level, DronePlanner.Step step) {
@@ -251,7 +282,7 @@ public final class Engineering {
 	/** Free workers of the base nearest the work (not building, not on another way). */
 	private static void hireWorkers(ServerLevel level, Job job, Vec3 near) {
 		List<StarUnit> free = level.getEntitiesOfClass(StarUnit.class, new AABB(BlockPos.containing(near)).inflate(96),
-			unit -> unit.kind == UnitKind.SCV && job.base.equals(unit.hiveId()) && unit.isAlive() && unit.buildKind() == null
+			unit -> unit.kind.worker() && job.base.equals(unit.hiveId()) && unit.isAlive() && unit.buildKind() == null && unit.raidTarget() == null
 				&& unit.constructing() == null && !BY_UNIT.containsKey(unit.getUUID()));
 		free.sort(Comparator.comparingDouble(unit -> unit.distanceToSqr(near)));
 		for (StarUnit worker : free) {
