@@ -31,6 +31,7 @@ public class TerranGameTests implements FabricGameTest {
 	/** A command center at the arena's middle; its first tick founds the base (no player near: no owner). */
 	private static StarUnit commandCenter(GameTestHelper helper) {
 		StarUnit cc = StarMine.type(UnitKind.COMMAND_CENTER).create(helper.getLevel());
+		cc.setOwner(java.util.UUID.randomUUID()); // a player's base (each test its own player)
 		Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(24, 2, 24)));
 		cc.moveTo(at.x, at.y, at.z, 0, 0);
 		helper.getLevel().addFreshEntity(cc);

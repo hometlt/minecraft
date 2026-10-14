@@ -39,8 +39,17 @@ public final class HiveLogic {
 	/** Makes a newly placed hatchery a hive, or refuses it when the world already has its maximum. */
 	public static Hive found(StarUnit hatchery, ServerLevel level) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
-		Hive hive = data.get(hatchery.getUUID());
+		Hive hive = hatchery.hiveId() != null ? data.get(hatchery.hiveId()) : data.get(hatchery.getUUID());
 		if (hive != null) return hive;
+		if (hatchery.owner().isPresent()) { // a player's hatchery: their base (dev.starmine.colony.Founding)
+			if (!HiveTerrain.prepare(level, hatchery.blockPosition(), (int) Math.ceil(hatchery.kind.width / 2), (int) Math.ceil(hatchery.kind.height), true)) {
+				for (var player : level.getPlayers(p -> p.distanceToSqr(hatchery) < 64 * 64))
+					player.sendSystemMessage(Component.translatable("message.starmine.site_blocked"));
+				hatchery.discard();
+				return null;
+			}
+			return dev.starmine.colony.Founding.found(hatchery, level);
+		}
 		if (data.full()) {
 			for (var player : level.getPlayers(p -> p.distanceToSqr(hatchery) < 64 * 64))
 				player.sendSystemMessage(Component.translatable("message.starmine.hive_limit", HiveSavedData.MAX_HIVES));
@@ -56,6 +65,8 @@ public final class HiveLogic {
 		}
 		hive = new Hive(hatchery.getUUID(), level.dimension().location().toString(), hatchery.blockPosition());
 		data.add(hive);
+		hatchery.joinHive(hive);
+		hive.join(UnitKind.HATCHERY);
 		return hive;
 	}
 
@@ -63,7 +74,7 @@ public final class HiveLogic {
 		Hive hive = found(hatchery, level);
 		if (hive == null) return;
 		HiveSavedData data = HiveSavedData.get(level.getServer());
-		hive.hatchery = hatchery.blockPosition();
+		if (hive.id.equals(hatchery.getUUID())) hive.hatchery = hatchery.blockPosition(); // the base's first hatchery anchors it
 		if (!hive.foundation) {
 			HiveTerrain.lay(level, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
@@ -76,6 +87,10 @@ public final class HiveLogic {
 		if (hive.queenTicks >= 0 && --hive.queenTicks < 0) {
 			hive.born(UnitKind.QUEEN, 1);
 			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level), null);
+		}
+		if (hive.owner != null) { // a player's hive: the player decides (command view), not the hive's AI
+			data.setDirty();
+			return;
 		}
 		research(level, hive);
 		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
@@ -335,7 +350,7 @@ public final class HiveLogic {
 		if (warriors.size() < hive.waveSize) return false;
 		String dimension = level.dimension().location().toString();
 		Hive base = HiveSavedData.get(level.getServer()).all().stream()
-			.filter(other -> other.race == UnitKind.Race.TERRAN && other.dimension.equals(dimension)
+			.filter(other -> other.owner != null && other.dimension.equals(dimension) // players' bases, any race
 				&& other.hatchery.distSqr(hatchery.blockPosition()) < (double) WAVE_RANGE * WAVE_RANGE)
 			.min(java.util.Comparator.comparingDouble(other -> other.hatchery.distSqr(hatchery.blockPosition())))
 			.orElse(null);

@@ -18,10 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class VillagerZergFearMixin {
 	@Inject(method = "isMatchingEntity", at = @At("HEAD"), cancellable = true)
 	private void starmine$fearZerg(LivingEntity villager, LivingEntity other, CallbackInfoReturnable<Boolean> result) {
-		if (other instanceof StarUnit zerg && zerg.kind.race == UnitKind.Race.ZERG && !zerg.kind.structure()) {
+		if (other instanceof StarUnit zerg && zerg.owner().isEmpty() && zerg.kind.aggressive && !zerg.kind.structure()) { // wild units
 			double reach = zerg.kind == UnitKind.DRONE ? 6 : 12;
 			result.setReturnValue(villager.distanceToSqr(zerg) <= reach * reach);
-		} else if (other instanceof StarUnit terran && terran.kind.race == UnitKind.Race.TERRAN && !terran.kind.structure()
+		} else if (other instanceof StarUnit terran && terran.owner().isPresent() && !terran.kind.structure()
 			&& dev.starmine.colony.TerranLogic.villageHostile(terran)) {
 			result.setReturnValue(villager.distanceToSqr(terran) <= 12 * 12);
 		}

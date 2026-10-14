@@ -46,13 +46,8 @@ final class TerranGoals {
 		if (kind.attack == UnitKind.Attack.NONE) return;
 		targets.addGoal(1, new HurtByTargetGoal(unit).setAlertOthers(StarUnit.class));
 		if (!kind.worker())
-			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false, TerranGoals::foe));
-	}
-
-	/** What terrans shoot unprovoked: zerg and hostile monsters. */
-	static boolean foe(LivingEntity other) {
-		if (other instanceof StarUnit unit) return unit.kind.race != UnitKind.Race.TERRAN;
-		return other instanceof Enemy;
+			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
+				other -> dev.starmine.faction.Faction.hostile(unit, other)));
 	}
 
 	/**

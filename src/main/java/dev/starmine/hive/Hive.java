@@ -23,7 +23,11 @@ public final class Hive {
 
 	public final UUID id;
 	public UnitKind.Race race = UnitKind.Race.ZERG;
-	/** The player who commands a terran base (null: nobody, e.g. in tests). */
+	/**
+	 * The player whose base this is (any races: their resources and supply are shared); null for a wild
+	 * base (a hive or outpost that appeared in the world), which its race's AI runs. `race` is the race
+	 * of the base's first main building.
+	 */
 	public UUID owner;
 	/** What its workers (and its player) brought in, by resource label (wood, iron, ...): the resource panel. */
 	public final Map<String, Integer> collected = new java.util.LinkedHashMap<>();
@@ -117,14 +121,12 @@ public final class Hive {
 		return used;
 	}
 
+	/** Supply of all its providers, whatever their race (hatcheries, overlords, command centers, depots, pylons…). */
 	public int supplyCap() {
-		if (race == UnitKind.Race.TERRAN) {
-			int cap = 0;
-			for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) cap += entry.getKey().economy().supply() * entry.getValue();
-			return Math.min(MAX_SUPPLY, cap);
-		}
-		int cap = UnitKind.HATCHERY.economy().supply();
-		for (UnitKind provider : new UnitKind[] {UnitKind.OVERLORD, UnitKind.OVERSEER}) cap += provider.economy().supply() * count(provider);
+		int cap = 0;
+		for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) cap += entry.getKey().economy().supply() * entry.getValue();
+		// hives saved before their hatchery was counted as a member
+		if (race == UnitKind.Race.ZERG && count(UnitKind.HATCHERY) == 0) cap += UnitKind.HATCHERY.economy().supply();
 		return Math.min(MAX_SUPPLY, cap);
 	}
 

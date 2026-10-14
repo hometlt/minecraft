@@ -244,23 +244,33 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 		if (kind.attack == UnitKind.Attack.NONE) return;
 		this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(StarUnit.class));
-		if (kind.aggressive) {
-			this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
-			this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
-			// owner: zerg are hostile to every creature (animals, villagers, terrans), never to each other
-			this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
-				other -> !sameRace(other) && !(other instanceof Player) && !(other instanceof net.minecraft.world.entity.decoration.ArmorStand)));
-		}
+		// who is a foe: dev.starmine.faction.Faction (wild zerg: every creature; a player's zerg: the wild and monsters)
+		if (kind.aggressive)
+			this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
+				other -> dev.starmine.faction.Faction.hostile(this, other)));
 	}
 
 	@Override
 	public boolean isAlliedTo(Entity other) {
-		return sameRace(other) || super.isAlliedTo(other);
+		return dev.starmine.faction.Faction.allied(this, other) || super.isAlliedTo(other);
 	}
 
-	/** Units of one race never fight each other. */
-	public boolean sameRace(Entity other) {
-		return other instanceof StarUnit unit && unit.kind.race == kind.race;
+	/** Its player (a spawn egg's user, or its base's owner); none for a wild unit. */
+	public void setOwner(@org.jetbrains.annotations.Nullable UUID owner) {
+		this.entityData.set(OWNER, java.util.Optional.ofNullable(owner));
+	}
+
+	/** A unit from a player's spawn egg belongs to that player ({@link dev.starmine.StarSpawnEggItem}). */
+	@Override
+	public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(net.minecraft.world.level.ServerLevelAccessor level,
+			net.minecraft.world.DifficultyInstance difficulty, net.minecraft.world.entity.MobSpawnType type,
+			@org.jetbrains.annotations.Nullable net.minecraft.world.entity.SpawnGroupData data) {
+		Player spawner = dev.starmine.StarSpawnEggItem.spawner();
+		if (type == net.minecraft.world.entity.MobSpawnType.SPAWN_EGG && spawner != null) {
+			setOwner(spawner.getUUID());
+			this.setPersistenceRequired();
+		}
+		return super.finalizeSpawn(level, difficulty, type, data);
 	}
 
 	@Override
@@ -279,7 +289,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (kind == UnitKind.QUEEN && this.tickCount % 200 == 0) transfuse();
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
-		if (kind == UnitKind.COMMAND_CENTER) dev.starmine.colony.TerranLogic.tick(this, server);
+		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
 		if (kind.defender() && constructTicks == 0) crawlerAttack(server);
@@ -345,17 +355,27 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	/**
-	 * A zerg that appears on creep without a hive (a spawn egg) joins the nearest hive of this
-	 * dimension within 64 blocks: drones work for it, warriors guard it.
+	 * A unit that appears without a base joins one: a player's unit the base of its player (wherever it
+	 * is in this dimension); a wild one the nearest wild base of its race within 64 blocks (a zerg only
+	 * on creep). Drones work for it, warriors guard it.
 	 */
 	private void adoptByNearestHive(ServerLevel server) {
-		if (!CreepTouch.onCreep(this)) return;
 		String dimension = server.dimension().location().toString();
 		HiveSavedData data = HiveSavedData.get(server.getServer());
+		UUID player = owner().orElse(null);
+		if (player != null) {
+			Hive base = data.baseOf(player, dimension);
+			if (base != null) {
+				joinHive(base);
+				data.setDirty();
+			}
+			return;
+		}
+		if (kind.race == UnitKind.Race.ZERG && !CreepTouch.onCreep(this)) return;
 		Hive nearest = null;
 		double best = 64 * 64;
 		for (Hive hive : data.all()) {
-			if (!hive.dimension.equals(dimension)) continue;
+			if (!hive.dimension.equals(dimension) || hive.owner != null || hive.race != kind.race) continue;
 			double distance = hive.hatchery.distToCenterSqr(this.position());
 			if (distance < best) {
 				best = distance;
@@ -372,7 +392,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public boolean hurt(DamageSource source, float amount) {
 		boolean hurt = super.hurt(source, amount);
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
-			&& !sameRace(attacker)) {
+			&& !dev.starmine.faction.Faction.allied(this, attacker)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
 			// owner: a drone attacked by someone armed runs to the hatchery or to the hive's warriors
 			if (kind == UnitKind.DRONE && armed(attacker)) {
@@ -446,9 +466,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		double best = kind.range * kind.range;
 		boolean terran = kind.race == UnitKind.Race.TERRAN;
 		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.range),
-			entity -> entity.isAlive() && !sameRace(entity) && !(entity instanceof net.minecraft.world.entity.decoration.ArmorStand)
-				&& !(entity instanceof Player player && (terran || player.isCreative() || player.isSpectator()))
-				&& (!terran || entity instanceof StarUnit || entity instanceof net.minecraft.world.entity.monster.Enemy))) {
+			entity -> dev.starmine.faction.Faction.hostile(this, entity))) {
 			boolean flying = other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
 				|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Blaze
 				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3;
@@ -793,6 +811,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void addAdditionalSaveData(CompoundTag tag) {
 		super.addAdditionalSaveData(tag);
 		if (hiveId != null) tag.putUUID("StarMineHive", hiveId);
+		owner().ifPresent(owner -> tag.putUUID("StarMineOwner", owner));
 		if (nest != null) tag.put("StarMineNest", NbtUtils.writeBlockPos(nest));
 		if (home != null) tag.put("StarMineHome", NbtUtils.writeBlockPos(home));
 		if (raidTarget != null) {
@@ -841,6 +860,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void readAdditionalSaveData(CompoundTag tag) {
 		super.readAdditionalSaveData(tag);
 		if (tag.hasUUID("StarMineHive")) hiveId = tag.getUUID("StarMineHive");
+		if (tag.hasUUID("StarMineOwner")) setOwner(tag.getUUID("StarMineOwner"));
 		nest = NbtUtils.readBlockPos(tag, "StarMineNest").orElse(null);
 		home = NbtUtils.readBlockPos(tag, "StarMineHome").orElse(null);
 		raidTarget = NbtUtils.readBlockPos(tag, "StarMineRaid").orElse(null);
@@ -981,8 +1001,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	private List<LivingEntity> enemiesAround(Vec3 centre, double radius) {
 		return this.level().getEntitiesOfClass(LivingEntity.class, new AABB(centre, centre).inflate(radius),
-			other -> other != this && other.isAlive() && !sameRace(other)
-				&& !(other instanceof Player player && (kind.race == UnitKind.Race.TERRAN || player.isCreative() || player.isSpectator())));
+			other -> other != this && dev.starmine.faction.Faction.hostile(this, other));
 	}
 
 	@Override
@@ -1268,7 +1287,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second). */
 	private void heal(ServerLevel server) {
 		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(6),
-				mob -> mob.isAlive() && mob.kind.biological() && sameRace(mob) && mob.getHealth() < mob.getMaxHealth())
+				mob -> mob.isAlive() && mob.kind.biological() && dev.starmine.faction.Faction.allied(this, mob) && mob.getHealth() < mob.getMaxHealth())
 			.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth()))
 			.ifPresent(mob -> {
 				mob.heal((float) (12.6 * UnitKind.SCALE / 2));

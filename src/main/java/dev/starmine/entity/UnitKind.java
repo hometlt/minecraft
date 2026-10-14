@@ -232,6 +232,14 @@ public enum UnitKind {
 		return this == EXTRACTOR || this == REFINERY;
 	}
 
+	/** The worker of a race (a base's first units); null for a race with none yet. */
+	public static UnitKind workerOf(Race race) {
+		return switch (race) {
+			case ZERG -> DRONE;
+			case TERRAN -> SCV;
+		};
+	}
+
 	/** Workers gather and build: the drone, the SCV. */
 	public boolean worker() {
 		return this == DRONE || this == SCV;

@@ -62,7 +62,7 @@ public final class StarMine implements ModInitializer {
 			KINDS.put(type, kind);
 			SOUNDS.put(kind, new KindSounds(sound(kind.id + ".attack"), sound(kind.id + ".death"), sound(kind.id + ".ambient"), sound(kind.id + ".hurt")));
 			EGGS.put(kind, Registry.register(BuiltInRegistries.ITEM, id(kind.id + "_spawn_egg"),
-				new SpawnEggItem(type, kind.eggBase, kind.eggSpots, new Item.Properties())));
+				new StarSpawnEggItem(type, kind.eggBase, kind.eggSpots, new Item.Properties())));
 		}
 	}
 

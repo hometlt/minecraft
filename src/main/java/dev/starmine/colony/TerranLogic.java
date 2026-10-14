@@ -41,40 +41,6 @@ public final class TerranLogic {
 	private TerranLogic() {
 	}
 
-	/** Ticked by every command center: founds or joins the base. */
-	public static void tick(StarUnit cc, ServerLevel level) {
-		if (cc.hiveId() == null) found(cc, level);
-	}
-
-	private static void found(StarUnit cc, ServerLevel level) {
-		HiveSavedData data = HiveSavedData.get(level.getServer());
-		String dimension = level.dimension().location().toString();
-		Player player = level.getNearestPlayer(cc.getX(), cc.getY(), cc.getZ(), 32, entity -> entity instanceof Player p && !p.isSpectator());
-		Hive base = player == null ? null : data.baseOf(player.getUUID(), dimension);
-		boolean fresh = base == null;
-		if (fresh) {
-			base = new Hive(cc.getUUID(), dimension, cc.blockPosition());
-			base.race = UnitKind.Race.TERRAN;
-			base.owner = player == null ? null : player.getUUID();
-			base.minerals = 50;
-			data.add(base);
-		}
-		cc.joinHive(base);
-		base.join(UnitKind.COMMAND_CENTER);
-		if (fresh) {
-			for (int i = 0; i < 4; i++) {
-				double angle = i * Math.PI / 2 + 0.4, radius = UnitKind.COMMAND_CENTER.width / 2 + 1.5;
-				BlockPos ground = BlockPos.containing(cc.getX() + Math.cos(angle) * radius, cc.getY() + 2, cc.getZ() + Math.sin(angle) * radius);
-				for (int step = 0; step < 6 && level.getBlockState(ground.below()).isAir(); step++) ground = ground.below();
-				HiveLogic.spawn(level, base, UnitKind.SCV, Vec3.atBottomCenterOf(ground), null);
-			}
-			if (player != null) player.sendSystemMessage(Component.translatable("message.starmine.base_founded"));
-		} else if (player != null) {
-			player.sendSystemMessage(Component.translatable("message.starmine.expansion"));
-		}
-		data.setDirty();
-	}
-
 	/**
 	 * An SCV at its site places the building: checks tech and money, levels the site (refused when
 	 * trees, fences or harder blocks are in the way, or another building stands there), pays, and the
@@ -142,7 +108,7 @@ public final class TerranLogic {
 	 */
 	public static boolean onDamage(LivingEntity victim, net.minecraft.world.damagesource.DamageSource source) {
 		if (!(victim instanceof net.minecraft.world.entity.npc.AbstractVillager || victim instanceof net.minecraft.world.entity.animal.IronGolem)) return true;
-		if (!(source.getEntity() instanceof StarUnit terran) || terran.kind.race != UnitKind.Race.TERRAN || !(victim.level() instanceof ServerLevel level)) return true;
+		if (!(source.getEntity() instanceof StarUnit terran) || terran.owner().isEmpty() || !(victim.level() instanceof ServerLevel level)) return true;
 		Hive base = terran.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(terran.hiveId());
 		if (base == null) return true;
 		boolean fresh = level.getGameTime() >= base.villageHostileUntil;
@@ -213,8 +179,9 @@ public final class TerranLogic {
 		if (server.getTickCount() % 200 == 0) {
 			List<Hive> dead = new ArrayList<>();
 			for (Hive hive : data.all())
-				if (hive.race == UnitKind.Race.TERRAN && hive.count(UnitKind.COMMAND_CENTER) == 0 && hive.count(UnitKind.SCV) == 0
-					&& hive.pending(UnitKind.COMMAND_CENTER) == 0) dead.add(hive);
+				if (hive.race != UnitKind.Race.ZERG || hive.owner != null) // wild hives end with their hatchery
+					if (java.util.Arrays.stream(UnitKind.values()).noneMatch(kind -> (kind.main() || kind.worker()) && (hive.count(kind) > 0 || hive.pending(kind) > 0)))
+						dead.add(hive);
 			for (Hive hive : dead) data.remove(hive.id);
 		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
