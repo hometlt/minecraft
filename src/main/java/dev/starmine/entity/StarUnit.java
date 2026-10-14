@@ -44,9 +44,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
@@ -286,6 +284,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
+		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
@@ -401,11 +400,20 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
 		// SC2 has no moment of invulnerability after a hit: every shot of a StarMine weapon or spell counts (a vanilla
 		// mob's or player's own blows keep vanilla's half second)
-		if (source.getEntity() instanceof StarUnit || source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player
-			&& dev.starmine.possess.Possession.piloting(player)) this.invulnerableTime = 0;
+		boolean weapon = source.getEntity() instanceof StarUnit || source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player
+			&& dev.starmine.possess.Possession.piloting(player);
+		if (weapon) this.invulnerableTime = 0;
 		amount = absorbByShield(source, amount);
+		if (weapon && amount > 0) amount = armored(source, amount);
 		boolean hurt;
-		if (amount > 0) hurt = super.hurt(source, amount);
+		if (amount > 0) {
+			steady = weapon;
+			try {
+				hurt = super.hurt(source, amount);
+			} finally {
+				steady = false;
+			}
+		}
 		else { // all taken by the shields: still provoked
 			hurt = !this.isInvulnerableTo(source);
 			if (hurt && source.getEntity() instanceof LivingEntity attacker) this.setLastHurtByMob(attacker);
@@ -1090,6 +1098,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				double dz = target.getZ() - this.getZ();
 				double flat = Math.sqrt(dx * dx + dz * dz);
 				spit.shoot(dx, dy + flat * (kind == UnitKind.BROOD_LORD ? 0.0 : 0.15), dz, 1.4f, 4.0f);
+				spit.aimAt(target);
 				this.level().addFreshEntity(spit);
 			}
 		}
@@ -1412,18 +1421,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.entityData.set(MODE, mode);
 	}
 
-	/** Its weapon and mobility in a mode: the ranged attack goal is rebuilt with the reach and pace, an immobile mode stops it. */
+	/** Its weapon and mobility in a mode (the attack goals read the weapon each tick); an immobile mode stops it. */
 	public void applyWeapon(dev.starmine.ability.Modes.Weapon weapon) {
 		this.weapon = weapon;
-		if (kind.attack != UnitKind.Attack.NONE && kind.attack != UnitKind.Attack.MELEE && kind.attack != UnitKind.Attack.SPLASH
-			&& kind.attack != UnitKind.Attack.EXPLODE) {
-			// a running goal is stopped before it goes: removed while running, it kept its move and look flags
-			// locked for good and the unit never shot or moved after a target again (after a stimpack, a mode change)
-			for (net.minecraft.world.entity.ai.goal.WrappedGoal wrapped : List.copyOf(this.goalSelector.getAvailableGoals()))
-				if (wrapped.getGoal() instanceof net.minecraft.world.entity.ai.goal.RangedAttackGoal && wrapped.isRunning()) wrapped.stop();
-			this.goalSelector.removeAllGoals(goal -> goal instanceof net.minecraft.world.entity.ai.goal.RangedAttackGoal);
-			if (weapon.range() > 0) this.goalSelector.addGoal(2, new UnitGoals.Shoot(this, weapon.interval(), (float) weapon.range()));
-		}
 		double factor = weapon.mobile() ? dev.starmine.ability.Modes.speedFactor(kind, mode()) * dev.starmine.ability.Status.speedFactor(this) : 0;
 		modifier(Attributes.MOVEMENT_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 		modifier(Attributes.FLYING_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
@@ -1437,6 +1437,16 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	private dev.starmine.ability.Modes.Weapon weapon;
+	/** Ticks until its weapon may fire again: the unit's, like SC2's weapon cooldown (not reset by a new target or goal). */
+	private int weaponCooldown;
+
+	public boolean weaponReady() {
+		return weaponCooldown <= 0;
+	}
+
+	public void startCooldown(int ticks) {
+		weaponCooldown = ticks;
+	}
 
 	/** Rebuilds its weapon and speed from its mode and timed states (dev.starmine.ability.Status); not while a mode change is under way. */
 	public void refreshWeapon() {
@@ -1532,6 +1542,56 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	private boolean summoned;
 	private UUID summoner;
+
+	/**
+	 * Vanilla's line of sight, except that a force field stops bodies, not shots (SC2): a sentry's field
+	 * between the armies blinded both for 11 s, its own stalkers behind it most of all.
+	 */
+	@Override
+	public boolean hasLineOfSight(Entity other) {
+		if (other.level() != this.level()) return false;
+		Vec3 from = new Vec3(this.getX(), this.getEyeY(), this.getZ()), to = new Vec3(other.getX(), other.getEyeY(), other.getZ());
+		if (to.distanceTo(from) > 128) return false;
+		for (int field = 0; field < 8; field++) {
+			net.minecraft.world.phys.BlockHitResult hit = this.level().clip(new net.minecraft.world.level.ClipContext(from, to,
+				net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, this));
+			if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS) return true;
+			if (!this.level().getBlockState(hit.getBlockPos()).is(dev.starmine.block.StarMineBlocks.FORCE_FIELD)) return false;
+			// on through the field's block: from where the line leaves it
+			Vec3 out = new AABB(hit.getBlockPos()).clip(to, from).orElse(null);
+			if (out == null) return true; // the target stands in the field's block
+			from = out.add(to.subtract(from).normalize().scale(1e-3));
+		}
+		return false;
+	}
+
+	/**
+	 * SC2 armor: what of a StarMine hit reaches its health loses its armor once per strike of the
+	 * weapon ({@link UnitKind#armor}, {@link UnitKind#strikes}), at least half a hit point a strike left.
+	 * (Without it a marine's 6 hit a zealot's health for 6, not 5, and a zergling's 5 an ultralisk for
+	 * 5, not 3.) Spells count as one strike.
+	 */
+	private float armored(DamageSource source, float amount) {
+		int armor = kind.armor() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0);
+		if (armor <= 0) return amount;
+		UnitKind by = source.getEntity() instanceof StarUnit attacker ? attacker.kind
+			: source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player ? dev.starmine.possess.Pilots.kindOf(player) : null;
+		int strikes = by == null ? 1 : by.strikes();
+		return (float) Math.max(0.5 * strikes * UnitKind.SCALE, amount - armor * strikes * UnitKind.SCALE);
+	}
+
+	/** Set while a StarMine weapon hurts it: {@link #knockback} does nothing then. */
+	private boolean steady;
+
+	/**
+	 * No knockback from StarMine weapons (SC2 has none: a zergling's bites pushed a thor out of its reach
+	 * and every third bite went to catching up); a player's or a vanilla mob's blow still knocks a small
+	 * unit back (its knockback resistance grows with its health).
+	 */
+	@Override
+	public void knockback(double strength, double x, double z) {
+		if (!steady) super.knockback(strength, x, z);
+	}
 
 	/** A lowered supply depot lets the units of its side walk over it. */
 	@Override

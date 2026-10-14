@@ -359,6 +359,30 @@ public enum UnitKind {
 		};
 	}
 
+	/**
+	 * SC2 base armor (before upgrades): taken off every hit that reaches its health, at least 0.5 left
+	 * ({@link StarUnit#hurt}); shields have none. Buildings 1 (a planetary fortress 3 in its mode).
+	 */
+	public int armor() {
+		if (structure()) return 1;
+		return switch (this) {
+			case ROACH, RAVAGER, LURKER, QUEEN, BROOD_LORD, SWARM_HOST, VIPER, OVERSEER,
+				MARAUDER, SIEGE_TANK, THOR, MEDIVAC,
+				ZEALOT, STALKER, SENTRY, ADEPT, DARK_TEMPLAR, IMMORTAL, COLOSSUS, DISRUPTOR -> 1;
+			case CORRUPTOR, ULTRALISK, TEMPEST, CARRIER, MOTHERSHIP -> 2;
+			case BATTLECRUISER -> 3;
+			default -> 0;
+		};
+	}
+
+	/** Strikes in one attack of its weapon (SC2: a zealot's two blades, 8 each, are 16 here): armor counts once per strike. */
+	public int strikes() {
+		return switch (this) {
+			case ZEALOT, REAPER, COLOSSUS, BANSHEE, VIKING, PHOENIX -> 2;
+			default -> 1;
+		};
+	}
+
 	/** SC2 light units. */
 	public boolean light() {
 		return switch (this) {

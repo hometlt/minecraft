@@ -5,9 +5,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Enemy;
@@ -31,24 +29,8 @@ final class UnitGoals {
 		switch (kind.attack) {
 			case NONE -> {
 			}
-			case MELEE, SPLASH, EXPLODE -> goals.addGoal(2, new MeleeAttackGoal(unit, 1.15, false) {
-				@Override
-				protected int getAttackInterval() {
-					return this.adjustedTickDelay(Math.max(4, unit.weapon().interval()));
-				}
-
-				/** Not while it cannot fight (burrowed, lifted, changing its mode…: its weapon is none) or rides a transport. */
-				@Override
-				public boolean canUse() {
-					return armed(unit) && super.canUse();
-				}
-
-				@Override
-				public boolean canContinueToUse() {
-					return armed(unit) && super.canContinueToUse();
-				}
-			});
-			default -> goals.addGoal(2, new Shoot(unit, kind.interval, (float) kind.range));
+			case MELEE, SPLASH, EXPLODE -> goals.addGoal(2, new Strike(unit));
+			default -> goals.addGoal(2, new Shoot(unit));
 		}
 		if (kind.worker()) goals.addGoal(3, new DroneWork(unit));
 		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, kind.race == UnitKind.Race.ZERG ? 24 : 4));
@@ -73,23 +55,127 @@ final class UnitGoals {
 		return unit.weapon().range() > 0 && (!unit.isPassenger() || dev.starmine.ability.Transport.firesFrom(unit.getVehicle()));
 	}
 
-	/** The ranged attack: vanilla's, while the unit is {@link #armed}. */
-	static final class Shoot extends RangedAttackGoal {
+	/**
+	 * The melee attack, SC2's way: walk up until the target is within reach, stand, strike at the
+	 * weapon's period by the unit's own cooldown. (Vanilla's goal waits a second between blows whatever
+	 * the weapon — a zergling bit at half its pace —, strikes a new target at once, and keeps walking
+	 * into its target, so a zergling slid off a thor's side and lost every fourth bite catching up.)
+	 * Not while it cannot fight ({@link #armed}: burrowed, lifted, changing its mode, riding).
+	 */
+	static final class Strike extends Goal {
 		private final StarUnit unit;
+		private LivingEntity target;
+		private int repath;
 
-		Shoot(StarUnit unit, int interval, float range) {
-			super(unit, 1.0, interval, interval + 10, range);
+		Strike(StarUnit unit) {
 			this.unit = unit;
+			this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
 		}
 
 		@Override
 		public boolean canUse() {
-			return armed(unit) && super.canUse();
+			LivingEntity aim = unit.getTarget();
+			if (aim == null || !aim.isAlive() || !armed(unit)) return false;
+			target = aim;
+			return true;
 		}
 
 		@Override
 		public boolean canContinueToUse() {
-			return armed(unit) && super.canContinueToUse();
+			return canUse();
+		}
+
+		@Override
+		public void start() {
+			repath = 0;
+		}
+
+		@Override
+		public void stop() {
+			target = null;
+			unit.getNavigation().stop();
+		}
+
+		@Override
+		public boolean requiresUpdateEveryTick() {
+			return true;
+		}
+
+		@Override
+		public void tick() {
+			if (target == null) return;
+			unit.getLookControl().setLookAt(target, 30.0f, 30.0f);
+			boolean close = unit.isWithinMeleeAttackRange(target);
+			if (close) unit.getNavigation().stop();
+			else if (--repath <= 0) {
+				repath = 4 + unit.getRandom().nextInt(4);
+				unit.getNavigation().moveTo(target, 1.15);
+			}
+			if (close && unit.weaponReady() && unit.getSensing().hasLineOfSight(target)) {
+				unit.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+				unit.doHurtTarget(target);
+				unit.startCooldown(Math.max(4, unit.weapon().interval()));
+			}
+		}
+	}
+
+	/**
+	 * The ranged attack, SC2's way (the balance stand found vanilla's skeleton goal wrong for it on three
+	 * counts): the weapon ({@link StarUnit#weapon}: reach, period; stim, siege…) is read each tick, not
+	 * built into the goal; the cooldown is the unit's own, so a new target or a timed state does not
+	 * start it over (each concussive shell rebuilt a stalker's goal and its 27-tick wait began again — it
+	 * fired a quarter of its shots); the period does not grow with distance (vanilla's skeleton waits up
+	 * to 10 ticks more at its reach: 22 ticks instead of a marine's 12); and it fires only within reach
+	 * (to the target's edge, as SC2 measures it), walking up until then.
+	 */
+	static final class Shoot extends Goal {
+		private final StarUnit unit;
+		private LivingEntity target;
+		private int seeTime;
+
+		Shoot(StarUnit unit) {
+			this.unit = unit;
+			this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
+		}
+
+		@Override
+		public boolean canUse() {
+			LivingEntity aim = unit.getTarget();
+			if (aim == null || !aim.isAlive() || !armed(unit)) return false;
+			target = aim;
+			return true;
+		}
+
+		@Override
+		public boolean canContinueToUse() {
+			return canUse();
+		}
+
+		@Override
+		public void stop() {
+			target = null;
+			seeTime = 0;
+		}
+
+		@Override
+		public boolean requiresUpdateEveryTick() {
+			return true;
+		}
+
+		@Override
+		public void tick() {
+			if (target == null) return;
+			dev.starmine.ability.Modes.Weapon weapon = unit.weapon();
+			double reach = unit.distanceTo(target) - target.getBbWidth() / 2;
+			boolean sees = unit.getSensing().hasLineOfSight(target);
+			seeTime = sees ? seeTime + 1 : 0;
+			if (reach <= weapon.range() && seeTime >= 5 || !weapon.mobile()) unit.getNavigation().stop();
+			else unit.getNavigation().moveTo(target, 1.0);
+			unit.getLookControl().setLookAt(target, 30.0f, 30.0f);
+			if (sees && reach <= weapon.range() && reach >= weapon.minRange() && unit.weaponReady()) {
+				unit.performRangedAttack(target, 1.0f);
+				unit.startCooldown(Math.max(4, weapon.interval()));
+			}
 		}
 	}
 

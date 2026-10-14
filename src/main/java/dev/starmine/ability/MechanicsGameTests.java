@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -136,6 +137,117 @@ public class MechanicsGameTests implements FabricGameTest {
 		zealot.setNoAi(true);
 		helper.succeedWhen(() -> helper.assertTrue(zealot.shield() < zealot.kind.shields || zealot.getHealth() < zealot.getMaxHealth(),
 			"the marines do nothing; targets " + a.getTarget() + " / " + b.getTarget() + " goals " + a.goalsRunning() + " weapon " + a.weapon()));
+	}
+
+	/**
+	 * A hydralisk's spines fly through a zergling of its side in the way and follow a marine walking to
+	 * and fro (SC2 missiles neither stop at allies nor miss).
+	 */
+	@GameTest(template = ARENA, batch = "mechMissile", timeoutTicks = 300)
+	public void zergMissilesPassAlliesAndFollowTheirTarget(GameTestHelper helper) {
+		clear(helper);
+		StarUnit hydralisk = unit(helper, UnitKind.HYDRALISK, 10, 24, null);
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 12.5, 24, null);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 16, 24, UUID.randomUUID());
+		zergling.setNoAi(true);
+		marine.setNoAi(true);
+		marine.setHealth(marine.getMaxHealth());
+		Vec3 home = marine.position();
+		int[] hits = {0};
+		float[] life = {marine.getHealth()};
+		helper.onEachTick(() -> {
+			if (!marine.isAlive()) return;
+			marine.setPos(home.x, home.y, home.z + Math.sin(helper.getTick() / 8.0) * 2); // about a marine's pace
+			if (marine.getHealth() < life[0]) hits[0]++;
+			life[0] = marine.getHealth();
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(zergling.getHealth() == zergling.getMaxHealth(), "the spines hurt a zergling of their side");
+			helper.assertTrue(hits[0] >= 3 || !marine.isAlive(), "the walking marine was hit " + hits[0] + " times");
+		});
+	}
+
+	/** SC2 armor: a hit on health loses the target's armor once per strike (a zealot's blades are two). */
+	@GameTest(template = ARENA, batch = "mechArmor", timeoutTicks = 60)
+	public void armorTakesFromEveryStrike(GameTestHelper helper) {
+		clear(helper);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 5, 10, null), zergling = unit(helper, UnitKind.ZERGLING, 5, 20, null);
+		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 5, 30, UUID.randomUUID());
+		StarUnit armored = unit(helper, UnitKind.ZEALOT, 20, 10, null), ultralisk = unit(helper, UnitKind.ULTRALISK, 20, 22, UUID.randomUUID());
+		StarUnit stalker = unit(helper, UnitKind.STALKER, 20, 36, null);
+		for (StarUnit unit : List.of(marine, zergling, zealot, armored, ultralisk, stalker)) unit.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			armored.setShield(0);
+			stalker.setShield(0);
+			float s = (float) UnitKind.SCALE;
+			check(helper, armored, marine, 6 * s, 5 * s, "a marine's shot on a zealot (armor 1)");
+			check(helper, ultralisk, zergling, 5 * s, 3 * s, "a zergling's bite on an ultralisk (armor 2)");
+			check(helper, stalker, zealot, 16 * s, 14 * s, "a zealot's two blades on a stalker (armor 1)");
+			helper.succeed();
+		});
+	}
+
+	private static void check(GameTestHelper helper, StarUnit target, StarUnit attacker, float hit, float expected, String what) {
+		float before = target.getHealth();
+		target.hurt(attacker.attackSource(), hit);
+		float lost = before - target.getHealth();
+		helper.assertTrue(Math.abs(lost - expected) < 1e-3, what + " took " + lost / UnitKind.SCALE + " (SC2 " + expected / UnitKind.SCALE + ")");
+	}
+
+	/** A zergling bites at its SC2 period (0.497 s, 10 ticks), not at vanilla's one blow a second. */
+	@GameTest(template = ARENA, batch = "mechBite", timeoutTicks = 300)
+	public void aZerglingBitesAtItsPace(GameTestHelper helper) {
+		clear(helper);
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 10, 24, null);
+		StarUnit thor = unit(helper, UnitKind.THOR, 14, 24, null);
+		thor.setNoAi(true);
+		List<Long> hits = new java.util.ArrayList<>();
+		float[] life = {-1};
+		helper.onEachTick(() -> {
+			float now = thor.getHealth();
+			if (life[0] >= 0 && now < life[0]) hits.add(helper.getTick());
+			life[0] = now;
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(hits.size() >= 6, "bites so far " + hits);
+			double gap = (hits.get(hits.size() - 1) - hits.get(1)) / (double) (hits.size() - 2);
+			helper.assertTrue(gap <= UnitKind.ZERGLING.interval + 1.5, "a bite every " + gap + " ticks (" + UnitKind.ZERGLING.interval + " in SC2); bites " + hits);
+		});
+	}
+
+	/** A force field stops bodies, not shots: a marine shoots a zealot through a wall of it. */
+	@GameTest(template = ARENA, batch = "mechFieldSight", timeoutTicks = 200)
+	public void shotsPassAForceField(GameTestHelper helper) {
+		clear(helper);
+		for (BlockPos rel : BlockPos.betweenClosed(13, 2, 1, 13, 4, 46))
+			helper.getLevel().setBlock(helper.absolutePos(rel), dev.starmine.block.StarMineBlocks.FORCE_FIELD.defaultBlockState(), 2);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 24, null);
+		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 16, 24, null);
+		zealot.setNoAi(true);
+		helper.succeedWhen(() -> helper.assertTrue(zealot.shield() < zealot.kind.shields || zealot.getHealth() < zealot.getMaxHealth(),
+			"the marine does not shoot through the force field; sees " + marine.hasLineOfSight(zealot)));
+	}
+
+	/** A marine fires at its SC2 period (0.61 s, 12 ticks) at the edge of its range, not slower the farther its target. */
+	@GameTest(template = ARENA, batch = "mechPace", timeoutTicks = 300)
+	public void aMarineFiresAtItsPaceAtFullRange(GameTestHelper helper) {
+		clear(helper);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 24, null);
+		StarUnit ultralisk = unit(helper, UnitKind.ULTRALISK, 16.3, 24, null);
+		ultralisk.setNoAi(true);
+		List<Long> hits = new java.util.ArrayList<>();
+		float[] life = {-1};
+		helper.onEachTick(() -> {
+			float now = ultralisk.getHealth();
+			if (life[0] >= 0 && now < life[0]) hits.add(helper.getTick());
+			life[0] = now;
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(hits.size() >= 6, "hits so far " + hits + " at " + marine.distanceTo(ultralisk) + " blocks");
+			double gap = (hits.get(hits.size() - 1) - hits.get(1)) / (double) (hits.size() - 2);
+			helper.assertTrue(gap <= UnitKind.MARINE.interval + 1.5, "a shot every " + gap + " ticks (" + UnitKind.MARINE.interval + " in SC2) at "
+				+ marine.distanceTo(ultralisk) + " blocks; hits " + hits);
+		});
 	}
 
 	@GameTest(template = ARENA, batch = "mechGuardian", timeoutTicks = 100)

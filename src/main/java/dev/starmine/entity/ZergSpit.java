@@ -19,9 +19,16 @@ import net.minecraft.world.phys.HitResult;
  * A zerg missile: acid, needle spines, glaives, brood lord eggs. Damage comes from the shooter's
  * kind; the infestor's slows and roots, the brood lord's hatches two broodlings where it lands.
  * Drawn as an item until SC2 missile models are imported.
+ *
+ * Like an SC2 missile it follows its target and flies through the shooter's side: a thrown item with
+ * vanilla's scatter missed a walking target at range and hit the first zerg in front of the shooter
+ * (no damage, gone) — a hydralisk behind its roaches did a quarter of its damage on the balance stand.
+ * A brood lord's egg is lobbed and lands where it falls.
  */
 public class ZergSpit extends ThrowableItemProjectile {
 	private UnitKind kind = UnitKind.ROACH;
+	/** What it flies at (server side, not saved: after a reload it flies on straight). */
+	private @org.jetbrains.annotations.Nullable LivingEntity target;
 
 	public ZergSpit(EntityType<? extends ZergSpit> type, Level level) {
 		super(type, level);
@@ -32,6 +39,30 @@ public class ZergSpit extends ThrowableItemProjectile {
 		this.kind = kind;
 		this.setItem(new ItemStack(kind.missile()));
 		this.setPos(shooter.getX(), shooter.getY(0.6), shooter.getZ());
+	}
+
+	/** Follow this target (not a brood lord's egg). */
+	public void aimAt(LivingEntity target) {
+		if (kind != UnitKind.BROOD_LORD) this.target = target;
+	}
+
+	@Override
+	public void tick() {
+		if (!this.level().isClientSide && target != null) {
+			if (!target.isAlive() || target.level() != this.level()) target = null;
+			else {
+				net.minecraft.world.phys.Vec3 to = target.position().add(0, target.getBbHeight() * 0.5, 0).subtract(this.position());
+				double speed = Math.max(1.0, this.getDeltaMovement().length());
+				if (to.lengthSqr() > 1e-4) this.setDeltaMovement(to.normalize().scale(speed));
+			}
+		}
+		super.tick();
+	}
+
+	/** It flies through the shooter's own side (SC2 missiles do not stop at allies). */
+	@Override
+	protected boolean canHitEntity(net.minecraft.world.entity.Entity entity) {
+		return super.canHitEntity(entity) && !(this.getOwner() != null && dev.starmine.faction.Faction.allied(this.getOwner(), entity));
 	}
 
 	/** Called by the base constructor before {@link #kind} is set: the synced item is set after. */
