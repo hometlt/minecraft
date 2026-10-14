@@ -325,7 +325,7 @@ public final class Possession {
 		}
 	}
 
-	private static void tick(ServerPlayer player, StarUnit puppet) {
+	static void tick(ServerPlayer player, StarUnit puppet) { // package-private: a mock test player is not in the player list
 		ServerLevel level = player.serverLevel();
 		puppet.tickCount++;
 		puppet.setPos(player.getX(), player.getY(), player.getZ());

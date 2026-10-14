@@ -61,6 +61,56 @@ public class PossessionGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * A player in a viking flies; its landing module puts it down and the player walks (no flight) until
+	 * it lifts off again. A transport with a pilot loads nothing: an explicit refusal, not a silent one
+	 * (docs/CLOUD_TASK.md, stage F). A mock player is not in the server's player list, so the test ticks
+	 * its possession itself.
+	 */
+	@GameTest(template = ARENA, batch = "possessionModes", timeoutTicks = 300)
+	public void vikingLandsUnderItsPilot(GameTestHelper helper) {
+		arena(helper);
+		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
+		Vec3 start = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(5, 2, 5)));
+		player.teleportTo(start.x, start.y, start.z);
+		StarUnit viking = unit(helper, UnitKind.VIKING, 20, 24, player.getUUID());
+		StarUnit medivac = unit(helper, UnitKind.MEDIVAC, 30, 24, player.getUUID());
+		Runnable leave = () -> {
+			if (Pilots.kindOf(player) != null) Possession.end(player, false);
+			helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+		};
+		helper.onEachTick(() -> {
+			StarUnit puppet = Possession.puppet(player);
+			if (puppet != null && !player.isRemoved()) Possession.tick(player, puppet);
+		});
+		helper.runAfterDelay(2, () -> {
+			try {
+				helper.assertTrue(Possession.start(player, viking), "no possession of the viking");
+				Possession.tick(player, Possession.puppet(player));
+				helper.assertTrue(player.getAbilities().mayfly, "the player in a flying viking cannot fly");
+				helper.assertTrue(Possession.useModule(player, ModuleItem.of(Ability.VIKING_LAND), InteractionHand.MAIN_HAND), "the landing module failed");
+			} catch (RuntimeException failure) {
+				leave.run();
+				throw failure;
+			}
+		});
+		helper.runAfterDelay(90, () -> {
+			try {
+				StarUnit puppet = Possession.puppet(player);
+				helper.assertTrue(puppet != null && puppet.mode() == dev.starmine.ability.Modes.LANDED, "the viking has not landed");
+				helper.assertTrue(!player.getAbilities().mayfly && !player.getAbilities().flying, "the player still flies in a landed viking");
+				Possession.end(player, false);
+				helper.assertTrue(Possession.start(player, medivac), "no possession of the medivac");
+				helper.assertTrue("message.starmine.pilot_transport".equals(dev.starmine.ability.Abilities.refusal(Possession.puppet(player), Ability.LOAD)),
+					"a medivac with a pilot is not refused loading");
+				helper.assertFalse(Possession.useModule(player, ModuleItem.of(Ability.LOAD), InteractionHand.MAIN_HAND), "a medivac with a pilot loaded");
+			} finally {
+				leave.run();
+			}
+			helper.succeed();
+		});
+	}
+
 	private static void check(GameTestHelper helper, ServerPlayer player, StarUnit marine, StarUnit zergling, Vec3 start) {
 		{
 			helper.assertTrue(Possession.start(player, marine), "no possession");
