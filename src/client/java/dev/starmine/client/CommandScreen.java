@@ -369,12 +369,16 @@ public final class CommandScreen extends Screen {
 				buttons.add(simple(10, "build", 'B', () -> page = Page.BUILD));
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
 			}
-			if (worker == null) { // abilities of the first selected kind (dev.starmine.ability), on the bottom row
-				List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(mobile.get(0).kind);
-				for (int i = 0; i < abilities.size() && i < 5; i++) buttons.add(abilityButton(10 + i, abilities.get(i), mobile));
-			}
+			// abilities of the first selected kind (dev.starmine.ability): the bottom row, a worker's beside its gather keys
+			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(mobile.get(0).kind);
+			int[] slots = worker == null ? new int[] {10, 11, 12, 13} : new int[] {7, 8, 9};
+			for (int i = 0; i < abilities.size() && i < slots.length; i++) buttons.add(abilityButton(slots[i], abilities.get(i), mobile));
+			if (own.size() == 1) // owner 14.10: play as this unit (dev.starmine.possess)
+				buttons.add(new Button(14, Component.translatable("command.starmine.possess"), 'U', null, true,
+					List.of(Component.translatable("command.starmine.possess").append(" (U)"), Component.translatable("command.starmine.possess.tip").withColor(0xFFC0C0C0)),
+					() -> CommandView.send("possess", Vec3.ZERO, -1, null)));
 			// morphs of the first selected kind (a zergling into a baneling…): every selected one of that kind morphs
-			List<UnitKind> morphs = mobile.get(0).kind.trains();
+			List<UnitKind> morphs = worker != null ? List.of() : mobile.get(0).kind.trains();
 			for (int i = 0; i < morphs.size() && i < 3; i++) {
 				UnitKind kind = morphs.get(i);
 				buttons.add(unitButton(7 + i, kind, kind.hotkey(), () -> CommandView.send("train", Vec3.ZERO, -1, kind.name()), true));
@@ -390,6 +394,8 @@ public final class CommandScreen extends Screen {
 		List<Research> researches = Research.of(producer);
 		for (int i = 0; i < researches.size(); i++) buttons.add(research(trains.size() + i, researches.get(i), producer));
 		if (!trains.isEmpty() && producer.structure()) buttons.add(simple(10, "rally", 'Y', () -> targeting = "rally"));
+		List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(producer); // a building's (an orbital, a nexus…)
+		for (int i = 0; i < abilities.size() && i < 3; i++) buttons.add(abilityButton(11 + i, abilities.get(i), own));
 		if (producer.structure())
 			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
 				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null)));

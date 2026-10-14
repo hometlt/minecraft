@@ -182,6 +182,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** Cooldowns, channels, mode changes, unloading (server). */
 	public final dev.starmine.ability.AbilityState abilities = new dev.starmine.ability.AbilityState();
+	/**
+	 * The player who plays as this unit (owner 14.10, dev.starmine.possess.Possession): the unit is then
+	 * out of the world, its data kept here; the player's body moves, fights and is hit for it.
+	 */
+	private net.minecraft.server.level.ServerPlayer pilot;
 
 	public StarUnit(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
@@ -487,7 +492,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (foe == null) return;
 		this.swing(InteractionHand.MAIN_HAND);
 		this.getLookControl().setLookAt(foe);
-		foe.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
+		foe.hurt(attackSource(), (float) (kind.damage + attackBonus()));
 		if (terran) tracer(server, foe);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 1.0f);
 	}
@@ -1001,7 +1006,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		boolean hurt = super.doHurtTarget(target);
 		if (hurt && kind.attack == UnitKind.Attack.SPLASH) {
 			for (LivingEntity other : enemiesAround(target.position(), 2.0))
-				if (other != target) other.hurt(this.damageSources().mobAttack(this), (float) kind.damage * 0.5f);
+				if (other != target) other.hurt(attackSource(), (float) kind.damage * 0.5f);
 		}
 		if (hurt) this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
 		return hurt;
@@ -1011,7 +1016,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private void explode() {
 		this.swing(InteractionHand.MAIN_HAND);
 		for (LivingEntity other : enemiesAround(this.position(), 2.5))
-			other.hurt(this.damageSources().mobAttack(this), (float) kind.damage);
+			other.hurt(attackSource(), (float) kind.damage);
 		if (this.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY() + 0.5, this.getZ(), 40, 1.2, 0.5, 1.2, 0.1);
 		this.kill();
@@ -1028,7 +1033,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
 		if (mode() == dev.starmine.ability.Modes.SIEGED && dev.starmine.ability.Modes.siegeShot(this, target)) return;
 		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED) { // terran shots, protoss beams: hitscan
-			target.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
+			target.hurt(attackSource(), (float) (kind.damage + attackBonus()));
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
 			return;
 		}
@@ -1043,7 +1048,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				for (int i = 0; i < 2; i++) summon(StarMine.type(UnitKind.LOCUST), this.position().add(this.random.nextGaussian(), 0, this.random.nextGaussian()), target);
 			}
 			default -> {
-				ZergSpit spit = new ZergSpit(this.level(), this, kind);
+				ZergSpit spit = new ZergSpit(this.level(), body(), kind);
 				double dx = target.getX() - this.getX();
 				double dy = target.getY(0.4) - spit.getY();
 				double dz = target.getZ() - this.getZ();
@@ -1073,7 +1078,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			if (this.level() instanceof ServerLevel server)
 				server.sendParticles(kind == UnitKind.HELLION ? ParticleTypes.FLAME : ParticleTypes.CRIT, point.x, point.y + 0.3, point.z, 3, 0.2, 0.3, 0.2, 0.05);
 			for (LivingEntity other : enemiesAround(point, 0.6))
-				if (other.invulnerableTime == 0) other.hurt(this.damageSources().mobAttack(this), (float) kind.damage);
+				if (other.invulnerableTime == 0) other.hurt(attackSource(), (float) kind.damage);
 		}
 	}
 
@@ -1356,9 +1361,32 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	private static final ResourceLocation MODE_SPEED = StarMine.id("mode_speed");
 
+	/** The player playing as this unit, or null. */
+	public net.minecraft.server.level.ServerPlayer pilot() {
+		return pilot;
+	}
+
+	public void setPilot(net.minecraft.server.level.ServerPlayer pilot) {
+		this.pilot = pilot;
+	}
+
+	/** What moves and is hit for this unit: its pilot's body when a player plays as it, else the unit itself. */
+	public LivingEntity body() {
+		return pilot != null ? pilot : this;
+	}
+
+	/** The damage its weapons and spells deal: a player's attack when piloted (kills and anger go to the player). */
+	public DamageSource attackSource() {
+		return pilot != null ? this.damageSources().playerAttack(pilot) : this.damageSources().mobAttack(this);
+	}
+
 	/** The ground (feet level) under a point, as flying units and transports see it. */
 	public double groundBelow(double x, double z) {
 		return ZergGoals.ground(this, x, z);
+	}
+
+	public void setShield(float shield) {
+		this.entityData.set(SHIELD, (float) Math.max(0, Math.min(kind.shields, shield)));
 	}
 
 	/** Shields left (health units), for the command view. */

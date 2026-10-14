@@ -71,6 +71,9 @@ public final class Commands {
 					if (why != null) BaseLogic.tell(level, base, why);
 				}
 			}
+			case "possess" -> { // owner 14.10: play as this unit (dev.starmine.possess)
+				if (units.size() == 1) dev.starmine.possess.Possession.start(player, units.get(0));
+			}
 			case "research" -> {
 				boolean started = buildings.stream().anyMatch(building -> building.startResearch(command.arg()));
 				if (!started) BaseLogic.tell(level, base, "message.starmine.cannot_research");

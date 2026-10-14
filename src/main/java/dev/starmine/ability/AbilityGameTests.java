@@ -46,7 +46,7 @@ public class AbilityGameTests implements FabricGameTest {
 		ServerLevel level = helper.getLevel();
 		helper.runAfterDelay(2, () -> {
 			ghost.setEnergy(100);
-			helper.assertTrue(Abilities.cast(ghost, level, Ability.CLOAK, null, null), "the ghost did not cloak");
+			helper.assertTrue(Abilities.cast(ghost, level, Ability.CLOAK, null, null), "the ghost did not cloak: " + Abilities.refusal(ghost, Ability.CLOAK) + " " + ghost.kind + " alive " + ghost.isAlive() + " users " + Ability.CLOAK.users() + " hp " + ghost.getHealth());
 			helper.assertTrue(ghost.cloaked() && ghost.energy() <= 75.1f, "cloak not paid");
 		});
 		helper.runAfterDelay(30, () -> {

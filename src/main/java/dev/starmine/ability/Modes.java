@@ -54,10 +54,10 @@ public final class Modes {
 		Weapon weapon = weapon(unit.kind, unit.mode());
 		if (unit.distanceTo(target) < weapon.minRange()) return true;
 		float damage = (float) (weapon.damage() + unit.attackBonus());
-		target.hurt(unit.damageSources().mobAttack(unit), damage);
+		target.hurt(unit.attackSource(), damage);
 		for (LivingEntity other : unit.level().getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(weapon.splash()),
 			other -> other != target && dev.starmine.faction.Faction.hostile(unit, other)))
-			other.hurt(unit.damageSources().mobAttack(unit), damage * 0.5f);
+			other.hurt(unit.attackSource(), damage * 0.5f);
 		if (unit.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY() + 0.5, target.getZ(), 1, 0, 0, 0, 0);
 		return true;

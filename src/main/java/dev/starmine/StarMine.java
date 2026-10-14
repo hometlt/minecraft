@@ -133,6 +133,7 @@ public final class StarMine implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ability.Delayed::tick);
 		dev.starmine.colony.ColonyNetwork.register();
+		dev.starmine.possess.Possession.register();
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
 			dev.starmine.colony.BaseLogic.onDamage(entity, source));
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.BaseLogic::serverTick);

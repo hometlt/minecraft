@@ -32,16 +32,34 @@ public final class StarMineClient implements ClientModInitializer {
 			(status, context) -> BaseStatusClient.receive(status));
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enterWithPanel(mc);
+			PilotClient.tick(mc);
 			CommandView.tick(mc);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, delta) -> {
 			if (!CommandView.active()) BaseStatusClient.drawPanel(graphics, graphics.guiWidth());
+			PilotClient.drawHud(graphics);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::render);
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			BaseStatusClient.receive(dev.starmine.colony.ColonyNetwork.BaseStatus.NONE);
 			CommandView.exit(mc);
+			PilotClient.clear();
 		});
+		PilotClient.register();
+		// modules (dev.starmine.possess): tinted by the race of their unit
+		java.util.List<net.minecraft.world.item.Item> modules = new java.util.ArrayList<>(java.util.List.of(dev.starmine.possess.ModuleItem.WEAPON,
+			dev.starmine.possess.ModuleItem.WEAPON_UPGRADE, dev.starmine.possess.ModuleItem.ARMOR_UPGRADE));
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) modules.add(dev.starmine.possess.ModuleItem.of(ability));
+		net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry.ITEM.register((stack, tint) -> {
+			UnitKind kind = dev.starmine.possess.ModuleItem.kindOf(stack);
+			UnitKind.Race race = kind != null ? kind.race : stack.getItem() instanceof dev.starmine.possess.ModuleItem module && module.ability != null
+				? module.ability.users().get(0).race : UnitKind.Race.TERRAN;
+			return switch (race) {
+				case ZERG -> 0xFFC070E0;
+				case TERRAN -> 0xFF70B0FF;
+				case PROTOSS -> 0xFFFFD050;
+			};
+		}, modules.toArray(net.minecraft.world.item.Item[]::new));
 		ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new StarMineModels());
 		for (UnitKind kind : UnitKind.values()) EntityRendererRegistry.register(StarMine.type(kind), UnitRenderer::new);
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);

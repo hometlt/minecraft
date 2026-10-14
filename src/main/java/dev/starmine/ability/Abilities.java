@@ -2,6 +2,8 @@ package dev.starmine.ability;
 
 import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.UnitKind;
+import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveSavedData;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.core.particles.ParticleTypes;
@@ -23,6 +25,10 @@ import org.jetbrains.annotations.Nullable;
  * What each ability does is {@link #effect}.
  */
 public final class Abilities {
+	/** Abilities whose effect is written (the others are refused until they are). */
+	static final java.util.Set<Ability> READY = java.util.EnumSet.of(Ability.CLOAK, Ability.SIEGE_MODE, Ability.YAMATO, Ability.TACTICAL_JUMP,
+		Ability.LOAD, Ability.UNLOAD);
+
 	/** SC2 energy regeneration a second (0.7875) per tick. */
 	public static final float ENERGY_PER_TICK = 0.7875f / 20;
 
@@ -32,13 +38,27 @@ public final class Abilities {
 	/** Why `unit` cannot cast `ability` now (a lang key), or null. A toggle that is on can always be turned off. */
 	public static @Nullable String refusal(StarUnit unit, Ability ability) {
 		if (!ability.users().contains(unit.kind) || !unit.isAlive()) return "message.starmine.no_ability";
+		if (!READY.contains(ability)) return "message.starmine.not_yet";
 		if (unit.abilities.changingMode() || unit.abilities.channelling()) return "message.starmine.busy";
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
 		long now = unit.level().getGameTime();
 		if (unit.abilities.cooldownLeft(ability, now) > 0) return "message.starmine.cooldown";
 		if (unit.energy() < ability.energy) return "message.starmine.need_energy";
+		double health = ability.healthCost(unit.kind) * UnitKind.SCALE;
+		if (health > 0 && unit.body().getHealth() <= health) return "message.starmine.need_health";
+		if (ability.minerals > 0 || ability.vespene > 0) {
+			Hive base = base(unit);
+			if (base == null) return "message.starmine.no_base";
+			if (base.minerals < ability.minerals) return "message.starmine.need_minerals";
+			if (base.vespene < ability.vespene) return "message.starmine.need_vespene";
+		}
 		if (ability == Ability.LOAD || ability == Ability.UNLOAD) return Transport.refusal(unit, ability);
 		return null;
+	}
+
+	/** The unit's base, or null. */
+	static @Nullable Hive base(StarUnit unit) {
+		return unit.level() instanceof ServerLevel server && unit.hiveId() != null ? HiveSavedData.get(server.getServer()).get(unit.hiveId()) : null;
 	}
 
 	/** Whether a toggle is on. */
@@ -60,6 +80,14 @@ public final class Abilities {
 		if (!turningOff) {
 			unit.setEnergy(unit.energy() - ability.energy);
 			if (ability.cooldownTicks > 0) unit.abilities.readyAt.put(ability, level.getGameTime() + ability.cooldownTicks);
+			double health = ability.healthCost(unit.kind) * UnitKind.SCALE;
+			if (health > 0) unit.body().setHealth((float) (unit.body().getHealth() - health));
+			Hive base = ability.minerals > 0 || ability.vespene > 0 ? base(unit) : null;
+			if (base != null) {
+				base.minerals -= ability.minerals;
+				base.vespene -= ability.vespene;
+				HiveSavedData.get(level.getServer()).setDirty();
+			}
 		}
 		if (ability.channelTicks > 0) {
 			AbilityState state = unit.abilities;
@@ -90,6 +118,8 @@ public final class Abilities {
 			case TACTICAL_JUMP -> TerranAbilities.tacticalJump(unit, level, point);
 			case LOAD -> Transport.load(unit);
 			case UNLOAD -> Transport.unloadAt(unit, point);
+			default -> {
+			}
 		}
 	}
 

@@ -51,11 +51,11 @@ public final class Cloak {
 		}
 		if (unit.tickCount % 10 != 0) return;
 		List<StarUnit> detectors = level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(16),
-			other -> other.isAlive() && other.kind.detector() && !other.underConstruction() && other.distanceTo(unit) <= other.kind.sight());
+			other -> other.isAlive() && other.kind.detector() && !other.underConstruction() && other.distanceTo(unit.body()) <= other.kind.sight());
 		DETECTORS.put(unit, detectors);
 		unit.setRevealed(detectors.stream().anyMatch(detector -> !Faction.allied(detector, unit)));
 		// whoever hunts it and cannot see it loses it
-		for (Mob hunter : level.getEntitiesOfClass(Mob.class, unit.getBoundingBox().inflate(48), mob -> mob.getTarget() == unit))
+		for (Mob hunter : level.getEntitiesOfClass(Mob.class, unit.getBoundingBox().inflate(48), mob -> mob.getTarget() == unit.body()))
 			if (!seen(unit, hunter)) hunter.setTarget(null);
 	}
 

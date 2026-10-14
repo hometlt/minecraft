@@ -32,17 +32,18 @@ final class TerranAbilities {
 		}
 		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, to.x, to.y, to.z, 1, 0, 0, 0, 0);
 		level.playSound(null, to.x, to.y, to.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2f, 0.7f);
-		target.hurt(unit.damageSources().mobAttack(unit), (float) (YAMATO_DAMAGE * UnitKind.SCALE));
+		target.hurt(unit.attackSource(), (float) (YAMATO_DAMAGE * UnitKind.SCALE));
 	}
 
 	/** After its 4 s warning, the battlecruiser jumps to the point (over the ground there). */
 	static void tacticalJump(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
-		level.sendParticles(ParticleTypes.PORTAL, unit.getX(), unit.getY() + 1, unit.getZ(), 80, 2, 1, 2, 0.5);
+		var body = unit.body();
+		level.sendParticles(ParticleTypes.PORTAL, body.getX(), body.getY() + 1, body.getZ(), 80, 2, 1, 2, 0.5);
 		double ground = unit.groundBelow(point.x, point.z);
-		unit.teleportTo(point.x, ground + unit.kind.hoverHeight(), point.z);
+		body.teleportTo(point.x, ground + unit.kind.hoverHeight(), point.z);
 		unit.getNavigation().stop();
 		unit.command(StarUnit.Order.NONE, null);
-		level.sendParticles(ParticleTypes.REVERSE_PORTAL, unit.getX(), unit.getY() + 1, unit.getZ(), 80, 2, 1, 2, 0.3);
+		level.sendParticles(ParticleTypes.REVERSE_PORTAL, body.getX(), body.getY() + 1, body.getZ(), 80, 2, 1, 2, 0.3);
 	}
 }

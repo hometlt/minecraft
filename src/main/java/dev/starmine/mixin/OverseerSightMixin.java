@@ -18,7 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class OverseerSightMixin {
 	@Inject(method = "getVisibilityPercent", at = @At("HEAD"), cancellable = true)
 	private void starmine$overseerSight(Entity looker, CallbackInfoReturnable<Double> result) {
-		if ((Object) this instanceof StarUnit unit && unit.cloaked() && !dev.starmine.ability.Cloak.seen(unit, looker)) {
+		StarUnit cloaked = (Object) this instanceof StarUnit unit ? unit
+			: (Object) this instanceof net.minecraft.server.level.ServerPlayer pilot ? dev.starmine.possess.Possession.puppet(pilot) : null;
+		if (cloaked != null && cloaked.cloaked() && !dev.starmine.ability.Cloak.seen(cloaked, looker)) {
 			result.setReturnValue(0.0);
 			return;
 		}
