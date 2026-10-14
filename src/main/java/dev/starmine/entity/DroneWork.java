@@ -35,6 +35,7 @@ import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
 import dev.starmine.vespene.Vespene;
+import dev.starmine.colony.Engineering;
 import dev.starmine.vespene.VespeneBlock;
 
 /**
@@ -61,13 +62,16 @@ import dev.starmine.vespene.VespeneBlock;
  * block lines the new cavity. Yields come from `data/starmine/hive/resources.json`; with
  * `starmineHiveGriefing` off drones do not dig. Ores are claimed per drone.
  *
+ * - ENGINEER (an SCV hired by {@link Engineering}): breaks and bridges the blocks of an army's way, the
+ *   nearest unfinished ones first; a bridge stone comes from its fill, else costs the base a mineral.
+ *
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
  * gather at a block, return the cargo; build: to the site, then build until the building is done,
  * {@link dev.starmine.colony.TerranLogic#place}); they bring loads to the nearest command center of their
  * base, dig no hive tunnels, go on no raids and, with nothing in reach, wait instead of exploring far.
  */
 final class DroneWork extends Goal {
-	private enum State { SEEK, GAS, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL }
+	private enum State { SEEK, GAS, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL, ENGINEER }
 
 	/** Owner: a drone marks a group of up to 8 blocks of the resource it goes for; others leave them. */
 	private static final int GROUP = 8;
@@ -187,7 +191,11 @@ final class DroneWork extends Goal {
 			flee(level);
 			return;
 		}
-		if (drone.buildKind() != null) {
+		if (terran() && Engineering.engaged(drone)) {
+			if (state != State.ENGINEER) to(State.ENGINEER);
+		} else if (state == State.ENGINEER) {
+			to(State.SEEK);
+		} else if (drone.buildKind() != null) {
 			if (state != State.BUILD) to(State.BUILD);
 		} else if (drone.raidTarget() != null) {
 			if (state != State.RAID) to(State.RAID);
@@ -205,6 +213,7 @@ final class DroneWork extends Goal {
 			case RAID -> raid(level, griefing);
 			case BUILD -> build(level);
 			case TUNNEL -> tunnel(level, griefing);
+			case ENGINEER -> engineer(level);
 		}
 	}
 
@@ -674,6 +683,45 @@ final class DroneWork extends Goal {
 			if (dev.starmine.colony.TerranLogic.place(drone, level, kind, site) == null) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			drone.cancelBuild();
+		}
+	}
+
+	// ---- ENGINEER ----
+
+	/** One piece of an army's way: walk (digging if needed) within reach, then break or place the block. */
+	private void engineer(ServerLevel level) {
+		if (--seekCooldown > 0) return;
+		Engineering.Task task = Engineering.task(level, drone);
+		if (task == null) {
+			drone.getNavigation().stop();
+			seekCooldown = 10;
+			return;
+		}
+		BlockPos cell = task.cell();
+		boolean near = reach(cell) || drone.position().distanceTo(task.stand()) < 2.0
+			&& drone.getEyePosition().distanceTo(Vec3.atCenterOf(cell)) <= task.reach();
+		if (!near) { // to the open end of the way (digging there itself if it must)
+			if (moveTo(level, task.stand(), 1.2, true) == Move.FAILED) {
+				resetMove();
+				seekCooldown = 20;
+			}
+			return;
+		}
+		drone.getNavigation().stop();
+		drone.getLookControl().setLookAt(Vec3.atCenterOf(cell));
+		if (!task.fill()) {
+			if (DronePlanner.solid(level, cell)) start(level, cell);
+			return;
+		}
+		if (DronePlanner.solid(level, cell)) return;
+		if (!drone.placeFill(cell)) {
+			if (!Engineering.payForBlock(level, drone)) {
+				seekCooldown = 40; // the base cannot pay a stone yet
+				return;
+			}
+			level.setBlockAndUpdate(cell, net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState());
+			drone.swing(InteractionHand.MAIN_HAND);
+			drone.playSound(net.minecraft.sounds.SoundEvents.STONE_PLACE, 1.0f, 1.0f);
 		}
 	}
 

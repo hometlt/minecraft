@@ -1,0 +1,29 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "redstone",
+	"pattern": [
+		"RCR",
+		"CMC",
+		"RCR"
+	],
+	"key": {
+		"R": {
+			"item": "minecraft:repeater"
+		},
+		"C": {
+			"item": "minecraft:comparator"
+		},
+		"M": [
+			{
+				"item": "minecraft:map"
+			},
+			{
+				"item": "minecraft:filled_map"
+			}
+		]
+	},
+	"result": {
+		"id": "starmine:command_panel",
+		"count": 1
+	}
+}

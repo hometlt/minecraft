@@ -1,0 +1,285 @@
+package dev.starmine.colony;
+
+import dev.starmine.entity.DronePlanner;
+import dev.starmine.entity.StarUnit;
+import dev.starmine.entity.UnitKind;
+import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveSavedData;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Ways for an army (owner 14.10): when a player's ground army cannot walk to where it is sent (a wall,
+ * a cliff, a river), workers of the base go ahead and cut it a way — a tunnel and stairs as wide and
+ * tall as the army's largest ground unit, bridges of stone over gaps (from the workers' fill, else one
+ * mineral a block). The way is planned with {@link DronePlanner} for that body, in segments of up to
+ * {@link #REACH} blocks. The army waits at the start and moves up a few steps behind the finished part; once the
+ * way reaches the goal it carries on with its order. A new order to the army, or no progress for
+ * {@link #STALL_TICKS}, ends the work.
+ *
+ * Baritone's ideas (studied, not its code — it is LGPL and drives a player): moves cost the time they
+ * take (walking, breaking by hardness, placing), the search runs over a bounded budget and long ways
+ * are cut into segments planned one after another, fluids are never opened.
+ */
+public final class Engineering {
+	public static final int WORKERS = 3, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400;
+
+	/**
+	 * A worker's next piece of work: a block to break, or one to place (`fill`); `stand` is where it works
+	 * from (the open end of the way before that step) and `reach` how far from there it may work (a big
+	 * body's blocks are farther apart than a worker's arm).
+	 */
+	public record Task(BlockPos cell, boolean fill, Vec3 stand, double reach) {
+	}
+
+	/** The army waits this many steps behind the work, out of the workers' way. */
+	private static final int WAIT_BEHIND = 3;
+
+	private static final class Job {
+		final UUID base;
+		final ResourceKey<Level> dimension;
+		final StarUnit.Order order;
+		final Vec3 goal;
+		final double arrive;
+		final DronePlanner.Body body;
+		final Set<UUID> army = new LinkedHashSet<>(), workers = new LinkedHashSet<>();
+		final Map<BlockPos, UUID> claims = new HashMap<>();
+		List<DronePlanner.Step> steps;
+		BlockPos start;
+		int done = -1, segments = 1, lastWork;
+		long lastProgress;
+		Vec3 waitAt;
+
+		Job(UUID base, ResourceKey<Level> dimension, StarUnit.Order order, Vec3 goal, double arrive, DronePlanner.Body body,
+				BlockPos start, List<DronePlanner.Step> steps, long now) {
+			this.base = base;
+			this.dimension = dimension;
+			this.order = order;
+			this.goal = goal;
+			this.arrive = arrive;
+			this.body = body;
+			this.start = start;
+			this.steps = steps;
+			this.lastProgress = now;
+		}
+	}
+
+	private static final List<Job> JOBS = new ArrayList<>();
+	private static final Map<UUID, Job> BY_UNIT = new HashMap<>();
+
+	private Engineering() {
+	}
+
+	/**
+	 * Takes over an army order when its ground units cannot walk there: plans the way, sends workers.
+	 * Returns the units it took (the ground army), empty when they can walk (or no way is found, or the
+	 * base has no free worker): those orders go as usual.
+	 */
+	public static Set<UUID> order(ServerLevel level, Hive base, List<StarUnit> units, StarUnit.Order order, Vec3 goal) {
+		for (StarUnit unit : units) release(unit.getUUID());
+		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
+		if (army.isEmpty()) return Set.of();
+		StarUnit lead = army.stream().max(Comparator.comparingDouble(unit -> unit.kind.width * unit.kind.modelScale())).orElseThrow();
+		Path path = lead.getNavigation().createPath(BlockPos.containing(goal), 1);
+		if (path != null && path.canReach()) return Set.of();
+		double width = army.stream().mapToDouble(unit -> unit.kind.width * unit.kind.modelScale()).max().orElse(1);
+		double height = army.stream().mapToDouble(unit -> unit.kind.height * unit.kind.modelScale()).max().orElse(2);
+		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
+		double arrive = 2 + body.width() / 2.0;
+		BlockPos start = DronePlanner.feetOf(lead.position(), body);
+		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, BUDGET, body);
+		if (steps == null || steps.isEmpty()) return Set.of();
+		Job job = new Job(base.id, level.dimension(), order, goal, arrive, body, start, steps, level.getGameTime());
+		hireWorkers(level, job, Vec3.atCenterOf(start));
+		if (job.workers.isEmpty()) {
+			TerranLogic.tell(level, base, "message.starmine.engineering_no_workers");
+			return Set.of();
+		}
+		for (StarUnit unit : army) {
+			job.army.add(unit.getUUID());
+			BY_UNIT.put(unit.getUUID(), job);
+		}
+		JOBS.add(job);
+		TerranLogic.tell(level, base, "message.starmine.engineering", job.workers.size(), steps.size());
+		update(level, job);
+		return Set.copyOf(job.army);
+	}
+
+	/** The unit leaves its job (a new order; a worker that died or was given other work). */
+	public static void release(UUID unit) {
+		Job job = BY_UNIT.remove(unit);
+		if (job == null) return;
+		job.army.remove(unit);
+		job.workers.remove(unit);
+		job.claims.values().removeIf(unit::equals);
+	}
+
+	/** Debug: the job of a unit (finished steps, segment, workers), or "none". */
+	public static String describe(UUID unit) {
+		Job job = BY_UNIT.get(unit);
+		return job == null ? "none" : "steps " + job.done + "/" + job.steps.size() + " segment " + job.segments + " workers " + job.workers.size()
+			+ " body " + job.body.width() + "x" + job.body.height() + " wait " + job.waitAt;
+	}
+
+	/** Whether this worker cuts a way for an army. */
+	public static boolean engaged(StarUnit worker) {
+		Job job = BY_UNIT.get(worker.getUUID());
+		return job != null && job.workers.contains(worker.getUUID());
+	}
+
+	/** The next block for this worker: the nearest unclaimed unfinished one of the next few steps; null: nothing now. */
+	public static @Nullable Task task(ServerLevel level, StarUnit worker) {
+		Job job = BY_UNIT.get(worker.getUUID());
+		if (job == null || !job.workers.contains(worker.getUUID()) || job.done < 0) return null;
+		job.claims.values().removeIf(worker.getUUID()::equals);
+		Task best = null;
+		double bestDistance = Double.MAX_VALUE;
+		double reach = Math.max(3.6, job.body.width() + job.body.height() * 0.5 + 1);
+		for (int i = job.done; i < Math.min(job.steps.size(), job.done + 6); i++) {
+			DronePlanner.Step step = job.steps.get(i);
+			Vec3 stand = DronePlanner.centre(i == 0 ? job.start : job.steps.get(i - 1).feet(), job.body);
+			for (BlockPos cell : step.dig())
+				if (DronePlanner.solid(level, cell) && !job.claims.containsKey(cell)) {
+					double d = worker.distanceToSqr(Vec3.atCenterOf(cell)) + (i - job.done) * 16;
+					if (d < bestDistance) {
+						best = new Task(cell, false, stand, reach);
+						bestDistance = d;
+					}
+				}
+			for (BlockPos cell : step.fill())
+				if (!DronePlanner.solid(level, cell) && !job.claims.containsKey(cell)) {
+					double d = worker.distanceToSqr(Vec3.atCenterOf(cell)) + (i - job.done) * 16;
+					if (d < bestDistance) {
+						best = new Task(cell, true, stand, reach);
+						bestDistance = d;
+					}
+				}
+		}
+		if (best != null) job.claims.put(best.cell(), worker.getUUID());
+		return best;
+	}
+
+	/** A stone for a bridge when the worker carries none: one mineral of its base. */
+	public static boolean payForBlock(ServerLevel level, StarUnit worker) {
+		Hive base = worker.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(worker.hiveId());
+		if (base == null || base.minerals < 1) return false;
+		base.minerals--;
+		HiveSavedData.get(level.getServer()).setDirty();
+		return true;
+	}
+
+	/** Every 10 ticks: progress of each job, where its army waits, its workers. */
+	public static void serverTick(MinecraftServer server) {
+		if (server.getTickCount() % 10 != 0) return;
+		for (Iterator<Job> it = JOBS.iterator(); it.hasNext(); ) {
+			Job job = it.next();
+			ServerLevel level = server.getLevel(job.dimension);
+			if (level == null || job.army.isEmpty() || !update(level, job)) {
+				finish(job);
+				it.remove();
+			}
+		}
+	}
+
+	/** False when the job is over (done, given up, or its army is gone). */
+	private static boolean update(ServerLevel level, Job job) {
+		List<StarUnit> army = alive(level, job.army);
+		if (army.isEmpty()) return false;
+		int before = job.done;
+		if (job.done < 0) job.done = 0;
+		while (job.done < job.steps.size() && finished(level, job.steps.get(job.done))) job.done++;
+		long now = level.getGameTime();
+		if (job.done != before) job.lastProgress = now;
+		if (job.done == job.steps.size()) {
+			BlockPos end = job.steps.get(job.steps.size() - 1).feet();
+			if (DronePlanner.centre(end, job.body).distanceTo(job.goal) <= job.arrive + 1 || job.segments >= MAX_SEGMENTS) {
+				for (StarUnit unit : army) unit.command(job.order, job.goal); // the way is open: on with the order
+				return false;
+			}
+			List<DronePlanner.Step> next = DronePlanner.plan(level, end, job.goal, job.arrive, null, true, 4096, BUDGET, job.body);
+			if (next == null || next.isEmpty()) {
+				for (StarUnit unit : army) unit.command(job.order, job.goal);
+				return false;
+			}
+			job.start = end;
+			job.steps = next;
+			job.done = 0;
+			job.segments++;
+			job.lastProgress = now;
+		}
+		if (now - job.lastProgress > STALL_TICKS) {
+			Hive base = HiveSavedData.get(level.getServer()).get(job.base);
+			if (base != null) TerranLogic.tell(level, base, "message.starmine.engineering_stalled");
+			for (StarUnit unit : army) unit.command(StarUnit.Order.NONE, null);
+			return false;
+		}
+		// the army waits at the end of the finished part
+		int behind = job.done - WAIT_BEHIND;
+		Vec3 wait = DronePlanner.centre(behind <= 0 ? job.start : job.steps.get(behind - 1).feet(), job.body);
+		if (job.waitAt == null || job.waitAt.distanceToSqr(wait) > 0.25) {
+			job.waitAt = wait;
+			StarUnit.Order moving = job.order == StarUnit.Order.MOVE ? StarUnit.Order.MOVE : StarUnit.Order.ATTACK_MOVE;
+			for (StarUnit unit : army) unit.command(moving, wait);
+		}
+		job.workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit worker) || !worker.isAlive());
+		if (job.workers.size() < WORKERS) hireWorkers(level, job, wait);
+		return true;
+	}
+
+	private static boolean finished(ServerLevel level, DronePlanner.Step step) {
+		for (BlockPos cell : step.dig()) if (DronePlanner.solid(level, cell)) return false;
+		for (BlockPos cell : step.fill()) if (!DronePlanner.solid(level, cell)) return false;
+		return true;
+	}
+
+	/** Free workers of the base nearest the work (not building, not on another way). */
+	private static void hireWorkers(ServerLevel level, Job job, Vec3 near) {
+		List<StarUnit> free = level.getEntitiesOfClass(StarUnit.class, new AABB(BlockPos.containing(near)).inflate(96),
+			unit -> unit.kind == UnitKind.SCV && job.base.equals(unit.hiveId()) && unit.isAlive() && unit.buildKind() == null
+				&& unit.constructing() == null && !BY_UNIT.containsKey(unit.getUUID()));
+		free.sort(Comparator.comparingDouble(unit -> unit.distanceToSqr(near)));
+		for (StarUnit worker : free) {
+			if (job.workers.size() >= WORKERS) break;
+			worker.command(StarUnit.Order.NONE, null);
+			job.workers.add(worker.getUUID());
+			BY_UNIT.put(worker.getUUID(), job);
+		}
+	}
+
+	private static List<StarUnit> alive(ServerLevel level, Set<UUID> ids) {
+		List<StarUnit> units = new ArrayList<>();
+		for (Iterator<UUID> it = ids.iterator(); it.hasNext(); ) {
+			UUID id = it.next();
+			if (level.getEntity(id) instanceof StarUnit unit && unit.isAlive()) units.add(unit);
+			else {
+				it.remove();
+				BY_UNIT.remove(id);
+			}
+		}
+		return units;
+	}
+
+	private static void finish(Job job) {
+		for (UUID id : job.army) BY_UNIT.remove(id, job);
+		for (UUID id : job.workers) BY_UNIT.remove(id, job);
+		job.army.clear();
+		job.workers.clear();
+		job.claims.clear();
+	}
+}

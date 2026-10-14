@@ -41,8 +41,9 @@ import org.joml.Vector3f;
  *
  * - Camera: a client-only marker entity the game renders from (the player's body stays where it is,
  *   so chunks around it stay loaded); it looks down at a point on the ground, from {@link #distance}
- *   at {@link #PITCH}, turned by {@link #yaw}; WASD, arrows and the screen edges move the point, the
- *   wheel zooms, Q/E or the middle button turn. It stays within {@link #REACH} of the player.
+ *   at {@link #PITCH}, as in Reign of Nether (owner 14.10): a fixed isometric view along a diagonal,
+ *   Q/E turn it by a quarter ({@link #rotate}); WASD, arrows, the screen edges and the minimap
+ *   ({@link CommandMinimap}) move the point, the wheel zooms. It stays within {@link #REACH} of the player.
  * - Fog of war: only what the base's units and buildings and the player's body see is shown
  *   ({@link #visible}); other entities are not drawn ({@link dev.starmine.mixin.client.HideInFogMixin})
  *   and the ground is fogged: clear in sight, dimmed where seen before, dark where never seen ({@link #drawFog}).
@@ -51,7 +52,9 @@ import org.joml.Vector3f;
  *   good ({@link HiveTerrain#prepare} check, no building in the way), red when not.
  */
 public final class CommandView {
-	public static final double PITCH = 55, REACH = 120, PLAYER_SIGHT = 24;
+	public static final double PITCH = 60, REACH = 120, PLAYER_SIGHT = 24;
+	/** The isometric yaw the view turns to (45 degrees plus quarters). */
+	static double targetYaw = 45;
 	static boolean active;
 	private static Marker camera;
 	private static CameraType savedCameraType;
@@ -74,6 +77,16 @@ public final class CommandView {
 		return active;
 	}
 
+	/** The command key: the view opens only while the player carries a command panel (owner 14.10). */
+	static void enterWithPanel(Minecraft mc) {
+		if (mc.player == null) return;
+		if (!dev.starmine.colony.CommandPanel.carried(mc.player)) {
+			mc.player.displayClientMessage(Component.translatable("message.starmine.need_panel"), true);
+			return;
+		}
+		enter(mc);
+	}
+
 	/** Enters the view (the player must have a base in this dimension). */
 	static void enter(Minecraft mc) {
 		if (mc.player == null || mc.level == null) return;
@@ -84,7 +97,7 @@ public final class CommandView {
 		camera = new Marker(EntityType.MARKER, mc.level);
 		targetX = mc.player.getX();
 		targetZ = mc.player.getZ();
-		yaw = mc.player.getYRot();
+		yaw = targetYaw = 45 + 90 * Math.round((mc.player.getYRot() - 45) / 90.0);
 		groundY = ground(mc.level, targetX, targetZ);
 		placeCamera(true);
 		savedCameraType = mc.options.getCameraType();
@@ -123,7 +136,7 @@ public final class CommandView {
 		double forward = panZ, right = panX;
 		targetX += (-sin * forward - cos * right) * step;
 		targetZ += (cos * forward - sin * right) * step;
-		yaw += turn * 4;
+		yaw += Mth.clamp(targetYaw - yaw, -6, 6); // eases to the next quarter
 		double dx = targetX - mc.player.getX(), dz = targetZ - mc.player.getZ(), far = Math.sqrt(dx * dx + dz * dz);
 		if (far > REACH) {
 			targetX = mc.player.getX() + dx / far * REACH;
@@ -131,6 +144,24 @@ public final class CommandView {
 		}
 		groundY = Mth.lerp(0.25, groundY, ground(mc.level, targetX, targetZ));
 		placeCamera(false);
+	}
+
+	/** Turns the isometric view by a quarter (-1 left, 1 right). */
+	static void rotate(int quarters) {
+		targetYaw += 90 * quarters;
+	}
+
+	/** Centres the view on a world point (the minimap). */
+	static void lookAt(double x, double z) {
+		targetX = x;
+		targetZ = z;
+	}
+
+	/** Fog darkness at a column for the minimap: 0 in sight, dimmed where seen before, dark where never seen. */
+	static float fogAt(ClientLevel level, int x, int z) {
+		if (seen(x + 0.5, z + 0.5, 0)) return 0;
+		var explored = EXPLORED.get(level.dimension());
+		return explored != null && explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
 	}
 
 	private static double ground(ClientLevel level, double x, double z) {

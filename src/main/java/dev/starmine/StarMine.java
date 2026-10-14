@@ -117,6 +117,7 @@ public final class StarMine implements ModInitializer {
 	public void onInitialize() {
 		StarMineBlocks.load();
 		dev.starmine.vespene.Vespene.load();
+		dev.starmine.colony.CommandPanel.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		// owner: hostile mobs (creepers, zombies, skeletons...) attack zerg as zerg attack them
@@ -129,6 +130,7 @@ public final class StarMine implements ModInitializer {
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
 			dev.starmine.colony.TerranLogic.onDamage(entity, source));
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.TerranLogic::serverTick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.Engineering::serverTick);
 		// owner: a player may bring resources to a command center of their base
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hit) ->
 			dev.starmine.colony.TerranLogic.handIn(player, world, hand, entity));

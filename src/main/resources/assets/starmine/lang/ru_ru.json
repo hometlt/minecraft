@@ -399,5 +399,12 @@
 	"subtitles.starmine.refinery.attack": "Очистительный завод: атакует",
 	"subtitles.starmine.refinery.death": "Очистительный завод: разрушено",
 	"subtitles.starmine.refinery.ambient": "Очистительный завод: говорит",
-	"subtitles.starmine.refinery.hurt": "Очистительный завод: повреждён"
+	"subtitles.starmine.refinery.hurt": "Очистительный завод: повреждён",
+	"item.starmine.command_panel": "Командная панель",
+	"item.starmine.command_panel.tooltip": "Правая кнопка: командовать базой и армией",
+	"message.starmine.need_panel": "Нужна командная панель",
+	"command.starmine.army": "Армия: %s",
+	"message.starmine.engineering": "Армия ждёт: рабочие (%s) прокладывают путь (%s шагов)",
+	"message.starmine.engineering_no_workers": "Нет свободных КСМ, чтобы проложить путь армии",
+	"message.starmine.engineering_stalled": "Рабочие не смогли проложить путь армии"
 }

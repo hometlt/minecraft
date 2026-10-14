@@ -399,5 +399,12 @@
 	"subtitles.starmine.refinery.attack": "Refinery attacks",
 	"subtitles.starmine.refinery.death": "Refinery dies",
 	"subtitles.starmine.refinery.ambient": "Refinery talks",
-	"subtitles.starmine.refinery.hurt": "Refinery is hurt"
+	"subtitles.starmine.refinery.hurt": "Refinery is hurt",
+	"item.starmine.command_panel": "Command Panel",
+	"item.starmine.command_panel.tooltip": "Right click: command your base and army",
+	"message.starmine.need_panel": "You need a command panel",
+	"command.starmine.army": "Army: %s",
+	"message.starmine.engineering": "The army waits: %s workers cut it a way (%s steps)",
+	"message.starmine.engineering_no_workers": "No free SCV to cut the army a way",
+	"message.starmine.engineering_stalled": "The workers could not finish the army's way"
 }

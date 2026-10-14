@@ -113,6 +113,7 @@ final class TerranGoals {
 				return;
 			}
 			Vec3 goal = unit.orderPos();
+			if (goal == null) return; // the order changed this tick (a new command, a way cut for the army)
 			double dx = unit.getX() - goal.x, dz = unit.getZ() - goal.z;
 			double flat = Math.sqrt(dx * dx + dz * dz);
 			if (flat < 1.0 + unit.kind.width / 2) {

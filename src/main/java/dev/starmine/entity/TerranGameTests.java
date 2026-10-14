@@ -90,6 +90,40 @@ public class TerranGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * Owner 14.10: an army outside a closed stone room waits while SCVs cut a way as wide
+	 * and tall as its largest ground unit (a siege tank, 3 blocks), then goes on to the goal.
+	 */
+	@GameTest(template = ARENA, batch = "terranEngineering", timeoutTicks = 3600)
+	public void scvsCutAWayForTheArmy(GameTestHelper helper) {
+		arena(helper);
+		ServerLevel level = helper.getLevel();
+		// a closed stone room (walls 2 thick, 10 high) around the goal: no way around
+		for (BlockPos rel : BlockPos.betweenClosed(24, 2, 18, 45, 11, 42)) {
+			boolean inside = rel.getX() >= 26 && rel.getX() <= 43 && rel.getZ() >= 20 && rel.getZ() <= 40;
+			if (!inside) level.setBlock(helper.absolutePos(rel), Blocks.STONE.defaultBlockState(), 2);
+		}
+		StarUnit cc = commandCenter(helper);
+		helper.runAfterDelay(5, () -> {
+			Hive base = cc.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(cc.hiveId());
+			helper.assertTrue(base != null, "no base was founded");
+			base.minerals = 500;
+			for (int i = 0; i < 3; i++) HiveLogic.spawn(level, base, UnitKind.SCV, Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(14, 2, 10 + 2 * i))), null);
+			StarUnit tank = HiveLogic.spawn(level, base, UnitKind.SIEGE_TANK, Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(12, 2, 30))), null);
+			StarUnit marine = HiveLogic.spawn(level, base, UnitKind.MARINE, Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(10, 2, 33))), null);
+			Vec3 goal = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(35, 2, 30)));
+			helper.runAfterDelay(5, () -> {
+				java.util.Set<java.util.UUID> taken = dev.starmine.colony.Engineering.order(level, base, java.util.List.of(tank, marine), StarUnit.Order.MOVE, goal);
+				helper.assertTrue(taken.contains(tank.getUUID()), "the army was not given a way to cut");
+				helper.succeedWhen(() -> {
+					helper.assertTrue(tank.position().distanceTo(goal) < 4,
+						"the tank is at " + helper.relativePos(tank.blockPosition()).toShortString() + ", order " + tank.order()
+						+ ", job " + dev.starmine.colony.Engineering.describe(tank.getUUID()));
+				});
+			});
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "terranMove", timeoutTicks = 400)
 	public void marineMoves(GameTestHelper helper) {
 		arena(helper);

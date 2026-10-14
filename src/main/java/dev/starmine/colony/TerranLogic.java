@@ -229,6 +229,7 @@ public final class TerranLogic {
 	 */
 	public static void command(ServerPlayer player, ColonyNetwork.UnitCommand command) {
 		ServerLevel level = player.serverLevel();
+		if (!CommandPanel.carried(player)) return; // owner 14.10: commands only with a command panel
 		Hive base = HiveSavedData.get(level.getServer()).baseOf(player.getUUID(), level.dimension().location().toString());
 		if (base == null) return;
 		List<StarUnit> units = new ArrayList<>();
@@ -239,10 +240,11 @@ public final class TerranLogic {
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure()).toList();
 		List<StarUnit> buildings = units.stream().filter(unit -> unit.kind.structure()).toList();
 		List<StarUnit> workers = mobile.stream().filter(unit -> unit.kind.worker()).toList();
+		for (StarUnit unit : units) Engineering.release(unit.getUUID()); // a new order ends the army's way work
 		switch (command.action()) {
-			case "move" -> formation(mobile, StarUnit.Order.MOVE, at);
-			case "attack_move" -> formation(mobile, StarUnit.Order.ATTACK_MOVE, at);
-			case "patrol" -> formation(mobile, StarUnit.Order.PATROL, at);
+			case "move" -> moveArmy(level, base, mobile, StarUnit.Order.MOVE, at);
+			case "attack_move" -> moveArmy(level, base, mobile, StarUnit.Order.ATTACK_MOVE, at);
+			case "patrol" -> moveArmy(level, base, mobile, StarUnit.Order.PATROL, at);
 			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
 			case "stop" -> mobile.forEach(unit -> unit.command(StarUnit.Order.NONE, null));
 			case "attack" -> {
@@ -295,6 +297,12 @@ public final class TerranLogic {
 	}
 
 	/** Units sent to one point stand in a square around it instead of crowding onto it. */
+	/** A move order: ground army that cannot walk there waits for workers to cut it a way ({@link Engineering}). */
+	private static void moveArmy(ServerLevel level, Hive base, List<StarUnit> units, StarUnit.Order order, Vec3 at) {
+		java.util.Set<java.util.UUID> taken = Engineering.order(level, base, units, order, at);
+		formation(units.stream().filter(unit -> !taken.contains(unit.getUUID())).toList(), order, at);
+	}
+
 	private static void formation(List<StarUnit> units, StarUnit.Order order, Vec3 at) {
 		int columns = (int) Math.ceil(Math.sqrt(units.size()));
 		double spacing = 0.6 + units.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);

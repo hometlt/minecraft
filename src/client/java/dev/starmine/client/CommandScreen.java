@@ -37,7 +37,8 @@ import org.lwjgl.glfw.GLFW;
  * or ore, return cargo at a command center, otherwise move; for buildings, the rally point). Commands
  * that need a target (move, patrol, attack, gather, rally) take the next left click. Ctrl+1..9 saves a
  * group, 1..9 selects it. Arrows and the screen edges pan (WASD too, unless the letter is a hotkey of
- * the card), the wheel zooms, Q/E and the middle button turn. Esc steps back: cancels placing or
+ * the card), the wheel zooms, Q/E turn the isometric view by a quarter, the middle button pans; the
+ * minimap (bottom left) moves the view with a left click and sends the selection with a right click. Esc steps back: cancels placing or
  * targeting, leaves a build page, clears the selection, and finally leaves the view.
  */
 public final class CommandScreen extends Screen {
@@ -83,7 +84,7 @@ public final class CommandScreen extends Screen {
 		int edge = 3;
 		CommandView.panX = (right || mx >= width - edge ? 1 : 0) - (left || mx <= edge ? 1 : 0);
 		CommandView.panZ = (up || my <= edge ? 1 : 0) - (down || my >= height - edge ? 1 : 0);
-		CommandView.turn = (turnRight ? 1 : 0) - (turnLeft ? 1 : 0);
+		CommandView.turn = 0;
 	}
 
 	@Override
@@ -96,8 +97,11 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		drawHidden(graphics);
 		BaseStatusClient.drawPanel(graphics, width);
+		CommandMinimap.draw(graphics, width, height);
 		drawSelection(graphics);
+		drawGroups(graphics, mouseX, mouseY);
 		List<Button> buttons = buttons();
 		Button hover = null;
 		for (Button button : buttons) {
@@ -148,7 +152,107 @@ public final class CommandScreen extends Screen {
 
 	private boolean onPanel(double x, double y) {
 		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4;
-		return x >= panelLeft && x < width / 2 + 140 && y >= panelTop || onCard(x, y) || y < 140 && x > width - 210;
+		return x >= panelLeft && x < width / 2 + 140 && y >= panelTop || onCard(x, y) || y < 140 && x > width - 210
+			|| groupAt(x, y) != 0 || CommandMinimap.contains(x, y, height);
+	}
+
+	// ---- army: hidden units, groups, the whole army ----
+
+	private static final int GROUP_SIZE = 28, ARMY_GROUP = -1;
+
+	/** Top left of a group's box (1..9) on the bottom left, or of the army button (ARMY_GROUP) above them. */
+	private int[] groupBox(int group) {
+		if (group == ARMY_GROUP) return new int[] {CommandMinimap.left(), CommandMinimap.top(height) - GROUP_SIZE};
+		int panelTop = height - 3 * (CELL + GAP) - 4;
+		return new int[] {width / 2 - 140 + (group - 1) * (GROUP_SIZE + 2), panelTop - GROUP_SIZE - 2};
+	}
+
+	/** The group (1..9) or ARMY_GROUP under a screen point; 0 for none. */
+	private int groupAt(double x, double y) {
+		int[] army = groupBox(ARMY_GROUP);
+		if (x >= army[0] && x < army[0] + 3 * GROUP_SIZE && y >= army[1] && y < army[1] + GROUP_SIZE - 4) return ARMY_GROUP;
+		for (int group = 1; group <= 9; group++) {
+			if (!GROUPS.containsKey(group)) continue;
+			int[] at = groupBox(group);
+			if (x >= at[0] && x < at[0] + GROUP_SIZE && y >= at[1] && y < at[1] + GROUP_SIZE) return group;
+		}
+		return 0;
+	}
+
+	/** The base's whole army in loaded range: its own units that are neither workers nor buildings (F2 in SC2). */
+	private static List<StarUnit> army() {
+		List<StarUnit> found = new ArrayList<>();
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return found;
+		for (Entity entity : mc.level.entitiesForRendering())
+			if (entity instanceof StarUnit unit && unit.isAlive() && CommandView.own(unit) && !unit.kind.structure() && !unit.kind.worker()) found.add(unit);
+		return found;
+	}
+
+	private void selectArmy() {
+		CommandView.selection.clear();
+		for (StarUnit unit : army()) CommandView.selection.add(unit.getId());
+		page = Page.MAIN;
+	}
+
+	/** The members of a group still alive. */
+	private static List<StarUnit> members(int group) {
+		List<StarUnit> units = new ArrayList<>();
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return units;
+		for (int id : GROUPS.getOrDefault(group, List.of()))
+			if (mc.level.getEntity(id) instanceof StarUnit unit && unit.isAlive()) units.add(unit);
+		return units;
+	}
+
+	/** Bottom left: the army button and the control groups (most common kind's icon, size), as in SC2. */
+	private void drawGroups(GuiGraphics graphics, int mouseX, int mouseY) {
+		int[] army = groupBox(ARMY_GROUP);
+		int armySize = army().size();
+		boolean overArmy = groupAt(mouseX, mouseY) == ARMY_GROUP;
+		graphics.fill(army[0], army[1], army[0] + 3 * GROUP_SIZE, army[1] + GROUP_SIZE - 4, overArmy ? 0xE0305080 : 0xC0203048);
+		graphics.renderOutline(army[0], army[1], 3 * GROUP_SIZE, GROUP_SIZE - 4, 0xFF6080B0);
+		graphics.drawString(font, Component.translatable("command.starmine.army", armySize), army[0] + 4, army[1] + 4, 0xFFFFFFFF);
+		graphics.drawString(font, "F2", army[0] + 3 * GROUP_SIZE - 14, army[1] + 14, 0xFFFFD040);
+		for (int group = 1; group <= 9; group++) {
+			if (!GROUPS.containsKey(group)) continue;
+			List<StarUnit> units = members(group);
+			int[] at = groupBox(group);
+			boolean over = groupAt(mouseX, mouseY) == group;
+			graphics.fill(at[0], at[1], at[0] + GROUP_SIZE, at[1] + GROUP_SIZE, over ? 0xE0305080 : 0xC0203048);
+			graphics.renderOutline(at[0], at[1], GROUP_SIZE, GROUP_SIZE, 0xFF6080B0);
+			java.util.Map<UnitKind, Long> kinds = new java.util.EnumMap<>(UnitKind.class);
+			for (StarUnit unit : units) kinds.merge(unit.kind, 1L, Long::sum);
+			kinds.entrySet().stream().max(java.util.Map.Entry.comparingByValue())
+				.ifPresent(top -> graphics.renderItem(new ItemStack(StarMine.egg(top.getKey())), at[0] + 6, at[1] + 4));
+			graphics.drawString(font, String.valueOf(group), at[0] + 2, at[1] + 1, 0xFFFFD040);
+			graphics.drawString(font, String.valueOf(units.size()), at[0] + GROUP_SIZE - 2 - font.width(String.valueOf(units.size())), at[1] + GROUP_SIZE - 9, 0xFFFFFFFF);
+		}
+	}
+
+	/**
+	 * Own units hidden from the camera (behind a hill, in a tunnel) are shown where they are: their
+	 * icon in a frame (green when selected), so they can be seen, clicked and box-selected.
+	 */
+	private void drawHidden(GuiGraphics graphics) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return;
+		Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (!(entity instanceof StarUnit unit) || !unit.isAlive() || !CommandView.own(unit) || unit.kind.structure()) continue;
+			Vec3 centre = unit.position().add(0, unit.getBbHeight() / 2, 0);
+			if (centre.distanceToSqr(eye) > 160 * 160) continue;
+			net.minecraft.world.phys.BlockHitResult hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, centre,
+				net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, unit));
+			if (hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK || hit.getLocation().distanceTo(centre) < unit.getBbWidth()) continue;
+			double[] at = CommandView.project(centre, width, height);
+			if (at == null) continue;
+			int x = (int) at[0] - 10, y = (int) at[1] - 10;
+			boolean selected = CommandView.selection.contains(unit.getId());
+			graphics.fill(x, y, x + 20, y + 20, 0x70102030);
+			graphics.renderOutline(x, y, 20, 20, selected ? 0xFF40FF40 : 0xFF80C0FF);
+			graphics.renderItem(new ItemStack(StarMine.egg(unit.kind)), x + 2, y + 2);
+		}
 	}
 
 	private static Component name(UnitKind kind) {
@@ -349,9 +453,9 @@ public final class CommandScreen extends Screen {
 				if (key == GLFW.GLFW_KEY_RIGHT || !press('D')) right = true;
 				return true;
 			}
-			case GLFW.GLFW_KEY_Q -> turnLeft = true;
+			case GLFW.GLFW_KEY_Q -> CommandView.rotate(-1);
 			case GLFW.GLFW_KEY_E -> {
-				if (!press('E')) turnRight = true;
+				if (!press('E')) CommandView.rotate(1);
 				return true;
 			}
 			case GLFW.GLFW_KEY_ESCAPE -> {
@@ -369,6 +473,10 @@ public final class CommandScreen extends Screen {
 			}
 			default -> {
 			}
+		}
+		if (key == GLFW.GLFW_KEY_F2) {
+			selectArmy();
+			return true;
 		}
 		if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_9) {
 			int group = key - GLFW.GLFW_KEY_0;
@@ -423,8 +531,10 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-			CommandView.yaw += dragX * 0.5;
+		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) { // the view is isometric: dragging pans it
+			double step = 0.02 + CommandView.distance * 0.004;
+			double sin = Math.sin(Math.toRadians(CommandView.yaw)), cos = Math.cos(Math.toRadians(CommandView.yaw));
+			CommandView.lookAt(CommandView.targetX + (cos * dragX - sin * dragY) * step, CommandView.targetZ + (sin * dragX + cos * dragY) * step);
 			return true;
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && !dragging && CommandView.placing == null && targeting == null
@@ -440,6 +550,30 @@ public final class CommandScreen extends Screen {
 					int[] at = cell(b.slot);
 					if (mouseX >= at[0] && mouseX < at[0] + CELL && mouseY >= at[1] && mouseY < at[1] + CELL && b.enabled) b.action.run();
 				}
+				return true;
+			}
+			if (CommandMinimap.contains(mouseX, mouseY, height)) {
+				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
+				CommandView.lookAt(at.x, at.z);
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
+				return true;
+			}
+			int group = groupAt(mouseX, mouseY);
+			if (group != 0) { // the release must not select in the world under the box
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
+			}
+			if (group == ARMY_GROUP) {
+				selectArmy();
+				return true;
+			}
+			if (group > 0) {
+				CommandView.selection.clear();
+				for (StarUnit unit : members(group)) CommandView.selection.add(unit.getId());
+				page = Page.MAIN;
 				return true;
 			}
 			if (onPanel(mouseX, mouseY)) return true;
@@ -468,6 +602,16 @@ public final class CommandScreen extends Screen {
 			if (CommandView.placing != null || targeting != null) {
 				CommandView.placing = null;
 				targeting = null;
+				return true;
+			}
+			if (CommandMinimap.contains(mouseX, mouseY, height)) { // an order to a point on the minimap
+				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
+				Minecraft mc = Minecraft.getInstance();
+				if (mc.level != null) {
+					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
+					boolean buildings = CommandView.selected().stream().filter(CommandView::own).allMatch(u -> u.kind.structure());
+					CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
+				}
 				return true;
 			}
 			if (!onPanel(mouseX, mouseY)) smart(mouseX, mouseY);

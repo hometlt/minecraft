@@ -1,5 +1,6 @@
 package dev.starmine.client;
 
+import net.minecraft.client.Minecraft;
 import dev.starmine.StarMine;
 import dev.starmine.entity.UnitKind;
 import net.fabricmc.api.ClientModInitializer;
@@ -23,10 +24,14 @@ public final class StarMineClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		dev.starmine.colony.CommandPanel.openView = () -> {
+			Minecraft mc = Minecraft.getInstance();
+			if (!CommandView.active()) mc.execute(() -> CommandView.enter(mc));
+		};
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.colony.ColonyNetwork.BaseStatus.TYPE,
 			(status, context) -> BaseStatusClient.receive(status));
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enter(mc);
+			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enterWithPanel(mc);
 			CommandView.tick(mc);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, delta) -> {
