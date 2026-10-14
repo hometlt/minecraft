@@ -131,7 +131,8 @@ public final class CommandScreen extends Screen {
 			graphics.renderOutline(x0, y0, x1 - x0, y1 - y0, 0xFF40FF40);
 		}
 		if (targeting != null)
-			graphics.drawCenteredString(font, Component.translatable("command.starmine.target", Component.translatable("command.starmine." + targeting)), width / 2, 8, 0xFFFFFF60);
+			graphics.drawCenteredString(font, Component.translatable("command.starmine.target", targeting.startsWith("ability:")
+				? Component.translatable("ability.starmine." + targeting.substring(8)) : Component.translatable("command.starmine." + targeting)), width / 2, 8, 0xFFFFFF60);
 		else if (CommandView.placing != null)
 			graphics.drawCenteredString(font, Component.translatable("command.starmine.place", name(CommandView.placing)), width / 2, 8, 0xFFFFFF60);
 		if (hover != null) graphics.renderComponentTooltip(font, hover.tooltip, mouseX, mouseY);
@@ -278,6 +279,11 @@ public final class CommandScreen extends Screen {
 					panelLeft + 120, panelTop + 18, 0xFF80C0FF);
 				bar(graphics, panelLeft + 6, panelTop + 25, panelWidth - 12, (float) (unit.shield() / unit.kind.shields), 0xFF40A0FF);
 			}
+			if (unit.kind.maxEnergy() > 0) { // casters' energy under the health
+				graphics.drawString(font, Component.translatable("command.starmine.energy", (int) unit.energy(), unit.kind.maxEnergy()),
+					panelLeft + 200, panelTop + 18, 0xFFC080FF);
+				bar(graphics, panelLeft + 6, panelTop + 35, panelWidth - 12, unit.energy() / unit.kind.maxEnergy(), 0xFFA040FF);
+			}
 			if (unit.kind.structure() && CommandView.own(unit)) {
 				int progress = unit.progress();
 				String queue = unit.queueIds();
@@ -363,6 +369,10 @@ public final class CommandScreen extends Screen {
 				buttons.add(simple(10, "build", 'B', () -> page = Page.BUILD));
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
 			}
+			if (worker == null) { // abilities of the first selected kind (dev.starmine.ability), on the bottom row
+				List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Ability.of(mobile.get(0).kind);
+				for (int i = 0; i < abilities.size() && i < 5; i++) buttons.add(abilityButton(10 + i, abilities.get(i), mobile));
+			}
 			// morphs of the first selected kind (a zergling into a baneling…): every selected one of that kind morphs
 			List<UnitKind> morphs = mobile.get(0).kind.trains();
 			for (int i = 0; i < morphs.size() && i < 3; i++) {
@@ -384,6 +394,27 @@ public final class CommandScreen extends Screen {
 			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
 				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null)));
 		return buttons;
+	}
+
+	/**
+	 * An ability button: its name (on/off for toggles), energy cost, cooldown and aim. Plain abilities and
+	 * toggles go at once; aimed ones wait for a click on a unit or a place ({@link #target}).
+	 */
+	private Button abilityButton(int slot, dev.starmine.ability.Ability ability, List<StarUnit> selected) {
+		Component label = Component.translatable("ability.starmine." + ability.id);
+		List<StarUnit> users = selected.stream().filter(unit -> ability.users().contains(unit.kind)).toList();
+		boolean on = users.stream().anyMatch(unit -> dev.starmine.ability.Abilities.on(unit, ability));
+		boolean energy = ability.energy == 0 || on || users.stream().anyMatch(unit -> unit.energy() >= ability.energy);
+		List<Component> tooltip = new ArrayList<>();
+		tooltip.add(label.copy().append(" (" + ability.hotkey + ")" + (on ? " ✔" : "")));
+		tooltip.add(Component.translatable("ability.starmine." + ability.id + ".tip").withColor(0xFFC0C0C0));
+		if (ability.energy > 0) tooltip.add(Component.translatable("command.starmine.energy_cost", ability.energy).withColor(0xFFC080FF));
+		if (ability.cooldownTicks > 0) tooltip.add(Component.translatable("command.starmine.cooldown", ability.cooldownTicks / 20));
+		Runnable run = switch (ability.target) {
+			case NONE, TOGGLE -> () -> CommandView.send("ability", Vec3.ZERO, -1, ability.id);
+			case UNIT, POINT -> () -> targeting = "ability:" + ability.id;
+		};
+		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run);
 	}
 
 	private static Button simple(int slot, String action, char key, Runnable run) {
@@ -688,6 +719,10 @@ public final class CommandScreen extends Screen {
 		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
 		Vec3 at = unit != null ? unit.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;
 		if (at == null) return;
+		if (action.startsWith("ability:")) { // an aimed ability: the unit under the cursor, or the place
+			CommandView.send("ability", at, unit != null ? unit.getId() : -1, action.substring(8));
+			return;
+		}
 		switch (action) {
 			case "attack" -> CommandView.send(unit != null && !CommandView.own(unit) ? "attack" : "attack_move", at, unit != null ? unit.getId() : -1, null);
 			case "gather" -> {

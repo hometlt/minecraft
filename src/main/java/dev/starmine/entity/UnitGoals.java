@@ -47,7 +47,8 @@ final class UnitGoals {
 		targets.addGoal(1, new HurtByTargetGoal(unit).setAlertOthers(StarUnit.class));
 		if (!kind.worker() && kind.aggressive)
 			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
-				other -> dev.starmine.faction.Faction.hostile(unit, other)));
+				other -> dev.starmine.faction.Faction.hostile(unit, other)
+					&& !(other instanceof StarUnit cloaked && !dev.starmine.ability.Cloak.seen(cloaked, unit))));
 	}
 
 	/**
@@ -127,12 +128,14 @@ final class UnitGoals {
 				unit.finishOrder();
 				return;
 			}
-			if (--repath > 0) return;
-			repath = 20;
-			if (unit.kind.flying) {
+			if (unit.kind.flying) { // a flying move control steers one tick per wanted position: give it every tick
 				double y = ZergGoals.ground(unit, goal.x, goal.z) + Math.max(3, unit.kind.hoverHeight());
 				unit.getMoveControl().setWantedPosition(goal.x, y, goal.z, 1.0);
-			} else if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0)) {
+				return;
+			}
+			if (--repath > 0) return;
+			repath = 20;
+			if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0)) {
 				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 			}
 		}

@@ -71,7 +71,12 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			float scale = entity.kind.modelScale();
 			if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
-			drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
+			// cloaked (dev.starmine.ability.Cloak): see-through for its own side, a faint shimmer for others unless a detector reveals it
+			var player = net.minecraft.client.Minecraft.getInstance().player;
+			if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
+				boolean ours = player != null && dev.starmine.faction.Faction.allied(entity, player);
+				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, ours ? 0x70FFFFFF : 0x14FFFFFF);
+			} else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
 			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}

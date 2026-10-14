@@ -319,6 +319,35 @@ public enum UnitKind {
 		};
 	}
 
+	/** SC2 energy of casters (owner 14.10, abilities): the most it holds; 0 for kinds without energy. */
+	public int maxEnergy() {
+		return switch (this) {
+			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, MOTHERSHIP, NEXUS -> 200;
+			case SHIELD_BATTERY -> 100;
+			default -> 0;
+		};
+	}
+
+	/** SC2 energy a caster starts with. */
+	public int startEnergy() {
+		return switch (this) {
+			case GHOST -> 75;
+			case QUEEN -> 25;
+			case SHIELD_BATTERY -> 100;
+			default -> maxEnergy() > 0 ? 50 : 0;
+		};
+	}
+
+	/** Detectors see cloaked and burrowed units within their sight (SC2): overseer, observer, spore crawler, missile turret, photon cannon. */
+	public boolean detector() {
+		return this == OVERSEER || this == OBSERVER || this == SPORE_CRAWLER || this == MISSILE_TURRET || this == PHOTON_CANNON;
+	}
+
+	/** Always cloaked (SC2): the dark templar and the observer. */
+	public boolean permanentlyCloaked() {
+		return this == DARK_TEMPLAR || this == OBSERVER;
+	}
+
 	/** Ticks the body stays after death so the death animation can play. */
 	public int deathTicks() {
 		return flying ? 60 : 50;

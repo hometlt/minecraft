@@ -175,6 +175,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Protoss: whether a pylon powers this building (checked each second). */
 	private boolean powered = true;
 	private static final EntityDataAccessor<String> QUEUE_IDS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
+	/** Abilities (owner 14.10, dev.starmine.ability): energy (SC2 units), cloaked, seen by a foe's detector, mode (a sieged tank). */
+	private static final EntityDataAccessor<Float> ENERGY = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
+	private static final EntityDataAccessor<Boolean> CLOAKED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Boolean> REVEALED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	/** Cooldowns, channels, mode changes, unloading (server). */
+	public final dev.starmine.ability.AbilityState abilities = new dev.starmine.ability.AbilityState();
 
 	public StarUnit(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
@@ -182,6 +189,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.xpReward = (int) Math.min(20, 1 + kind.health / 5);
 		this.lifeLeft = kind.lifeTicks();
 		this.entityData.set(SHIELD, (float) kind.shields);
+		this.entityData.set(ENERGY, (float) kind.startEnergy());
 		if (kind.flying) {
 			this.moveControl = new FlyingMoveControl(this, 10, true);
 			this.setNoGravity(true);
@@ -289,6 +297,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			researchTick(server);
 		}
 		if (kind.shields > 0) shieldTick(server);
+		dev.starmine.ability.Abilities.tick(this, server);
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
@@ -464,7 +473,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		double best = kind.range * kind.range;
 		boolean terran = kind.race == UnitKind.Race.TERRAN;
 		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.range),
-			entity -> dev.starmine.faction.Faction.hostile(this, entity))) {
+			entity -> dev.starmine.faction.Faction.hostile(this, entity) && !(entity instanceof StarUnit unit && !dev.starmine.ability.Cloak.seen(unit, this)))) {
 			boolean flying = other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
 				|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Blaze
 				|| other instanceof net.minecraft.world.entity.monster.Vex || !other.onGround() && other.getY() > this.getY() + 3;
@@ -644,6 +653,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(SHIELD, 0f);
 		builder.define(PROGRESS, 0);
 		builder.define(QUEUE_IDS, "");
+		builder.define(ENERGY, 0f);
+		builder.define(CLOAKED, false);
+		builder.define(REVEALED, false);
+		builder.define(MODE, 0);
 	}
 
 	@Override
@@ -853,6 +866,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			tag.putInt("StarMineCocoonCount", cocoonCount);
 			tag.putInt("StarMineCocoonTicks", cocoonTicks);
 		}
+		if (kind.maxEnergy() > 0) tag.putFloat("StarMineEnergy", energy());
+		if (cloaked()) tag.putBoolean("StarMineCloaked", true);
+		if (mode() != 0) tag.putInt("StarMineMode", mode());
+		abilities.save(tag);
 	}
 
 	@Override
@@ -887,6 +904,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			}
 		}
 		if (kind == UnitKind.HATCHERY) hiveId = this.getUUID();
+		if (tag.contains("StarMineEnergy")) setEnergy(tag.getFloat("StarMineEnergy"));
+		setCloaked(tag.getBoolean("StarMineCloaked"));
+		setMode(tag.getInt("StarMineMode"));
+		abilities.load(tag);
+		if (mode() != 0 && !abilities.changingMode()) applyWeapon(dev.starmine.ability.Modes.weapon(kind, mode()));
 		constructTicks = tag.getInt("StarMineConstruct");
 		constructing = tag.hasUUID("StarMineConstructing") ? tag.getUUID("StarMineConstructing") : null;
 		try {
@@ -938,21 +960,18 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return !kind.structure() && hiveId == null;
 	}
 
-	/** Zerg ride an overlord as cargo; nobody steers it but its own AI. */
+	/** Units ride a transport as cargo (dev.starmine.ability.Transport); nobody steers it but its own AI and orders. */
 	@Override
 	public LivingEntity getControllingPassenger() {
-		return kind == UnitKind.OVERLORD ? null : super.getControllingPassenger();
+		return dev.starmine.ability.Transport.capacity(kind) > 0 ? null : super.getControllingPassenger();
 	}
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
-		if (kind != UnitKind.OVERLORD || !(passenger instanceof StarUnit zerg)) return false;
-		int used = 0;
-		for (Entity rider : this.getPassengers()) if (rider instanceof StarUnit riding) used += riding.kind.economy().cargo();
-		return used + zerg.kind.economy().cargo() <= ZergGoals.Transport.CAPACITY;
+		return dev.starmine.ability.Transport.carries(this, passenger);
 	}
 
-	/** Cargo hangs under the overlord's body, spread a little around its centre. */
+	/** Cargo hangs under the transport's body, spread a little around its centre. */
 	@Override
 	protected void positionRider(Entity passenger, Entity.MoveFunction move) {
 		int index = this.getPassengers().indexOf(passenger);
@@ -1007,6 +1026,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void performRangedAttack(LivingEntity target, float power) {
 		this.swing(InteractionHand.MAIN_HAND);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
+		if (mode() == dev.starmine.ability.Modes.SIEGED && dev.starmine.ability.Modes.siegeShot(this, target)) return;
 		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED) { // terran shots, protoss beams: hitscan
 			target.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
@@ -1282,6 +1302,63 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			HiveSavedData.get(server.getServer()).setDirty();
 		}
 		research = null;
+	}
+
+	// ---- abilities (owner 14.10, dev.starmine.ability) ----
+
+	public float energy() {
+		return this.entityData.get(ENERGY);
+	}
+
+	public void setEnergy(float energy) {
+		this.entityData.set(ENERGY, Math.max(0, energy));
+	}
+
+	public boolean cloaked() {
+		return this.entityData.get(CLOAKED);
+	}
+
+	public void setCloaked(boolean cloaked) {
+		this.entityData.set(CLOAKED, cloaked);
+	}
+
+	/** Cloaked but seen by a foe's detector (the client draws it plainly). */
+	public boolean revealed() {
+		return this.entityData.get(REVEALED);
+	}
+
+	public void setRevealed(boolean revealed) {
+		this.entityData.set(REVEALED, revealed);
+	}
+
+	/** Its mode (dev.starmine.ability.Modes: 0 normal, 1 sieged…). */
+	public int mode() {
+		return this.entityData.get(MODE);
+	}
+
+	public void setMode(int mode) {
+		this.entityData.set(MODE, mode);
+	}
+
+	/** Its weapon and mobility in a mode: the ranged attack goal is rebuilt with the reach and pace, an immobile mode stops it. */
+	public void applyWeapon(dev.starmine.ability.Modes.Weapon weapon) {
+		if (kind.attack != UnitKind.Attack.NONE && kind.attack != UnitKind.Attack.MELEE && kind.attack != UnitKind.Attack.SPLASH
+			&& kind.attack != UnitKind.Attack.EXPLODE) {
+			this.goalSelector.removeAllGoals(goal -> goal instanceof net.minecraft.world.entity.ai.goal.RangedAttackGoal);
+			if (weapon.range() > 0)
+				this.goalSelector.addGoal(2, new net.minecraft.world.entity.ai.goal.RangedAttackGoal(this, 1.0, weapon.interval(),
+					weapon.interval() + 10, (float) weapon.range()));
+		}
+		modifier(Attributes.MOVEMENT_SPEED, MODE_SPEED, weapon.mobile() ? 0 : -kind.speed);
+		modifier(Attributes.FLYING_SPEED, MODE_SPEED, weapon.mobile() ? 0 : -kind.speed * 1.5);
+		if (!weapon.mobile()) this.getNavigation().stop();
+	}
+
+	private static final ResourceLocation MODE_SPEED = StarMine.id("mode_speed");
+
+	/** The ground (feet level) under a point, as flying units and transports see it. */
+	public double groundBelow(double x, double z) {
+		return ZergGoals.ground(this, x, z);
 	}
 
 	/** Shields left (health units), for the command view. */

@@ -62,6 +62,15 @@ public final class Commands {
 			case "train" -> train(level, base, units, kind(command.arg()));
 			case "cancel" -> buildings.forEach(StarUnit::cancelLast);
 			case "rally" -> buildings.forEach(building -> building.setRally(at));
+			case "ability" -> { // dev.starmine.ability: toggles and plain ones on all, aimed ones by the nearest able unit
+				dev.starmine.ability.Ability ability = dev.starmine.ability.Ability.byId(command.arg());
+				LivingEntity target = level.getEntity(command.target()) instanceof LivingEntity living && living.isAlive() ? living : null;
+				if (ability != null && !dev.starmine.ability.Abilities.order(level, units, ability, target, at)) {
+					String why = units.stream().filter(unit -> ability.users().contains(unit.kind))
+						.map(unit -> dev.starmine.ability.Abilities.refusal(unit, ability)).filter(java.util.Objects::nonNull).findFirst().orElse(null);
+					if (why != null) BaseLogic.tell(level, base, why);
+				}
+			}
 			case "research" -> {
 				boolean started = buildings.stream().anyMatch(building -> building.startResearch(command.arg()));
 				if (!started) BaseLogic.tell(level, base, "message.starmine.cannot_research");
