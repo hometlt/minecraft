@@ -67,7 +67,7 @@ import dev.starmine.vespene.VespeneBlock;
  *
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
  * gather at a block, return the cargo; build: to the site, then build until the building is done,
- * {@link dev.starmine.colony.TerranLogic#place}); they bring loads to the nearest command center of their
+ * {@link dev.starmine.colony.BaseLogic#place}); they bring loads to the nearest command center of their
  * base, dig no hive tunnels, go on no raids and, with nothing in reach, wait instead of exploring far.
  */
 final class DroneWork extends Goal {
@@ -116,6 +116,11 @@ final class DroneWork extends Goal {
 	@Override
 	public boolean canUse() {
 		return drone.hiveId() != null && drone.getTarget() == null && !drone.isPassenger() && drone.order() == StarUnit.Order.NONE;
+	}
+
+	/** A player's worker (any race): takes orders, waits near its base instead of roaming, digs no hive tunnels. */
+	private boolean commanded() {
+		return drone.owner().isPresent();
 	}
 
 	private boolean terran() {
@@ -186,7 +191,7 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
-		if (terran()) takeOrder(level);
+		if (commanded()) takeOrder(level);
 		if (drone.fleeing()) {
 			flee(level);
 			return;
@@ -333,7 +338,7 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		if (terran()) { // SCVs wait near their base for something to gather (or an order)
+		if (commanded()) { // a player's workers wait near their base for something to gather (or an order)
 			seekCooldown = 100;
 			return;
 		}
@@ -558,7 +563,7 @@ final class DroneWork extends Goal {
 
 	// ---- CARRY ----
 
-	/** The load goes to the edge of the hatchery (the hatchery itself is solid). */
+	/** The load goes to the edge of the nearest main building of its base (hatchery, command center, nexus; they are solid). */
 	private void carry(ServerLevel level, boolean griefing) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		if (hive == null) {
@@ -568,19 +573,19 @@ final class DroneWork extends Goal {
 		}
 		Vec3 centre = Vec3.atBottomCenterOf(hive.hatchery);
 		double half = UnitKind.HATCHERY.width / 2;
-		if (terran()) { // the nearest command center of the base
-			StarUnit nearest = null;
-			double best = Double.MAX_VALUE;
-			for (StarUnit cc : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(160),
-				mob -> mob.kind == UnitKind.COMMAND_CENTER && hive.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
-				double d = cc.distanceToSqr(drone);
-				if (d < best) {
-					best = d;
-					nearest = cc;
-				}
+		StarUnit nearest = null;
+		double best = Double.MAX_VALUE;
+		for (StarUnit main : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(160),
+			mob -> mob.kind.main() && hive.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
+			double d = main.distanceToSqr(drone);
+			if (d < best) {
+				best = d;
+				nearest = main;
 			}
-			if (nearest != null) centre = nearest.position();
-			half = UnitKind.COMMAND_CENTER.width / 2;
+		}
+		if (nearest != null) {
+			centre = nearest.position();
+			half = nearest.kind.width / 2;
 		}
 		double dx = drone.getX() - centre.x, dz = drone.getZ() - centre.z;
 		double flat = Math.sqrt(dx * dx + dz * dz);
@@ -636,20 +641,26 @@ final class DroneWork extends Goal {
 
 	// ---- BUILD ----
 
-	/** To the site the hive chose, then it mutates into the building (or gives the order up). */
+	/**
+	 * To the site (chosen by its player or its hive), then the building is put down its race's way
+	 * ({@link dev.starmine.race.RaceRules#placeBuilding}: a drone becomes it, a probe warps it in); an SCV
+	 * then stays and builds it ({@link #terranBuild}). Refused or unreachable: the order is given up.
+	 */
 	private void build(ServerLevel level) {
 		BlockPos site = drone.buildSite();
-		if (site == null) {
+		UnitKind kind = drone.buildKind();
+		Hive base = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+		if (site == null || base == null) {
 			drone.cancelBuild();
 			return;
 		}
 		if (terran()) {
-			terranBuild(level, site);
+			terranBuild(level, site, base);
 			return;
 		}
-		Move move = moveTo(level, Vec3.atBottomCenterOf(site), 3, drone.buildKind().gas()); // an outlet may be underground
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (!HiveLogic.mutate(drone, level, drone.buildKind(), site)) drone.cancelBuild();
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			drone.cancelBuild();
 		}
@@ -659,7 +670,7 @@ final class DroneWork extends Goal {
 	 * SCV: to the site; there the building is placed (paid then; the site is levelled, or refused when
 	 * trees, fences or harder blocks are in the way), and the SCV builds it until it is done.
 	 */
-	private void terranBuild(ServerLevel level, BlockPos site) {
+	private void terranBuild(ServerLevel level, BlockPos site, Hive base) {
 		UnitKind kind = drone.buildKind();
 		if (drone.constructing() != null) {
 			if (!(level.getEntity(drone.constructing()) instanceof StarUnit building) || !building.isAlive() || !building.underConstruction()) {
@@ -680,7 +691,7 @@ final class DroneWork extends Goal {
 		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (dev.starmine.colony.TerranLogic.place(drone, level, kind, site) == null) drone.cancelBuild();
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) drone.cancelBuild();
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			drone.cancelBuild();
 		}

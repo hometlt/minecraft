@@ -84,6 +84,7 @@ public final class DronePlanner {
 
 	/** {@link #plan} for any body; costs follow how long a worker takes: walking, digging by hardness, bridging. */
 	public static List<Step> plan(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body) {
+		Set<Long> buildings = buildings(level, start, body.reach());
 		PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f, b.f));
 		Map<Long, Double> best = new HashMap<>();
 		Node first = new Node(start, 0, heuristic(centre(start, body), target), null, null);
@@ -100,7 +101,7 @@ public final class DronePlanner {
 			if (h < centre(closest.feet, body).distanceTo(target)) closest = node;
 			for (Direction dir : HORIZONTAL)
 				for (int dy = -1; dy <= 1; dy++) {
-					Step step = move(level, node.feet, dir, dy, routes, dig, fill, body);
+					Step step = move(level, node.feet, dir, dy, routes, dig, fill, body, buildings);
 					if (step == null) continue;
 					BlockPos to = step.feet;
 					if (Math.abs(to.getX() - start.getX()) > body.reach || Math.abs(to.getZ() - start.getZ()) > body.reach) continue;
@@ -130,15 +131,30 @@ public final class DronePlanner {
 	}
 
 	/** A move of the body one block toward `dir`, `dy` up or down; null when it cannot be made. */
-	private static Step move(ServerLevel level, BlockPos from, Direction dir, int dy, Set<Long> routes, boolean dig, int fill, Body body) {
+	/**
+	 * The cells taken by buildings (StarMine structures are solid entities the game's pathfinders do not
+	 * see): a way goes around them, never through.
+	 */
+	private static Set<Long> buildings(ServerLevel level, BlockPos start, int reach) {
+		Set<Long> cells = new java.util.HashSet<>();
+		net.minecraft.world.phys.AABB area = new net.minecraft.world.phys.AABB(start).inflate(reach + 8, 16, reach + 8);
+		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, area, mob -> mob.kind.structure() && mob.isAlive())) {
+			net.minecraft.world.phys.AABB box = building.getBoundingBox();
+			for (BlockPos cell : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY, box.minZ), BlockPos.containing(box.maxX - 1e-3, box.maxY - 1e-3, box.maxZ - 1e-3)))
+				cells.add(cell.asLong());
+		}
+		return cells;
+	}
+
+	private static Step move(ServerLevel level, BlockPos from, Direction dir, int dy, Set<Long> routes, boolean dig, int fill, Body body, Set<Long> buildings) {
 		BlockPos to = from.relative(dir).above(dy);
 		List<BlockPos> breaks = new ArrayList<>();
 		int w = body.width, h = body.height;
 		// the body's space at its new place; a step up also needs headroom over the old place,
 		// a step down needs the old height above the new place to pass through
-		if (!clear(level, to, 0, h - 1, w, breaks, routes, dig)) return null;
-		if (dy > 0 && !clear(level, from, h, h, w, breaks, routes, dig)) return null;
-		if (dy < 0 && !clear(level, to, h, h, w, breaks, routes, dig)) return null;
+		if (!clear(level, to, 0, h - 1, w, breaks, routes, dig, buildings)) return null;
+		if (dy > 0 && !clear(level, from, h, h, w, breaks, routes, dig, buildings)) return null;
+		if (dy < 0 && !clear(level, to, h, h, w, breaks, routes, dig, buildings)) return null;
 		List<BlockPos> bridge = new ArrayList<>();
 		int floor = 0;
 		for (int x = 0; x < w; x++)
@@ -150,7 +166,7 @@ public final class DronePlanner {
 			// a gap: a short drop to a floor below, else a bridge of fill
 			for (int drop = 1; drop <= 3; drop++) {
 				BlockPos lower = to.below(drop);
-				if (!clear(level, lower, 0, 0, w, null, routes, false)) break;
+				if (!clear(level, lower, 0, 0, w, null, routes, false, buildings)) break;
 				int support = 0;
 				for (int x = 0; x < w; x++) for (int z = 0; z < w; z++) if (solid(level, lower.offset(x, -1, z))) support++;
 				if (support > 0 && breaks.isEmpty()) return new Step(lower, List.of(), List.of());
@@ -174,11 +190,13 @@ public final class DronePlanner {
 	 * Whether the body's cells at `feet` from height `fromY` to `toY` are free or may be dug (added
 	 * to `breaks`); `breaks` null means they must already be free.
 	 */
-	private static boolean clear(ServerLevel level, BlockPos feet, int fromY, int toY, int w, List<BlockPos> breaks, Set<Long> routes, boolean dig) {
+	private static boolean clear(ServerLevel level, BlockPos feet, int fromY, int toY, int w, List<BlockPos> breaks, Set<Long> routes, boolean dig,
+			Set<Long> buildings) {
 		for (int y = fromY; y <= toY; y++)
 			for (int x = 0; x < w; x++)
 				for (int z = 0; z < w; z++) {
 					BlockPos cell = feet.offset(x, y, z);
+					if (buildings.contains(cell.asLong())) return false; // a building stands there
 					if (!solid(level, cell)) {
 						if (!level.getFluidState(cell).isEmpty()) return false;
 						continue;

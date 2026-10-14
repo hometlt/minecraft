@@ -75,6 +75,11 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}
+		if (StarMineModels.get(entity.kind.id) == null && entity.deathTime == 0) { // no imported model (the protoss gateway): its outline
+			double w = entity.getBbWidth() / 2, h = entity.getBbHeight();
+			net.minecraft.client.renderer.LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(net.minecraft.client.renderer.RenderType.lines()),
+				-w, 0, -w, w, h, w, 0.95f, 0.8f, 0.3f, 1f);
+		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
 	}
 

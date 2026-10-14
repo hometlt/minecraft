@@ -140,7 +140,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private BlockPos raidTarget;
 	private long raidUntil;
 
-	/** A terran unit's order from its player (see {@link TerranGoals.Orders}). */
+	/** A terran unit's order from its player (see {@link UnitGoals.Orders}). */
 	public enum Order { NONE, MOVE, ATTACK_MOVE, PATROL, HOLD }
 
 	private Order order = Order.NONE;
@@ -167,6 +167,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<java.util.Optional<UUID>> OWNER =
 		SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.OPTIONAL_UUID);
 	private static final EntityDataAccessor<Integer> PROGRESS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	/** Protoss plasma shields left (health units); they absorb damage first and come back {@link #SHIELD_DELAY} after the last hit. */
+	private static final EntityDataAccessor<Float> SHIELD = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
+	/** SC2: shields regenerate 2 a second after 10 game seconds (7 real) without damage. */
+	public static final int SHIELD_DELAY = 140;
+	private long lastHurt;
+	/** Protoss: whether a pylon powers this building (checked each second). */
+	private boolean powered = true;
 	private static final EntityDataAccessor<String> QUEUE_IDS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 
 	public StarUnit(EntityType<? extends Monster> type, Level level) {
@@ -174,6 +181,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.kind = StarMine.kindOf(type);
 		this.xpReward = (int) Math.min(20, 1 + kind.health / 5);
 		this.lifeLeft = kind.lifeTicks();
+		this.entityData.set(SHIELD, (float) kind.shields);
 		if (kind.flying) {
 			this.moveControl = new FlyingMoveControl(this, 10, true);
 			this.setNoGravity(true);
@@ -191,7 +199,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			.add(Attributes.MOVEMENT_SPEED, kind.speed)
 			.add(Attributes.FLYING_SPEED, kind.speed * 1.5)
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
-			.add(Attributes.FOLLOW_RANGE, kind == UnitKind.DRONE || kind == UnitKind.SCV ? 64.0 : kind.race == UnitKind.Race.TERRAN ? kind.sight() + 4 : 32.0)
+			.add(Attributes.FOLLOW_RANGE, kind.worker() ? 64.0 : kind.race != UnitKind.Race.ZERG ? kind.sight() + 4 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
 			// zerglings leap up 2 blocks (owner); the pathfinder plans with the step height
 			.add(Attributes.STEP_HEIGHT, kind == UnitKind.ZERGLING || kind == UnitKind.REAPER ? 2.0 : 1.0)
@@ -213,41 +221,19 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		UnitKind kind = StarMine.kindOf(this.getType());
 		if (kind.structure()) return;
 		this.goalSelector.addGoal(0, new FloatGoal(this));
-		if (kind.race == UnitKind.Race.TERRAN) {
-			TerranGoals.register(this, kind, this.goalSelector, this.targetSelector);
-			return;
-		}
 		if (kind == UnitKind.LARVA) {
 			this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 3));
 			this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.6));
 			return;
 		}
+		// every race: orders, attacks, work, foes (UnitGoals); zerg also ferry, raid, plant tumors and roam
+		UnitGoals.register(this, kind, this.goalSelector, this.targetSelector);
+		if (kind.race != UnitKind.Race.ZERG) return;
 		if (kind == UnitKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
 		if (kind != UnitKind.DRONE && kind.attack != UnitKind.Attack.NONE) this.goalSelector.addGoal(3, new ZergGoals.Raid(this));
 		if (kind == UnitKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
-		if (kind == UnitKind.DRONE) this.goalSelector.addGoal(3, new DroneWork(this));
-		else this.goalSelector.addGoal(4, new ZergGoals.ReturnHome(this, 24));
-		switch (kind.attack) {
-			case NONE -> {
-			}
-			case MELEE, SPLASH, EXPLODE -> this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.15, false) {
-				@Override
-				protected int getAttackInterval() {
-					return this.adjustedTickDelay(kind.interval);
-				}
-			});
-			default -> this.goalSelector.addGoal(2, new RangedAttackGoal(this, 1.0, kind.interval, kind.interval + 10, (float) kind.range));
-		}
 		this.goalSelector.addGoal(5, kind.hoverHeight() > 0 ? new ZergGoals.HoverWander(this)
 			: kind.flying ? new WaterAvoidingRandomFlyingGoal(this, 0.8) : new WaterAvoidingRandomStrollGoal(this, 0.8));
-		this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0f));
-		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
-		if (kind.attack == UnitKind.Attack.NONE) return;
-		this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(StarUnit.class));
-		// who is a foe: dev.starmine.faction.Faction (wild zerg: every creature; a player's zerg: the wild and monsters)
-		if (kind.aggressive)
-			this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
-				other -> dev.starmine.faction.Faction.hostile(this, other)));
 	}
 
 	@Override
@@ -293,12 +279,14 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
 		if (kind.defender() && constructTicks == 0) crawlerAttack(server);
-		if (kind.race == UnitKind.Race.TERRAN && kind.building() && constructTicks == 0) {
+		if (this.tickCount % 20 == 3) powered = kind.race.rules().powered(this);
+		if ((kind.building() || kind.main()) && constructTicks == 0 && powered) {
 			produce(server);
 			researchTick(server);
 		}
+		if (kind.shields > 0) shieldTick(server);
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
-		if (kind.race == UnitKind.Race.TERRAN && kind.structure() && this.tickCount % 5 == 0) syncProgress();
+		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
@@ -390,7 +378,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Whoever hurts a hive's zerg (or its hatchery) has its warriors on them. */
 	@Override
 	public boolean hurt(DamageSource source, float amount) {
-		boolean hurt = super.hurt(source, amount);
+		amount = absorbByShield(source, amount);
+		boolean hurt;
+		if (amount > 0) hurt = super.hurt(source, amount);
+		else { // all taken by the shields: still provoked
+			hurt = !this.isInvulnerableTo(source);
+			if (hurt && source.getEntity() instanceof LivingEntity attacker) this.setLastHurtByMob(attacker);
+		}
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
 			&& !dev.starmine.faction.Faction.allied(this, attacker)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
@@ -643,6 +637,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.defineSynchedData(builder);
 		builder.define(CARRIED, ItemStack.EMPTY);
 		builder.define(OWNER, java.util.Optional.empty());
+		builder.define(SHIELD, 0f);
 		builder.define(PROGRESS, 0);
 		builder.define(QUEUE_IDS, "");
 	}
@@ -1008,7 +1003,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void performRangedAttack(LivingEntity target, float power) {
 		this.swing(InteractionHand.MAIN_HAND);
 		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
-		if (kind.race == UnitKind.Race.TERRAN && kind.attack == UnitKind.Attack.RANGED) {
+		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED) { // terran shots, protoss beams: hitscan
 			target.hurt(this.damageSources().mobAttack(this), (float) (kind.damage + attackBonus()));
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
 			return;
@@ -1035,13 +1030,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		}
 	}
 
-	/** A terran shot: a line of sparks from the muzzle to the target and a puff where it hits. */
+	/** A terran shot (sparks) or a protoss beam (end rods): a line from the muzzle to the target and a puff where it hits. */
 	private void tracer(ServerLevel server, LivingEntity target) {
 		Vec3 from = this.position().add(0, this.getBbHeight() * 0.6, 0), to = target.position().add(0, target.getBbHeight() * 0.5, 0);
 		int steps = (int) Math.min(24, from.distanceTo(to) * 2);
 		for (int i = 1; i <= steps; i++) {
 			Vec3 point = from.lerp(to, i / (double) steps);
-			server.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 1, 0, 0, 0, 0);
+			server.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 1, 0, 0, 0, 0);
 		}
 		server.sendParticles(ParticleTypes.SMOKE, to.x, to.y, to.z, 3, 0.1, 0.1, 0.1, 0.01);
 	}
@@ -1214,10 +1209,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			}
 			this.discard();
 		} else if (research != null) {
-			if (hive != null) {
-				int level = (research.equals("weapons") ? hive.attackLevel : hive.armorLevel) + 1;
-				hive.minerals += researchCost(level);
-				hive.vespene += researchCost(level);
+			dev.starmine.race.Research what = dev.starmine.race.Research.byId(research);
+			if (hive != null && what != null) {
+				int[] cost = what.cost(what.nextLevel(hive));
+				hive.minerals += cost[0];
+				hive.vespene += cost[1];
 			}
 			research = null;
 			researchTicks = 0;
@@ -1257,18 +1253,18 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return 25 + 75 * level;
 	}
 
-	/** Starts infantry weapons or armor at the engineering bay (levels 2 and 3 need an armory). */
-	public boolean startResearch(String what) {
-		if (!(this.level() instanceof ServerLevel server) || kind != UnitKind.ENGINEERING_BAY || constructTicks > 0 || research != null) return false;
+	/** Starts a research this building does ({@link dev.starmine.race.Research}: weapons, armor, lair, hive); paid now. */
+	public boolean startResearch(String id) {
+		dev.starmine.race.Research what = dev.starmine.race.Research.byId(id);
+		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
-		if (hive == null) return false;
-		int level = (what.equals("weapons") ? hive.attackLevel : what.equals("armor") ? hive.armorLevel : 9) + 1;
-		int cost = researchCost(level);
-		if (level > 3 || (level > 1 && hive.count(UnitKind.ARMORY) == 0) || hive.minerals < cost || hive.vespene < cost) return false;
-		hive.minerals -= cost;
-		hive.vespene -= cost;
-		research = what;
-		researchTicks = (int) Math.round((114 + 22 * (level - 1)) * 20);
+		if (hive == null || what.refusal(hive, kind) != null) return false;
+		int level = what.nextLevel(hive);
+		int[] cost = what.cost(level);
+		hive.minerals -= cost[0];
+		hive.vespene -= cost[1];
+		research = what.id();
+		researchTicks = what.ticks(level);
 		HiveSavedData.get(server.getServer()).setDirty();
 		return true;
 	}
@@ -1276,12 +1272,37 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private void researchTick(ServerLevel server) {
 		if (research == null || --researchTicks > 0) return;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
-		if (hive != null) {
-			if (research.equals("weapons")) hive.attackLevel++;
-			else hive.armorLevel++;
+		dev.starmine.race.Research what = dev.starmine.race.Research.byId(research);
+		if (hive != null && what != null) {
+			what.apply(hive);
 			HiveSavedData.get(server.getServer()).setDirty();
 		}
 		research = null;
+	}
+
+	/** Shields left (health units), for the command view. */
+	public float shield() {
+		return this.entityData.get(SHIELD);
+	}
+
+	/** Damage takes the shields first (not falls, the void, or starving); what is left goes to health. */
+	private float absorbByShield(DamageSource source, float amount) {
+		float shield = shield();
+		if (shield <= 0 || amount <= 0 || this.level().isClientSide || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_ARMOR)) return amount;
+		float taken = Math.min(shield, amount);
+		this.entityData.set(SHIELD, shield - taken);
+		lastHurt = this.level().getGameTime();
+		if (this.level() instanceof ServerLevel server)
+			server.sendParticles(ParticleTypes.ENCHANTED_HIT, this.getX(), this.getY() + this.getBbHeight() / 2, this.getZ(), 6,
+				this.getBbWidth() / 2, this.getBbHeight() / 3, this.getBbWidth() / 2, 0.1);
+		return amount - taken;
+	}
+
+	/** Shields come back (SC2 2 a second, scaled) once {@link #SHIELD_DELAY} has passed since the last hit. */
+	private void shieldTick(ServerLevel server) {
+		float shield = shield();
+		if (shield >= kind.shields || server.getGameTime() - lastHurt < SHIELD_DELAY || this.tickCount % 10 != 0) return;
+		this.entityData.set(SHIELD, (float) Math.min(kind.shields, shield + 2 * UnitKind.SCALE / 2));
 	}
 
 	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second). */
@@ -1300,7 +1321,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		int progress = 0;
 		if (constructTicks > 0) progress = 1000 - (int) (1000L * constructTicks / Math.max(1, kind.economy().trainTicks()));
 		else if (!queue.isEmpty()) progress = (int) (1000L * trainTicks / Math.max(1, queue.get(0).economy().trainTicks()));
-		else if (research != null) progress = -(int) (1000L * researchTicks / Math.max(1, (114 + 44) * 20));
+		else if (research != null) progress = -(int) (1000L * researchTicks / Math.max(1, dev.starmine.race.Research.byId(research) == null ? 1
+			: dev.starmine.race.Research.byId(research).ticks(1)));
 		this.entityData.set(PROGRESS, progress);
 		this.entityData.set(QUEUE_IDS, constructTicks > 0 ? "construct"
 			: String.join(",", queue.stream().map(k -> k.id).toList()) + (research != null ? (queue.isEmpty() ? "" : ",") + "research:" + research : ""));

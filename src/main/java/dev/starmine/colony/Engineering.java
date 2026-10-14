@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
  * are cut into segments planned one after another, fluids are never opened.
  */
 public final class Engineering {
-	public static final int WORKERS = 3, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400;
+	public static final int WORKERS = 3, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400, MIND_TICKS = 1200;
 
 	/**
 	 * A worker's next piece of work: a block to break, or one to place (`fill`); `stand` is where it works
@@ -69,6 +69,8 @@ public final class Engineering {
 		BlockPos start;
 		int done = -1, segments = 1, lastWork;
 		long lastProgress;
+		/** Game time the way was opened (the army sent on); the job still minds stragglers for {@link #MIND_TICKS}. */
+		long opened = -1;
 		Vec3 waitAt;
 
 		Job(UUID base, ResourceKey<Level> dimension, StarUnit.Order order, Vec3 goal, double arrive, DronePlanner.Body body,
@@ -121,7 +123,7 @@ public final class Engineering {
 		job.until = until;
 		hireWorkers(level, job, Vec3.atCenterOf(start));
 		if (job.workers.isEmpty()) {
-			TerranLogic.tell(level, base, "message.starmine.engineering_no_workers");
+			BaseLogic.tell(level, base, "message.starmine.engineering_no_workers");
 			return Set.of();
 		}
 		for (StarUnit unit : army) {
@@ -129,7 +131,7 @@ public final class Engineering {
 			BY_UNIT.put(unit.getUUID(), job);
 		}
 		JOBS.add(job);
-		TerranLogic.tell(level, base, "message.starmine.engineering", job.workers.size(), steps.size());
+		BaseLogic.tell(level, base, "message.starmine.engineering", job.workers.size(), steps.size());
 		update(level, job);
 		return Set.copyOf(job.army);
 	}
@@ -214,6 +216,7 @@ public final class Engineering {
 	private static boolean update(ServerLevel level, Job job) {
 		List<StarUnit> army = alive(level, job.army);
 		if (army.isEmpty()) return false;
+		if (job.opened >= 0) return mind(level, job, army);
 		int before = job.done;
 		if (job.done < 0) job.done = 0;
 		while (job.done < job.steps.size() && finished(level, job.steps.get(job.done))) job.done++;
@@ -222,13 +225,13 @@ public final class Engineering {
 		if (job.done == job.steps.size()) {
 			BlockPos end = job.steps.get(job.steps.size() - 1).feet();
 			if (DronePlanner.centre(end, job.body).distanceTo(job.goal) <= job.arrive + 1 || job.segments >= MAX_SEGMENTS) {
-				for (StarUnit unit : army) send(level, job, unit, job.goal, true); // the way is open: on with the order
-				return false;
+				open(level, job, army);
+				return true;
 			}
 			List<DronePlanner.Step> next = DronePlanner.plan(level, end, job.goal, job.arrive, null, true, 4096, BUDGET, job.body);
 			if (next == null || next.isEmpty()) {
-				for (StarUnit unit : army) send(level, job, unit, job.goal, true);
-				return false;
+				open(level, job, army);
+				return true;
 			}
 			job.start = end;
 			job.steps = next;
@@ -238,7 +241,7 @@ public final class Engineering {
 		}
 		if (now - job.lastProgress > STALL_TICKS) {
 			Hive base = HiveSavedData.get(level.getServer()).get(job.base);
-			if (base != null) TerranLogic.tell(level, base, "message.starmine.engineering_stalled");
+			if (base != null) BaseLogic.tell(level, base, "message.starmine.engineering_stalled");
 			for (StarUnit unit : army) if (job.raid) unit.endRaid(); else unit.command(StarUnit.Order.NONE, null);
 			return false;
 		}
@@ -271,6 +274,31 @@ public final class Engineering {
 	 */
 	public static Set<UUID> raid(ServerLevel level, Hive hive, List<StarUnit> warriors, BlockPos target, long until) {
 		return begin(level, hive, warriors, StarUnit.Order.ATTACK_MOVE, Vec3.atBottomCenterOf(target), true, until);
+	}
+
+	/** The way is open: the army goes on with its order, the workers are free. */
+	private static void open(ServerLevel level, Job job, List<StarUnit> army) {
+		job.opened = level.getGameTime();
+		for (StarUnit unit : army) send(level, job, unit, job.goal, true);
+		for (UUID worker : job.workers) BY_UNIT.remove(worker, job);
+		job.workers.clear();
+		job.claims.clear();
+	}
+
+	/**
+	 * After the way is open: a unit that gave its order up on the way (stuck for a while behind the
+	 * others, a narrow turn) is sent again, until all have arrived or {@link #MIND_TICKS} have passed.
+	 */
+	private static boolean mind(ServerLevel level, Job job, List<StarUnit> army) {
+		if (level.getGameTime() - job.opened > MIND_TICKS) return false;
+		boolean all = true;
+		for (StarUnit unit : army) {
+			if (unit.position().distanceTo(job.goal) <= job.arrive + 2) continue;
+			all = false;
+			boolean idle = job.raid ? unit.raidTarget() == null : unit.order() == StarUnit.Order.NONE;
+			if (idle) send(level, job, unit, job.goal, true);
+		}
+		return !all;
 	}
 
 	private static boolean finished(ServerLevel level, DronePlanner.Step step) {

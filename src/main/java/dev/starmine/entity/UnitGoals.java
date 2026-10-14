@@ -15,14 +15,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Terran unit AI (owner 14.10): orders from the base's player come first ({@link Orders}); then the
- * weapon (instant shots, melee for the SCV, a flame line for the hellion); SCVs work
- * ({@link DroneWork}: gather, carry, build); others hold where they were sent ({@link ZergGoals.ReturnHome}
- * with a short radius). Targets: zerg and hostile monsters within sight, and whoever hurts them (never
- * players or other terrans). SCVs only fight back.
+ * Unit AI shared by every race (owner 14.10): orders from the base's player come first ({@link Orders});
+ * then the weapon (melee, shots, lines); workers work ({@link DroneWork}: gather, carry, build, vespene,
+ * an army's way); others hold near where they were sent ({@link ZergGoals.ReturnHome}: short for a
+ * player's units, wide for zerg). Targets: whoever {@link dev.starmine.faction.Faction} calls a foe within
+ * sight, and whoever hurts them; workers only fight back. Zerg add their own goals in {@link StarUnit}.
  */
-final class TerranGoals {
-	private TerranGoals() {
+final class UnitGoals {
+	private UnitGoals() {
 	}
 
 	/** Called from the mob's constructor, before its `kind` field is set: the kind comes as an argument. */
@@ -40,12 +40,12 @@ final class TerranGoals {
 			default -> goals.addGoal(2, new RangedAttackGoal(unit, 1.0, kind.interval, kind.interval + 10, (float) kind.range));
 		}
 		if (kind.worker()) goals.addGoal(3, new DroneWork(unit));
-		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, 4));
+		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, kind.race == UnitKind.Race.ZERG ? 24 : 4));
 		goals.addGoal(6, new LookAtPlayerGoal(unit, Player.class, 8.0f));
 		goals.addGoal(7, new RandomLookAroundGoal(unit));
 		if (kind.attack == UnitKind.Attack.NONE) return;
 		targets.addGoal(1, new HurtByTargetGoal(unit).setAlertOthers(StarUnit.class));
-		if (!kind.worker())
+		if (!kind.worker() && kind.aggressive)
 			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
 				other -> dev.starmine.faction.Faction.hostile(unit, other)));
 	}

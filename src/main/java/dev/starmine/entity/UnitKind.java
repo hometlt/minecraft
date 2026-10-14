@@ -79,7 +79,45 @@ public enum UnitKind {
 	FUSION_CORE(   Race.TERRAN, 750,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.8f, 2.5f,  0x3a5a8a, 0xe0e060),
 	BUNKER(        Race.TERRAN, 400,  0,     false, Attack.NONE,   12,   0.61,  6,    true,  3.0f, 1.0f,  0x3a5a8a, 0x605040),
 	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040),
-	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060);
+	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060),
+
+	// protoss (owner 14.10): SC2 life and plasma shields; hitboxes from the model sizes
+	//                            sc2Hp shield speed  fly    attack         dmg  period range aggressive w/h          egg colours
+	PROBE(            Race.PROTOSS, 20,  20,   3.94,  false, Attack.MELEE,  5,   1.07,  0,    false, 1.0f, 0.9f,  0xc8a030, 0x3070d0),
+	ZEALOT(           Race.PROTOSS, 100, 50,   3.15,  false, Attack.MELEE,  16,  0.86,  0,    true,  0.8f, 1.5f,  0xc8a030, 0x4080f0),
+	STALKER(          Race.PROTOSS, 80,  80,   4.13,  false, Attack.RANGED, 13,  1.34,  6,    true,  2.2f, 3.1f,  0xc8a030, 0x30a0e0),
+	SENTRY(           Race.PROTOSS, 40,  40,   3.15,  false, Attack.RANGED, 6,   0.71,  5,    true,  2.0f, 1.3f,  0xc8a030, 0x60c0f0),
+	ADEPT(            Race.PROTOSS, 70,  70,   3.5,   false, Attack.RANGED, 10,  1.61,  4,    true,  0.9f, 1.5f,  0xc8a030, 0x50d0c0),
+	HIGH_TEMPLAR(     Race.PROTOSS, 40,  40,   2.62,  false, Attack.RANGED, 4,   1.25,  6,    true,  1.0f, 1.6f,  0xc8a030, 0x8080ff),
+	DARK_TEMPLAR(     Race.PROTOSS, 40,  80,   3.94,  false, Attack.MELEE,  45,  1.21,  0,    true,  1.0f, 1.8f,  0x403050, 0x80ff80),
+	ARCHON(           Race.PROTOSS, 10,  350,  3.94,  false, Attack.RANGED, 25,  1.25,  3,    true,  2.0f, 2.9f,  0xa0c0ff, 0xffffff),
+	IMMORTAL(         Race.PROTOSS, 200, 100,  3.15,  false, Attack.RANGED, 20,  1.04,  6,    true,  2.0f, 2.4f,  0xc8a030, 0xe0e0e0),
+	COLOSSUS(         Race.PROTOSS, 200, 150,  3.15,  false, Attack.LINE,   20,  1.07,  7,    true,  3.5f, 7.4f,  0xc8a030, 0xff6060),
+	DISRUPTOR(        Race.PROTOSS, 100, 100,  3.15,  false, Attack.NONE,   0,   0,     0,    false, 1.9f, 1.1f,  0xc8a030, 0xd0a0ff),
+	OBSERVER(         Race.PROTOSS, 40,  20,   2.63,  true,  Attack.NONE,   0,   0,     0,    false, 1.2f, 1.4f,  0xc8a030, 0x404040),
+	WARP_PRISM(       Race.PROTOSS, 80,  100,  4.13,  true,  Attack.NONE,   0,   0,     0,    false, 3.0f, 3.5f,  0xc8a030, 0xa0a0ff),
+	PHOENIX(          Race.PROTOSS, 120, 60,   5.95,  true,  Attack.RANGED, 10,  0.79,  5,    true,  2.4f, 0.7f,  0xc8a030, 0xff8020),
+	VOID_RAY(         Race.PROTOSS, 150, 100,  3.85,  true,  Attack.RANGED, 6,   0.36,  6,    true,  2.5f, 1.7f,  0xc8a030, 0xc040ff),
+	ORACLE(           Race.PROTOSS, 100, 60,   5.6,   true,  Attack.RANGED, 15,  0.61,  4,    true,  2.4f, 2.9f,  0xc8a030, 0x40e0ff),
+	TEMPEST(          Race.PROTOSS, 200, 100,  3.15,  true,  Attack.RANGED, 40,  2.36,  10,   true,  4.0f, 1.1f,  0xc8a030, 0x6060ff),
+	CARRIER(          Race.PROTOSS, 300, 150,  2.62,  true,  Attack.RANGED, 16,  0.5,   8,    true,  3.5f, 2.2f,  0xc8a030, 0xffffff),
+	INTERCEPTOR(      Race.PROTOSS, 40,  40,   7.5,   true,  Attack.MELEE,  16,  2.14,  0,    true,  0.7f, 0.4f,  0xc8a030, 0xc0c0c0),
+	MOTHERSHIP(       Race.PROTOSS, 350, 350,  2.62,  true,  Attack.RANGED, 24,  2.21,  7,    true,  10.0f, 4.5f, 0x302040, 0xffd040),
+	NEXUS(            Race.PROTOSS, 1000, 1000, 0,    false, Attack.NONE,   0,   0,     0,    false, 6.2f, 4.1f,  0xc8a030, 0x30a0ff),
+	PYLON(            Race.PROTOSS, 200, 200,  0,     false, Attack.NONE,   0,   0,     0,    false, 1.8f, 3.1f,  0xc8a030, 0x60c0ff),
+	ASSIMILATOR(      Race.PROTOSS, 300, 300,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.6f,  0xc8a030, 0x60e060),
+	GATEWAY(          Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.5f, 3.0f,  0xc8a030, 0xe0c060),
+	FORGE(            Race.PROTOSS, 400, 400,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.6f, 2.7f,  0xc8a030, 0xff8040),
+	CYBERNETICS_CORE( Race.PROTOSS, 550, 550,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.5f, 2.5f,  0xc8a030, 0x40a0ff),
+	PHOTON_CANNON(    Race.PROTOSS, 150, 150,  0,     false, Attack.NONE,   20,  1.25,  7,    true,  2.9f, 2.2f,  0xc8a030, 0x8080ff),
+	SHIELD_BATTERY(   Race.PROTOSS, 150, 150,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.0f, 1.9f,  0xc8a030, 0x40c0ff),
+	TWILIGHT_COUNCIL( Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.8f, 3.9f,  0xc8a030, 0xa060ff),
+	ROBOTICS_FACILITY(Race.PROTOSS, 450, 450,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.0f, 2.8f,  0xc8a030, 0xe0e0e0),
+	STARGATE(         Race.PROTOSS, 600, 600,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.5f, 3.9f,  0xc8a030, 0x6060ff),
+	TEMPLAR_ARCHIVES( Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.0f, 2.4f,  0xc8a030, 0x8080ff),
+	DARK_SHRINE(      Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 2.6f, 6.2f,  0x403050, 0x80ff80),
+	ROBOTICS_BAY(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.3f, 2.0f,  0xc8a030, 0xd0d0d0),
+	FLEET_BEACON(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.9f,  0xc8a030, 0xffd040);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -88,12 +126,18 @@ public enum UnitKind {
 
 	public enum Attack { NONE, MELEE, SPLASH, EXPLODE, RANGED, SLOW, LINE, PULL, SPAWN_BROODLINGS, SPAWN_LOCUSTS }
 
-	/** Races never fight themselves; zerg and terrans fight each other. */
-	public enum Race { ZERG, TERRAN }
+	/** The three races; what each does its own way is in its rules ({@link dev.starmine.race.RaceRules}). */
+	public enum Race {
+		ZERG, TERRAN, PROTOSS;
+
+		public dev.starmine.race.RaceRules rules() {
+			return dev.starmine.race.Races.of(this);
+		}
+	}
 
 	public final Race race;
 	public final String id;
-	public final double health, speed, damage, range;
+	public final double health, shields, speed, damage, range;
 	public final int interval;
 	public final boolean flying, aggressive;
 	public final Attack attack;
@@ -102,14 +146,21 @@ public enum UnitKind {
 
 	UnitKind(double sc2Hp, double sc2Speed, boolean flying, Attack attack, double sc2Damage, double period, double sc2Range,
 			boolean aggressive, float width, float height, int eggBase, int eggSpots) {
-		this(Race.ZERG, sc2Hp, sc2Speed, flying, attack, sc2Damage, period, sc2Range, aggressive, width, height, eggBase, eggSpots);
+		this(Race.ZERG, sc2Hp, 0, sc2Speed, flying, attack, sc2Damage, period, sc2Range, aggressive, width, height, eggBase, eggSpots);
 	}
 
 	UnitKind(Race race, double sc2Hp, double sc2Speed, boolean flying, Attack attack, double sc2Damage, double period, double sc2Range,
 			boolean aggressive, float width, float height, int eggBase, int eggSpots) {
+		this(race, sc2Hp, 0, sc2Speed, flying, attack, sc2Damage, period, sc2Range, aggressive, width, height, eggBase, eggSpots);
+	}
+
+	/** With SC2 plasma shields (protoss): absorbed before health, they come back after a while ({@link StarUnit}). */
+	UnitKind(Race race, double sc2Hp, double sc2Shields, double sc2Speed, boolean flying, Attack attack, double sc2Damage, double period,
+			double sc2Range, boolean aggressive, float width, float height, int eggBase, int eggSpots) {
 		this.race = race;
 		this.id = name().toLowerCase().replace("_", "");
 		this.health = Math.max(1, Math.round(sc2Hp * SCALE));
+		this.shields = Math.round(sc2Shields * SCALE);
 		this.speed = sc2Speed == 0 ? 0 : Math.max(0.12, sc2Speed * SPEED_SCALE);
 		this.flying = flying;
 		this.attack = attack;
@@ -141,75 +192,15 @@ public enum UnitKind {
 	}
 
 	/**
-	 * Hive economy from SC2 Data (VoidMulti, resolved through Modkit): total minerals and vespene,
-	 * supply used (food), larva/hatchery train time at Faster speed in ticks (Normal game seconds / 1.4),
-	 * supply provided, and transport size in an overlord (SC2 cargo; 0 = cannot be carried).
+	 * Economy from SC2 Data (VoidMulti, resolved through Modkit): total minerals and vespene, supply used
+	 * (food), train or build time in ticks, supply provided, and transport size (SC2 cargo; 0 = cannot be
+	 * carried). Per race: {@link dev.starmine.race.RaceRules#economy}.
 	 */
 	public record Economy(int minerals, int vespene, double food, int trainTicks, int supply, int cargo) {
 	}
 
-	private static int ticks(double normalSeconds) {
-		return (int) Math.round(normalSeconds / 1.4 * 20);
-	}
-
 	public Economy economy() {
-		return switch (this) {
-			case DRONE -> new Economy(50, 0, 1, ticks(17), 0, 1);
-			case ZERGLING -> new Economy(25, 0, 0.5, ticks(24), 0, 1);
-			case OVERLORD -> new Economy(100, 0, 0, ticks(25), 8, 0);
-			case OVERSEER -> new Economy(150, 50, 0, ticks(16.67), 8, 0);
-			case QUEEN -> new Economy(175, 0, 2, ticks(50), 0, 2);
-			case ROACH -> new Economy(75, 25, 2, ticks(27), 0, 2);
-			case RAVAGER -> new Economy(100, 100, 3, ticks(12.14), 0, 4);
-			case BANELING -> new Economy(50, 25, 0.5, ticks(20), 0, 2);
-			case HYDRALISK -> new Economy(100, 50, 2, ticks(33), 0, 2);
-			case LURKER -> new Economy(150, 150, 3, ticks(25), 0, 4);
-			case MUTALISK -> new Economy(100, 100, 2, ticks(33), 0, 0);
-			case CORRUPTOR -> new Economy(150, 100, 2, ticks(40), 0, 0);
-			case BROOD_LORD -> new Economy(300, 250, 4, ticks(33.57), 0, 0);
-			case INFESTOR -> new Economy(100, 150, 2, ticks(50), 0, 2);
-			case SWARM_HOST -> new Economy(100, 75, 3, ticks(40), 0, 4);
-			case VIPER -> new Economy(100, 200, 3, ticks(40), 0, 0);
-			case ULTRALISK -> new Economy(275, 200, 6, ticks(55), 0, 8);
-			case HATCHERY -> new Economy(325, 0, 0, ticks(71), 8, 0);
-			case SPAWNING_POOL -> new Economy(200, 0, 0, seconds(46), 0, 0);
-			case EVOLUTION_CHAMBER -> new Economy(75, 0, 0, seconds(25), 0, 0);
-			case ROACH_WARREN -> new Economy(150, 0, 0, seconds(39), 0, 0);
-			case BANELING_NEST -> new Economy(100, 50, 0, seconds(43), 0, 0);
-			case HYDRALISK_DEN -> new Economy(100, 100, 0, seconds(29), 0, 0);
-			case SPIRE -> new Economy(200, 200, 0, seconds(71), 0, 0);
-			case INFESTATION_PIT -> new Economy(100, 100, 0, seconds(36), 0, 0);
-			case ULTRALISK_CAVERN -> new Economy(150, 200, 0, seconds(46), 0, 0);
-			case EXTRACTOR -> new Economy(25, 0, 0, seconds(21), 0, 0);
-			case SPINE_CRAWLER -> new Economy(100, 0, 0, seconds(36), 0, 0);
-			case SPORE_CRAWLER -> new Economy(75, 0, 0, seconds(21), 0, 0);
-			case BROODLING, LOCUST, CHANGELING, LARVA, EGG -> new Economy(0, 0, 0, 0, 0, this == LARVA || this == EGG ? 0 : 1);
-			// terran (SC2 LotV, build times at Faster)
-			case SCV -> new Economy(50, 0, 1, seconds(12), 0, 1);
-			case MARINE -> new Economy(50, 0, 1, seconds(18), 0, 1);
-			case MARAUDER -> new Economy(100, 25, 2, seconds(21), 0, 2);
-			case REAPER -> new Economy(50, 50, 1, seconds(32), 0, 1);
-			case GHOST -> new Economy(150, 125, 2, seconds(29), 0, 2);
-			case HELLION -> new Economy(100, 0, 2, seconds(21), 0, 2);
-			case SIEGE_TANK -> new Economy(150, 125, 3, seconds(32), 0, 4);
-			case THOR -> new Economy(300, 200, 6, seconds(43), 0, 8);
-			case VIKING -> new Economy(150, 75, 2, seconds(30), 0, 0);
-			case MEDIVAC -> new Economy(100, 100, 2, seconds(30), 0, 0);
-			case BANSHEE -> new Economy(150, 100, 3, seconds(43), 0, 0);
-			case BATTLECRUISER -> new Economy(400, 300, 6, seconds(64), 0, 0);
-			case COMMAND_CENTER -> new Economy(400, 0, 0, seconds(71), 15, 0);
-			case SUPPLY_DEPOT -> new Economy(100, 0, 0, seconds(21), 8, 0);
-			case BARRACKS -> new Economy(150, 0, 0, seconds(46), 0, 0);
-			case FACTORY -> new Economy(150, 100, 0, seconds(43), 0, 0);
-			case STARPORT -> new Economy(150, 100, 0, seconds(36), 0, 0);
-			case ENGINEERING_BAY -> new Economy(125, 0, 0, seconds(25), 0, 0);
-			case ARMORY -> new Economy(150, 50, 0, seconds(46), 0, 0);
-			case GHOST_ACADEMY -> new Economy(150, 50, 0, seconds(29), 0, 0);
-			case FUSION_CORE -> new Economy(150, 150, 0, seconds(46), 0, 0);
-			case BUNKER -> new Economy(100, 0, 0, seconds(29), 0, 0);
-			case MISSILE_TURRET -> new Economy(100, 0, 0, seconds(18), 0, 0);
-			case REFINERY -> new Economy(75, 0, 0, seconds(21), 0, 0);
-		};
+		return race.rules().economy(this);
 	}
 
 	/** Immobile parts of a hive or base: no movement, no knockback, solid to walk on. */
@@ -219,117 +210,84 @@ public enum UnitKind {
 
 	/** Built buildings: what a drone mutates into, what an SCV builds (the command center too; not the hatchery). */
 	public boolean building() {
-		return race == Race.TERRAN ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= SPORE_CRAWLER.ordinal();
+		return race != Race.ZERG ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= SPORE_CRAWLER.ordinal();
 	}
 
-	/** The building a hive or base is anchored to: the hatchery, the command center. */
+	/** The building a hive or base is anchored to: the hatchery, the command center, the nexus. */
 	public boolean main() {
-		return this == HATCHERY || this == COMMAND_CENTER;
+		return this == HATCHERY || this == COMMAND_CENTER || this == NEXUS;
 	}
 
 	/** Vespene buildings (owner 14.10): put on a vein outlet; workers draw vespene inside them. */
 	public boolean gas() {
-		return this == EXTRACTOR || this == REFINERY;
+		return this == EXTRACTOR || this == REFINERY || this == ASSIMILATOR;
 	}
 
-	/** The worker of a race (a base's first units); null for a race with none yet. */
+	/** The worker of a race (a base's first units). */
 	public static UnitKind workerOf(Race race) {
-		return switch (race) {
-			case ZERG -> DRONE;
-			case TERRAN -> SCV;
-		};
+		return race.rules().worker();
 	}
 
 	/** Workers gather and build: the drone, the SCV. */
 	public boolean worker() {
-		return this == DRONE || this == SCV;
+		return this == DRONE || this == SCV || this == PROBE;
 	}
 
 	/** Buildings that shoot at foes in range: spine and spore crawlers, bunker, missile turret. */
 	public boolean defender() {
-		return this == SPINE_CRAWLER || this == SPORE_CRAWLER || this == BUNKER || this == MISSILE_TURRET;
+		return this == SPINE_CRAWLER || this == SPORE_CRAWLER || this == BUNKER || this == MISSILE_TURRET || this == PHOTON_CANNON;
 	}
 
 	/** Defenders that shoot flying foes (spore crawler, missile turret, bunker) and ground ones (spine crawler, bunker). */
 	public boolean antiAir() {
-		return this == SPORE_CRAWLER || this == MISSILE_TURRET || this == BUNKER;
+		return this == SPORE_CRAWLER || this == MISSILE_TURRET || this == BUNKER || this == PHOTON_CANNON;
 	}
 
 	public boolean antiGround() {
-		return this == SPINE_CRAWLER || this == BUNKER;
+		return this == SPINE_CRAWLER || this == BUNKER || this == PHOTON_CANNON;
 	}
 
 	/** Bio units a medivac heals (not machines, not buildings). */
 	public boolean biological() {
-		return this == MARINE || this == MARAUDER || this == REAPER || this == GHOST;
+		return this == MARINE || this == MARAUDER || this == REAPER || this == GHOST || this == ZEALOT || this == ADEPT
+			|| this == HIGH_TEMPLAR || this == DARK_TEMPLAR;
 	}
 
-	/** What a terran production building trains (SC2; tech labs are not needed). */
+	/** What this trains (a building, a zerg larva): the kinds whose producer it is, in kind order. */
 	public java.util.List<UnitKind> trains() {
-		return switch (this) {
-			case COMMAND_CENTER -> java.util.List.of(SCV);
-			case BARRACKS -> java.util.List.of(MARINE, MARAUDER, REAPER, GHOST);
-			case FACTORY -> java.util.List.of(HELLION, SIEGE_TANK, THOR);
-			case STARPORT -> java.util.List.of(VIKING, MEDIVAC, BANSHEE, BATTLECRUISER);
-			default -> java.util.List.of();
-		};
+		return TRAINS.computeIfAbsent(this, producer -> java.util.Arrays.stream(values()).filter(kind -> kind.producer() == producer).toList());
 	}
 
-	/** What an SCV builds, in command-card order. */
-	public static final java.util.List<UnitKind> TERRAN_BUILDINGS = java.util.List.of(COMMAND_CENTER, SUPPLY_DEPOT, REFINERY,
-		BARRACKS, ENGINEERING_BAY, BUNKER, MISSILE_TURRET, FACTORY, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
+	private static final java.util.Map<UnitKind, java.util.List<UnitKind>> TRAINS = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/** What trains it (a building, a larva); null for buildings and summons. */
+	public UnitKind producer() {
+		return race.rules().producer(this);
+	}
+
+	/** Its SC2 grid hotkey on the command card. */
+	public char hotkey() {
+		return race.rules().hotkey(this);
+	}
 
 	/** How far it sees, in blocks (about SC2 sight x {@link #BLOCKS_PER_UNIT}): fog of war in command mode. */
 	public double sight() {
 		if (building()) return this == COMMAND_CENTER ? 13 : 10;
 		return switch (this) {
-			case SCV -> 9;
-			case GHOST, VIKING, BANSHEE, BATTLECRUISER, MEDIVAC, THOR -> 13;
+			case SCV, PROBE -> 9;
+			case GHOST, VIKING, BANSHEE, BATTLECRUISER, MEDIVAC, THOR, OBSERVER, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> 13;
 			default -> 11;
 		};
 	}
 
-	/** SC2 build time at Faster speed (real seconds), in ticks. */
-	private static int seconds(double s) {
-		return (int) Math.round(s * 20);
-	}
-
-	/**
-	 * What a unit or building needs in the hive first (SC2 tech): the spawning pool for zerglings,
-	 * queens and crawlers, the warren for roaches, the nest for banelings, the den for hydralisks and
-	 * lurkers, the spire for flyers, the pit for infestors, swarm hosts and vipers, the cavern for
-	 * ultralisks; second-tier buildings need a lair, the cavern a hive ({@link #tier()}).
-	 */
+	/** What it needs in the base first (SC2 tech; per race {@link dev.starmine.race.RaceRules#requires}). */
 	public UnitKind requires() {
-		return switch (this) {
-			case ZERGLING, QUEEN, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST, EVOLUTION_CHAMBER -> SPAWNING_POOL;
-			case ROACH, RAVAGER -> ROACH_WARREN;
-			case BANELING -> BANELING_NEST;
-			case HYDRALISK, LURKER -> HYDRALISK_DEN;
-			case MUTALISK, CORRUPTOR, BROOD_LORD -> SPIRE;
-			case INFESTOR, SWARM_HOST, VIPER -> INFESTATION_PIT;
-			case ULTRALISK -> ULTRALISK_CAVERN;
-			// terran tech (SC2, without tech labs)
-			case SCV, SUPPLY_DEPOT, ENGINEERING_BAY -> COMMAND_CENTER;
-			case BARRACKS -> SUPPLY_DEPOT;
-			case MARINE, MARAUDER, REAPER, FACTORY, BUNKER, GHOST_ACADEMY -> BARRACKS;
-			case GHOST -> GHOST_ACADEMY;
-			case MISSILE_TURRET -> ENGINEERING_BAY;
-			case HELLION, SIEGE_TANK, STARPORT, ARMORY -> FACTORY;
-			case THOR -> ARMORY;
-			case VIKING, MEDIVAC, BANSHEE, FUSION_CORE -> STARPORT;
-			case BATTLECRUISER -> FUSION_CORE;
-			default -> null;
-		};
+		return race.rules().requires(this);
 	}
 
-	/** Hatchery tier a building needs: 2 = lair, 3 = hive. */
+	/** Main building tier it needs: 2 = lair, 3 = hive (zerg). */
 	public int tier() {
-		return switch (this) {
-			case HYDRALISK_DEN, SPIRE, INFESTATION_PIT -> 2;
-			case ULTRALISK_CAVERN -> 3;
-			default -> 1;
-		};
+		return race.rules().tier(this);
 	}
 
 	/** Owner's sizes: the drone 2 blocks across, the lurker 3, overlord, overseer and brood lord 4. */
@@ -352,8 +310,11 @@ public enum UnitKind {
 			case OVERLORD, OVERSEER -> 6;
 			case BROOD_LORD -> 7;
 			case MUTALISK, CORRUPTOR, VIPER -> 4;
-			case VIKING, MEDIVAC, BANSHEE -> 5;
-			case BATTLECRUISER -> 8;
+			case VIKING, MEDIVAC, BANSHEE, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE -> 5;
+			case OBSERVER -> 6;
+			case INTERCEPTOR -> 4;
+			case BATTLECRUISER, TEMPEST, CARRIER -> 8;
+			case MOTHERSHIP -> 10;
 			default -> 0;
 		};
 	}

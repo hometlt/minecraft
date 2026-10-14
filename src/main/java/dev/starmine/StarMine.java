@@ -128,12 +128,12 @@ public final class StarMine implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		dev.starmine.colony.ColonyNetwork.register();
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
-			dev.starmine.colony.TerranLogic.onDamage(entity, source));
-		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.TerranLogic::serverTick);
+			dev.starmine.colony.BaseLogic.onDamage(entity, source));
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.BaseLogic::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.Engineering::serverTick);
 		// owner: a player may bring resources to a command center of their base
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hit) ->
-			dev.starmine.colony.TerranLogic.handIn(player, world, hand, entity));
+			dev.starmine.colony.BaseLogic.handIn(player, world, hand, entity));
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (UnitKind kind : UnitKind.values()) entries.accept(EGGS.get(kind));

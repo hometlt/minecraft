@@ -246,7 +246,7 @@ public final class CommandView {
 	/** Whether a unit belongs to this player's base. */
 	static boolean own(StarUnit unit) {
 		Minecraft mc = Minecraft.getInstance();
-		return mc.player != null && unit.kind.race == UnitKind.Race.TERRAN && unit.owner().map(mc.player.getUUID()::equals).orElse(false);
+		return mc.player != null && unit.owner().map(mc.player.getUUID()::equals).orElse(false);
 	}
 
 	/** The selected entities still around, in selection order. */
@@ -428,6 +428,7 @@ public final class CommandView {
 		AABB box = new AABB(site).inflate(half, 0, half).expandTowards(0, placing.height, 0);
 		boolean free = mc.level.getEntitiesOfClass(StarUnit.class, box, mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
 		ghostValid = free && seen(site.getX(), site.getZ(), 0)
+			&& placing.race.rules().siteRefusal(mc.level, placing, site, null) == null // protoss: pylon power
 			&& HiveTerrain.prepare(mc.level, site, half, (int) Math.ceil(placing.height), false);
 	}
 }

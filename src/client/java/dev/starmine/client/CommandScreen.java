@@ -4,6 +4,7 @@ import dev.starmine.StarMine;
 import dev.starmine.colony.ColonyNetwork;
 import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.UnitKind;
+import dev.starmine.race.Research;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -272,6 +273,11 @@ public final class CommandScreen extends Screen {
 			int hp = (int) Math.ceil(unit.getHealth()), max = (int) Math.ceil(unit.getMaxHealth());
 			graphics.drawString(font, hp + " / " + max, panelLeft + 28, panelTop + 18, 0xFF80FF80);
 			bar(graphics, panelLeft + 6, panelTop + 30, panelWidth - 12, unit.getHealth() / unit.getMaxHealth(), 0xFF40C040);
+			if (unit.kind.shields > 0) { // protoss plasma shields over the health
+				graphics.drawString(font, Component.translatable("command.starmine.shields", (int) Math.ceil(unit.shield()), (int) Math.ceil(unit.kind.shields)),
+					panelLeft + 120, panelTop + 18, 0xFF80C0FF);
+				bar(graphics, panelLeft + 6, panelTop + 25, panelWidth - 12, (float) (unit.shield() / unit.kind.shields), 0xFF40A0FF);
+			}
 			if (unit.kind.structure() && CommandView.own(unit)) {
 				int progress = unit.progress();
 				String queue = unit.queueIds();
@@ -316,19 +322,25 @@ public final class CommandScreen extends Screen {
 
 	// ---- the command card ----
 
+	/**
+	 * The command card for the selection, for every race (owner 14.10): units get move, stop, hold,
+	 * patrol, attack; workers also gather, return and build (the race's buildings,
+	 * {@link dev.starmine.race.RaceRules#buildings}, 10 on the first page, the rest on the second);
+	 * producers (a building, zerg larvae) train what they make ({@link UnitKind#trains}) with its
+	 * SC2 hotkey, research what they research ({@link Research}) and set a rally point.
+	 */
 	private List<Button> buttons() {
 		List<Button> buttons = new ArrayList<>();
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
 		if (own.isEmpty()) return buttons;
-		List<StarUnit> mobile = own.stream().filter(unit -> !unit.kind.structure()).toList();
-		boolean workers = mobile.stream().anyMatch(unit -> unit.kind.worker());
-		if (page != Page.MAIN && workers) {
-			List<UnitKind> kinds = page == Page.BUILD
-				? List.of(UnitKind.COMMAND_CENTER, UnitKind.SUPPLY_DEPOT, UnitKind.BARRACKS, UnitKind.ENGINEERING_BAY, UnitKind.BUNKER, UnitKind.MISSILE_TURRET)
-				: List.of(UnitKind.FACTORY, UnitKind.STARPORT, UnitKind.ARMORY, UnitKind.GHOST_ACADEMY, UnitKind.FUSION_CORE);
+		List<StarUnit> mobile = own.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
+		StarUnit worker = mobile.stream().filter(unit -> unit.kind.worker()).findFirst().orElse(null);
+		if (page != Page.MAIN && worker != null) {
+			List<UnitKind> all = worker.kind.race.rules().buildings();
+			List<UnitKind> kinds = page == Page.BUILD ? all.subList(0, Math.min(10, all.size())) : all.subList(Math.min(10, all.size()), all.size());
 			for (int i = 0; i < kinds.size(); i++) {
 				UnitKind kind = kinds.get(i);
-				buttons.add(unitButton(i, kind, buildKey(kind), () -> {
+				buttons.add(unitButton(i, kind, kind.hotkey(), () -> {
 					CommandView.placing = kind;
 					targeting = null;
 				}, false));
@@ -344,28 +356,26 @@ public final class CommandScreen extends Screen {
 			buttons.add(simple(2, "hold", 'H', () -> CommandView.send("hold", Vec3.ZERO, -1, null)));
 			buttons.add(simple(3, "patrol", 'P', () -> targeting = "patrol"));
 			buttons.add(simple(4, "attack", 'A', () -> targeting = "attack"));
-			if (workers) {
+			if (worker != null) {
 				buttons.add(simple(5, "gather", 'G', () -> targeting = "gather"));
 				buttons.add(simple(6, "return", 'C', () -> CommandView.send("return", Vec3.ZERO, -1, null)));
 				buttons.add(simple(10, "build", 'B', () -> page = Page.BUILD));
-				buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
+				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
 			}
 			return buttons;
 		}
-		UnitKind building = own.get(0).kind;
-		List<UnitKind> trains = building.trains();
-		for (int i = 0; i < trains.size(); i++) {
+		UnitKind producer = own.get(0).kind;
+		List<UnitKind> trains = producer.trains();
+		for (int i = 0; i < trains.size() && i < 10; i++) {
 			UnitKind kind = trains.get(i);
-			buttons.add(unitButton(i, kind, trainKey(kind), () -> CommandView.send("train", Vec3.ZERO, -1, kind.name()), true));
+			buttons.add(unitButton(i, kind, kind.hotkey(), () -> CommandView.send("train", Vec3.ZERO, -1, kind.name()), true));
 		}
-		if (building == UnitKind.ENGINEERING_BAY) {
-			int weapons = BaseStatusClient.status.attackLevel() + 1, armor = BaseStatusClient.status.armorLevel() + 1;
-			buttons.add(research(0, "weapons", 'E', weapons));
-			buttons.add(research(1, "armor", 'A', armor));
-		}
-		if (!trains.isEmpty()) buttons.add(simple(10, "rally", 'Y', () -> targeting = "rally"));
-		buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
-			List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null)));
+		List<Research> researches = Research.of(producer);
+		for (int i = 0; i < researches.size(); i++) buttons.add(research(trains.size() + i, researches.get(i), producer));
+		if (!trains.isEmpty() && producer.structure()) buttons.add(simple(10, "rally", 'Y', () -> targeting = "rally"));
+		if (producer.structure())
+			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
+				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null)));
 		return buttons;
 	}
 
@@ -374,20 +384,39 @@ public final class CommandScreen extends Screen {
 		return new Button(slot, label, key, null, true, List.of(label.copy().append(" (" + key + ")")), run);
 	}
 
-	private Button research(int slot, String what, char key, int level) {
-		int cost = StarUnit.researchCost(level);
+	/** A research button: its next level, cost and what it needs (from the base status). */
+	private Button research(int slot, Research what, UnitKind building) {
 		ColonyNetwork.BaseStatus status = BaseStatusClient.status;
-		boolean armory = status.counts().getOrDefault(UnitKind.ARMORY.name(), 0) > 0;
-		boolean enabled = level <= 3 && (level == 1 || armory) && status.minerals() >= cost && status.vespene() >= cost;
+		int tier = status.counts().getOrDefault("tier", 1);
+		int level = switch (what) {
+			case WEAPONS -> status.attackLevel() + 1;
+			case ARMOR -> status.armorLevel() + 1;
+			case LAIR -> 2;
+			case HIVE -> 3;
+		};
+		UnitKind need = switch (what) {
+			case WEAPONS, ARMOR -> level <= 1 ? null : switch (building.race) {
+				case TERRAN -> UnitKind.ARMORY;
+				case PROTOSS -> UnitKind.TWILIGHT_COUNCIL;
+				case ZERG -> null;
+			};
+			case LAIR -> UnitKind.SPAWNING_POOL;
+			case HIVE -> UnitKind.INFESTATION_PIT;
+		};
+		boolean done = what == Research.LAIR ? tier >= 2 : what == Research.HIVE ? tier >= 3 : level > 3;
+		boolean tech = (need == null || status.counts().getOrDefault(need.name(), 0) > 0)
+			&& (building.race != UnitKind.Race.ZERG || what == Research.LAIR || tier >= level);
+		int[] cost = what.cost(level);
+		boolean enabled = !done && tech && status.minerals() >= cost[0] && status.vespene() >= cost[1];
+		Component label = Component.translatable("command.starmine." + what.id());
 		List<Component> tooltip = new ArrayList<>();
-		tooltip.add(Component.translatable("command.starmine." + what).append(" " + Math.min(level, 3) + " (" + key + ")"));
-		tooltip.add(Component.translatable("command.starmine.cost", cost, cost));
-		if (level > 1 && !armory) tooltip.add(Component.translatable("command.starmine.requires", name(UnitKind.ARMORY)).withColor(0xFF6060));
-		return new Button(slot, Component.translatable("command.starmine." + what), key, null, enabled, tooltip,
-			() -> CommandView.send("research", Vec3.ZERO, -1, what));
+		tooltip.add(label.copy().append((what == Research.WEAPONS || what == Research.ARMOR ? " " + Math.min(level, 3) : "") + " (" + what.hotkey + ")"));
+		tooltip.add(Component.translatable("command.starmine.cost", cost[0], cost[1]));
+		if (need != null && status.counts().getOrDefault(need.name(), 0) == 0) tooltip.add(Component.translatable("command.starmine.requires", name(need)).withColor(0xFF6060));
+		return new Button(slot, label, what.hotkey, null, enabled, tooltip, () -> CommandView.send("research", Vec3.ZERO, -1, what.id()));
 	}
 
-	/** A button for a unit or building: its egg icon, cost tooltip, greyed when locked or too dear. */
+	/** A button for a unit or building: its icon, cost tooltip, greyed when locked or too dear. */
 	private Button unitButton(int slot, UnitKind kind, char key, Runnable run, boolean supply) {
 		ColonyNetwork.BaseStatus status = BaseStatusClient.status;
 		UnitKind.Economy cost = kind.economy();
@@ -399,40 +428,9 @@ public final class CommandScreen extends Screen {
 		tooltip.add(Component.translatable("command.starmine.cost", cost.minerals(), cost.vespene()));
 		if (cost.food() > 0) tooltip.add(Component.translatable("command.starmine.food", cost.food()));
 		tooltip.add(Component.translatable("command.starmine.time", Math.round(cost.trainTicks() / 20.0)));
-		if (!unlocked) tooltip.add(Component.translatable("command.starmine.requires", name(kind.requires())).withColor(0xFF6060));
+		if (!unlocked && kind.requires() != null) tooltip.add(Component.translatable("command.starmine.requires", name(kind.requires())).withColor(0xFF6060));
+		if (dev.starmine.race.ProtossRace.needsPower(kind)) tooltip.add(Component.translatable("command.starmine.needs_power").withColor(0x60C0FF));
 		return new Button(slot, name(kind), key, kind, unlocked && affordable, tooltip, run);
-	}
-
-	private static char buildKey(UnitKind kind) {
-		return switch (kind) {
-			case COMMAND_CENTER -> 'C';
-			case SUPPLY_DEPOT -> 'S';
-			case BARRACKS -> 'B';
-			case ENGINEERING_BAY -> 'E';
-			case BUNKER -> 'U';
-			case MISSILE_TURRET -> 'T';
-			case FACTORY -> 'F';
-			case STARPORT -> 'S';
-			case ARMORY -> 'A';
-			case GHOST_ACADEMY -> 'G';
-			case FUSION_CORE -> 'C';
-			default -> ' ';
-		};
-	}
-
-	private static char trainKey(UnitKind kind) {
-		return switch (kind) {
-			case SCV, SIEGE_TANK -> 'S';
-			case MARINE -> 'A';
-			case MARAUDER, MEDIVAC -> 'D';
-			case REAPER -> 'R';
-			case GHOST -> 'G';
-			case HELLION, BANSHEE -> 'E';
-			case THOR -> 'T';
-			case VIKING -> 'V';
-			case BATTLECRUISER -> 'B';
-			default -> ' ';
-		};
 	}
 
 	// ---- input ----
@@ -708,7 +706,7 @@ public final class CommandScreen extends Screen {
 			return;
 		}
 		boolean workers = own.stream().anyMatch(u -> u.kind.worker());
-		if (unit != null && !CommandView.own(unit) && unit.kind.race != UnitKind.Race.TERRAN) {
+		if (unit != null && !CommandView.own(unit)) { // not the player's: attack it
 			CommandView.send("attack", at, unit.getId(), null);
 		} else if (unit != null && workers && unit.kind == UnitKind.COMMAND_CENTER && CommandView.own(unit)) {
 			CommandView.send("return", at, -1, null);

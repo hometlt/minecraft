@@ -5,7 +5,7 @@ import dev.starmine.creep.CreepGrowth;
 import dev.starmine.creep.CreepSources;
 import dev.starmine.entity.UnitKind;
 import dev.starmine.entity.StarUnit;
-import dev.starmine.colony.TerranLogic;
+import dev.starmine.colony.BaseLogic;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -95,7 +95,6 @@ public final class HiveLogic {
 		research(level, hive);
 		if (hatchery.tickCount % 40 == 0) watchForThreats(hatchery, level, hive);
 		if (hatchery.tickCount % 200 == 0) maybeRaid(hatchery, level, hive);
-		if (hatchery.tickCount % 200 == 100) orderExtractor(hatchery, level, hive);
 		if (++hive.decisionTimer >= DECISION_TICKS) {
 			hive.decisionTimer = 0;
 			decide(hatchery, level, hive);
@@ -104,6 +103,7 @@ public final class HiveLogic {
 	}
 
 	private static void decide(StarUnit hatchery, ServerLevel level, Hive hive) {
+		orderExtractor(hatchery, level, hive); // vespene first: the tech after the pool needs it
 		orderBuilding(hatchery, level, hive);
 		if (hive.unlocked(UnitKind.QUEEN) && hive.count(UnitKind.QUEEN) + hive.pending(UnitKind.QUEEN) == 0 && hive.queenTicks < 0 && hive.canAfford(UnitKind.QUEEN, 1)) {
 			hive.pay(UnitKind.QUEEN, 1);
@@ -171,7 +171,8 @@ public final class HiveLogic {
 		if (site == null) return;
 		final UnitKind building = next;
 		level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48),
-				mob -> mob.kind == UnitKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.cargoBlocks == 0)
+				mob -> mob.kind == UnitKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.cargoBlocks == 0
+					&& mob.buildKind() == null)
 			.stream().min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(Vec3.atCenterOf(site))))
 			.ifPresent(drone -> {
 				drone.orderBuild(building, site);
@@ -181,14 +182,14 @@ public final class HiveLogic {
 	}
 
 	/**
-	 * Vespene (owner 14.10): with 4 drones or more (besides other building orders), a drone is sent to mutate
+	 * Vespene (owner 14.10): with 3 drones or more (before other buildings), a drone is sent to mutate
 	 * into an extractor on the nearest free vein outlet near the hatchery (one, then one more per 8 drones, at most 4);
 	 * extractors then take 3 drones each ({@code DroneWork} GAS).
 	 */
 	private static void orderExtractor(StarUnit hatchery, ServerLevel level, Hive hive) {
 		int drones = hive.count(UnitKind.DRONE);
 		int extractors = hive.count(UnitKind.EXTRACTOR) + hive.pending(UnitKind.EXTRACTOR);
-		if (drones < 4 || extractors >= Math.min(4, 1 + drones / 8) || !hive.canAfford(UnitKind.EXTRACTOR, 1)) return;
+		if (drones < 3 || extractors >= Math.min(4, 1 + drones / 8) || !hive.canAfford(UnitKind.EXTRACTOR, 1)) return;
 		List<StarUnit> free = level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48),
 			mob -> mob.kind == UnitKind.DRONE && hive.id.equals(mob.hiveId()) && mob.isAlive() && mob.raidTarget() == null && mob.buildKind() == null);
 		if (!level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48),
@@ -232,17 +233,17 @@ public final class HiveLogic {
 	}
 
 	/** A drone has reached its site: it becomes the building (paid now; built over the SC2 time). */
-	public static boolean mutate(StarUnit drone, ServerLevel level, UnitKind kind, BlockPos site) {
+	public static StarUnit mutate(StarUnit drone, ServerLevel level, UnitKind kind, BlockPos site) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
-		if (hive == null || !hive.unlocked(kind) || !hive.canAfford(kind, 1)) return false;
+		if (hive == null || !hive.unlocked(kind) || !hive.canAfford(kind, 1)) return null;
 		int half = HiveTerrain.foundation(kind);
 		if (kind.gas()) { // an extractor grows on a vein outlet, no foundation
 			BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(level, site);
-			if (outlet == null) return false;
+			if (outlet == null) return null;
 			site = outlet.above();
-			if (!level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.gas() && mob.isAlive()).isEmpty()) return false;
+			if (!level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.gas() && mob.isAlive()).isEmpty()) return null;
 		} else if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) {
-			return false;
+			return null;
 		}
 		hive.pay(kind, 1);
 		hive.expect(kind, 1);
@@ -251,7 +252,7 @@ public final class HiveLogic {
 		if (building != null) building.startConstruction(kind.economy().trainTicks());
 		hive.buildOrder = null;
 		drone.discard();
-		return true;
+		return building;
 	}
 
 	/**
@@ -367,7 +368,7 @@ public final class HiveLogic {
 		hive.waveSize = Math.min(MAX_WAVE, hive.waveSize + 3);
 		hive.nextWave = now + WAVE_COOLDOWN;
 		hive.nextRaid = Math.max(hive.nextRaid, now + RAID_COOLDOWN);
-		TerranLogic.tell(level, base, "message.starmine.zerg_attack");
+		BaseLogic.tell(level, base, "message.starmine.zerg_attack");
 		return true;
 	}
 

@@ -112,7 +112,7 @@ public final class ColonyNetwork {
 	public static void register() {
 		PayloadTypeRegistry.playS2C().register(BaseStatus.TYPE, BaseStatus.CODEC);
 		PayloadTypeRegistry.playC2S().register(UnitCommand.TYPE, UnitCommand.CODEC);
-		ServerPlayNetworking.registerGlobalReceiver(UnitCommand.TYPE, (command, context) -> TerranLogic.command(context.player(), command));
+		ServerPlayNetworking.registerGlobalReceiver(UnitCommand.TYPE, (command, context) -> Commands.command(context.player(), command));
 	}
 
 	static void sendStatus(ServerPlayer player, Hive base) {
@@ -127,13 +127,14 @@ public final class ColonyNetwork {
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		base.members.forEach((kind, count) -> counts.put(kind.name(), count));
 		base.pending.forEach((kind, count) -> counts.merge("pending:" + kind.name(), count, Integer::sum));
+		counts.put("tier", base.tier); // zerg: lair 2, hive 3
 		ServerPlayNetworking.send(player, new BaseStatus(true, base.minerals, base.vespene, base.diamonds, (float) base.supplyUsed(),
 			base.supplyCap(), base.attackLevel, base.armorLevel, tallies, counts));
 	}
 
-	/** Lets the client check tech: whether a kind's requirement is in the counts. */
+	/** Lets the client check tech: whether a kind's requirement is in the counts and the tier is enough. */
 	public static boolean unlocked(Map<String, Integer> counts, UnitKind kind) {
 		UnitKind need = kind.requires();
-		return need == null || counts.getOrDefault(need.name(), 0) > 0;
+		return (need == null || counts.getOrDefault(need.name(), 0) > 0) && counts.getOrDefault("tier", 1) >= kind.tier();
 	}
 }

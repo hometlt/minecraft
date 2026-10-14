@@ -1,7 +1,7 @@
 package dev.starmine.entity;
 
 import dev.starmine.StarMine;
-import dev.starmine.colony.TerranLogic;
+import dev.starmine.colony.BaseLogic;
 import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
@@ -188,10 +188,10 @@ public class VespeneGameTests implements FabricGameTest {
 			helper.getLevel().addFreshEntity(golem);
 			helper.runAfterDelay(100, () -> {
 				helper.assertTrue(golem.getTarget() == null && marine.isAlive(), "the golem went for a peaceful marine");
-				helper.assertFalse(TerranLogic.villageHostile(marine), "the base is hostile without a reason");
+				helper.assertFalse(BaseLogic.villageHostile(marine), "the base is hostile without a reason");
 				golem.hurt(helper.getLevel().damageSources().mobAttack(marine), 1);
 				helper.succeedWhen(() -> {
-					helper.assertTrue(TerranLogic.villageHostile(marine), "hurting a golem did not make the base hostile");
+					helper.assertTrue(BaseLogic.villageHostile(marine), "hurting a golem did not make the base hostile");
 					helper.assertTrue(golem.getTarget() == marine || !marine.isAlive(), "the golem does not fight back");
 				});
 			});
