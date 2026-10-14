@@ -42,3 +42,19 @@ replay_*.log
 # StarMine: SC2 assets are generated on the user machine by Modkit and never committed
 sc2-assets/
 run/
+
+# java (from the repository's first commit)
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
