@@ -131,8 +131,8 @@ public class PossessionGameTests implements FabricGameTest {
 			helper.assertTrue(player.getInventory().contains(new ItemStack(Items.DIAMOND, 3)), "the player's things did not come back");
 			helper.assertTrue(!player.getInventory().hasAnyMatching(s -> s.is(ModuleItem.WEAPON)), "modules left with the player");
 			helper.assertTrue(player.distanceToSqr(start) < 1, "the player is not back where they were");
-			StarUnit back = helper.getLevel().getEntitiesOfClass(StarUnit.class, player.getBoundingBox().inflate(40), u -> u.kind == UnitKind.MARINE)
-				.stream().findFirst().orElse(null);
+			StarUnit back = helper.getLevel().getEntitiesOfClass(StarUnit.class, player.getBoundingBox().inflate(40),
+				u -> u.kind == UnitKind.MARINE && u.getUUID().equals(marine.getUUID())).stream().findFirst().orElse(null);
 			helper.assertTrue(back != null && back.getUUID().equals(marine.getUUID()), "the marine did not come back");
 			// again: this time the marine dies
 			helper.assertTrue(Possession.start(player, back), "no second possession");

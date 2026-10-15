@@ -39,7 +39,7 @@ final class UnitNavigation extends GroundPathNavigation {
 	}
 
 	/** Bodies wider than this follow their way node by node (see {@link #followThePath}). */
-	static final float BIG = 2f, WAYPOINT = 0.9f;
+	static final float BIG = 2f, WAYPOINT = 0.5f;
 
 	/**
 	 * A big body goes on to the next node of its way only once it stands on this one (within

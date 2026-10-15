@@ -115,8 +115,18 @@ public final class Engineering {
 		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
 		if (army.isEmpty()) return Set.of();
 		StarUnit lead = army.stream().max(Comparator.comparingDouble(unit -> unit.kind.width)).orElseThrow();
-		Path path = lead.getNavigation().createPath(BlockPos.containing(goal), 1);
-		if (path != null && path.canReach()) return Set.of();
+		// every size of the army must walk there (a thor wider than a river "walked" over it while a marine could not)
+		Set<UnitKind> sizes = new java.util.HashSet<>();
+		boolean all = true;
+		for (StarUnit unit : army) {
+			if (!sizes.add(unit.kind)) continue;
+			Path path = unit.getNavigation().createPath(BlockPos.containing(goal), 1);
+			if (path == null || !path.canReach()) {
+				all = false;
+				break;
+			}
+		}
+		if (all) return Set.of();
 		double width = army.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
 		double height = army.stream().mapToDouble(unit -> unit.kind.height).max().orElse(2);
 		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
