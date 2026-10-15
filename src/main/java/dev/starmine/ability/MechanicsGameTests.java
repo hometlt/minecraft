@@ -194,6 +194,23 @@ public class MechanicsGameTests implements FabricGameTest {
 		helper.assertTrue(Math.abs(lost - expected) < 1e-3, what + " took " + lost / UnitKind.SCALE + " (SC2 " + expected / UnitKind.SCALE + ")");
 	}
 
+	/** Melee reach is SC2's (0.1 x 1.153 and 0.3 for pushing bodies, edge to edge), not vanilla's 0.83 blocks. */
+	@GameTest(template = ARENA, batch = "mechReach", timeoutTicks = 40)
+	public void meleeReachIsSc2s(GameTestHelper helper) {
+		clear(helper);
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 10, 24, null), marine = unit(helper, UnitKind.MARINE, 20, 24, null);
+		zergling.setNoAi(true);
+		marine.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			double half = (zergling.getBbWidth() + marine.getBbWidth()) / 2;
+			zergling.setPos(marine.getX() - half - 0.3, marine.getY(), marine.getZ());
+			helper.assertTrue(dev.starmine.entity.UnitGoals.withinReach(zergling, marine), "a zergling 0.3 from a marine's edge cannot bite");
+			zergling.setPos(marine.getX() - half - 0.8, marine.getY(), marine.getZ());
+			helper.assertFalse(dev.starmine.entity.UnitGoals.withinReach(zergling, marine), "a zergling bites from 0.8 blocks (vanilla's reach)");
+			helper.succeed();
+		});
+	}
+
 	/** A zergling bites at its SC2 period (0.497 s, 10 ticks), not at vanilla's one blow a second. */
 	@GameTest(template = ARENA, batch = "mechBite", timeoutTicks = 300)
 	public void aZerglingBitesAtItsPace(GameTestHelper helper) {

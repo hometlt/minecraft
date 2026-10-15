@@ -19,7 +19,7 @@ import net.minecraft.world.phys.Vec3;
  * player's units, wide for zerg). Targets: whoever {@link dev.starmine.faction.Faction} calls a foe within
  * sight, and whoever hurts them; workers only fight back. Zerg add their own goals in {@link StarUnit}.
  */
-final class UnitGoals {
+public final class UnitGoals {
 	private UnitGoals() {
 	}
 
@@ -105,7 +105,7 @@ final class UnitGoals {
 		public void tick() {
 			if (target == null) return;
 			unit.getLookControl().setLookAt(target, 30.0f, 30.0f);
-			boolean close = unit.isWithinMeleeAttackRange(target);
+			boolean close = withinReach(unit, target);
 			if (close) unit.getNavigation().stop();
 			else if (--repath <= 0) {
 				repath = 4 + unit.getRandom().nextInt(4);
@@ -117,6 +117,20 @@ final class UnitGoals {
 				unit.startCooldown(Math.max(4, unit.weapon().interval()));
 			}
 		}
+	}
+
+	/**
+	 * Melee reach SC2's way: from edge to edge, the weapon's SC2 range (0.1 for most, an ultralisk's 1)
+	 * x 1.153 and 0.3 blocks for bodies that push each other. (Vanilla's reach is the attacker's box grown
+	 * by 0.83 blocks: zerglings and zealots struck from the second row, and melee armies beat ranged ones of
+	 * equal cost far more than in SC2.)
+	 */
+	public static boolean withinReach(StarUnit unit, LivingEntity target) {
+		double reach = (unit.kind == UnitKind.ULTRALISK ? 1.0 : 0.1) * 1.153 + 0.3;
+		double dx = unit.getX() - target.getX(), dz = unit.getZ() - target.getZ();
+		double edge = Math.sqrt(dx * dx + dz * dz) - (unit.getBbWidth() + target.getBbWidth()) / 2;
+		boolean level = unit.getY() < target.getY() + target.getBbHeight() + 0.5 && target.getY() < unit.getY() + unit.getBbHeight() + 0.5;
+		return edge <= reach && level;
 	}
 
 	/**
