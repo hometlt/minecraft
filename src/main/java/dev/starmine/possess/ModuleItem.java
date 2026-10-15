@@ -31,6 +31,8 @@ import org.jetbrains.annotations.Nullable;
  * when they leave it. Put in the main hand or the off hand (drag and drop in the inventory) and used
  * with the use key: the weapon fires at what the crosshair is on, an ability is cast like the
  * unit's own (cooldown shown on the item, energy and health paid). Upgrades work by being there.
+ * An ability module that is not built in (left by a dying unit, dev.starmine.suit.Suits) works only in a
+ * whole race suit of its race.
  */
 public final class ModuleItem extends Item {
 	public enum Type { WEAPON, ABILITY, UPGRADE }
@@ -116,9 +118,11 @@ public final class ModuleItem extends Item {
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (type == Type.UPGRADE || Pilots.kindOf(player) == null) return InteractionResultHolder.pass(stack);
+		boolean piloting = Pilots.kindOf(player) != null;
+		if (type == Type.UPGRADE || !piloting && type != Type.ABILITY) return InteractionResultHolder.pass(stack);
 		if (level.isClientSide) return InteractionResultHolder.success(stack);
-		boolean done = Possession.useModule((ServerPlayer) player, this, hand);
+		boolean done = piloting ? Possession.useModule((ServerPlayer) player, this, hand)
+			: dev.starmine.suit.Suits.useModule((ServerPlayer) player, this, hand); // a race suit's module
 		return done ? InteractionResultHolder.success(stack) : InteractionResultHolder.fail(stack);
 	}
 

@@ -708,6 +708,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.dropCustomDeathLoot(level, source, recentlyHit);
 		if (!valuable.isEmpty()) this.spawnAtLocation(valuable.copy());
 		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
+		for (ItemStack loot : dev.starmine.suit.Suits.drops(this, source, recentlyHit)) this.spawnAtLocation(loot);
 		valuable = ItemStack.EMPTY;
 		fillSlots.clear();
 	}

@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		"X X",
+		"X X"
+	],
+	"key": {
+		"X": {
+			"item": "starmine:terran_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:terran_boots",
+		"count": 1
+	}
+}

@@ -1,0 +1,18 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		"XXX",
+		"X X",
+		"X X"
+	],
+	"key": {
+		"X": {
+			"item": "starmine:zerg_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:zerg_leggings",
+		"count": 1
+	}
+}

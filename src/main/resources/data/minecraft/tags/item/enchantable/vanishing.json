@@ -1,0 +1,17 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_helmet",
+		"starmine:zerg_chestplate",
+		"starmine:zerg_leggings",
+		"starmine:zerg_boots",
+		"starmine:terran_helmet",
+		"starmine:terran_chestplate",
+		"starmine:terran_leggings",
+		"starmine:terran_boots",
+		"starmine:protoss_helmet",
+		"starmine:protoss_chestplate",
+		"starmine:protoss_leggings",
+		"starmine:protoss_boots"
+	]
+}

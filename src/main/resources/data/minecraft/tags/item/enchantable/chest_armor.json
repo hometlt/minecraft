@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_chestplate",
+		"starmine:terran_chestplate",
+		"starmine:protoss_chestplate"
+	]
+}

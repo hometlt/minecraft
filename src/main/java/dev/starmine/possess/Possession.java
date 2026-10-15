@@ -385,7 +385,7 @@ public final class Possession {
 	public static boolean useModule(ServerPlayer player, ModuleItem item, InteractionHand hand) {
 		StarUnit puppet = puppet(player);
 		if (puppet == null || player.getCooldowns().isOnCooldown(item)) return false;
-		boolean done = item.type == ModuleItem.Type.WEAPON ? fire(player, puppet) : item.ability != null && cast(player, puppet, item.ability);
+		boolean done = item.type == ModuleItem.Type.WEAPON ? fire(player, puppet) : item.ability != null && castModule(player, puppet, item.ability);
 		if (done) player.swing(hand, true);
 		return done;
 	}
@@ -432,8 +432,8 @@ public final class Possession {
 		return true;
 	}
 
-	/** An ability of the unit, aimed with the crosshair (a unit, a point on the ground). */
-	private static boolean cast(ServerPlayer player, StarUnit puppet, Ability ability) {
+	/** An ability of the unit, aimed with the crosshair (a unit, a point on the ground); also a race suit's module (dev.starmine.suit). */
+	public static boolean castModule(ServerPlayer player, StarUnit puppet, Ability ability) {
 		LivingEntity target = null;
 		Vec3 point = null;
 		double reach = ability.range > 0 ? ability.range : 96;

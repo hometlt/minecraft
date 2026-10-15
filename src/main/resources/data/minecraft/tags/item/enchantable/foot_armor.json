@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_boots",
+		"starmine:terran_boots",
+		"starmine:protoss_boots"
+	]
+}

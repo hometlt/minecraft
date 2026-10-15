@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_helmet",
+		"starmine:terran_helmet",
+		"starmine:protoss_helmet"
+	]
+}
