@@ -230,17 +230,36 @@ public class BalanceGameTests implements FabricGameTest {
 	private static void mining(GameTestHelper helper, UnitKind main) {
 		if (off(helper)) return;
 		walls(helper, false);
-		for (int x = 28; x <= 38; x++)
-			for (int z = 28; z <= 38; z++)
+		// the same ore at the same distance from the main building's edge for every race (a hatchery is twice
+		// as wide as a command center: ore at fixed places would lie nearer to it)
+		int from = 20 + (int) Math.ceil(main.width / 2) + 5;
+		for (int x = from; x <= from + 10; x++)
+			for (int z = from; z <= from + 10; z++)
 				for (int y = 2; y <= 4; y++) helper.getLevel().setBlock(helper.absolutePos(new BlockPos(x, y, z)), Blocks.IRON_ORE.defaultBlockState(), 2);
 		StarUnit building = TestArena.unit(helper, main, 20, 20, UUID.randomUUID());
 		int ticks = 2400;
+		// where the workers' time goes (their work's state each tick; "breaking" while a block cracks)
+		java.util.Map<String, Integer> time = new java.util.TreeMap<>();
+		helper.onEachTick(() -> {
+			for (StarUnit worker : helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(building.blockPosition()).inflate(40),
+					unit -> unit.kind == main.race.rules().worker() && unit.isAlive())) {
+				String work = worker.goalsRunning();
+				String state = work.contains("MINE") ? "mine" : work.contains("CARRY") ? "carry" : work.contains("SEEK") ? "seek"
+					: work.contains("EXPLORE") ? "explore" : work.contains("TUNNEL") ? "tunnel" : work.contains("GAS") ? "gas" : work.equals("[]") ? "idle" : work;
+				time.merge(state + (work.contains("plan") ? "+plan" : ""), 1, Integer::sum);
+			}
+		});
 		helper.runAfterDelay(ticks, () -> {
 			Hive base = TestArena.base(helper, building);
 			helper.assertTrue(base != null, "no base");
 			int mined = base.mineralsCollected, workers = base.count(main.race.rules().worker());
+			int left = 0;
+			for (BlockPos rel : BlockPos.betweenClosed(from, 2, from, from + 10, 4, from + 10))
+				if (helper.getLevel().getBlockState(helper.absolutePos(rel)).is(Blocks.IRON_ORE)) left++;
+			LOG.info("[balance] economy {}: ore left {} of 363; main at {}", main.race, left, TestArena.where(helper, building));
 			LOG.info("[balance] economy {}: {} workers mined {} minerals in {} s ({} a minute)", main.race, workers, mined, ticks / 20,
 				Math.round(mined * 60.0 / (ticks / 20.0)));
+			LOG.info("[balance] economy {} worker ticks: {}; blocks delivered {}", main.race, time, base.collected);
 			helper.succeed();
 		});
 	}

@@ -42,6 +42,28 @@ public class DroneGameTests implements FabricGameTest {
 	}
 
 	/**
+	 * A drone on the far side of its hatchery (12 blocks wide), 28 blocks from the minerals and 4 from
+	 * the hatchery's edge, goes to mine them: ore is looked for around the base's main building too (only
+	 * around itself, it stood idle all game — half a hive's drones did, and zerg mined half as much).
+	 */
+	@GameTest(template = ARENA, batch = "hiveFarDrone", timeoutTicks = 600)
+	public void droneBeyondItsHatcheryFindsTheMinerals(GameTestHelper helper) {
+		hiveArena(helper);
+		fill(helper, 30, 2, 18, 35, 3, 29, Blocks.IRON_ORE); // 144 ores: enough for the hive's own 4 drones' claims too
+		StarUnit hatchery = dev.starmine.ability.TestArena.unit(helper, UnitKind.HATCHERY, 14, 24, java.util.UUID.randomUUID());
+		StarUnit drone = dev.starmine.ability.TestArena.unit(helper, UnitKind.DRONE, 4, 24, null);
+		drone.setNoAi(true);
+		helper.runAfterDelay(5, () -> {
+			Hive hive = hatchery.hiveId() == null ? null : HiveSavedData.get(helper.getLevel().getServer()).get(hatchery.hiveId());
+			helper.assertTrue(hive != null, "no hive");
+			drone.joinHive(hive);
+			drone.setNoAi(false);
+			helper.succeedWhen(() -> helper.assertTrue(drone.goalsRunning().contains("MINE") || drone.cargoBlocks > 0,
+				"the far drone does not go to the minerals: " + drone.goalsRunning() + " at " + dev.starmine.ability.TestArena.where(helper, drone)));
+		});
+	}
+
+	/**
 	 * A generated hive (far from the arena, in real terrain): hatchery and surface buildings wait to be
 	 * put in the world, tunnels are dug with halls, sleeping eggs and creep tumors near the hatchery.
 	 */

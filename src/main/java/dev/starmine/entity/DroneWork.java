@@ -326,7 +326,7 @@ final class DroneWork extends Goal {
 			return;
 		}
 		if (griefing) {
-			BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID());
+			BlockPos ore = oreNear(level);
 			if (ore != null) {
 				claimGroup(level, ore);
 				mineTarget = ore;
@@ -477,6 +477,28 @@ final class DroneWork extends Goal {
 	 * The nearest unclaimed ore within `radius`, away from other drones' marks (owner: drones mine in
 	 * different places and directions instead of crowding); if all are near marks, the nearest anyway.
 	 */
+	/**
+	 * Ore for this worker: within 16 blocks of it, else within 16 blocks of the edge of its base's main
+	 * building. (Only around itself, the drones that came out on the far side of a hatchery — 12 blocks
+	 * wide, twice a command center — were too far from the minerals beyond it and stood idle all game:
+	 * half the hive's drones mined, and zerg brought in 416 minerals a minute against 704.)
+	 */
+	BlockPos oreNear(ServerLevel level) {
+		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID());
+		if (ore != null || drone.hiveId() == null) return ore;
+		StarUnit main = null;
+		double best = Double.MAX_VALUE;
+		for (StarUnit unit : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(48),
+				mob -> mob.kind.main() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) {
+			double d = unit.distanceToSqr(drone);
+			if (d < best) {
+				best = d;
+				main = unit;
+			}
+		}
+		return main == null ? null : findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID());
+	}
+
 	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius, UUID self) {
 		List<BlockPos> others = new ArrayList<>();
 		for (Map.Entry<BlockPos, UUID> claim : CLAIMS.entrySet())
