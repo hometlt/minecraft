@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
  * are cut into segments planned one after another, fluids are never opened.
  */
 public final class Engineering {
-	public static final int WORKERS = 3, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400, MIND_TICKS = 1200;
+	public static final int WORKERS = 3, MAX_WORKERS = 8, REACH = 40, BUDGET = 8000, MAX_SEGMENTS = 8, STALL_TICKS = 2400, MIND_TICKS = 1200;
 	private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("StarMine/engineering");
 
 	/**
@@ -268,7 +268,7 @@ public final class Engineering {
 			if (inside(level, job, unit) && (moved || !was)) send(level, job, unit, job.waitAt, false);
 		}
 		job.workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit worker) || !worker.isAlive());
-		if (job.workers.size() < WORKERS) hireWorkers(level, job, wait);
+		if (job.workers.size() < workers(job.body)) hireWorkers(level, job, wait);
 		return true;
 	}
 
@@ -356,13 +356,21 @@ public final class Engineering {
 	}
 
 	/** Free workers of the base nearest the work (not building, not on another way). */
+	/**
+	 * Workers a way takes: {@link #WORKERS}, more for a big body's cross-section (a thor's way, 11x12, has
+	 * five times the blocks of a tank's), at most {@link #MAX_WORKERS}.
+	 */
+	static int workers(DronePlanner.Body body) {
+		return Math.max(WORKERS, Math.min(MAX_WORKERS, body.width() * body.height() / 16));
+	}
+
 	private static void hireWorkers(ServerLevel level, Job job, Vec3 near) {
 		List<StarUnit> free = level.getEntitiesOfClass(StarUnit.class, new AABB(BlockPos.containing(near)).inflate(96),
 			unit -> unit.kind.worker() && job.base.equals(unit.hiveId()) && unit.isAlive() && unit.buildKind() == null && unit.raidTarget() == null
 				&& unit.constructing() == null && !BY_UNIT.containsKey(unit.getUUID()));
 		free.sort(Comparator.comparingDouble(unit -> unit.distanceToSqr(near)));
 		for (StarUnit worker : free) {
-			if (job.workers.size() >= WORKERS) break;
+			if (job.workers.size() >= workers(job.body)) break;
 			worker.command(StarUnit.Order.NONE, null);
 			job.workers.add(worker.getUUID());
 			BY_UNIT.put(worker.getUUID(), job);

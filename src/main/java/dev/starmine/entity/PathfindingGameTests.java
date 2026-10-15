@@ -242,6 +242,8 @@ public class PathfindingGameTests implements FabricGameTest {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");
 			base.minerals = 2000;
+			// a thor's way (11x12 blocks) takes eight workers (Engineering.workers); the base was founded with four
+			for (int i = 0; i < 4; i++) TestArena.member(helper, base, UnitKind.SCV, 4 + 2 * i, 44);
 			Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 14), point(helper, 38, 20));
 			goals.put(TestArena.member(helper, base, UnitKind.SIEGE_TANK, 8, 20), point(helper, 38, 24));

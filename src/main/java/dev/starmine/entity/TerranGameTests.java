@@ -122,7 +122,15 @@ public class TerranGameTests implements FabricGameTest {
 					StringBuilder others = new StringBuilder();
 					for (StarUnit other : level.getEntitiesOfClass(StarUnit.class, tank.getBoundingBox().inflate(8), other -> other != tank && !other.kind.structure()))
 						others.append(other.kind.id).append(' ').append(dev.starmine.ability.TestArena.where(helper, other)).append("; ");
-					helper.fail("the tank is at " + dev.starmine.ability.TestArena.where(helper, tank) + ", order " + tank.order()
+					StringBuilder hole = new StringBuilder(); // the open cells of the outer wall (x 24-25) at the tank's feet and head height
+					for (int z = 18; z <= 42; z++) {
+						boolean open = true;
+						for (int x = 24; x <= 25; x++)
+							for (int y = 2; y <= 4; y++) open &= level.getBlockState(helper.absolutePos(new BlockPos(x, y, z))).isAir();
+						if (open) hole.append(z).append(' ');
+					}
+					helper.fail("the tank (" + tank.getBbWidth() + " wide) is at " + dev.starmine.ability.TestArena.where(helper, tank)
+						+ ", the wall is open at z " + hole + ", order " + tank.order()
 						+ ", job " + dev.starmine.colony.Engineering.describe(tank.getUUID()) + ", a way now "
 						+ (path == null ? "none" : path.canReach() + " to " + path.getTarget() + " in " + path.getNodeCount() + " nodes")
 						+ ", near it " + others);

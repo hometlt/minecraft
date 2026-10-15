@@ -35,6 +35,28 @@ final class UnitNavigation extends GroundPathNavigation {
 		super(mob, level);
 	}
 
+	/** Bodies wider than this follow their way node by node (see {@link #followThePath}). */
+	static final float BIG = 2f, WAYPOINT = 0.9f;
+
+	/**
+	 * A big body goes on to the next node of its way only once it stands on this one (within
+	 * {@link #WAYPOINT}). The game lets a body go on within half its width of the node's corner cell and
+	 * cut corners: after the units doubled in size a tank (5.8 wide) cut the corner of the passage workers
+	 * had cut for it and stood against the wall's edge with its way open.
+	 */
+	@Override
+	protected void followThePath() {
+		if (this.mob.getBbWidth() <= BIG) {
+			super.followThePath();
+			return;
+		}
+		net.minecraft.world.phys.Vec3 here = this.getTempMobPos(), node = this.path.getEntityPosAtNode(this.mob, this.path.getNextNodeIndex());
+		this.maxDistanceToWaypoint = WAYPOINT;
+		if (Math.abs(this.mob.getX() - node.x) < WAYPOINT && Math.abs(this.mob.getZ() - node.z) < WAYPOINT && Math.abs(this.mob.getY() - node.y) < 1.0)
+			this.path.advance();
+		this.doStuckDetection(here);
+	}
+
 	@Override
 	protected PathFinder createPathFinder(int maxVisitedNodes) {
 		this.nodeEvaluator = new BuildingAware();
