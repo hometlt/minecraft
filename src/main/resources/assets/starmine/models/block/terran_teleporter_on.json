@@ -1,0 +1,7 @@
+{
+	"parent": "starmine:block/portal_slab",
+	"textures": {
+		"top": "starmine:block/terran_portal_on",
+		"side": "starmine:block/terran_portal_frame_side"
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"top": "starmine:block/terran_portal_frame_top",
+		"bottom": "starmine:block/terran_portal_frame_top",
+		"side": "starmine:block/terran_portal_frame_side"
+	}
+}

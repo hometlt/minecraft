@@ -459,7 +459,7 @@ final class DroneWork extends Goal {
 			Move move = moveTo(level, building.position(), building.kind.width / 2 + 1.8, false);
 			if (move == Move.ARRIVED) {
 				drone.getNavigation().stop();
-				if (at.is(Vespene.VESPENE)) { // in it goes; the outlet is emptied and its vein refills it
+				if (VespeneBlock.isSource(at)) { // in it goes; the outlet is emptied and its vein refills it
 					VespeneBlock.take(level, gasOutlet, at);
 					inside = true;
 					gasTicks = INSIDE;
@@ -487,7 +487,7 @@ final class DroneWork extends Goal {
 		}
 		drone.getNavigation().stop();
 		drone.getLookControl().setLookAt(Vec3.atCenterOf(gasOutlet));
-		if (!at.is(Vespene.VESPENE)) return; // empty: it waits for the vein
+		if (!VespeneBlock.isSource(at)) return; // empty: it waits for the vein
 		if (stateTicks % 20 == 0) {
 			drone.swing(InteractionHand.MAIN_HAND);
 			level.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.3f, 1f, 0.4f), 1.2f),

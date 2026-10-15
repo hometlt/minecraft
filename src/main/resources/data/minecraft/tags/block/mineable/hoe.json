@@ -1,0 +1,10 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_flesh",
+		"starmine:glowing_zerg_flesh",
+		"starmine:zerg_portal_frame",
+		"starmine:zerg_teleporter",
+		"starmine:nydus_orifice"
+	]
+}

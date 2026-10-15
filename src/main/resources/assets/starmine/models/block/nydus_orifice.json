@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"top": "starmine:block/nydus_orifice",
+		"bottom": "starmine:block/zerg_flesh",
+		"side": "starmine:block/zerg_flesh"
+	}
+}

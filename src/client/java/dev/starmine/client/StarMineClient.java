@@ -64,6 +64,15 @@ public final class StarMineClient implements ClientModInitializer {
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
+		// the liquids (owner 16.10): vespene and liquid creep, their own still and flowing textures
+		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(dev.starmine.vespene.Vespene.SOURCE,
+			dev.starmine.vespene.Vespene.FLOWING, new net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler(
+				StarMine.id("block/vespene_still"), StarMine.id("block/vespene_flow")));
+		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(StarMineBlocks.LIQUID_CREEP_SOURCE,
+			StarMineBlocks.LIQUID_CREEP_FLOWING, new net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler(
+				StarMine.id("block/liquid_creep_still"), StarMine.id("block/liquid_creep_flow")));
+		BlockRenderLayerMap.INSTANCE.putFluids(RenderType.translucent(), dev.starmine.vespene.Vespene.SOURCE, dev.starmine.vespene.Vespene.FLOWING,
+			StarMineBlocks.LIQUID_CREEP_SOURCE, StarMineBlocks.LIQUID_CREEP_FLOWING);
 		BlockRenderLayerMap.INSTANCE.putBlock(StarMineBlocks.FORCE_FIELD, RenderType.translucent());
 		// a spawn egg shows its SC2 icon (textures/item/sc2/<kind>.png, imported by Modkit) when there is one,
 		// drawn untinted; without it the plain two-colour egg

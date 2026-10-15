@@ -1051,7 +1051,23 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	public boolean isPushable() {
-		return !kind.structure() && mode() != dev.starmine.ability.Modes.BURROWED && super.isPushable();
+		return !kind.structure() && mode() != dev.starmine.ability.Modes.BURROWED && !inLiquidCreep() && super.isPushable();
+	}
+
+	/** Game time until which this zerg counts as in liquid creep (it passes through creatures there, owner 16.10). */
+	private long liquidCreepUntil;
+
+	public void markInLiquidCreep() {
+		liquidCreepUntil = this.level().getGameTime() + 2;
+	}
+
+	public boolean inLiquidCreep() {
+		return this.level().getGameTime() <= liquidCreepUntil;
+	}
+
+	@Override
+	protected void pushEntities() {
+		if (!inLiquidCreep()) super.pushEntities();
 	}
 
 	@Override

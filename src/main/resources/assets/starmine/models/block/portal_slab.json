@@ -1,9 +1,7 @@
 {
 	"parent": "minecraft:block/block",
 	"textures": {
-		"particle": "minecraft:block/iron_block",
-		"top": "minecraft:block/redstone_lamp_on",
-		"side": "minecraft:block/iron_block"
+		"particle": "#top"
 	},
 	"elements": [
 		{

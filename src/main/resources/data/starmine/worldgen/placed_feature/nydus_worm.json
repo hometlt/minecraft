@@ -1,0 +1,12 @@
+{
+	"feature": "starmine:nydus_worm",
+	"placement": [
+		{
+			"type": "minecraft:rarity_filter",
+			"chance": 96
+		},
+		{
+			"type": "minecraft:biome"
+		}
+	]
+}

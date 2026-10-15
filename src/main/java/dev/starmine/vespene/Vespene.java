@@ -17,7 +17,8 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SolidBucketItem;
+import net.minecraft.world.item.BucketItem;
+import dev.starmine.block.StarFluid;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
@@ -34,13 +35,17 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Vespene (owner 14.10): veins of liquid vespene from the bedrock ({@link VespeneVeinFeature}, about
- * one in 24 overworld chunks), their outlets where workers gather it, buckets and canisters for players.
+ * one in 48 overworld chunks), their outlets where workers gather it, buckets and canisters for players.
  */
 public final class Vespene {
-	public static final VespeneBlock VESPENE = block("vespene", new VespeneBlock(BlockBehaviour.Properties.of()
-		.mapColor(MapColor.COLOR_LIGHT_GREEN).strength(-1f, 3_600_000f).noLootTable().lightLevel(state -> 7)
-		.sound(SoundType.HONEY_BLOCK).noOcclusion().pushReaction(PushReaction.BLOCK).isValidSpawn((state, level, pos, type) -> false)
-		.isRedstoneConductor(Vespene::never).isSuffocating(Vespene::never).isViewBlocking(Vespene::never)));
+	/** The liquid (owner 16.10): slow and short like lava ({@link StarFluid}). */
+	public static final StarFluid.Kind KIND = new StarFluid.Kind(() -> Vespene.SOURCE, () -> Vespene.FLOWING, () -> Vespene.BUCKET,
+		() -> Vespene.VESPENE, 30, 2, 2);
+	public static final StarFluid SOURCE = Registry.register(BuiltInRegistries.FLUID, StarMine.id("vespene"), new StarFluid.Source(KIND));
+	public static final StarFluid FLOWING = Registry.register(BuiltInRegistries.FLUID, StarMine.id("flowing_vespene"), new StarFluid.Flowing(KIND));
+	public static final VespeneBlock VESPENE = block("vespene", new VespeneBlock(SOURCE, BlockBehaviour.Properties.of()
+		.mapColor(MapColor.COLOR_LIGHT_GREEN).noCollission().strength(100f).noLootTable().lightLevel(state -> 7).liquid()
+		.sound(SoundType.EMPTY).pushReaction(PushReaction.DESTROY).isValidSpawn((state, level, pos, type) -> false)));
 	/** An emptied outlet: unbreakable, it fills again from its vein. */
 	public static final Block VENT = block("vespene_vent", new Block(BlockBehaviour.Properties.of()
 		.mapColor(MapColor.STONE).strength(-1f, 3_600_000f).noLootTable().pushReaction(PushReaction.BLOCK)));
@@ -53,7 +58,7 @@ public final class Vespene {
 		StarMine.id("vespene_root"), BlockEntityType.Builder.of(VespeneRootBlockEntity::new, ROOT).build(null));
 
 	public static final Item BUCKET = Registry.register(BuiltInRegistries.ITEM, StarMine.id("vespene_bucket"),
-		new SolidBucketItem(VESPENE, SoundEvents.BUCKET_EMPTY, new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+		new BucketItem(SOURCE, new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
 	public static final Item CANISTER_ITEM = Registry.register(BuiltInRegistries.ITEM, StarMine.id("vespene_canister"),
 		new BlockItem(CANISTER, new Item.Properties().stacksTo(1)) {
 			@Override
@@ -81,7 +86,7 @@ public final class Vespene {
 
 	/** An outlet: full (vespene marked outlet) or empty (a vent). */
 	public static boolean isOutlet(BlockState state) {
-		return state.is(VENT) || state.is(VESPENE) && state.getValue(VespeneBlock.OUTLET);
+		return state.is(VENT) || VespeneBlock.isSource(state) && state.getValue(VespeneBlock.OUTLET);
 	}
 
 	/** The outlet a building put at `site` stands on: under the site, at most a block aside or two down. */

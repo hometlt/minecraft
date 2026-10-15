@@ -1,7 +1,10 @@
 {
 	"variants": {
-		"": {
-			"model": "starmine:block/zerg_teleporter"
+		"active=false": {
+			"model": "starmine:block/zerg_teleporter_off"
+		},
+		"active=true": {
+			"model": "starmine:block/zerg_teleporter_on"
 		}
 	}
 }

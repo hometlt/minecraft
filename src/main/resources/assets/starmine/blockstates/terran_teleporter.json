@@ -1,7 +1,10 @@
 {
 	"variants": {
-		"": {
-			"model": "starmine:block/terran_teleporter"
+		"active=false": {
+			"model": "starmine:block/terran_teleporter_off"
+		},
+		"active=true": {
+			"model": "starmine:block/terran_teleporter_on"
 		}
 	}
 }

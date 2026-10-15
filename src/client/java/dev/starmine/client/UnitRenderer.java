@@ -38,6 +38,15 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		this.shadowRadius = 0.5f;
 	}
 
+	/** Block light every building has at least (owner 16.10: buildings glow a little, even in the dark). */
+	public static final int BUILDING_GLOW = 9;
+
+	@Override
+	protected int getBlockLightLevel(StarUnit entity, net.minecraft.core.BlockPos pos) {
+		int light = super.getBlockLightLevel(entity, pos);
+		return entity.kind.structure() ? Math.max(light, BUILDING_GLOW) : light;
+	}
+
 	@Override
 	public ResourceLocation getTextureLocation(StarUnit entity) {
 		return StarMine.id("textures/entity/sc2/" + entity.kind.look().id + ".png");

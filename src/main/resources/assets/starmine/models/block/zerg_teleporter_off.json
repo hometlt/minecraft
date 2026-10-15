@@ -1,0 +1,7 @@
+{
+	"parent": "starmine:block/portal_slab",
+	"textures": {
+		"top": "starmine:block/zerg_portal_off",
+		"side": "starmine:block/zerg_portal_frame_side"
+	}
+}

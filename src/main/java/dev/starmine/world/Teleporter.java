@@ -37,12 +37,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A race's teleporter (CLOUD_TASK_2 stage 7), instead of the scaffolding up to the sky ships: a pad by the
- * race's base below and one on its ship above (the zerg's a bubble of flesh by the lair, the terrans' a
- * landing pad with a beacon light, the protoss' a gate of gold and amethyst). A player who steps on one
- * is carried to its pair — only once the pad's guards are dead: no wild ground unit within
+ * A race's portal to its sky ship (CLOUD_TASK_2 stage 7; owner 16.10: a portal like the End's in a dungeon
+ * under the base, {@link PortalHall}): 3 x 3 portal blocks in a frame below, one pad on the ship above. A
+ * player who steps on one is carried to its pair — only once its guards are dead: no wild ground unit within
  * {@link #GUARD_RADIUS} of it, and none still waiting to appear there ({@link HiveSavedData#pending}).
- * The pads below and above have guards of their own.
+ * While guarded the portal is off ({@link #ACTIVE} false: dark, no swirl). Portal blocks can be broken but
+ * not taken: they leave the race's armor shards (the zerg's: chitin).
  */
 public final class Teleporter extends Block implements EntityBlock {
 	public static final Map<UnitKind.Race, Teleporter> BLOCKS = new EnumMap<>(UnitKind.Race.class);
@@ -51,16 +51,26 @@ public final class Teleporter extends Block implements EntityBlock {
 	/** Ticks a player who arrived is not sent back. */
 	static final int REST = 60;
 	private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 4, 16);
+	/** Whether the portal works (its guards are dead). */
+	public static final net.minecraft.world.level.block.state.properties.BooleanProperty ACTIVE =
+		net.minecraft.world.level.block.state.properties.BooleanProperty.create("active");
+	/** The portal frames (owner 16.10), decorative, broken for armor shards like the portal. */
+	public static final Map<UnitKind.Race, Block> FRAMES = new EnumMap<>(UnitKind.Race.class);
 	private static final Map<UUID, Long> RESTING = new HashMap<>();
 
 	static {
 		for (UnitKind.Race race : UnitKind.Race.values()) {
 			String name = race.name().toLowerCase() + "_teleporter";
 			Teleporter block = Registry.register(BuiltInRegistries.BLOCK, StarMine.id(name), new Teleporter(race,
-				BlockBehaviour.Properties.of().strength(-1.0f, 3600000.0f).lightLevel(state -> 12)
+				BlockBehaviour.Properties.of().strength(4.0f, 1200.0f).lightLevel(state -> state.getValue(ACTIVE) ? 12 : 3)
 					.sound(race == UnitKind.Race.ZERG ? SoundType.SLIME_BLOCK : SoundType.METAL).noOcclusion()));
 			Registry.register(BuiltInRegistries.ITEM, StarMine.id(name), new BlockItem(block, new Item.Properties()));
 			BLOCKS.put(race, block);
+			String frame = race.name().toLowerCase() + "_portal_frame";
+			Block frameBlock = Registry.register(BuiltInRegistries.BLOCK, StarMine.id(frame), new Block(BlockBehaviour.Properties.of()
+				.strength(5.0f, 1200.0f).lightLevel(state -> 2).sound(race == UnitKind.Race.ZERG ? SoundType.WART_BLOCK : SoundType.METAL)));
+			Registry.register(BuiltInRegistries.ITEM, StarMine.id(frame), new BlockItem(frameBlock, new Item.Properties()));
+			FRAMES.put(race, frameBlock);
 		}
 		ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, StarMine.id("teleporter"),
 			BlockEntityType.Builder.of(Pad::new, BLOCKS.values().toArray(new Block[0])).build(null));
@@ -71,6 +81,22 @@ public final class Teleporter extends Block implements EntityBlock {
 	private Teleporter(UnitKind.Race race, Properties properties) {
 		super(properties);
 		this.race = race;
+		registerDefaultState(stateDefinition.any().setValue(ACTIVE, false));
+	}
+
+	@Override
+	protected void createBlockStateDefinition(net.minecraft.world.level.block.state.StateDefinition.Builder<Block, BlockState> builder) {
+		builder.add(ACTIVE);
+	}
+
+	@Override
+	public <T extends BlockEntity> net.minecraft.world.level.block.entity.@Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state,
+			BlockEntityType<T> type) {
+		return level.isClientSide || type != ENTITY ? null : (world, pos, at, entity) -> {
+			if ((world.getGameTime() + pos.hashCode()) % 20 != 0 || !(world instanceof ServerLevel server)) return;
+			boolean on = ((Pad) entity).pair != null && guards(server, pos) == 0;
+			if (at.getValue(ACTIVE) != on) world.setBlock(pos, at.setValue(ACTIVE, on), Block.UPDATE_CLIENTS);
+		};
 	}
 
 	public static void load() {
@@ -133,6 +159,18 @@ public final class Teleporter extends Block implements EntityBlock {
 			case TERRAN -> net.minecraft.world.level.block.Blocks.REDSTONE_LAMP.defaultBlockState().setValue(net.minecraft.world.level.block.RedstoneLampBlock.LIT, true);
 			case PROTOSS -> net.minecraft.world.level.block.Blocks.AMETHYST_BLOCK.defaultBlockState();
 		};
+	}
+
+	/** Carries each portal block of `portal` to the ship's `pad`, and the pad back to the portal's middle `centre`. */
+	public static void linkPortal(ServerLevel level, java.util.List<BlockPos> portal, BlockPos centre, BlockPos pad) {
+		if (!(level.getBlockEntity(pad) instanceof Pad top)) return;
+		top.pair = centre.immutable();
+		top.setChanged();
+		for (BlockPos pos : portal)
+			if (level.getBlockEntity(pos) instanceof Pad below) {
+				below.pair = pad.immutable();
+				below.setChanged();
+			}
 	}
 
 	/** Pairs two pads (both must stand already). */

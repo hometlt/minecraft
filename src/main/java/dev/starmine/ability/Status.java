@@ -54,6 +54,8 @@ public enum Status {
 	BARRIER(        1,     1,    false),
 	/** Zealot charge (owner 16.10: a dash, not a jump): three times as fast toward its foe until it strikes. */
 	CHARGING(       3.0,   1,    false),
+	/** In liquid creep (owner 16.10): a zerg runs four times as fast. */
+	CREEP_RUSH(     4.0,   1,    false),
 	/** Medivac afterburners: SC2 speed 5.94 for 4 s. */
 	AFTERBURNERS(   1.7,   1,    false),
 	/** Void ray prismatic alignment: +10 against armored, slower (SC2 14.3 s). */

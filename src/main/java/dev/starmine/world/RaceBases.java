@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -21,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * Generated bases of the terrans and the protoss, and the zerg leviathan (owner 14.10). Like the zerg
  * lair ({@link HiveStructure}) each is built once per world, at runtime, when a player comes within
  * {@link #TRIGGER} blocks of its site (game rule `starmineSpawnBases`):
+ * Under each a portal hall ({@link PortalHall}) leads to its sky ship.
  * - terrans, 256 blocks at 180 degrees from the first player's captured heading: a paved base with a command center, depots, barracks,
  *   factory, starport, engineering bay, bunker and turret, SCVs and an army; a technological labyrinth
  *   under it ({@link Dungeons#techLabyrinth}); the battlecruiser Hyperion in the sky ({@link SkyShips#hyperion});
@@ -194,8 +196,7 @@ public final class RaceBases {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
 			ship = SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ()));
 		}
-		spawns.addAll(groundPad(level, painter, race, groundAt(level, centre, Math.PI, PLAZA + 6), terran ? Blocks.POLISHED_DIORITE.defaultBlockState()
-			: Blocks.YELLOW_TERRACOTTA.defaultBlockState(), ship, above));
+		spawns.addAll(portalHall(level, painter, race, centre, Direction.EAST, ship, above)); // under the main building, the stair up in the ring's gap
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
 		finish(level, data, base.id, ship, above);
 		data.setDirty();
@@ -221,21 +222,16 @@ public final class RaceBases {
 		}
 	}
 
-	/** The teleporter by a base, its guards; it is paired with the ship's once the ship is built ({@link #finish}). */
-	private static List<Spawn> groundPad(ServerLevel level, Painter painter, UnitKind.Race race, BlockPos at, BlockState rim, SkyShips.Ship ship, Painter above) {
-		Teleporter.pad(painter, at, race, rim);
-		above.then(() -> Teleporter.link(level, at, ship.pad()));
-		UnitKind[] guards = switch (race) {
-			case ZERG -> new UnitKind[] {UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.ZERGLING, UnitKind.HYDRALISK};
-			case TERRAN -> new UnitKind[] {UnitKind.MARINE, UnitKind.MARAUDER, UnitKind.MARINE, UnitKind.MARINE};
-			case PROTOSS -> new UnitKind[] {UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.ZEALOT, UnitKind.ADEPT};
-		};
-		List<Spawn> spawns = new ArrayList<>();
-		for (int i = 0; i < guards.length; i++) {
-			double angle = i * Math.PI / 2 + Math.PI / 4;
-			spawns.add(Spawn.guard(guards[i], groundAt(level, at, angle, 7), at));
-		}
-		return spawns;
+	/**
+	 * The portal hall under a base (owner 16.10: a dungeon with a portal like the End's, off while its guards
+	 * live; {@link PortalHall}); it leads to the ship once the ship is built ({@link #finish}).
+	 */
+	private static List<Spawn> portalHall(ServerLevel level, Painter painter, UnitKind.Race race, BlockPos surface, Direction out,
+			SkyShips.Ship ship, Painter above) {
+		BlockPos centre = new BlockPos(surface.getX(), Math.max(level.getMinBuildHeight() + 8, surface.getY() - PortalHall.DEPTH), surface.getZ());
+		PortalHall.Hall hall = PortalHall.build(painter, race, centre, out);
+		above.then(() -> Teleporter.linkPortal(level, hall.portal(), hall.centre(), ship.pad()));
+		return hall.guards();
 	}
 
 	/** Once a ship is built, its guards wait for their chunks to tick (they would have fallen through it before). */
@@ -259,8 +255,7 @@ public final class RaceBases {
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
 		Painter above = Painter.deferred(level, random);
 		SkyShips.Ship ship = SkyShips.leviathan(above, middle, random.nextInt(4));
-		List<Spawn> spawns = groundPad(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 24),
-			Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(), ship, above);
+		List<Spawn> spawns = portalHall(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 30), Direction.WEST, ship, above);
 		for (Spawn spawn : spawns) wait(data, id, spawn);
 		finish(level, data, id, ship, above);
 		data.setDirty();

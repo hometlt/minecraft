@@ -1,7 +1,10 @@
 {
 	"variants": {
-		"": {
-			"model": "starmine:block/protoss_teleporter"
+		"active=false": {
+			"model": "starmine:block/protoss_teleporter_off"
+		},
+		"active=true": {
+			"model": "starmine:block/protoss_teleporter_on"
 		}
 	}
 }

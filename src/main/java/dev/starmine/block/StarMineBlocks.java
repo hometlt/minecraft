@@ -42,6 +42,31 @@ public final class StarMineBlocks {
 		.isRedstoneConductor((state, level, pos) -> false).isSuffocating((state, level, pos) -> false)
 		.isViewBlocking((state, level, pos) -> false)));
 
+	/**
+	 * Zerg flesh (owner 16.10): what the leviathan and the nydus worms are made of. Some of it glows; nothing
+	 * spawns on glowing flesh, and its light keeps monsters off round it. Mined without silk touch glowing
+	 * flesh comes off as plain flesh (it stops glowing).
+	 */
+	public static final Block ZERG_FLESH = register("zerg_flesh", new Block(BlockBehaviour.Properties.of()
+		.mapColor(MapColor.CRIMSON_NYLIUM).strength(1.2f, 3f).sound(SoundType.WART_BLOCK)));
+	public static final Block GLOWING_ZERG_FLESH = register("glowing_zerg_flesh", new Block(BlockBehaviour.Properties.of()
+		.mapColor(MapColor.COLOR_PINK).strength(1.2f, 3f).sound(SoundType.WART_BLOCK).lightLevel(state -> 9)
+		.isValidSpawn((state, level, pos, type) -> false)));
+
+	/** Liquid creep (owner 16.10): fills the nydus tunnels; zerg rush through it and heal, others are poisoned ({@link LiquidCreepBlock}). */
+	public static final StarFluid.Kind LIQUID_CREEP_KIND = new StarFluid.Kind(() -> StarMineBlocks.LIQUID_CREEP_SOURCE,
+		() -> StarMineBlocks.LIQUID_CREEP_FLOWING, () -> StarMineBlocks.LIQUID_CREEP_BUCKET, () -> StarMineBlocks.LIQUID_CREEP, 15, 2, 2);
+	public static final StarFluid LIQUID_CREEP_SOURCE = Registry.register(BuiltInRegistries.FLUID, StarMine.id("liquid_creep"),
+		new StarFluid.Source(LIQUID_CREEP_KIND));
+	public static final StarFluid LIQUID_CREEP_FLOWING = Registry.register(BuiltInRegistries.FLUID, StarMine.id("flowing_liquid_creep"),
+		new StarFluid.Flowing(LIQUID_CREEP_KIND));
+	public static final LiquidCreepBlock LIQUID_CREEP = register("liquid_creep", new LiquidCreepBlock(LIQUID_CREEP_SOURCE, BlockBehaviour.Properties.of()
+		.mapColor(MapColor.COLOR_PURPLE).replaceable().noCollission().strength(100f).lightLevel(state -> 4).pushReaction(PushReaction.DESTROY)
+		.noLootTable().liquid().sound(SoundType.EMPTY)));
+	public static final net.minecraft.world.item.Item LIQUID_CREEP_BUCKET = Registry.register(BuiltInRegistries.ITEM, StarMine.id("liquid_creep_bucket"),
+		new net.minecraft.world.item.BucketItem(LIQUID_CREEP_SOURCE, new net.minecraft.world.item.Item.Properties()
+			.craftRemainder(net.minecraft.world.item.Items.BUCKET).stacksTo(1)));
+
 	private static BlockBehaviour.Properties decor() {
 		return BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).noCollission().instabreak()
 			.sound(SoundType.SLIME_BLOCK).noLootTable().pushReaction(PushReaction.DESTROY).randomTicks();
@@ -65,5 +90,15 @@ public final class StarMineBlocks {
 	}
 
 	public static void load() {
+		for (Block block : new Block[] {ZERG_FLESH, GLOWING_ZERG_FLESH})
+			Registry.register(BuiltInRegistries.ITEM, BuiltInRegistries.BLOCK.getKey(block), new net.minecraft.world.item.BlockItem(block,
+				new net.minecraft.world.item.Item.Properties()));
+		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.NATURAL_BLOCKS)
+			.register(entries -> {
+				entries.accept(ZERG_FLESH);
+				entries.accept(GLOWING_ZERG_FLESH);
+			});
+		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES)
+			.register(entries -> entries.accept(LIQUID_CREEP_BUCKET));
 	}
 }

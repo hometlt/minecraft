@@ -1,6 +1,10 @@
 {
 	"replace": false,
 	"values": [
-		"starmine:vespene_canister"
+		"starmine:vespene_canister",
+		"starmine:terran_portal_frame",
+		"starmine:terran_teleporter",
+		"starmine:protoss_portal_frame",
+		"starmine:protoss_teleporter"
 	]
 }
