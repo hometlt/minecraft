@@ -37,6 +37,18 @@ public final class Hive {
 	/** Zerg: warriors gathered before the next attack on a terran base, and when it may start. */
 	public int waveSize = 6;
 	public long nextWave;
+	/**
+	 * A wild base's territory (owner 16.10, {@link dev.starmine.ai.Territory}): the places it claimed — caves it
+	 * lit and built on, outposts with their guns —, when it may claim the next, its expedition on the way
+	 * (the place, the units, till when), when its next drop on a player comes and how many it brings.
+	 */
+	public final java.util.List<BlockPos> territory = new java.util.ArrayList<>();
+	public long nextClaim, nextDrop;
+	public int dropSize;
+	public BlockPos expedition;
+	public boolean expeditionCave;
+	public long expeditionUntil;
+	public final java.util.List<java.util.UUID> expeditionUnits = new java.util.ArrayList<>();
 	/** Game time this base's logic last ran (several command centers share one base). */
 	public long lastTick = -1;
 	public String dimension;
@@ -219,6 +231,10 @@ public final class Hive {
 		tag.put("collected", tally);
 		tag.putInt("waveSize", waveSize);
 		tag.putLong("nextWave", nextWave);
+		tag.putLongArray("territory", territory.stream().mapToLong(BlockPos::asLong).toArray());
+		tag.putLong("nextClaim", nextClaim);
+		tag.putLong("nextDrop", nextDrop);
+		tag.putInt("dropSize", dropSize);
 		tag.put("hatchery", NbtUtils.writeBlockPos(hatchery));
 		tag.putInt("minerals", minerals);
 		tag.putInt("vespene", vespene);
@@ -264,6 +280,10 @@ public final class Hive {
 		for (String key : tally.getAllKeys()) hive.collected.put(key, tally.getInt(key));
 		if (tag.contains("waveSize")) hive.waveSize = tag.getInt("waveSize");
 		hive.nextWave = tag.getLong("nextWave");
+		for (long cell : tag.getLongArray("territory")) hive.territory.add(BlockPos.of(cell));
+		hive.nextClaim = tag.getLong("nextClaim");
+		hive.nextDrop = tag.getLong("nextDrop");
+		hive.dropSize = tag.getInt("dropSize");
 		hive.minerals = tag.getInt("minerals");
 		hive.vespene = tag.getInt("vespene");
 		hive.villageHostileUntil = tag.getLong("villageHostileUntil");

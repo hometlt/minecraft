@@ -67,6 +67,12 @@ public final class StarMine implements ModInitializer {
 	}
 
 	/** Creep grows from hatcheries and tumors (on by default). */
+	/**
+	 * How hard the wild races press the players (owner 16.10): 0 — they never come for them, 1 — rarely and
+	 * few, 2 — the default, 3 — often and many ({@link dev.starmine.ai.Territory#drops}).
+	 */
+	public static final GameRules.Key<GameRules.IntegerValue> AI_PRESSURE =
+		GameRuleRegistry.register("starmineAiPressure", GameRules.Category.MOBS, GameRuleFactory.createIntRule(2, 0, 3));
 	public static final GameRules.Key<GameRules.BooleanValue> CREEP_SPREAD =
 		GameRuleRegistry.register("starmineCreepSpread", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
 
@@ -143,6 +149,7 @@ public final class StarMine implements ModInitializer {
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ai.Territory::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.Painter::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ability.Delayed::tick);
 		dev.starmine.colony.ColonyNetwork.register();

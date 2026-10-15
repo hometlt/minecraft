@@ -177,6 +177,12 @@ public final class RaceBases {
 		if (!terran) for (int i = 0; i < 3; i++)
 			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5)));
 		lights(painter, centre, terran);
+		// owner 16.10: main bases well defended — at the plaza's edge, by each pylon's line, a gun and a battery or bunker
+		for (int i = 0; i < 3; i++) {
+			double angle = Math.PI / 3 + i * Math.PI * 2 / 3;
+			spawns.add(Spawn.member(terran ? UnitKind.MISSILE_TURRET : UnitKind.PHOTON_CANNON, groundAt(level, centre, angle, PLAZA - 4)));
+			spawns.add(Spawn.member(terran ? UnitKind.BUNKER : UnitKind.SHIELD_BATTERY, groundAt(level, centre, angle + 0.3, PLAZA - 4)));
+		}
 		for (UnitKind kind : terran ? TERRAN_ARMY : PROTOSS_ARMY) {
 			double angle = random.nextDouble() * Math.PI * 2;
 			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 2.5); // out of the main building

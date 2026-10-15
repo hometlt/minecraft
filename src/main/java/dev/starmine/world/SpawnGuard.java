@@ -26,6 +26,7 @@ public final class SpawnGuard {
 		if (!(mob instanceof Enemy) || mob instanceof StarUnit) return false;
 		for (BlockPos tumor : CreepSources.tumors(level).all())
 			if (tumor.distSqr(pos) <= (double) TUMOR_RADIUS * TUMOR_RADIUS) return true;
+		if (dev.starmine.ai.Territory.claimed(level, pos)) return true; // a race's territory
 		return !level.getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(BUILDING_RADIUS),
 			unit -> unit.isAlive() && unit.kind.structure()).isEmpty();
 	}

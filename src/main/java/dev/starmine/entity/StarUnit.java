@@ -409,6 +409,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (this.getVehicle() instanceof StarUnit transport && dev.starmine.ability.Transport.capacity(transport.kind) > 0
 			&& !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false; // cargo is out of harm's way (SC2)
 		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
+		// owner 16.10: the wild races do not finish each other's main bases — a wild main building takes a tenth from other wild races
+		if ((kind.main() || kind == UnitKind.HATCHERY) && owner().isEmpty() && source.getEntity() instanceof StarUnit attacker
+			&& attacker.owner().isEmpty() && attacker.kind.race != kind.race) amount *= 0.1f;
 		if (kind == UnitKind.CHANGELING && amount > 0 && !this.isInvulnerableTo(source)) amount = this.getMaxHealth() * 100; // owner: any harm kills it
 		// SC2 has no moment of invulnerability after a hit: every shot of a StarMine weapon or spell counts (a vanilla
 		// mob's or player's own blows keep vanilla's half second)

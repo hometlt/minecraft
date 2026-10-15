@@ -61,6 +61,7 @@ public final class AiCommander {
 		orderBuilding(main, level, base, rules);
 		research(level, base);
 		produce(main, level, base, rules);
+		Territory.decide(main, level, base);
 	}
 
 	// ---- production ----
@@ -250,10 +251,21 @@ public final class AiCommander {
 			.min(Comparator.comparingDouble(other -> other.hatchery.distSqr(main.blockPosition())))
 			.orElse(null);
 		if (foe == null) return false;
+		if (foe.owner == null) { // owner 16.10: wild against wild only for each other's claims, never their main bases
+			BlockPos claim = Territory.foeClaim(level, base, main.blockPosition(), WAVE_RANGE);
+			if (claim == null) return false;
+			Hive holder = HiveSavedData.get(level.getServer()).all().stream().filter(other -> other.territory.contains(claim)).findFirst().orElse(foe);
+			return send(main, level, base, warriors, holder, claim, now);
+		}
 		BlockPos target = level.getEntitiesOfClass(StarUnit.class, new AABB(foe.hatchery).inflate(64),
 				mob -> foe.id.equals(mob.hiveId()) && mob.isAlive() && mob.kind.structure())
 			.stream().min(Comparator.comparingDouble(mob -> mob.distanceToSqr(main))).map(StarUnit::blockPosition)
 			.orElse(foe.hatchery);
+		return send(main, level, base, warriors, foe, target, now);
+	}
+
+	/** Sends a wave of the gathered warriors at `target` (a building or a claim of `foe`). */
+	private static boolean send(StarUnit main, ServerLevel level, Hive base, List<StarUnit> warriors, Hive foe, BlockPos target, long now) {
 		List<StarUnit> wave = warriors.subList(0, Math.min(MAX_WAVE, warriors.size()));
 		long until = now + WAVE_LENGTH;
 		if (base.race == UnitKind.Race.ZERG) { // a raid; the wave waits while drones cut a way if it cannot walk there
