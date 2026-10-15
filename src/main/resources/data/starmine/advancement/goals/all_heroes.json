@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/artanis",
+  "display": {
+    "icon": {
+      "id": "minecraft:nether_star"
+    },
+    "title": {
+      "translate": "advancements.starmine.all_heroes.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.all_heroes.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

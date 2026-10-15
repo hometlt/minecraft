@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/sky_ship",
+  "display": {
+    "icon": {
+      "id": "starmine:protoss_chestplate"
+    },
+    "title": {
+      "translate": "advancements.starmine.artanis.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.artanis.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

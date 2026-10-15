@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "starmine:gauss_rifle"
+    },
+    "title": {
+      "translate": "advancements.starmine.gauss_rifle.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.gauss_rifle.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

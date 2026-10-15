@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "starmine:command_panel"
+    },
+    "title": {
+      "translate": "advancements.starmine.command_panel.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.command_panel.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

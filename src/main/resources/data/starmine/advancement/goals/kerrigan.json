@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/sky_ship",
+  "display": {
+    "icon": {
+      "id": "starmine:zerg_chestplate"
+    },
+    "title": {
+      "translate": "advancements.starmine.kerrigan.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.kerrigan.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

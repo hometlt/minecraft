@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/find_terran",
+  "display": {
+    "icon": {
+      "id": "minecraft:elytra"
+    },
+    "title": {
+      "translate": "advancements.starmine.sky_ship.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.sky_ship.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "starmine:terran_chestplate"
+    },
+    "title": {
+      "translate": "advancements.starmine.suit.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.suit.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

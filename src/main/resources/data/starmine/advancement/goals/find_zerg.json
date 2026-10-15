@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "starmine:zerg_flesh"
+    },
+    "title": {
+      "translate": "advancements.starmine.find_zerg.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.find_zerg.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

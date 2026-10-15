@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/minerals",
+  "display": {
+    "icon": {
+      "id": "starmine:vespene_bucket"
+    },
+    "title": {
+      "translate": "advancements.starmine.vespene.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.vespene.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

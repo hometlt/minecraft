@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:gray_concrete"
+    },
+    "title": {
+      "translate": "advancements.starmine.find_terran.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.find_terran.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

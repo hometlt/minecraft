@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/own_base",
+  "display": {
+    "icon": {
+      "id": "starmine:module_weapon"
+    },
+    "title": {
+      "translate": "advancements.starmine.possess.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.possess.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

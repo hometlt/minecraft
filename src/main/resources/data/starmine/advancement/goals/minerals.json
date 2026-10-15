@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/own_base",
+  "display": {
+    "icon": {
+      "id": "starmine:mineral_shard"
+    },
+    "title": {
+      "translate": "advancements.starmine.minerals.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.minerals.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

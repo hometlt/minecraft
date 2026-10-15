@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/sky_ship",
+  "display": {
+    "icon": {
+      "id": "starmine:terran_helmet"
+    },
+    "title": {
+      "translate": "advancements.starmine.raynor.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.raynor.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

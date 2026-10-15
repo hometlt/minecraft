@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/suit",
+  "display": {
+    "icon": {
+      "id": "starmine:module_weapons_upgrade"
+    },
+    "title": {
+      "translate": "advancements.starmine.module.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.module.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
