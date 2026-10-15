@@ -239,7 +239,7 @@ public final class DronePlanner {
 				for (int x = 0; x < w; x++)
 					for (int z = 0; z < w; z++) {
 						BlockPos under = to.offset(x, -1, z);
-						if (!cells.solid(under) && !cells.fluid(under)) bridge.add(under);
+						if (!cells.solid(under)) bridge.add(under); // over water too: the bridge's stone takes the water's place
 					}
 			}
 			if (fill < bridge.size()) return null;
@@ -249,7 +249,7 @@ public final class DronePlanner {
 			for (int x = 0; x < w; x++)
 				for (int z = 0; z < w; z++) {
 					BlockPos under = to.offset(x, -1, z);
-					if (!breaks.contains(under) && !cells.solid(under) && !cells.fluid(under)) bridge.add(under);
+					if (!breaks.contains(under) && !cells.solid(under)) bridge.add(under);
 				}
 			if (fill < bridge.size()) return null;
 		}

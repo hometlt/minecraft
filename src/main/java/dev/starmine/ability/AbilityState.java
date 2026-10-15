@@ -32,6 +32,11 @@ public final class AbilityState {
 	@Nullable Vec3 liftedFrom;
 	/** A transport's unload point. */
 	@Nullable Vec3 unloadAt;
+
+	/** Where a transport flies to put its cargo down (null when it is not unloading). */
+	public @Nullable Vec3 unloadingAt() {
+		return unloadAt;
+	}
 	/** A spell ordered on a target out of reach: the caster goes into reach first, then casts. */
 	@Nullable Ability pending;
 	@Nullable UUID pendingTarget;

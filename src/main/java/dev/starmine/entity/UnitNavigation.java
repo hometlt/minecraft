@@ -33,6 +33,9 @@ final class UnitNavigation extends GroundPathNavigation {
 
 	UnitNavigation(Mob mob, Level level) {
 		super(mob, level);
+		// CLOUD_TASK_2 stage 4: ground units neither swim nor walk the bottom; water is crossed by a transport or a
+		// bridge (colony/Engineering, colony/Ferry)
+		mob.setPathfindingMalus(PathType.WATER, -1);
 	}
 
 	/** Bodies wider than this follow their way node by node (see {@link #followThePath}). */
@@ -106,6 +109,21 @@ final class UnitNavigation extends GroundPathNavigation {
 			AABB own = mob.getBoundingBox();
 			for (BlockPos cell : BlockPos.betweenClosed(BlockPos.containing(own.minX, own.minY, own.minZ), BlockPos.containing(own.maxX, own.maxY, own.maxZ)))
 				buildings.remove(cell.asLong());
+		}
+
+		/**
+		 * A wide body's way starts at its corner cell. The game starts it at the cell under the body's middle
+		 * but reads every other node as a corner (the body's middle at the node plus half its width): the
+		 * first point a tank (5.8 wide) was led to lay 3 blocks aside of it, in the rock beside a tunnel's
+		 * mouth, and it stood pushing there.
+		 */
+		@Override
+		public net.minecraft.world.level.pathfinder.Node getStart() {
+			net.minecraft.world.level.pathfinder.Node start = super.getStart();
+			if (start == null || this.mob.getBbWidth() <= BIG) return start;
+			double half = (int) (this.mob.getBbWidth() + 1.0F) * 0.5;
+			return this.getStartNode(new BlockPos(net.minecraft.util.Mth.floor(this.mob.getX() - half + 0.5), start.y,
+				net.minecraft.util.Mth.floor(this.mob.getZ() - half + 0.5)));
 		}
 
 		@Override

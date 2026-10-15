@@ -558,6 +558,8 @@
 	"message.starmine.engineering": "Армия ждёт: рабочие (%s) прокладывают путь (%s шагов)",
 	"message.starmine.engineering_no_workers": "Нет свободных КСМ, чтобы проложить путь армии",
 	"message.starmine.engineering_stalled": "Рабочие не смогли проложить путь армии",
+	"message.starmine.no_way": "Туда нет пути: вода или скала, а мост строить и перевезти некому",
+	"message.starmine.ferry": "Транспорты (%s) перевозят через воду юнитов: %s",
 	"entity.starmine.probe": "Зонд",
 	"item.starmine.probe_spawn_egg": "Яйцо призыва: Зонд",
 	"subtitles.starmine.probe.attack": "Зонд: атакует",

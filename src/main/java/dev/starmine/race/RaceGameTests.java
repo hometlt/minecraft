@@ -277,6 +277,7 @@ public class RaceGameTests implements FabricGameTest {
 			Hive base = new Hive(UUID.randomUUID(), "minecraft:overworld", BlockPos.ZERO);
 			base.race = UnitKind.Race.TERRAN;
 			base.minerals = 100;
+			base.members.put(UnitKind.SUPPLY_DEPOT, 1); // supply for a marine
 			helper.assertTrue(UnitKind.MARINE.economy().minerals() == 10, "the configured minerals are not the marine's");
 			helper.assertFalse(base.canAfford(UnitKind.MARINE, 1), "a marine was affordable with no iron in the stock");
 			base.deliver(8, 0, 0, "iron", 3);

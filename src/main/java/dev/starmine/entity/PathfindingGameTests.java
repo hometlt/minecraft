@@ -191,7 +191,78 @@ public class PathfindingGameTests implements FabricGameTest {
 			goals.put(TestArena.member(helper, base, UnitKind.MARAUDER, 8, 14), point(helper, 40, 14));
 			goals.put(TestArena.member(helper, base, UnitKind.SIEGE_TANK, 8, 18), point(helper, 40, 18));
 			goals.put(TestArena.member(helper, base, UnitKind.THOR, 8, 24), point(helper, 40, 24));
+			dry(helper, timeline, goals.keySet());
 			armyRace(helper, timeline, base, "river " + width + " wide", goals, width == 5 ? 1100 : 2300);
+		});
+	}
+
+	/** CLOUD_TASK_2 stage 4: ground units never go into water (they are carried or walk a bridge). */
+	private static void dry(GameTestHelper helper, TestArena.Timeline timeline, java.util.Collection<StarUnit> units) {
+		timeline.every(() -> {
+			for (StarUnit unit : units)
+				if (unit.isAlive() && unit.isInWater()) helper.fail(unit.kind.id + " went into the water at " + TestArena.where(helper, unit));
+		});
+	}
+
+	/** A river 12 wide and a medivac of the base: it carries the army over (no bridge), nobody gets wet. */
+	@GameTest(template = ARENA, batch = "pathFerry", timeoutTicks = 2400)
+	public void aTransportCarriesTheArmyOverARiver(GameTestHelper helper) {
+		clear(helper);
+		fill(helper, 18, 0, 0, 29, 1, 47, Blocks.WATER.defaultBlockState());
+		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 8, 40, UUID.randomUUID());
+		TestArena.Timeline timeline = TestArena.Timeline.of(helper);
+		timeline.at(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			StarUnit medivac = TestArena.member(helper, base, UnitKind.MEDIVAC, 6, 16);
+			Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
+			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 10), point(helper, 38, 10));
+			goals.put(TestArena.member(helper, base, UnitKind.MARAUDER, 8, 14), point(helper, 38, 14));
+			goals.put(TestArena.member(helper, base, UnitKind.SIEGE_TANK, 8, 20), point(helper, 38, 20));
+			dry(helper, timeline, goals.keySet());
+			Vec3 centre = goals.values().stream().reduce(Vec3.ZERO, Vec3::add).scale(1.0 / goals.size());
+			java.util.Set<UUID> carried = Engineering.order(helper.getLevel(), base, new ArrayList<>(goals.keySet()), StarUnit.Order.MOVE, centre);
+			helper.assertTrue(carried.size() == 3, "the medivac does not take the army: " + carried.size() + " of 3");
+			long start = timeline.now();
+			timeline.every(() -> {
+				boolean all = goals.keySet().stream().allMatch(unit -> !unit.isPassenger() && TestArena.rel(helper, unit).x > 31);
+				if (all) {
+					LOG.info("[pathfinding] ferry over a river 12 wide: all 3 across in {} ticks; no bridge", timeline.now() - start);
+					int stone = 0;
+					for (BlockPos rel : BlockPos.betweenClosed(18, 1, 0, 29, 1, 47)) if (!helper.getLevel().getBlockState(helper.absolutePos(rel)).is(Blocks.WATER)) stone++;
+					helper.assertTrue(stone == 0, stone + " blocks of the river were bridged");
+					helper.succeed();
+				} else if (timeline.now() - start > 2200) {
+					StringBuilder where = new StringBuilder();
+					for (StarUnit unit : goals.keySet()) where.append(unit.kind.id).append(" at ").append(TestArena.where(helper, unit)).append(unit.isPassenger() ? " aboard" : "").append("; ");
+					helper.fail("the army is not across: " + where + "medivac at " + TestArena.where(helper, medivac) + " carrying " + medivac.getPassengers().size());
+				}
+			});
+		});
+	}
+
+	/** No workers, no transport: a marine sent over a river stays on its bank (and its player is told there is no way). */
+	@GameTest(template = ARENA, batch = "pathNoWay", timeoutTicks = 700)
+	public void aUnitWithNoWayStaysOutOfTheWater(GameTestHelper helper) {
+		clear(helper);
+		fill(helper, 18, 0, 0, 29, 1, 47, Blocks.WATER.defaultBlockState());
+		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 8, 40, UUID.randomUUID());
+		TestArena.Timeline timeline = TestArena.Timeline.of(helper);
+		timeline.at(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			for (StarUnit scv : helper.getLevel().getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(cc.blockPosition()).inflate(40), unit -> unit.kind == UnitKind.SCV))
+				scv.discard();
+			StarUnit marine = TestArena.member(helper, base, UnitKind.MARINE, 8, 10);
+			dry(helper, timeline, List.of(marine));
+			Vec3 goal = point(helper, 38, 10);
+			java.util.Set<UUID> taken = Engineering.order(helper.getLevel(), base, List.of(marine), StarUnit.Order.MOVE, goal);
+			helper.assertTrue(taken.isEmpty(), "nobody can bridge or carry, yet the marine was taken");
+			marine.command(StarUnit.Order.MOVE, goal);
+			timeline.at(600, () -> {
+				helper.assertTrue(TestArena.rel(helper, marine).x < 18, "the marine is past the river's bank at " + TestArena.where(helper, marine));
+				helper.succeed();
+			});
 		});
 	}
 

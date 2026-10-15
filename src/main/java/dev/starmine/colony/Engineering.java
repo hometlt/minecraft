@@ -123,15 +123,24 @@ public final class Engineering {
 		double arrive = 2 + body.width() / 2.0;
 		BlockPos start = DronePlanner.feetOf(lead.position(), body);
 		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, DronePlanner.budgetFor(body, BUDGET), body);
-		if (steps == null || steps.isEmpty()) return Set.of();
+		if (steps == null || steps.isEmpty()) {
+			BaseLogic.tell(level, base, "message.starmine.no_way");
+			return Set.of();
+		}
 		// nothing to cut on this stretch (the goal was only too far for the game's pathfinder): walk as usual
 		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) return Set.of();
+		// over water with transports at hand: they carry the army (CLOUD_TASK_2 stage 4), else workers bridge it
+		boolean water = steps.stream().anyMatch(step -> step.fill().stream().anyMatch(cell -> !level.getFluidState(cell).isEmpty()));
+		if (water) {
+			Set<UUID> carried = Ferry.start(level, base, army, order, goal, raid, until);
+			if (!carried.isEmpty()) return carried;
+		}
 		Job job = new Job(base.id, level.dimension(), order, goal, arrive, body, start, steps, level.getGameTime());
 		job.raid = raid;
 		job.until = until;
 		hireWorkers(level, job, Vec3.atCenterOf(start));
 		if (job.workers.isEmpty()) {
-			BaseLogic.tell(level, base, "message.starmine.engineering_no_workers");
+			BaseLogic.tell(level, base, water ? "message.starmine.no_way" : "message.starmine.engineering_no_workers");
 			return Set.of();
 		}
 		for (StarUnit unit : army) {
@@ -149,6 +158,7 @@ public final class Engineering {
 
 	/** The unit leaves its job (a new order; a worker that died or was given other work). */
 	public static void release(UUID unit) {
+		Ferry.release(unit);
 		Job job = BY_UNIT.remove(unit);
 		if (job == null) return;
 		job.army.remove(unit);
@@ -213,6 +223,7 @@ public final class Engineering {
 	/** Every 10 ticks: progress of each job, where its army waits, its workers. */
 	public static void serverTick(MinecraftServer server) {
 		if (server.getTickCount() % 10 != 0) return;
+		Ferry.serverTick(server);
 		for (Iterator<Job> it = JOBS.iterator(); it.hasNext(); ) {
 			Job job = it.next();
 			ServerLevel level = server.getLevel(job.dimension);

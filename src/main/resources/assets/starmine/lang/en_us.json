@@ -558,6 +558,8 @@
 	"message.starmine.engineering": "The army waits: %s workers cut it a way (%s steps)",
 	"message.starmine.engineering_no_workers": "No free SCV to cut the army a way",
 	"message.starmine.engineering_stalled": "The workers could not finish the army's way",
+	"message.starmine.no_way": "No way there: water or rock, and nobody to bridge or carry",
+	"message.starmine.ferry": "%s transports carry %s units over the water",
 	"entity.starmine.probe": "Probe",
 	"item.starmine.probe_spawn_egg": "Probe Spawn Egg",
 	"subtitles.starmine.probe.attack": "Probe attacks",
