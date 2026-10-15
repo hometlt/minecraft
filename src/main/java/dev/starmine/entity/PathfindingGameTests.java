@@ -82,6 +82,17 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * The middle of the `i`th unit's lane (arena z): lanes side by side by the units' widths, 1.5 blocks
+	 * apart (flyers twice the model size are up to 8.6 wide: lanes 7.5 apart had an overlord and a
+	 * mutalisk pushing each other off their ways).
+	 */
+	private static double lane(UnitKind[] kinds, int i) {
+		double edge = 1;
+		for (int k = 0; k < i; k++) edge += kinds[k].width + 1.5;
+		return edge + kinds[i].width / 2 - 0.5;
+	}
+
 	private static String times(Map<StarUnit, Long> arrived) {
 		StringBuilder line = new StringBuilder();
 		arrived.forEach((unit, ticks) -> line.append(unit.kind.id).append('=').append(ticks).append(' '));
@@ -288,7 +299,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		UnitKind[] kinds = {UnitKind.ZERGLING, UnitKind.MARINE, UnitKind.HYDRALISK, UnitKind.STALKER, UnitKind.SIEGE_TANK, UnitKind.ULTRALISK};
 		for (int i = 0; i < kinds.length; i++) {
-			double z = 4 + i * 7.5;
+			double z = lane(kinds, i);
 			goals.put(unit(helper, kinds[i], 6, z, player), point(helper, 42, z));
 		}
 		race(helper, "forest", goals, 2, 800);
@@ -302,7 +313,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		UnitKind[] kinds = {UnitKind.MUTALISK, UnitKind.OVERLORD, UnitKind.VIKING, UnitKind.MEDIVAC, UnitKind.PHOENIX, UnitKind.BATTLECRUISER};
 		for (int i = 0; i < kinds.length; i++) {
-			double z = 4 + i * 7.5;
+			double z = lane(kinds, i);
 			goals.put(unit(helper, kinds[i], 6, z, player), point(helper, 40, z));
 		}
 		race(helper, "flyers over a mountain", goals, 2.5, 1300);
@@ -317,7 +328,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		UnitKind[] kinds = {UnitKind.MUTALISK, UnitKind.VIKING, UnitKind.MEDIVAC, UnitKind.PHOENIX, UnitKind.OVERSEER};
 		List<StarUnit> flyers = new ArrayList<>();
 		for (int i = 0; i < kinds.length; i++) {
-			double z = 4 + i * 9;
+			double z = lane(kinds, i);
 			StarUnit flyer = unit(helper, kinds[i], 6, z, player);
 			Vec3 low = point(helper, 6, z).add(0, 0.5, 0); // under the roof from the start (spawned flyers come 3 blocks up)
 			flyer.moveTo(low.x, low.y, low.z, 0, 0);
@@ -340,7 +351,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		UnitKind[] kinds = {UnitKind.MUTALISK, UnitKind.BROOD_LORD, UnitKind.BANSHEE, UnitKind.VOID_RAY, UnitKind.CARRIER};
 		for (int i = 0; i < kinds.length; i++) {
-			double z = 4 + i * 9;
+			double z = lane(kinds, i);
 			goals.put(unit(helper, kinds[i], 4, z, player), point(helper, 42, z));
 		}
 		race(helper, "flyers over water", goals, 2.5, 750);

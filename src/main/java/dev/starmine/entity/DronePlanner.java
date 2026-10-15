@@ -149,7 +149,7 @@ public final class DronePlanner {
 					if (step == null) continue;
 					BlockPos to = step.feet;
 					if (Math.abs(to.getX() - start.getX()) > body.reach || Math.abs(to.getZ() - start.getZ()) > body.reach) continue;
-					double cost = node.g + 1 + (to.getY() != node.feet.getY() ? 0.5 : 0) + digCost(level, step) + step.fill.size() * 2.0 / Math.max(1, body.width - 1);
+					double cost = node.g + 1 + (to.getY() != node.feet.getY() ? 0.5 : 0) + digCost(level, step) + fillCost(step, body);
 					// owner: to get up or down, cut (or build) stairs rather than long level tunnels
 					double rise = target.y - centre(node.feet, body).y;
 					if (!step.dig.isEmpty() && to.getY() == node.feet.getY() && Math.abs(rise) > 2) cost += 4;
@@ -159,6 +159,17 @@ public final class DronePlanner {
 				}
 		}
 		return closest == first || centre(closest.feet, body).distanceTo(target) > centre(start, body).distanceTo(target) - 2 ? null : path(closest);
+	}
+
+	/**
+	 * What a step's fill costs: a bridge over a gap is shared by the width of the body that needs it
+	 * (a wide body cannot cross otherwise); filling under a wide body that would step up onto a ledge
+	 * costs as a block dug, so it digs the ledge instead of climbing onto a floor laid in the air.
+	 */
+	private static double fillCost(Step step, Body body) {
+		if (step.fill.isEmpty()) return 0;
+		boolean ledge = step.fill.size() < body.width * body.width;
+		return step.fill.size() * (ledge && body.width > 2 ? 2.0 : 2.0 / Math.max(1, body.width - 1));
 	}
 
 	/** Distance to the goal with height weighted 1.5x: climbing is what most needs digging. */
