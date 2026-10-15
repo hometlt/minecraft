@@ -3,6 +3,11 @@ plugins {
 	id 'maven-publish'
 }
 
+// Keep private review builds and their run directory outside the source checkout when requested.
+if (providers.gradleProperty('starmineBuildRoot').isPresent()) {
+	layout.buildDirectory = file(providers.gradleProperty('starmineBuildRoot').get())
+}
+
 repositories {
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
@@ -21,12 +26,17 @@ loom {
 
 	// In-game tests (src/main/java/dev/starmine/entity/DroneGameTests.java): gradlew runGametest
 	runs {
+		client {
+			if (providers.gradleProperty('starmineRunDir').isPresent()) {
+				runDir providers.gradleProperty('starmineRunDir').get()
+			}
+		}
 		gametest {
 			inherit server
 			name "Game Test"
 			vmArg "-Dfabric-api.gametest"
 			vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest/junit.xml"
-			runDir "build/gametest"
+			runDir "${project.layout.buildDirectory.get()}/gametest/run"
 		}
 	}
 
@@ -52,21 +62,79 @@ dependencies {
 	modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
 }
 
+def gameTestSelection = providers.gradleProperty('starmineGameTests').getOrElse('all')
+if (!(gameTestSelection in ['all', 'structures'])) throw new GradleException('starmineGameTests must be all or structures')
 processResources {
 	def version = project.version
 	inputs.property "version", version
+	inputs.property 'starmineGameTests', gameTestSelection
 
 	filesMatching("fabric.mod.json") {
 		expand "version": version
+		if (gameTestSelection == 'structures') filter { String line ->
+			line.contains('"fabric-gametest":') ? '\t\t"fabric-gametest": ["dev.starmine.world.StructureGameTests"]' : line
+		}
 	}
 }
 
 // SC2-derived assets (models, textures, sounds) are produced by Modkit from the user's own StarCraft II
 // installation into sc2-assets/ (git-ignored). Dev runs see them; a published jar never carries them
 // unless built explicitly with -PincludeSc2Assets for a private local install.
-sourceSets.client.resources.srcDir 'sc2-assets'
+// Modkit owns conversion; Gradle selects one complete prepared tree, never overlays both modes.
+def modelMode = providers.gradleProperty('starmineModelMode').getOrElse('original')
+if (!(modelMode in ['original', 'voxel'])) throw new GradleException('starmineModelMode must be original or voxel')
+def assetsRoot = file(providers.gradleProperty('starmineAssetsDir').getOrElse('sc2-assets'))
+def modelMarker = new File(assetsRoot, 'assets/starmine/models/sc2/model-package.json')
+if (modelMode == 'voxel') {
+	if (!providers.gradleProperty('starmineAssetsDir').isPresent() || !modelMarker.isFile()) {
+		throw new GradleException('voxel mode requires starmineAssetsDir with a completed Modkit model-package.json')
+	}
+	def prepared = new groovy.json.JsonSlurper().parse(modelMarker)
+	if (prepared.schemaVersion != 1 || prepared.modelMode != 'voxel' ||
+		prepared.selectedOriginalDeathModels != 'excluded' || prepared.lossesAreExplicit != true ||
+		!(prepared.selectedModels instanceof List) || prepared.selectedModels.isEmpty() ||
+		prepared.selectedModels.unique(false).size() != prepared.selectedModels.size()) {
+		throw new GradleException('Invalid or incomplete voxel package marker')
+	}
+	def packagedModels = new File(assetsRoot, 'assets/starmine/models/sc2').listFiles()
+		.findAll { it.name.endsWith('.smm') && !it.name.endsWith('_death.smm') }
+		.collect { it.name.substring(0, it.name.length() - 4) }
+	if (!prepared.selectedModels.containsAll(packagedModels)) {
+		throw new GradleException('Partial voxel package refused: every packaged model must be converted, not an original fallback')
+	}
+	prepared.selectedModels.each { kind ->
+		if (!(kind instanceof String) || !(kind ==~ /[a-z0-9]+/) ||
+			!new File(assetsRoot, "assets/starmine/models/sc2/${kind}.smm").isFile() ||
+			!new File(assetsRoot, "assets/starmine/textures/entity/sc2/${kind}_voxel.png").isFile() ||
+			new File(assetsRoot, "assets/starmine/models/sc2/${kind}_death.smm").exists()) {
+			throw new GradleException("Missing voxel model/atlas or stale original death model: ${kind}")
+		}
+	}
+	logger.lifecycle("StarMine voxel mode: all ${prepared.selectedModels.size()} packaged models converted")
+} else if (modelMarker.isFile()) {
+	throw new GradleException('original mode must not use a voxel package; select the original assets directory')
+}
+sourceSets.client.resources.srcDir assetsRoot
+// Loom captures the standard resource path. Rebuild only that generated output when inputs change;
+// an overlay copy could otherwise retain an original death model removed by the voxel package.
+def expectedClientResources = layout.buildDirectory.dir('resources/client').get().asFile.canonicalPath
+tasks.named('processClientResources') {
+	inputs.property('starmineModelMode', modelMode)
+	doFirst {
+		if (destinationDir.canonicalPath != expectedClientResources) {
+			throw new GradleException('Refusing to clear a nonstandard resource destination')
+		}
+		if (destinationDir.exists() && !destinationDir.deleteDir()) {
+			throw new GradleException('Could not clear generated client resources')
+		}
+	}
+}
 tasks.named('jar') {
 	if (!project.hasProperty('includeSc2Assets')) exclude 'assets/starmine/**/sc2/**', 'assets/starmine/sounds.json'
+	else archiveClassifier = "${modelMode}-dev"
+}
+tasks.named('remapJar') {
+	if (project.hasProperty('includeSc2Assets')) archiveClassifier = modelMode
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -82,6 +150,8 @@ java {
 	sourceCompatibility = JavaVersion.VERSION_21
 	targetCompatibility = JavaVersion.VERSION_21
 }
+
+tasks.named('sourcesJar') { exclude 'assets/starmine/**/sc2/**', 'assets/starmine/sounds.json' }
 
 jar {
 	def projectName = project.name

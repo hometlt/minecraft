@@ -25,8 +25,68 @@ import net.minecraft.world.level.block.Blocks;
 public class StructureGameTests implements FabricGameTest {
 	private static final String ARENA = "starmine:arena";
 
+	/** Fixed radial layout stays 16 chunks from its captured origin, at the requested race angles. */
+	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 40)
+	public void basesUseSixteenChunkRadialLayout(GameTestHelper helper) {
+		BlockPos origin = new BlockPos(120, 64, -240);
+		BlockPos zerg = RaceBases.baseOffset(origin, 0, UnitKind.Race.ZERG);
+		BlockPos protoss = RaceBases.baseOffset(origin, 0, UnitKind.Race.PROTOSS);
+		BlockPos terran = RaceBases.baseOffset(origin, 0, UnitKind.Race.TERRAN);
+		helper.assertTrue(zerg.equals(origin.offset(-222, 0, 128)), "zerg must be at 60 degrees");
+		helper.assertTrue(protoss.equals(origin.offset(-222, 0, -128)), "protoss must be at 120 degrees");
+		helper.assertTrue(terran.equals(origin.offset(0, 0, -256)), "terran must be at 180 degrees");
+		for (BlockPos site : List.of(zerg, protoss, terran))
+			helper.assertTrue(Math.abs(Math.sqrt(site.distSqr(origin)) - 256) < 1, "base is not 16 chunks away");
+		helper.assertTrue(zerg.distSqr(protoss) >= 256 * 256 && protoss.distSqr(terran) >= 256 * 256, "bases too close");
+		helper.assertTrue(RaceBases.baseOffset(origin, 90, UnitKind.Race.TERRAN).equals(origin.offset(256, 0, 0)), "heading ignored");
+		helper.succeed();
+	}
+
+	/** Inspect placed blocks: chests flush deferred plans, so a partial in-memory plan is not evidence. */
+	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 80)
+	public void hyperionHasCabinsHangarAndRaisedBridge(GameTestHelper helper) {
+		Painter painter = new Painter(helper.getLevel(), RandomSource.create(42));
+		BlockPos middle = far(helper, 4000).above(40);
+		painter.load(middle, 112);
+		SkyShips.Ship ship = SkyShips.hyperion(painter, middle, 0);
+		helper.assertTrue(painter.stateAt(middle.offset(0, 2, 0)).isAir(), "central passage blocked");
+		helper.assertTrue(painter.stateAt(middle.offset(0, 2, 2)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no cabin glazing");
+		helper.assertTrue(painter.stateAt(middle.offset(2, 2, 7)).is(Blocks.LIGHT_GRAY_CONCRETE), "no cabin partitions");
+		helper.assertTrue(painter.stateAt(middle.offset(0, -5, 8)).isAir(), "hangar blocked");
+		helper.assertTrue(painter.stateAt(middle.offset(0, -9, 11)).is(Blocks.YELLOW_CONCRETE), "hangar markings absent");
+		helper.assertTrue(painter.stateAt(middle.offset(0, -6, 14)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no exterior lower cabin window");
+		helper.assertTrue(ship.bossRoom().equals(middle.offset(-24, 17, 0)), "Raynor not on the bridge");
+		helper.assertTrue(painter.stateAt(ship.bossRoom().below()).is(Blocks.POLISHED_ANDESITE), "Raynor has no floor");
+		helper.assertTrue(painter.stateAt(middle.offset(-11, 19, 0)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no bridge window");
+		for (int y = -60; y < -12; y++)
+			helper.assertTrue(!painter.stateAt(middle.offset(0, y, 0)).is(Blocks.SCAFFOLDING)
+				&& !painter.stateAt(middle.offset(0, y, 0)).is(Blocks.LADDER), "external access to ship");
+		helper.succeed();
+	}
+
 	private static BlockPos far(GameTestHelper helper, int dx) {
 		return helper.absolutePos(new BlockPos(0, 0, 0)).offset(dx, 70, 400);
+	}
+
+	/** Four pylons must still power every generated production/defence building after grid snapping. */
+	@GameTest(template = ARENA, batch = "structuresBase", timeoutTicks = 400)
+	public void protossBaseUsesFourPylonsWithoutLosingPower(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		HiveSavedData data = HiveSavedData.get(level.getServer());
+		RaceBases.Report report = RaceBases.build(level, UnitKind.Race.PROTOSS, far(helper, 5400), RandomSource.create(12));
+		Painter.finishAll();
+		try {
+			var members = data.pending.stream().filter(p -> p.hive().equals(report.base()) && p.hall() == null).toList();
+			var pylons = members.stream().filter(p -> p.kind() == UnitKind.PYLON).toList();
+			helper.assertTrue(pylons.size() == 4, "expected four pylons, got " + pylons.size());
+			for (var building : members) if (dev.starmine.race.ProtossRace.needsPower(building.kind()))
+				helper.assertTrue(pylons.stream().anyMatch(p -> Math.hypot(p.pos().getX() - building.pos().getX(),
+					p.pos().getZ() - building.pos().getZ()) <= dev.starmine.race.ProtossRace.POWER_RADIUS), "no power for " + building.kind());
+		} finally {
+			data.pending.removeIf(p -> p.hive().equals(report.base()));
+			data.remove(report.base());
+		}
+		helper.succeed();
 	}
 
 	/** Whether `to` can be walked to from `from` on one level (feet cells empty, two high) within `limit` cells. */
@@ -168,6 +228,10 @@ public class StructureGameTests implements FabricGameTest {
 			helper.assertTrue(heartAt != null && level.getBlockEntity(heartAt) instanceof DungeonHeart.Heart, kind + ": no heart");
 			DungeonHeart.Heart heart = (DungeonHeart.Heart) level.getBlockEntity(heartAt);
 			List<UnitKind> kinds = heart.guards().stream().map(DungeonHeart.Guard::kind).toList();
+			if (kind == SmallDungeons.Kind.TERRAN_OUTPOST)
+				for (BlockPos pos : BlockPos.betweenClosed(new BlockPos(at.getX() - 11, top - 1, at.getZ() - 11),
+					new BlockPos(at.getX() + 11, top + 12, at.getZ() + 11)))
+					helper.assertTrue(!level.getBlockState(pos).is(Blocks.IRON_BLOCK), "outpost contains resource iron blocks");
 			switch (kind) {
 				case ZERG_NEST -> helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the nest keeps " + kinds);
 				case TERRAN_OUTPOST -> helper.assertTrue(kinds.stream().filter(k -> k == UnitKind.MARINE).count() >= 2, "the outpost keeps " + kinds);

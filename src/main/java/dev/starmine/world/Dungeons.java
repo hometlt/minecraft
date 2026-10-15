@@ -77,7 +77,7 @@ public final class Dungeons {
 		RandomSource random = painter.random;
 		int size = MAZE_CELLS * PITCH + 1;
 		BlockState floor = Blocks.POLISHED_ANDESITE.defaultBlockState(), wall = Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
-			pillar = Blocks.IRON_BLOCK.defaultBlockState(), band = Blocks.WAXED_OXIDIZED_CUT_COPPER.defaultBlockState(),
+			pillar = Blocks.CHISELED_STONE_BRICKS.defaultBlockState(), band = Blocks.CYAN_TERRACOTTA.defaultBlockState(),
 			ceiling = Blocks.SMOOTH_STONE.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState();
 		painter.box(corner, corner.offset(size - 1, 5, size - 1), pos -> {
 			int x = pos.getX() - corner.getX(), y = pos.getY() - corner.getY(), z = pos.getZ() - corner.getZ();
@@ -120,7 +120,7 @@ public final class Dungeons {
 		int mid = MAZE_CELLS / 2;
 		openRoom(painter, corner, mid - 1, mid - 1, 3);
 		BlockPos core = cellFloor(corner, mid, mid);
-		for (int y = 0; y < 3; y++) painter.set(core.above(y), Blocks.REDSTONE_BLOCK.defaultBlockState());
+		for (int y = 0; y < 3; y++) painter.set(core.above(y), Blocks.RED_STAINED_GLASS.defaultBlockState());
 		painter.set(core.above(3), Blocks.BEACON.defaultBlockState());
 		for (int dx = -1; dx <= 1; dx++)
 			for (int dz = -1; dz <= 1; dz++)
@@ -205,7 +205,7 @@ public final class Dungeons {
 		RandomSource random = painter.random;
 		BlockState sandstone = Blocks.CUT_SANDSTONE.defaultBlockState(), smooth = Blocks.SMOOTH_SANDSTONE.defaultBlockState(),
 			glyph = Blocks.CHISELED_SANDSTONE.defaultBlockState(), prism = Blocks.PRISMARINE_BRICKS.defaultBlockState(),
-			dark = Blocks.DARK_PRISMARINE.defaultBlockState(), gold = Blocks.GOLD_BLOCK.defaultBlockState(),
+			dark = Blocks.DARK_PRISMARINE.defaultBlockState(), gold = Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
 			light = Blocks.SEA_LANTERN.defaultBlockState();
 		int[][] shrines = {{0, -34}, {34, 0}, {0, 34}, {-34, 0}};
 		// solid shells first: corridors, shrines, the hall

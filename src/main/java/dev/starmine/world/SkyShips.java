@@ -171,6 +171,7 @@ public final class SkyShips {
 					else if (Z > 14) state = Painter.sq(Y + 0.5) + Painter.sq(Z - 17) > 4 ? engine : trim; // wing engines: blue glass cowls
 					else if (Y >= 3 && X >= -16 && X <= -4 && y == (int) (8 * s)) state = glass; // the bridge's windows
 					else if (y == 3 && Z >= 5.5 && X > -26 && X < 22 && Math.floorMod(x, 4) != 0) state = glass; // the upper deck's window band
+					else if (y == -6 && Z >= 4.5 && X > -26 && X < 22 && Math.floorMod(x + 1, 4) != 0) state = glass; // lower cabin windows
 					else if (y == -2 && Z >= 5) state = stripe;
 					else if (Y <= -3) state = belly;
 					else if (Z > 6 && Z <= 16 && Y > -1.5 && Y < 0.5) state = Math.floorMod(x + z, 9) == 0 ? trim : stripe; // wings
@@ -187,6 +188,46 @@ public final class SkyShips {
 					boolean door = Math.abs(z) <= 3 && y - floorY <= 5;
 					frame.put(bx, y, z, door ? air : wall);
 				}
+		// Most of the two decks are cabins along a three-block passage; only cargo/hangar stay wide.
+		for (int floorY : new int[] {lowerFloor, deck}) {
+			int ceilingY = floorY == lowerFloor ? deck - 1 : top - 1;
+			for (int side : new int[] {-1, 1}) {
+				for (int x = -46; x <= 29; x++) {
+					int door = Math.floorMod(x + 46, 12);
+					for (int y = floorY + 1; y <= ceilingY; y++) {
+						if (door >= 4 && door <= 5 && y <= floorY + 3) continue;
+						frame.put(x, y, side * 2, y >= floorY + 2 && y <= floorY + 3 ? glass : wall);
+					}
+				}
+				for (int x = -46; x <= 29; x += 12) {
+					for (int y = floorY + 1; y <= ceilingY; y++)
+						for (int az = 3; az <= 14; az++)
+							if (hull.in(x, y, side * az) && !hull.shell(x, y, side * az)) frame.put(x, y, side * az, wall);
+					frame.put(x + 3, floorY + 1, side * 11, Blocks.WHITE_WOOL.defaultBlockState());
+					frame.put(x + 4, floorY + 1, side * 11, Blocks.WHITE_WOOL.defaultBlockState());
+					frame.put(x + 3, floorY + 1, side * 7, Blocks.SPRUCE_SLAB.defaultBlockState());
+				}
+			}
+		}
+		// A single broad lower hangar amidships, with a glazed viewing gallery and a port-side aperture.
+		frame.box(-8, lowerFloor + 1, -12, 26, deck - 1, 12, air);
+		for (int x = -8; x <= 26; x++) {
+			frame.put(x, lowerFloor, -11, Blocks.YELLOW_CONCRETE.defaultBlockState());
+			frame.put(x, lowerFloor, 11, Blocks.YELLOW_CONCRETE.defaultBlockState());
+		}
+		frame.box(2, lowerFloor + 1, -16, 18, -3, -13, air);
+		// Raynor's real bridge is in the tower, not another room on the main deck.
+		int bridgeFloor = 16;
+		frame.box(-37, bridgeFloor, -6, -11, bridgeFloor, 6, floor);
+		frame.box(-36, bridgeFloor + 1, -5, -12, 22, 5, air);
+		frame.box(-37, bridgeFloor + 2, -7, -11, bridgeFloor + 4, -7, glass);
+		frame.box(-37, bridgeFloor + 2, 7, -11, bridgeFloor + 4, 7, glass);
+		frame.box(-11, bridgeFloor + 2, -6, -11, bridgeFloor + 4, 6, glass);
+		frame.box(-19, bridgeFloor + 1, -4, -18, bridgeFloor + 1, 4, Blocks.CYAN_TERRACOTTA.defaultBlockState());
+		frame.put(-25, bridgeFloor + 1, 0, Blocks.SPRUCE_STAIRS.defaultBlockState().setValue(StairBlock.FACING, frame.facing(Direction.EAST)));
+		frame.box(-43, deck + 1, 2, -39, deck + 3, 6, air);
+		frame.box(-39, deck + 1, 4, -13, bridgeFloor + 5, 6, air);
+		frame.stairs(-38, deck + 1, 4, bridgeFloor, 3, Direction.EAST, floor, Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
 		// lights under each deck's ceiling
 		for (int x = (int) (-27 * s); x <= (int) (23 * s); x += 8) {
 			frame.put(x, deck, 0, light);
@@ -234,10 +275,10 @@ public final class SkyShips {
 			spawns.add(Spawn.guard(hx == 10 ? UnitKind.GHOST : UnitKind.MARINE, frame.at(hx - 3, lowerFloor + 1, -4), lower));
 			spawns.add(Spawn.guard(UnitKind.MARAUDER, frame.at(hx, deck + 1, 5), upper));
 		}
-		BlockPos boss = frame.at(-24, deck + 1, 0);
+		BlockPos boss = frame.at(-24, bridgeFloor + 1, 0);
 		spawns.add(Spawn.guard(UnitKind.RAYNOR, boss, boss));
-		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-18, deck + 1, 6), boss));
-		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-18, deck + 1, -6), boss));
+		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, 4), boss));
+		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, -4), boss));
 		int above = (int) (14 * s);
 		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(20, above, 30), pad));
 		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(-40, above, -30), pad));

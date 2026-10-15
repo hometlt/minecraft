@@ -22,6 +22,9 @@ public final class HiveSavedData extends SavedData {
 	/** The hive generated near the world spawn: its chosen site and whether it has been built. */
 	public net.minecraft.core.BlockPos spawnHiveSite;
 	public boolean spawnHiveDone;
+	/** First player's start position and heading; generated base sites never follow later movement. */
+	public net.minecraft.core.BlockPos baseOrigin;
+	public float baseHeading;
 	/** Other generated structures (dev.starmine.world.RaceBases): their chosen sites and which are built (or given up), by key. */
 	public final Map<String, net.minecraft.core.BlockPos> structureSites = new LinkedHashMap<>();
 	public final java.util.Set<String> structuresDone = new java.util.LinkedHashSet<>();
@@ -77,6 +80,10 @@ public final class HiveSavedData extends SavedData {
 		tag.put("hives", list);
 		if (spawnHiveSite != null) tag.putLong("spawnHiveSite", spawnHiveSite.asLong());
 		tag.putBoolean("spawnHiveDone", spawnHiveDone);
+		if (baseOrigin != null) {
+			tag.putLong("baseOrigin", baseOrigin.asLong());
+			tag.putFloat("baseHeading", baseHeading);
+		}
 		ListTag waiting = new ListTag();
 		for (HiveStructure.Pending p : pending) waiting.add(p.save());
 		tag.put("pending", waiting);
@@ -97,6 +104,10 @@ public final class HiveSavedData extends SavedData {
 		}
 		if (tag.contains("spawnHiveSite")) data.spawnHiveSite = net.minecraft.core.BlockPos.of(tag.getLong("spawnHiveSite"));
 		data.spawnHiveDone = tag.getBoolean("spawnHiveDone");
+		if (tag.contains("baseOrigin")) {
+			data.baseOrigin = net.minecraft.core.BlockPos.of(tag.getLong("baseOrigin"));
+			data.baseHeading = tag.getFloat("baseHeading");
+		}
 		for (Tag entry : tag.getList("pending", Tag.TAG_COMPOUND)) {
 			HiveStructure.Pending p = HiveStructure.Pending.load((CompoundTag) entry);
 			if (p != null) data.pending.add(p);

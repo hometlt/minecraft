@@ -27,10 +27,10 @@ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootTable;
 
 /**
- * Small dungeons scattered over the world (owner 15.10), about one in {@code 48} chunks
+ * Small dungeons scattered over the world (owner 15.10), about one attempt in {@code 192} chunks
  * (`worldgen/placed_feature/small_dungeon.json`), one of three at random:
  * - a zerg nest underground: a cave of flesh with eggs and a few zerglings and a roach, a tunnel up;
- * - a terran outpost on the surface: a concrete pad, a barracks of iron with a door and windows, crates,
+ * - a terran outpost on the surface: a concrete pad, decorative andesite walls with a door and windows, crates,
  *   a landing mark; marines, sometimes a marauder;
  * - a Xel'Naga temple underground: a hall of deepslate with purpur pillars, amethyst and light, an altar
  *   with a chest; two or three zealots, or one or two dark templars; a spiral stair up to a small shrine.
@@ -126,7 +126,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 
 	private static BlockPos outpost(WorldGenLevel level, RandomSource random, BlockPos ground) {
 		BlockState concrete = Blocks.GRAY_CONCRETE.defaultBlockState(), light = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-			yellow = Blocks.YELLOW_CONCRETE.defaultBlockState(), iron = Blocks.IRON_BLOCK.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
+			yellow = Blocks.YELLOW_CONCRETE.defaultBlockState(), iron = Blocks.POLISHED_ANDESITE.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
 			glass = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), lamp = Blocks.SEA_LANTERN.defaultBlockState();
 		int r = 11;
 		for (int dx = -r; dx <= r; dx++)
@@ -137,7 +137,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 				boolean line = Math.abs(dx) == r || Math.abs(dz) == r;
 				set(level, column.below(), line ? yellow : (Math.floorMod(dx, 6) < 3) == (Math.floorMod(dz, 6) < 3) ? concrete : light);
 			}
-		// the barracks: iron walls, a roof, a door to the east, windows, lights
+		// the barracks: decorative stone walls (not mineable iron storage), windows and lights
 		BlockPos a = ground.offset(-8, 0, -6), b = ground.offset(3, 7, 6);
 		for (BlockPos pos : BlockPos.betweenClosed(a, b)) {
 			boolean wall = pos.getX() == a.getX() || pos.getX() == b.getX() || pos.getZ() == a.getZ() || pos.getZ() == b.getZ();

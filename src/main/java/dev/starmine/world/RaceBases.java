@@ -21,11 +21,11 @@ import org.jetbrains.annotations.Nullable;
  * Generated bases of the terrans and the protoss, and the zerg leviathan (owner 14.10). Like the zerg
  * lair ({@link HiveStructure}) each is built once per world, at runtime, when a player comes within
  * {@link #TRIGGER} blocks of its site (game rule `starmineSpawnBases`):
- * - terrans, 176–256 blocks from the spawn: a paved base with a command center, depots, barracks,
+ * - terrans, 256 blocks at 180 degrees from the first player's captured heading: a paved base with a command center, depots, barracks,
  *   factory, starport, engineering bay, bunker and turret, SCVs and an army; a technological labyrinth
  *   under it ({@link Dungeons#techLabyrinth}); the battlecruiser Hyperion in the sky ({@link SkyShips#hyperion});
- * - protoss, as far, at least {@link #SEPARATION} from the others: a sandstone plaza with a nexus,
- *   pylons, gateways, forge, cybernetics core, stargate, cannon and battery, probes and an army; ancient
+ * - protoss, as far at 120 degrees, at least {@link #SEPARATION} from the others: a sandstone plaza with a nexus,
+ *   four pylons, gateways, forge, cybernetics core, stargate, cannon and battery, probes and an army; ancient
  *   temples under it ({@link Dungeons#ancientTemples}); the mothership in the sky ({@link SkyShips#mothership});
  * - zerg: a leviathan over the generated lair ({@link SkyShips#leviathan}), also in worlds whose lair
  *   was built before it existed.
@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  * ({@link dev.starmine.ai.AiCommander}). Units wait in {@link HiveSavedData#pending} until their chunk ticks.
  */
 public final class RaceBases {
-	public static final int MIN_DISTANCE = 176, MAX_DISTANCE = 256, TRIGGER = 128, SEPARATION = 128;
+	public static final int MIN_DISTANCE = 256, MAX_DISTANCE = 256, TRIGGER = 128, SEPARATION = 256;
 	public static final String LEVIATHAN = "LEVIATHAN";
 	/** How high over the base's ground a sky ship's middle hangs (the ships grew 2-2.5 times: their tails and tentacles hang 45 below it). */
 	public static final int SKY = 80;
@@ -86,16 +86,30 @@ public final class RaceBases {
 			&& Mth.square(player.getX() - site.getX()) + Mth.square(player.getZ() - site.getZ()) < TRIGGER * TRIGGER);
 	}
 
-	/** A site for `key` away from the spawn lair and the other bases; null when none is found. */
-	private static @Nullable BlockPos chooseSite(ServerLevel level, HiveSavedData data, String key) {
-		RandomSource random = RandomSource.create(level.getSeed() ^ key.hashCode() * 0x9E3779B97F4A7C15L);
-		List<BlockPos> others = new ArrayList<>(data.structureSites.values());
-		if (data.spawnHiveSite != null) others.add(data.spawnHiveSite);
-		for (int attempt = 0; attempt < 6; attempt++) {
-			BlockPos site = HiveStructure.chooseSite(level, level.getSharedSpawnPos(), random, MIN_DISTANCE, MAX_DISTANCE);
-			if (site != null && others.stream().allMatch(other -> other.distSqr(site) >= SEPARATION * SEPARATION)) return site;
+	/** A fixed 16-chunk radial offset relative to the first player's Minecraft heading. */
+	public static BlockPos baseOffset(BlockPos origin, float heading, UnitKind.Race race) {
+		double degrees = switch (race) { case ZERG -> 60; case PROTOSS -> 120; case TERRAN -> 180; };
+		double angle = Math.toRadians(heading + degrees);
+		return origin.offset((int) Math.round(-Math.sin(angle) * MIN_DISTANCE), 0,
+			(int) Math.round(Math.cos(angle) * MIN_DISTANCE));
+	}
+
+	/** Captures the first player's origin once, then resolves the chosen radial column to its surface. */
+	public static BlockPos spawnSite(ServerLevel level, HiveSavedData data, UnitKind.Race race) {
+		if (data.baseOrigin == null) {
+			var player = level.players().stream().filter(p -> !p.isSpectator()).findFirst().orElse(null);
+			data.baseOrigin = player == null ? level.getSharedSpawnPos() : player.blockPosition();
+			data.baseHeading = player == null ? 0 : player.getYRot();
+			data.setDirty();
 		}
-		return null;
+		BlockPos column = baseOffset(data.baseOrigin, data.baseHeading, race);
+		return new BlockPos(column.getX(), Math.max(HiveStructure.ground(level, column.getX(), column.getZ()),
+			level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ())), column.getZ());
+	}
+
+	/** New sites use the shared fixed layout; saved sites and already built structures are not moved. */
+	private static @Nullable BlockPos chooseSite(ServerLevel level, HiveSavedData data, String key) {
+		return spawnSite(level, data, UnitKind.Race.valueOf(key));
 	}
 
 	// ---- the bases ----
@@ -118,7 +132,7 @@ public final class RaceBases {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		Painter painter = new Painter(level, random);
 		painter.load(site, 160);
-		BlockPos centre = new BlockPos(site.getX(), HiveStructure.ground(level, site.getX(), site.getZ()), site.getZ());
+		BlockPos centre = new BlockPos(site.getX(), Math.max(site.getY(), HiveStructure.ground(level, site.getX(), site.getZ())), site.getZ());
 		UnitKind main = race.rules().main();
 		Hive base = new Hive(UUID.randomUUID(), level.dimension().location().toString(), centre);
 		base.race = race;
@@ -150,9 +164,9 @@ public final class RaceBases {
 			double angle = (i + 1) * step;
 			BlockPos at = groundAt(level, centre, angle, radius + ring[i].width / 2);
 			spawns.add(Spawn.member(ring[i], at));
-			if (!terran) spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, angle + step / 2, radius - 1.5)));
 		}
-		if (!terran) spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, step / 2, radius - 1.5)));
+		if (!terran) for (int i = 0; i < 4; i++)
+			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 4 + i * Math.PI / 2, radius - 1.5)));
 		for (UnitKind kind : terran ? TERRAN_ARMY : PROTOSS_ARMY) {
 			double angle = random.nextDouble() * Math.PI * 2;
 			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 2.5); // out of the main building

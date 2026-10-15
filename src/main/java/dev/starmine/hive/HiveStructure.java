@@ -27,7 +27,7 @@ import net.minecraft.world.phys.Vec3;
  * Generated hives (owner, 14.10): a lair near the world spawn — not right beside the player — with
  * its buildings, units and a tunnel network.
  *
- * - Site: once per world, 96–144 blocks from the world spawn on dry, fairly flat ground (game rule
+ * - Site: once per world, 256 blocks at 60 degrees from the first player's captured heading (game rule
  *   `starmineSpawnHive`). It is built when a player comes within {@link #TRIGGER} blocks.
  * - Surface: the hatchery on its foundation with creep already grown, the spawning pool, evolution
  *   chamber, roach warren, spire (always on the surface), spine and spore crawlers, creep tumors,
@@ -48,7 +48,7 @@ import net.minecraft.world.phys.Vec3;
  * and the world keeps at most {@link HiveSavedData#MAX_HIVES} hives.
  */
 public final class HiveStructure {
-	public static final int MIN_DISTANCE = 96, MAX_DISTANCE = 144, TRIGGER = 112;
+	public static final int MIN_DISTANCE = 256, MAX_DISTANCE = 256, TRIGGER = 112;
 	/** A tunnel's cross-section and a hall's headroom for the units twice the model size (an ultralisk hatched in a hall is 7.4 tall). */
 	public static final int TUNNEL_WIDTH = 5, TUNNEL_HEIGHT = 6, HALL_HEIGHT = 10;
 	/** Tunnels and halls this close to the hatchery are the hive's own: creep, tumors, larvae. */
@@ -104,7 +104,7 @@ public final class HiveStructure {
 		if (!data.pending.isEmpty()) spawnPending(level, data);
 		if (data.spawnHiveDone || !level.getGameRules().getBoolean(StarMine.SPAWN_HIVE) || level.players().isEmpty()) return;
 		if (data.spawnHiveSite == null) {
-			data.spawnHiveSite = chooseSite(level, level.getSharedSpawnPos(), RandomSource.create(level.getSeed() ^ 0x5A4E5L));
+			data.spawnHiveSite = dev.starmine.world.RaceBases.spawnSite(level, data, UnitKind.Race.ZERG);
 			if (data.spawnHiveSite == null) data.spawnHiveDone = true;
 			data.setDirty();
 			return;
@@ -118,7 +118,7 @@ public final class HiveStructure {
 		if (!data.full()) build(level, site, RandomSource.create(level.getSeed() ^ site.asLong()));
 	}
 
-	/** A dry, fairly flat place 96–144 blocks from `spawn`; null when none is found. */
+	/** A dry, fairly flat place at the configured radius from `spawn`; null when none is found. */
 	public static BlockPos chooseSite(ServerLevel level, BlockPos spawn, RandomSource random) {
 		return chooseSite(level, spawn, random, MIN_DISTANCE, MAX_DISTANCE);
 	}
@@ -222,7 +222,7 @@ public final class HiveStructure {
 		}
 
 		Report build(BlockPos site) {
-			centre = new BlockPos(site.getX(), ground(level, site.getX(), site.getZ()), site.getZ());
+			centre = new BlockPos(site.getX(), Math.max(site.getY(), ground(level, site.getX(), site.getZ())), site.getZ());
 			for (int cx = (centre.getX() - REACH) >> 4; cx <= (centre.getX() + REACH) >> 4; cx++)
 				for (int cz = (centre.getZ() - REACH) >> 4; cz <= (centre.getZ() + REACH) >> 4; cz++) level.getChunk(cx, cz);
 			hive = new Hive(UUID.randomUUID(), level.dimension().location().toString(), centre);
