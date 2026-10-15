@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
  *   `hive/resources.json`) and any resource of the panel by its label (`iron`, `diamond`, `netherite`,
  *   ...), taken from the base's stock of that resource ({@link dev.starmine.hive.Hive#collected}).
  *   «Тор — 10 алмазов + 100 железа»: `"thor": {"diamond": 10, "iron": 100}`.
+ * - `platform.json`: what calling a main building from a supply platform takes ({@link PlatformBlock}): any one
+ *   of its prices (500 minerals, or 500 iron, or 100 diamonds).
  * - What a file does not name costs what SC2 asks (the race tables, {@link dev.starmine.race.RaceRules#economy});
  *   the shipped files hold exactly those numbers.
  */
@@ -46,6 +48,8 @@ public final class Costs implements SimpleSynchronousResourceReloadListener {
 	}
 
 	private static Map<String, Cost> units = Map.of(), research = Map.of(), abilities = Map.of();
+	/** Every file by its name (units, research, abilities, platform, ...). */
+	private static Map<String, Map<String, Cost>> categories = Map.of();
 
 	/** A kind's economy with the configured minerals and vespene (the rest — supply, time, cargo — stays SC2's). */
 	public static UnitKind.Economy economy(UnitKind kind, UnitKind.Economy sc2) {
@@ -76,29 +80,26 @@ public final class Costs implements SimpleSynchronousResourceReloadListener {
 		return cost != null ? cost : new Cost(ability.minerals, ability.vespene, Map.of());
 	}
 
-	/** Sets a price by hand (tests): `category` units, research or abilities; null restores the file's. */
+	/** Sets a price by hand (tests); null takes it out. */
 	public static void set(String category, String id, Cost cost) {
-		Map<String, Cost> map = new HashMap<>(switch (category) {
-			case "units" -> units;
-			case "research" -> research;
-			default -> abilities;
-		});
+		Map<String, Cost> map = new HashMap<>(loaded(category));
 		if (cost == null) map.remove(id);
 		else map.put(id, cost);
-		switch (category) {
-			case "units" -> units = Map.copyOf(map);
-			case "research" -> research = Map.copyOf(map);
-			default -> abilities = Map.copyOf(map);
-		}
+		Map<String, Map<String, Cost>> all = new HashMap<>(categories);
+		all.put(category, Map.copyOf(map));
+		use(all);
 	}
 
-	/** How many prices of a category were read (tests). */
+	/** The prices of a file (`units`, `research`, `abilities`, `platform`, ...), empty when there is none. */
 	public static Map<String, Cost> loaded(String category) {
-		return switch (category) {
-			case "units" -> units;
-			case "research" -> research;
-			default -> abilities;
-		};
+		return categories.getOrDefault(category, Map.of());
+	}
+
+	private static void use(Map<String, Map<String, Cost>> all) {
+		categories = Map.copyOf(all);
+		units = loaded("units");
+		research = loaded("research");
+		abilities = loaded("abilities");
 	}
 
 	@Override
@@ -121,9 +122,9 @@ public final class Costs implements SimpleSynchronousResourceReloadListener {
 				LOG.error("StarMine: {} could not be read", entry.getKey(), error);
 			}
 		}
-		units = Map.copyOf(read.getOrDefault("units", Map.of()));
-		research = Map.copyOf(read.getOrDefault("research", Map.of()));
-		abilities = Map.copyOf(read.getOrDefault("abilities", Map.of()));
+		Map<String, Map<String, Cost>> all = new HashMap<>();
+		read.forEach((category, costs) -> all.put(category, Map.copyOf(costs)));
+		use(all);
 		LOG.info("StarMine: costs of {} units, {} research, {} abilities", units.size(), research.size(), abilities.size());
 	}
 

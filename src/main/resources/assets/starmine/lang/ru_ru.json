@@ -817,5 +817,12 @@
 	"item.starmine.suit.zerg.gift": " регенерация (на слизи вчетверо быстрее)",
 	"item.starmine.suit.terran.gift": " самая прочная броня",
 	"item.starmine.suit.protoss.gift": " щиты на 4 сердца, восстанавливаются через 7 с после удара",
-	"item.starmine.suit.modules": " работают модули способностей своей расы"
+	"item.starmine.suit.modules": " работают модули способностей своей расы",
+	"block.starmine.zerg_platform": "Склад-платформа зергов",
+	"block.starmine.terran_platform": "Склад-платформа терранов",
+	"block.starmine.protoss_platform": "Склад-платформа протоссов",
+	"message.starmine.platform_holds": "На платформе: %s (минералы / газ, ресурсы)",
+	"message.starmine.platform_short": "На платформе мало ресурсов, чтобы вызвать главное здание: %s (нужно 500 минералов, 500 железа или 100 алмазов — costs/platform.json)",
+	"message.starmine.platform_called": "Транспорт уже в пути",
+	"message.starmine.platform_calling": "Транспорт летит с рабочим (на платформе осталось: %s)"
 }

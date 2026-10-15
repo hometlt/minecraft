@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"SSS",
+		"SMS",
+		"SSS"
+	],
+	"key": {
+		"S": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"M": {
+			"item": "minecraft:map"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_platform",
+		"count": 1
+	}
+}

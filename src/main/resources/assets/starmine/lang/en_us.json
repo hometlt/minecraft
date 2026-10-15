@@ -817,5 +817,12 @@
 	"item.starmine.suit.zerg.gift": " regeneration (4x faster on creep)",
 	"item.starmine.suit.terran.gift": " the heaviest armor",
 	"item.starmine.suit.protoss.gift": " shields of 4 hearts that come back 7 s after the last hit",
-	"item.starmine.suit.modules": " ability modules of its race work"
+	"item.starmine.suit.modules": " ability modules of its race work",
+	"block.starmine.zerg_platform": "Zerg Supply Platform",
+	"block.starmine.terran_platform": "Terran Supply Platform",
+	"block.starmine.protoss_platform": "Protoss Supply Platform",
+	"message.starmine.platform_holds": "The platform holds %s (minerals / vespene, resources)",
+	"message.starmine.platform_short": "Not enough on the platform to call a main building: %s (see costs/platform.json: 500 minerals, 500 iron or 100 diamonds)",
+	"message.starmine.platform_called": "A transport is already on its way",
+	"message.starmine.platform_calling": "A transport is on its way with a worker (left on the platform: %s)"
 }
