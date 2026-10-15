@@ -1,0 +1,10 @@
+{
+	"required": false,
+	"package": "dev.starmine.mixin.sodium",
+	"plugin": "dev.starmine.mixin.sodium.SodiumMixins",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["SodiumHideUnseenBlocksMixin"],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

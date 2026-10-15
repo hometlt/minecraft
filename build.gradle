@@ -9,6 +9,11 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	// Sodium (optional, compile-only): the command view's fog of blocks hooks its chunk mesher too
+	exclusiveContent {
+		forRepository { maven { url = "https://api.modrinth.com/maven" } }
+		filter { includeGroup "maven.modrinth" }
+	}
 }
 
 loom {
@@ -41,6 +46,10 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Sodium is not needed to run StarMine: with it installed (and Iris, which draws terrain through it, with
+	// shader packs) the fog of blocks hooks Sodium's mesher (dev.starmine.mixin.sodium); compiled against it only
+	modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
 }
 
 processResources {

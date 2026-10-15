@@ -23,7 +23,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * ({@link dev.starmine.entity.UnitKind#sight}) and stop at the first block that hides what is behind
  * it (glass, leaves, water let them through): ground and walls hide what lies beyond. Every block a ray
  * met is explored; blocks never explored are not drawn at all
- * ({@link dev.starmine.mixin.client.HideUnseenBlocksMixin}: the chunk mesher reads them as air).
+ * ({@link dev.starmine.mixin.client.HideUnseenBlocksMixin}: the chunk mesher reads them as air; with Sodium,
+ * and Iris with a shader pack, which draws terrain through Sodium, {@link dev.starmine.mixin.sodium.SodiumHideUnseenBlocksMixin}).
  * Explored blocks stay drawn, dimmed by the ground fog of {@link CommandView} where nobody sees them
  * now (the agent's choice: the map is remembered, its creatures are not). What was explored is kept per
  * dimension for the session.
@@ -55,10 +56,15 @@ public final class BlockFog {
 
 	/** Whether the chunk mesher leaves this block out (called on chunk building threads). */
 	public static boolean hidden(BlockPos pos) {
+		return hidden(pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	/** {@link #hidden(BlockPos)} by coordinates (Sodium's mesher reads blocks so). */
+	public static boolean hidden(int x, int y, int z) {
 		if (!hiding) return false;
-		long[] bits = explored.get(SectionPos.asLong(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4));
+		long[] bits = explored.get(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
 		if (bits == null) return true;
-		int i = (pos.getY() & 15) << 8 | (pos.getZ() & 15) << 4 | pos.getX() & 15;
+		int i = (y & 15) << 8 | (z & 15) << 4 | x & 15;
 		return (bits[i >> 6] & 1L << (i & 63)) == 0;
 	}
 
