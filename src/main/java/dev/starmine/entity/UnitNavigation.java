@@ -55,8 +55,19 @@ final class UnitNavigation extends GroundPathNavigation {
 		}
 		net.minecraft.world.phys.Vec3 here = this.getTempMobPos(), node = this.path.getEntityPosAtNode(this.mob, this.path.getNextNodeIndex());
 		this.maxDistanceToWaypoint = WAYPOINT;
-		if (Math.abs(this.mob.getX() - node.x) < WAYPOINT && Math.abs(this.mob.getZ() - node.z) < WAYPOINT && Math.abs(this.mob.getY() - node.y) < 1.0)
+		double dx = node.x - this.mob.getX(), dz = node.z - this.mob.getZ();
+		if (Math.abs(dx) < WAYPOINT && Math.abs(dz) < WAYPOINT && Math.abs(this.mob.getY() - node.y) < 1.0) {
+			// on the node: the body is put on the way's axis across its next step (a tank 5.8 wide in a passage 6
+			// wide has a tenth of a block to spare: a little off it, it caught the edge and stood)
+			int next = this.path.getNextNodeIndex() + 1;
+			if (next < this.path.getNodeCount()) {
+				net.minecraft.world.phys.Vec3 ahead = this.path.getEntityPosAtNode(this.mob, next);
+				boolean alongX = Math.abs(ahead.x - node.x) > 0.5, alongZ = Math.abs(ahead.z - node.z) > 0.5;
+				if (alongX != alongZ) this.mob.move(net.minecraft.world.entity.MoverType.SELF,
+					new net.minecraft.world.phys.Vec3(alongZ ? dx : 0, 0, alongX ? dz : 0));
+			}
 			this.path.advance();
+		}
 		this.doStuckDetection(here);
 	}
 

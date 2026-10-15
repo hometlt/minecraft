@@ -32,7 +32,8 @@ public class HeroGameTests implements FabricGameTest {
 		UUID player = UUID.randomUUID();
 		StarUnit kerrigan = unit(helper, UnitKind.KERRIGAN, 8, 24, null);
 		StarUnit thor = unit(helper, UnitKind.THOR, 24, 24, player);
-		StarUnit marauder = unit(helper, UnitKind.MARAUDER, 12, 34, player), other = unit(helper, UnitKind.MARAUDER, 14, 38, player);
+		StarUnit shifter = unit(helper, UnitKind.KERRIGAN, 8, 40, null);
+		StarUnit marauder = unit(helper, UnitKind.MARAUDER, 14, 40, player), other = unit(helper, UnitKind.MARAUDER, 17, 41, player);
 		helper.runAfterDelay(2, () -> {
 			float before = thor.getHealth();
 			helper.assertTrue(Abilities.cast(kerrigan, level, Ability.LEAPING_STRIKE, thor, null), "no leaping strike: "
@@ -41,8 +42,9 @@ public class HeroGameTests implements FabricGameTest {
 				"the thor lost " + (before - thor.getHealth()) + ", not " + HeroAbilities.LEAP_DAMAGE * SCALE);
 			helper.assertTrue(kerrigan.distanceTo(thor) < (kerrigan.getBbWidth() + thor.getBbWidth()) / 2 + 3, "Kerrigan did not land by the thor");
 			float a = marauder.getHealth(), b = other.getHealth();
-			helper.assertTrue(Abilities.cast(kerrigan, level, Ability.PSIONIC_SHIFT, null, marauder.position().add(2, 0, 6)), "no psionic shift: "
-				+ Abilities.refusal(kerrigan, Ability.PSIONIC_SHIFT));
+			// a second Kerrigan dashes through two marauders to a point 13 blocks off (within 6 SC2 units)
+			helper.assertTrue(Abilities.cast(shifter, level, Ability.PSIONIC_SHIFT, null, TestArena.point(helper, 21, 40)), "no psionic shift: "
+				+ Abilities.refusal(shifter, Ability.PSIONIC_SHIFT));
 			helper.assertTrue(marauder.getHealth() < a || other.getHealth() < b, "the shift hurt nobody on its way");
 			helper.succeed();
 		});
@@ -52,8 +54,10 @@ public class HeroGameTests implements FabricGameTest {
 	public void raynorCallsTheHyperion(GameTestHelper helper) {
 		clear(helper);
 		var level = helper.getLevel();
-		StarUnit raynor = unit(helper, UnitKind.RAYNOR, 8, 24, null);
-		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 30, 24, UUID.randomUUID());
+		// beyond Raynor's gun (6 SC2 units, 14.8 blocks), within the Hyperion's call (15 units): only the Yamato hits it
+		StarUnit raynor = unit(helper, UnitKind.RAYNOR, 4, 24, null);
+		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 34, 24, UUID.randomUUID());
+		raynor.setNoAi(true);
 		helper.runAfterDelay(5, () -> {
 			float before = cc.getHealth();
 			helper.assertTrue(Abilities.cast(raynor, level, Ability.HYPERION_STRIKE, cc, null), "no Hyperion: " + Abilities.refusal(raynor, Ability.HYPERION_STRIKE));

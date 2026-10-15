@@ -125,20 +125,36 @@ public final class Engineering {
 			if (path == null || !path.canReach()) stuck.add(unit);
 		}
 		if (stuck.isEmpty()) return Set.of();
-		StarUnit lead = stuck.stream().max(Comparator.comparingDouble(unit -> unit.kind.width)).orElseThrow();
-		double width = stuck.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
-		double height = stuck.stream().mapToDouble(unit -> unit.kind.height).max().orElse(2);
-		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
-		double arrive = 2 + body.width() / 2.0;
-		BlockPos start = DronePlanner.feetOf(lead.position(), body);
-		List<DronePlanner.Step> steps = DronePlanner.plan(level, start, goal, arrive, null, true, 4096, DronePlanner.budgetFor(body, BUDGET), body);
-		if (steps == null || steps.isEmpty()) {
-			BaseLogic.tell(level, base, "message.starmine.no_way");
-			return Set.of();
+		// the widest first; a size whose way needs no work (it walks there after all, a thor over a narrow river on
+		// its banks) gives the next narrower one its turn
+		stuck.sort(Comparator.comparingDouble((StarUnit unit) -> unit.kind.width).reversed());
+		StarUnit lead = null;
+		DronePlanner.Body body = null;
+		BlockPos start = null;
+		List<DronePlanner.Step> steps = null;
+		double arrive = 0;
+		for (int i = 0; i < stuck.size(); i++) {
+			StarUnit candidate = stuck.get(i);
+			double width = stuck.stream().skip(i).mapToDouble(unit -> unit.kind.width).max().orElse(1);
+			double height = stuck.stream().skip(i).mapToDouble(unit -> unit.kind.height).max().orElse(2);
+			DronePlanner.Body tried = DronePlanner.Body.of(width, height, REACH);
+			BlockPos from = DronePlanner.feetOf(candidate.position(), tried);
+			double near = 2 + tried.width() / 2.0;
+			List<DronePlanner.Step> plan = DronePlanner.plan(level, from, goal, near, null, true, 4096, DronePlanner.budgetFor(tried, BUDGET), tried);
+			if (plan == null || plan.isEmpty()) continue;
+			if (plan.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) {
+				LOG.info("A way for an army needs no work for a body {}x{} ({} steps)", tried.width(), tried.height(), plan.size());
+				continue;
+			}
+			lead = candidate;
+			body = tried;
+			start = from;
+			steps = plan;
+			arrive = near;
+			break;
 		}
-		// nothing to cut on this stretch (the goal was only too far for the game's pathfinder): walk as usual
-		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) {
-			LOG.info("A way for an army needs no work: body {}x{}, {} steps", body.width(), body.height(), steps.size());
+		if (steps == null) {
+			BaseLogic.tell(level, base, "message.starmine.no_way");
 			return Set.of();
 		}
 		// over water with transports at hand: they carry the army (CLOUD_TASK_2 stage 4), else workers bridge it
