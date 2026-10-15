@@ -114,21 +114,20 @@ public final class Engineering {
 		for (StarUnit unit : units) release(unit.getUUID());
 		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
 		if (army.isEmpty()) return Set.of();
-		StarUnit lead = army.stream().max(Comparator.comparingDouble(unit -> unit.kind.width)).orElseThrow();
-		// every size of the army must walk there (a thor wider than a river "walked" over it while a marine could not)
+		// every size of the army must walk there: the way is cut for the widest of those that cannot (a thor
+		// strides over a river 5 wide on its banks while a marine cannot cross it, and a way cut for the thor's
+		// body needed no bridge)
 		Set<UnitKind> sizes = new java.util.HashSet<>();
-		boolean all = true;
+		List<StarUnit> stuck = new ArrayList<>();
 		for (StarUnit unit : army) {
 			if (!sizes.add(unit.kind)) continue;
 			Path path = unit.getNavigation().createPath(BlockPos.containing(goal), 1);
-			if (path == null || !path.canReach()) {
-				all = false;
-				break;
-			}
+			if (path == null || !path.canReach()) stuck.add(unit);
 		}
-		if (all) return Set.of();
-		double width = army.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
-		double height = army.stream().mapToDouble(unit -> unit.kind.height).max().orElse(2);
+		if (stuck.isEmpty()) return Set.of();
+		StarUnit lead = stuck.stream().max(Comparator.comparingDouble(unit -> unit.kind.width)).orElseThrow();
+		double width = stuck.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
+		double height = stuck.stream().mapToDouble(unit -> unit.kind.height).max().orElse(2);
 		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
 		double arrive = 2 + body.width() / 2.0;
 		BlockPos start = DronePlanner.feetOf(lead.position(), body);
@@ -138,7 +137,10 @@ public final class Engineering {
 			return Set.of();
 		}
 		// nothing to cut on this stretch (the goal was only too far for the game's pathfinder): walk as usual
-		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) return Set.of();
+		if (steps.stream().allMatch(step -> step.dig().isEmpty() && step.fill().isEmpty())) {
+			LOG.info("A way for an army needs no work: body {}x{}, {} steps", body.width(), body.height(), steps.size());
+			return Set.of();
+		}
 		// over water with transports at hand: they carry the army (CLOUD_TASK_2 stage 4), else workers bridge it
 		boolean water = steps.stream().anyMatch(step -> step.fill().stream().anyMatch(cell -> !level.getFluidState(cell).isEmpty()));
 		if (water) {

@@ -266,6 +266,17 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Where a unit would stand at the first nodes of a way (arena coordinates), for a stuck unit's message. */
+	private static String firstNodes(GameTestHelper helper, StarUnit unit, net.minecraft.world.level.pathfinder.Path way) {
+		StringBuilder text = new StringBuilder();
+		Vec3 corner = Vec3.atLowerCornerOf(helper.absolutePos(BlockPos.ZERO));
+		for (int i = 0; i < Math.min(4, way.getNodeCount()); i++) {
+			Vec3 at = way.getEntityPosAtNode(unit, i).subtract(corner);
+			text.append(String.format(java.util.Locale.ROOT, "(%.1f %.1f %.1f)", at.x, at.y, at.z));
+		}
+		return text.toString();
+	}
+
 	/** An army order through the base's commands (workers cut or bridge the way when it cannot walk there), then a race to the goals. */
 	private static void armyRace(GameTestHelper helper, TestArena.Timeline timeline, Hive base, String scenario, Map<StarUnit, Vec3> goals, int limit) {
 		ServerLevel level = helper.getLevel();
@@ -305,7 +316,8 @@ public class PathfindingGameTests implements FabricGameTest {
 					if (!arrived.containsKey(unit)) {
 						net.minecraft.world.level.pathfinder.Path way = unit.getNavigation().createPath(net.minecraft.core.BlockPos.containing(goals.get(unit)), 1);
 						stuck.add(unit.kind.id + " at " + TestArena.where(helper, unit) + " job " + Engineering.describe(unit.getUUID()) + " order " + unit.order()
-							+ " way now " + (way == null ? "none" : way.canReach() + " in " + way.getNodeCount() + " nodes to " + way.getTarget()));
+							+ " way now " + (way == null ? "none" : way.canReach() + " in " + way.getNodeCount() + " nodes to " + way.getTarget()
+							+ " first at " + firstNodes(helper, unit, way)));
 					}
 				LOG.info("[pathfinding] {}: {} of {} arrived in {} ticks; ticks {}; stuck {}; planner {}", scenario, arrived.size(), goals.size(), limit,
 					times(arrived), stuck, DronePlanner.STATS);
