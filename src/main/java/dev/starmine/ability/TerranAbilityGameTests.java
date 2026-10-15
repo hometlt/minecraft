@@ -325,4 +325,59 @@ public class TerranAbilityGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/**
+	 * A medivac heals for energy (SC2: 1 for every 3 hit points); with none it does not heal — and a
+	 * marine does not heal by itself (only zerg regenerate: it did, 0.27 a second).
+	 */
+	@GameTest(template = ARENA, batch = "terranMedivacEnergy", timeoutTicks = 200)
+	public void medivacHealsForEnergy(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		StarUnit medivac = unit(helper, UnitKind.MEDIVAC, 10, 24, player), marine = unit(helper, UnitKind.MARINE, 11, 24, player);
+		medivac.setNoAi(true);
+		marine.setNoAi(true);
+		StringBuilder trace = new StringBuilder();
+		float[] last = {-1};
+		helper.onEachTick(() -> {
+			if (marine.getHealth() != last[0]) trace.append(helper.getTick()).append(':').append(marine.getHealth()).append('/').append(medivac.energy()).append(' ');
+			last[0] = marine.getHealth();
+		});
+		helper.runAfterDelay(2, () -> {
+			medivac.setEnergy(0);
+			marine.setHealth(marine.getMaxHealth() / 3);
+		});
+		helper.runAfterDelay(42, () -> {
+			helper.assertTrue(marine.getHealth() <= marine.getMaxHealth() / 3 + 1e-3, "healed without energy: " + marine.getHealth() + "; health/energy " + trace);
+			medivac.setEnergy(50);
+		});
+		helper.runAfterDelay(82, () -> {
+			float healed = marine.getHealth() - marine.getMaxHealth() / 3;
+			helper.assertTrue(healed > 0, "no healing with energy");
+			double spent = 50 - medivac.energy() + 40 * 0.7875 / 20; // what it got back over 2 s
+			double expected = healed / UnitKind.SCALE / 3;
+			helper.assertTrue(Math.abs(spent - expected) < 1.0, "healed " + healed / UnitKind.SCALE + " (SC2) for " + spent + " energy, expected " + expected);
+			helper.succeed();
+		});
+	}
+
+	/** A thor's hammers strike twice, 30 each (SC2): an ultralisk's armor (2) counts twice. */
+	@GameTest(template = ARENA, batch = "terranThorHammers", timeoutTicks = 60)
+	public void thorStrikesTwice(GameTestHelper helper) {
+		clear(helper);
+		StarUnit thor = unit(helper, UnitKind.THOR, 10, 24, UUID.randomUUID()), ultralisk = unit(helper, UnitKind.ULTRALISK, 20, 24, null);
+		thor.setNoAi(true);
+		ultralisk.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			float before = ultralisk.getHealth();
+			thor.performRangedAttack(ultralisk, 1);
+			float lost = before - ultralisk.getHealth();
+			double hit = thor.weapon().damage(), expected = hit - 2 * 2 * UnitKind.SCALE;
+			helper.assertTrue(hit >= 59 * UnitKind.SCALE, "a thor's attack is " + hit / UnitKind.SCALE + ", not 60 (30 x2)");
+			helper.assertTrue(Math.abs(lost - expected) < 1e-3, "a thor's attack took " + lost / UnitKind.SCALE + " of an ultralisk, expected "
+				+ expected / UnitKind.SCALE + " (its armor 2 twice)");
+			helper.succeed();
+		});
+	}
+
 }

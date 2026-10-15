@@ -63,7 +63,7 @@ public enum UnitKind {
 	GHOST(         Race.TERRAN, 100,  3.94,  false, Attack.RANGED, 10,   1.07,  6,    true,  0.8f, 1.6f,  0x2a4a9a, 0x30b0e0),
 	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  2.0f, 1.5f,  0x3a5a8a, 0xf08020),
 	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.9f, 1.5f,  0x3a5a8a, 0x707050),
-	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 30,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
+	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
 	VIKING(        Race.TERRAN, 135,  3.85,  true,  Attack.RANGED, 20,   1.43,  9,    true,  2.5f, 0.9f,  0x3a5a8a, 0xa0a0b0),
 	MEDIVAC(       Race.TERRAN, 150,  3.5,   true,  Attack.NONE,   0,    0,     0,    false, 2.8f, 1.2f,  0x3a5a8a, 0xf0f0f0),
 	BANSHEE(       Race.TERRAN, 140,  3.85,  true,  Attack.RANGED, 24,   0.89,  6,    true,  2.5f, 0.8f,  0x3a5a8a, 0x404060),
@@ -375,10 +375,10 @@ public enum UnitKind {
 		};
 	}
 
-	/** Strikes in one attack of its weapon (SC2: a zealot's two blades, 8 each, are 16 here): armor counts once per strike. */
+	/** Strikes in one attack of its weapon (SC2: a zealot's two blades, 8 each, are 16 here; a thor's hammers, 30 each, 60): armor counts once per strike. */
 	public int strikes() {
 		return switch (this) {
-			case ZEALOT, REAPER, COLOSSUS, BANSHEE, VIKING, PHOENIX -> 2;
+			case ZEALOT, REAPER, COLOSSUS, BANSHEE, VIKING, PHOENIX, THOR -> 2; // a thor's hammers: 30 x2 (SC2)
 			default -> 1;
 		};
 	}

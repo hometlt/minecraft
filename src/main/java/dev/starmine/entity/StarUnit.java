@@ -311,7 +311,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (hiveId == null && this.tickCount == 5 && !kind.structure()) adoptByNearestHive(server);
 		if (kind == UnitKind.DRONE) defendOnly();
 		if (kind.structure() && mode() != dev.starmine.ability.Modes.LOWERED) pushOffTop();
-		if (this.tickCount % 10 == 0) creepEffects(server);
+		if (kind.race == UnitKind.Race.ZERG && this.tickCount % 10 == 0) creepEffects(server); // regeneration, creep speed: zerg only (SC2)
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
 			overseerNear = !this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(20), mob -> mob.kind == UnitKind.OVERSEER).isEmpty();
@@ -1671,13 +1671,17 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.entityData.set(SHIELD, (float) Math.min(kind.shields, shield + 2 * UnitKind.SCALE / 2));
 	}
 
-	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second). */
+	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second, 1 energy per 3 healed). */
 	private void heal(ServerLevel server) {
 		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(6),
 				mob -> mob.isAlive() && mob.biological() && dev.starmine.faction.Faction.allied(this, mob) && mob.getHealth() < mob.getMaxHealth())
 			.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth()))
 			.ifPresent(mob -> {
-				mob.heal((float) (12.6 * UnitKind.SCALE / 2));
+				// SC2: 12.6 a second, 1 energy for every 3 hit points healed; no energy, no healing
+				double healed = Math.min(12.6 / 2, (mob.getMaxHealth() - mob.getHealth()) / UnitKind.SCALE);
+				if (energy() < healed / 3) return;
+				setEnergy((float) (energy() - healed / 3));
+				mob.heal((float) (healed * UnitKind.SCALE));
 				server.sendParticles(ParticleTypes.HAPPY_VILLAGER, mob.getX(), mob.getY() + mob.getBbHeight(), mob.getZ(), 2, 0.3, 0.2, 0.3, 0);
 			});
 	}
