@@ -137,7 +137,9 @@ public final class Engineering {
 			StarUnit candidate = stuck.get(i);
 			double width = stuck.stream().skip(i).mapToDouble(unit -> unit.kind.width).max().orElse(1);
 			double height = stuck.stream().skip(i).mapToDouble(unit -> unit.kind.height).max().orElse(2);
-			DronePlanner.Body tried = DronePlanner.Body.of(width, height, REACH);
+			// a body wider than 2 gets a block more than the game's pathfinder needs (a tank 5.8 wide had a tenth of
+			// a block to spare in a passage 6 wide, caught its edge now and then and stood)
+			DronePlanner.Body tried = DronePlanner.Body.of(width > 2 ? width + 1 : width, height, REACH);
 			BlockPos from = DronePlanner.feetOf(candidate.position(), tried);
 			double near = 2 + tried.width() / 2.0;
 			List<DronePlanner.Step> plan = DronePlanner.plan(level, from, goal, near, null, true, 4096, DronePlanner.budgetFor(tried, BUDGET), tried);
