@@ -393,6 +393,12 @@ public final class CommandView {
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
 		if (placing != null && ghostSite != null) drawGhost(pose, buffers);
+		// what detectors sense behind walls: a frame of its body seen through the blocks (as well as the glowing
+		// outline, which shader packs may not draw)
+		VertexConsumer through = buffers.getBuffer(SeeThrough.LINES);
+		for (Entity entity : mc.level.entitiesForRendering())
+			if (entity.isAlive() && silhouette(entity))
+				net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, through, entity.getBoundingBox(), 1.0f, 0.35f, 0.3f, 0.9f);
 		pose.popPose();
 	}
 
