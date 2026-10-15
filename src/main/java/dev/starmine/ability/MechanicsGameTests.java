@@ -199,6 +199,40 @@ public class MechanicsGameTests implements FabricGameTest {
 		helper.assertTrue(Math.abs(lost - expected) < 1e-3, what + " took " + lost / UnitKind.SCALE + " (SC2 " + expected / UnitKind.SCALE + ")");
 	}
 
+	/**
+	 * A building at a quarter of its health or less shows it (owner 15.10): a hatchery bleeds, a barracks
+	 * burns with red fire, a gateway with blue fire; a healthy building, one under construction and a
+	 * wounded unit show nothing.
+	 */
+	@GameTest(template = ARENA, batch = "mechDamaged", timeoutTicks = 40)
+	public void badlyDamagedBuildingsBleedOrBurn(GameTestHelper helper) {
+		clear(helper);
+		StarUnit hatchery = unit(helper, UnitKind.HATCHERY, 10, 10, UUID.randomUUID()), barracks = unit(helper, UnitKind.BARRACKS, 24, 10, null);
+		StarUnit gateway = unit(helper, UnitKind.GATEWAY, 38, 10, null), depot = unit(helper, UnitKind.SUPPLY_DEPOT, 24, 30, null);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 30, null);
+		marine.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			for (StarUnit unit : List.of(hatchery, barracks, gateway)) {
+				helper.assertTrue(!unit.badlyDamaged(), unit.kind.id + " shows damage at full health");
+				unit.setHealth(unit.getMaxHealth() * 0.2f);
+				helper.assertTrue(unit.badlyDamaged(), unit.kind.id + " at 20 % shows nothing");
+			}
+			depot.startConstruction(100);
+			depot.setHealth(depot.getMaxHealth() * 0.1f);
+			marine.setHealth(marine.getMaxHealth() * 0.1f);
+			helper.assertTrue(!depot.badlyDamaged() && !marine.badlyDamaged(), "a building under construction or a unit shows damage");
+			helper.assertTrue(UnitKind.Race.TERRAN.rules().damagedParticles().contains(net.minecraft.core.particles.ParticleTypes.FLAME),
+				"terran buildings do not burn red");
+			helper.assertTrue(UnitKind.Race.PROTOSS.rules().damagedParticles().contains(net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME),
+				"protoss buildings do not burn blue");
+			helper.assertTrue(UnitKind.Race.ZERG.rules().damagedParticles().stream().noneMatch(particle -> particle.getType()
+				== net.minecraft.core.particles.ParticleTypes.FLAME || particle.getType() == net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME)
+				&& UnitKind.Race.ZERG.rules().damagedParticles().stream().anyMatch(particle -> particle.getType()
+				== net.minecraft.core.particles.ParticleTypes.BLOCK), "zerg buildings do not bleed");
+			helper.succeed();
+		});
+	}
+
 	/** A flyer at its hover height finds a ground foe under it (vanilla's target search reaches only 4 blocks up and down). */
 	@GameTest(template = ARENA, batch = "mechFlyerSight", timeoutTicks = 100)
 	public void aFlyerHighUpFindsAGroundFoe(GameTestHelper helper) {

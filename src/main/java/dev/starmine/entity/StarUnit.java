@@ -307,6 +307,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		dev.starmine.ability.Abilities.tick(this, server);
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
+		if (this.tickCount % 3 == 0 && badlyDamaged()) damagedEffects(server);
 		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
@@ -735,6 +736,27 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	private static final ResourceLocation CREEP_SPEED = StarMine.id("creep_speed");
+
+	/** A building at this share of its health or less shows it (owner 15.10). */
+	public static final float BADLY_DAMAGED = 0.25f;
+
+	/** A finished building (not a cocoon) at a quarter of its health or less. */
+	public boolean badlyDamaged() {
+		return kind.structure() && kind != UnitKind.EGG && constructTicks == 0 && this.isAlive() && this.getHealth() <= this.getMaxHealth() * BADLY_DAMAGED;
+	}
+
+	/** Its race's sign of damage ({@link dev.starmine.race.RaceRules#damagedParticles}) at points over its body, more on a bigger one. */
+	private void damagedEffects(ServerLevel server) {
+		double half = this.getBbWidth() / 2, height = this.getBbHeight();
+		int spots = 1 + (int) half;
+		for (net.minecraft.core.particles.ParticleOptions particle : kind.race.rules().damagedParticles())
+			for (int i = 0; i < spots; i++) {
+				double x = this.getX() + (this.random.nextDouble() * 2 - 1) * half * 0.8;
+				double z = this.getZ() + (this.random.nextDouble() * 2 - 1) * half * 0.8;
+				double y = this.getY() + height * (0.4 + this.random.nextDouble() * 0.6);
+				server.sendParticles(particle, x, y, z, 2, 0.15, 0.1, 0.15, 0.01);
+			}
+	}
 
 	public int unreachableTicks() {
 		return unreachable;

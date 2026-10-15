@@ -208,4 +208,10 @@ public final class ProtossRace implements RaceRules {
 		}
 		return building;
 	}
+
+	/** Burning with blue fire, light smoke. */
+	@Override
+	public List<net.minecraft.core.particles.ParticleOptions> damagedParticles() {
+		return List.of(net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME, net.minecraft.core.particles.ParticleTypes.SMOKE);
+	}
 }

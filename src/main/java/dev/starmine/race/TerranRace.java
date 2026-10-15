@@ -179,4 +179,10 @@ public final class TerranRace implements RaceRules {
 		if (building != null) worker.setConstructing(building.getUUID());
 		return building;
 	}
+
+	/** Burning with red fire under black smoke. */
+	@Override
+	public List<net.minecraft.core.particles.ParticleOptions> damagedParticles() {
+		return List.of(net.minecraft.core.particles.ParticleTypes.FLAME, net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE);
+	}
 }

@@ -90,4 +90,10 @@ public interface RaceRules {
 	 */
 	default void tendConstruction(StarUnit main, ServerLevel level, Hive base) {
 	}
+
+	/**
+	 * What a badly damaged building of this race gives off ({@link StarUnit#badlyDamaged}, owner 15.10):
+	 * zerg buildings bleed, terran ones burn with red fire, protoss ones with blue fire.
+	 */
+	List<net.minecraft.core.particles.ParticleOptions> damagedParticles();
 }

@@ -180,4 +180,12 @@ public final class ZergRace implements RaceRules {
 	public @Nullable StarUnit placeBuilding(StarUnit worker, ServerLevel level, Hive base, UnitKind kind, BlockPos site) {
 		return HiveLogic.mutate(worker, level, kind, site);
 	}
+
+	/** Living buildings bleed: dark blood drops fall off them and a red mist hangs on them. */
+	@Override
+	public List<net.minecraft.core.particles.ParticleOptions> damagedParticles() {
+		return List.of(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,
+				net.minecraft.world.level.block.Blocks.NETHER_WART_BLOCK.defaultBlockState()),
+			new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.45f, 0.02f, 0.05f), 1.6f));
+	}
 }
