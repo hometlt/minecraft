@@ -459,6 +459,8 @@
 	"ability.starmine.high_impact.tip": "Air weapon: single heavy shots at long range",
 	"ability.starmine.viking_land": "Assault Mode",
 	"ability.starmine.viking_land.tip": "Lands to fight on the ground, or takes off again",
+	"ability.starmine.lift_off": "Lift Off",
+	"ability.starmine.lift_off.tip": "Flies to a new site or lands where it hovers; trains nothing in the air",
 	"ability.starmine.afterburners": "Ignite Afterburners",
 	"ability.starmine.afterburners.tip": "Double speed for 4 s",
 	"ability.starmine.repair": "Repair",

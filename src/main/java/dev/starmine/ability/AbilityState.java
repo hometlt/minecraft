@@ -25,6 +25,8 @@ public final class AbilityState {
 	int modeTicks;
 	/** The mode it changes to. */
 	int nextMode;
+	/** Where a terran building lifted off (a landed command center moves its base's anchor from there). */
+	@Nullable Vec3 liftedFrom;
 	/** A transport's unload point. */
 	@Nullable Vec3 unloadAt;
 	/** A spell ordered on a target out of reach: the caster goes into reach first, then casts. */

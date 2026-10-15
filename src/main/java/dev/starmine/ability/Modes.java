@@ -14,7 +14,7 @@ import static dev.starmine.entity.UnitKind.SCALE;
  * race — the siege tank's siege mode, burrowing (zerg), the viking's landing, the hellion's hellbat
  * form, the warp prism's phasing mode, the oracle's pulsar beam, the thor's high impact payload, a
  * lowered supply depot, a warp gate, a barracks' tech lab or reactor, an orbital command or planetary
- * fortress. A change takes its SC2 time ({@link #changeTicks}), during which the unit neither moves nor
+ * fortress, a terran building lifted off ({@link LiftOff}). A change takes its SC2 time ({@link #changeTicks}), during which the unit neither moves nor
  * fights; then its weapon, speed and body follow the new mode ({@link #weapon}, {@link #speedFactor},
  * applied by {@link StarUnit#refreshWeapon} and {@link StarUnit#applyModeBody}). Toggles go back and
  * forth; the add-ons, the orbital command and the planetary fortress are for good ({@link #oneWay}).
@@ -22,7 +22,8 @@ import static dev.starmine.entity.UnitKind.SCALE;
  */
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
-		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13;
+		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
+		AIRBORNE = 14;
 	public static final int CHANGE_TICKS = 60;
 
 	/** A weapon in a mode: blocks of reach, damage, ticks between shots, splash radius, the closest it can shoot, whether it can move. */
@@ -48,6 +49,7 @@ public final class Modes {
 			case BUILD_REACTOR -> REACTOR;
 			case ORBITAL_COMMAND -> ORBITAL;
 			case PLANETARY_FORTRESS -> PLANETARY;
+			case LIFT_OFF -> AIRBORNE;
 			default -> -1;
 		};
 	}
@@ -65,6 +67,7 @@ public final class Modes {
 			case BURROW -> mode == BURROWED ? 14 : 7; // SC2 burrow 0.7 s, unburrow 0.36 s
 			case VIKING_LAND, HELLBAT, HIGH_IMPACT -> 43; // SC2 2.14 s
 			case PHASING_MODE -> 21; // SC2 1.07 s
+			case LIFT_OFF -> 29; // SC2 lift-off and landing 1.43 s
 			case WARP_GATE -> 142; // SC2 7.1 s
 			case PULSAR_BEAM, LOWER_DEPOT -> 0;
 			default -> CHANGE_TICKS;
@@ -130,7 +133,9 @@ public final class Modes {
 
 	static void finish(StarUnit unit) {
 		unit.abilities.modeTicks = 0;
+		boolean landing = unit.mode() == AIRBORNE && unit.abilities.nextMode != AIRBORNE;
 		unit.setMode(unit.abilities.nextMode);
+		if (landing) LiftOff.landed(unit, Abilities.base(unit), unit.abilities.liftedFrom);
 		unit.applyModeBody();
 		unit.refreshWeapon();
 	}

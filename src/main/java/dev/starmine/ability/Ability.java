@@ -60,6 +60,7 @@ public enum Ability {
 	LOWER_DEPOT(        "lower_depot",         'R', Target.TOGGLE,  0,     0,       0,    0,      0),
 	BUILD_TECHLAB(      "techlab",             'X', Target.NONE,    0,     0,       0,    0,      18),
 	BUILD_REACTOR(      "reactor",             'C', Target.NONE,    0,     0,       0,    0,      36),
+	LIFT_OFF(           "lift_off",            'L', Target.TOGGLE,  0,     0,       0,    0,      0),
 	// ---- protoss ----
 	CHARGE(             "charge",              'C', Target.UNIT,    0,     7,       4,    0,      0),
 	BLINK(              "blink",               'B', Target.POINT,   0,     7,       8,    0,      0),
@@ -146,6 +147,7 @@ public enum Ability {
 			case SIEGE_MODE -> List.of(SIEGE_TANK);
 			case HIGH_IMPACT -> List.of(THOR);
 			case VIKING_LAND -> List.of(VIKING);
+			case LIFT_OFF -> List.of(COMMAND_CENTER, BARRACKS, FACTORY, STARPORT);
 			case AFTERBURNERS -> List.of(MEDIVAC);
 			case YAMATO, TACTICAL_JUMP -> List.of(BATTLECRUISER);
 			case REPAIR -> List.of(SCV);

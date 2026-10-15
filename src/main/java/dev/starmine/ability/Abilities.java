@@ -48,6 +48,7 @@ public final class Abilities {
 		if (unit.abilities.changingMode() || unit.abilities.channelling() || unit.underConstruction()) return "message.starmine.busy";
 		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING)
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
+		if (ability == Ability.LIFT_OFF && LiftOff.refusal(unit) != null) return LiftOff.refusal(unit); // idle to lift, room to land
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
 		if (!dev.starmine.race.Research.has(unit, dev.starmine.race.Research.of(ability))) return "message.starmine.need_research";
 		long now = unit.level().getGameTime();
@@ -78,6 +79,8 @@ public final class Abilities {
 	public static boolean available(StarUnit unit, Ability ability) {
 		int mode = unit.mode();
 		if (Modes.oneWay(ability)) return mode == Modes.NORMAL;
+		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE; // an add-on or upgrade keeps it down
+		if (mode == Modes.AIRBORNE) return false; // in the air a building only flies and lands
 		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP || mode == Modes.ORBITAL;
 	}
 
@@ -127,6 +130,7 @@ public final class Abilities {
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)
 			int to = turningOff ? Modes.NORMAL : mode;
+			if (ability == Ability.LIFT_OFF && !turningOff) unit.abilities.liftedFrom = unit.position();
 			Modes.change(unit, to, Modes.changeTicks(ability, to));
 			return true;
 		}
@@ -262,6 +266,7 @@ public final class Abilities {
 		if (!unit.isAlive() && unit.pilot() == null) return;
 		Cloak.tick(unit, level);
 		if (state.modeTicks > 0 && --state.modeTicks == 0) Modes.finish(unit);
+		if (Ability.LIFT_OFF.users().contains(unit.kind)) LiftOff.tick(unit);
 		if (state.channel != null) channel(unit, level, state);
 		else if (state.pending != null) approach(unit, level, state);
 		Passives.tick(unit, level);

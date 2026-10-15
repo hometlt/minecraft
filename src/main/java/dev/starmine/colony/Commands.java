@@ -43,14 +43,24 @@ public final class Commands {
 		Vec3 at = new Vec3(command.x(), command.y(), command.z());
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
 		List<StarUnit> buildings = units.stream().filter(unit -> unit.kind.structure()).toList();
+		List<StarUnit> lifted = buildings.stream().filter(dev.starmine.ability.LiftOff::airborne).toList(); // terran buildings fly where they are sent
 		List<StarUnit> workers = mobile.stream().filter(unit -> unit.kind.worker()).toList();
 		for (StarUnit unit : units) Engineering.release(unit.getUUID()); // a new order ends the army's way work
 		switch (command.action()) {
-			case "move" -> moveArmy(level, base, mobile, StarUnit.Order.MOVE, at);
-			case "attack_move" -> moveArmy(level, base, mobile, StarUnit.Order.ATTACK_MOVE, at);
-			case "patrol" -> moveArmy(level, base, mobile, StarUnit.Order.PATROL, at);
+			case "move", "attack_move", "patrol" -> {
+				StarUnit.Order order = switch (command.action()) {
+					case "move" -> StarUnit.Order.MOVE;
+					case "attack_move" -> StarUnit.Order.ATTACK_MOVE;
+					default -> StarUnit.Order.PATROL;
+				};
+				moveArmy(level, base, mobile, order, at);
+				formation(lifted, StarUnit.Order.MOVE, at);
+			}
 			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
-			case "stop" -> mobile.forEach(unit -> unit.command(StarUnit.Order.NONE, null));
+			case "stop" -> {
+				mobile.forEach(unit -> unit.command(StarUnit.Order.NONE, null));
+				lifted.forEach(unit -> unit.command(StarUnit.Order.NONE, null));
+			}
 			case "attack" -> {
 				if (level.getEntity(command.target()) instanceof LivingEntity target && target.isAlive())
 					mobile.stream().filter(unit -> unit.kind.attack != UnitKind.Attack.NONE).forEach(unit -> unit.commandAttack(target));

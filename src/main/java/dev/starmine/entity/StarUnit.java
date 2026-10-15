@@ -295,7 +295,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
 		if ((kind.defender() || mode() == dev.starmine.ability.Modes.PLANETARY) && constructTicks == 0) crawlerAttack(server);
 		if (this.tickCount % 20 == 3) powered = kind.race.rules().powered(this);
-		if ((kind.building() || kind.main()) && constructTicks == 0 && powered) {
+		if ((kind.building() || kind.main()) && constructTicks == 0 && powered && !lifted()) {
 			produce(server);
 			researchTick(server);
 		}
@@ -1260,10 +1260,20 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return queue;
 	}
 
+	/** A terran building in the air: it neither trains nor researches (SC2). */
+	private boolean lifted() {
+		return mode() == dev.starmine.ability.Modes.AIRBORNE;
+	}
+
+	/** Whether it trains or researches something now (SC2: a terran building lifts off only idle). */
+	public boolean working() {
+		return !queue.isEmpty() || research != null;
+	}
+
 	/** Queues a unit this building trains: paid now, supply reserved; false when it cannot. */
 	public boolean train(UnitKind unit) {
 		if (!(this.level() instanceof ServerLevel server) || constructTicks > 0 || !kind.trains().contains(unit) || queue.size() >= QUEUE
-			|| !kind.race.rules().producerReady(this, unit)) return false;
+			|| !kind.race.rules().producerReady(this, unit) || lifted()) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || !hive.unlocked(unit) || !hive.canAfford(unit, 1)) return false;
 		hive.pay(unit, 1);
@@ -1360,7 +1370,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Starts a research this building does ({@link dev.starmine.race.Research}: weapons, armor, lair, hive); paid now. */
 	public boolean startResearch(String id) {
 		dev.starmine.race.Research what = dev.starmine.race.Research.byId(id);
-		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null) return false;
+		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null || lifted()) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || what.refusal(hive, kind) != null) return false;
 		if (what.at(UnitKind.BARRACKS) && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
@@ -1491,9 +1501,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private boolean orbitalCharged;
 	private static final ResourceLocation MODE_HEALTH = StarMine.id("mode_health"), BONUS_DAMAGE = StarMine.id("bonus_damage");
 
-	/** Whether it is in the air now: a flying kind, unless a viking has landed. */
+	/** Whether it is in the air now: a flying kind, unless a viking has landed; a terran building lifted off. */
 	public boolean flying() {
-		return kind.flying && mode() != dev.starmine.ability.Modes.LANDED;
+		return kind.flying && mode() != dev.starmine.ability.Modes.LANDED || mode() == dev.starmine.ability.Modes.AIRBORNE;
 	}
 
 	/** SC2 energy it holds at most: its kind's, or an orbital command's 200. */

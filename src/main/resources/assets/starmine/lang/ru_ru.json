@@ -459,6 +459,8 @@
 	"ability.starmine.high_impact.tip": "Оружие ПВО: одиночные тяжёлые выстрелы издалека",
 	"ability.starmine.viking_land": "Посадка",
 	"ability.starmine.viking_land.tip": "Садится и сражается на земле или снова взлетает",
+	"ability.starmine.lift_off": "Взлёт",
+	"ability.starmine.lift_off.tip": "Летит на новое место или садится там, где висит; в воздухе ничего не обучает",
 	"ability.starmine.afterburners": "Форсаж",
 	"ability.starmine.afterburners.tip": "Двойная скорость на 4 с",
 	"ability.starmine.repair": "Ремонт",

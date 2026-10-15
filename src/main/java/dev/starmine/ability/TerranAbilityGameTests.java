@@ -310,6 +310,50 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * A barracks lifts off only idle, flies to where it is sent at SC2 speed and trains nothing in the air,
+	 * lands only where it fits, and trains again on the ground.
+	 */
+	@GameTest(template = ARENA, batch = "terranLiftOff", timeoutTicks = 700)
+	public void barracksLiftsOffFliesAndLands(GameTestHelper helper) {
+		clear(helper);
+		StarUnit cc = commandCenter(helper);
+		StarUnit[] barracks = new StarUnit[1], depot = new StarUnit[1];
+		ServerLevel level = helper.getLevel();
+		double floor = helper.absolutePos(BlockPos.ZERO).getY() + 2;
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			base.minerals = 1000;
+			for (UnitKind kind : new UnitKind[] {UnitKind.SUPPLY_DEPOT, UnitKind.BARRACKS}) base.join(kind);
+			barracks[0] = TestArena.member(helper, base, UnitKind.BARRACKS, 10, 10);
+			helper.assertTrue(barracks[0].train(UnitKind.MARINE), "no marine");
+			helper.assertTrue(!Abilities.cast(barracks[0], level, Ability.LIFT_OFF, null, null), "lifted off while training");
+			barracks[0].cancelLast();
+			helper.assertTrue(Abilities.cast(barracks[0], level, Ability.LIFT_OFF, null, null), "no lift-off");
+		});
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(barracks[0].mode() == Modes.AIRBORNE && barracks[0].flying(), "not in the air");
+			helper.assertTrue(barracks[0].getY() > floor + 2, "only " + (barracks[0].getY() - floor) + " blocks up");
+			helper.assertTrue(!barracks[0].train(UnitKind.MARINE), "trains in the air");
+			barracks[0].command(StarUnit.Order.MOVE, point(helper, 30, 10));
+		});
+		helper.runAfterDelay(240, () -> {
+			Vec3 at = TestArena.rel(helper, barracks[0]);
+			helper.assertTrue(Math.abs(at.x - 30.5) < 0.5 && Math.abs(at.z - 10.5) < 0.5, "not flown there: " + at);
+			depot[0] = TestArena.member(helper, TestArena.base(helper, cc), UnitKind.SUPPLY_DEPOT, 30, 10);
+			helper.assertTrue(!Abilities.cast(barracks[0], level, Ability.LIFT_OFF, null, null), "landed on a depot");
+			depot[0].discard();
+			helper.assertTrue(Abilities.cast(barracks[0], level, Ability.LIFT_OFF, null, null), "no landing");
+		});
+		helper.runAfterDelay(320, () -> {
+			helper.assertTrue(barracks[0].mode() == Modes.NORMAL && !barracks[0].flying() && !barracks[0].isNoGravity(), "not landed");
+			helper.assertTrue(Math.abs(barracks[0].getY() - floor) < 0.2, "landed " + (barracks[0].getY() - floor) + " blocks up");
+			helper.assertTrue(barracks[0].train(UnitKind.MARINE), "no marine after landing");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "terranAfterburners", timeoutTicks = 200)
 	public void afterburnersSpeedUpTheMedivac(GameTestHelper helper) {
 		clear(helper);
