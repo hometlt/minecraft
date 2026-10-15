@@ -151,6 +151,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** An SCV building this building (its UUID), and whether a building had a builder at its last check. */
 	private UUID constructing;
 	private boolean builderNear;
+	/** Where a building stands on the grid (owner 15.10: buildings do not move — not by water, blows or pushes); null while it flies. */
+	private @org.jetbrains.annotations.Nullable Vec3 anchor;
 	/** What the cargo is (resource label) for the base's tally. */
 	public String cargoLabel;
 	/** Terran production: kinds queued (paid), ticks into the first, where new units go. */
@@ -287,6 +289,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void aiStep() {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
+		holdPlace();
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
@@ -469,6 +472,27 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	/** A terran building grows only while an SCV of its base builds it (within 8 blocks). */
+	/**
+	 * A building stays where it stands, on the grid of {@link UnitKind#CELL} blocks (owner 15.10): it is put
+	 * back every tick, so water, explosions, pushes and blows cannot move it. A terran building in the air
+	 * (lift-off) flies freely and takes its place on the grid again where it lands.
+	 */
+	private void holdPlace() {
+		if (kind.footprint() == 0) return;
+		if (dev.starmine.ability.LiftOff.airborne(this)) {
+			anchor = null;
+			return;
+		}
+		if (anchor == null) anchor = kind.gridCentre(this.position());
+		if (this.position().distanceToSqr(anchor) > 1e-6) this.setPos(anchor.x, anchor.y, anchor.z);
+		this.setDeltaMovement(Vec3.ZERO);
+	}
+
+	@Override
+	public boolean isPushedByFluid() {
+		return kind.footprint() == 0 && super.isPushedByFluid();
+	}
+
 	private boolean builderNear(ServerLevel server) {
 		return !server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(8),
 			mob -> mob.kind == UnitKind.SCV && mob.isAlive() && this.getUUID().equals(mob.constructing)).isEmpty();

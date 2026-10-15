@@ -481,7 +481,8 @@ public final class CommandView {
 		model.pose(stand, 0, ghostPalette);
 		GHOST.skin(model, ghostPalette);
 		pose.pushPose();
-		pose.translate(ghostSite.getX() + 0.5, ghostSite.getY(), ghostSite.getZ() + 0.5);
+		Vec3 at = placing.gridCentre(Vec3.atBottomCenterOf(ghostSite)); // where it will stand: on the grid
+		pose.translate(at.x, at.y, at.z);
 		float scale = placing.modelScale();
 		pose.scale(scale, scale, scale);
 		GHOST.drawTranslucent(model, pose.last(), buffers, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, ghostValid ? 0x8060FF60 : 0x80FF5050);

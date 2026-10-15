@@ -47,7 +47,7 @@ public final class Placement {
 
 	/** The site a building really takes: a vespene building sits on the outlet under the chosen spot; null when there is none. */
 	public static @Nullable BlockPos site(Level level, UnitKind kind, BlockPos chosen) {
-		if (!kind.gas()) return chosen;
+		if (!kind.gas()) return BlockPos.containing(kind.gridCentre(Vec3.atBottomCenterOf(chosen))); // on the grid (owner 15.10)
 		BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(level, chosen);
 		return outlet == null ? null : outlet.above();
 	}
@@ -67,7 +67,7 @@ public final class Placement {
 		}
 		base.pay(kind, 1);
 		base.expect(kind, 1);
-		StarUnit building = HiveLogic.spawn(level, base, kind, Vec3.atBottomCenterOf(site), null);
+		StarUnit building = HiveLogic.spawn(level, base, kind, kind.gas() ? Vec3.atBottomCenterOf(site) : kind.gridCentre(Vec3.atBottomCenterOf(site)), null);
 		if (building == null) return null;
 		building.startConstruction(kind.economy().trainTicks());
 		HiveSavedData.get(level.getServer()).setDirty();

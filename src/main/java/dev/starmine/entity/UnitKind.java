@@ -152,7 +152,14 @@ public enum UnitKind {
 	public final boolean flying, aggressive;
 	public final Attack attack;
 	public final float width, height;
+	/** The width of its model as imported (a building is scaled from it to its footprint, {@link #modelScale}). */
+	public final float modelWidth;
 	public final int eggBase, eggSpots;
+	/**
+	 * Blocks per cell of the SC2 building grid (owner 15.10: «1 клетка StarCraft 2 = 3 клеткам Minecraft»): a
+	 * building's footprint is its SC2 cells times this, and it stands on this grid ({@link #gridCentre}).
+	 */
+	public static final int CELL = 3;
 
 	UnitKind(double sc2Hp, double sc2Speed, boolean flying, Attack attack, double sc2Damage, double period, double sc2Range,
 			boolean aggressive, float width, float height, int eggBase, int eggSpots) {
@@ -178,13 +185,41 @@ public enum UnitKind {
 		this.interval = Math.max(8, (int) Math.round(period * 20));
 		this.range = Math.max(2, sc2Range * BLOCKS_PER_UNIT + 1);
 		this.aggressive = aggressive;
-		boolean unit = sc2Speed > 0 || name().equals("EGG"); // buildings and the hatchery keep their size
+		boolean unit = sc2Speed > 0 || name().equals("EGG");
 		boolean worker = name().equals("DRONE") || name().equals("SCV") || name().equals("PROBE");
-		float grow = unit ? UNIT_SIZE : 1f;
-		this.width = worker ? Math.min(WORKER_BODY, width * grow) : width * grow;
-		this.height = worker ? Math.min(WORKER_BODY, height * grow) : height * grow;
+		// the hatchery's model was drawn twice its imported size; buildings now take their SC2 footprint in cells of CELL blocks
+		this.modelWidth = name().equals("HATCHERY") ? width / 2 : width;
+		int cells = unit ? 0 : footprintOf(name());
+		float grow = unit ? UNIT_SIZE : cells * CELL / this.modelWidth;
+		this.width = worker ? Math.min(WORKER_BODY, width * UNIT_SIZE) : unit ? width * grow : cells * CELL;
+		this.height = worker ? Math.min(WORKER_BODY, height * grow) : unit ? height * grow : (name().equals("HATCHERY") ? height / 2 : height) * grow;
 		this.eggBase = eggBase;
 		this.eggSpots = eggSpots;
+	}
+
+	/** SC2 footprint in grid cells: main buildings 5x5, the small ones 2x2, the rest 3x3. */
+	private static int footprintOf(String name) {
+		return switch (name) {
+			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
+			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
+			default -> 3;
+		};
+	}
+
+	/** Its footprint in SC2 grid cells; 0 for units and the egg. */
+	public int footprint() {
+		return speed == 0 && this != EGG ? Math.round(width / CELL) : 0;
+	}
+
+	/**
+	 * Where a building stands on the grid near a point: its footprint's corner on a multiple of {@link #CELL}
+	 * (owner 15.10: buildings always stand on cells), its feet at the point's height.
+	 */
+	public net.minecraft.world.phys.Vec3 gridCentre(net.minecraft.world.phys.Vec3 near) {
+		if (footprint() == 0) return near;
+		double half = width / 2.0;
+		double x = Math.round((near.x - half) / CELL) * CELL + half, z = Math.round((near.z - half) / CELL) * CELL + half;
+		return new net.minecraft.world.phys.Vec3(x, near.y, z);
 	}
 
 	/** Summons live only as long as in SC2 (broodlings 5.7 s, locusts 18 s); 0 = forever. */
@@ -339,7 +374,7 @@ public enum UnitKind {
 	/** How the imported model is drawn: units {@link #UNIT_SIZE} times (owner 15.10), the lurker, overlord,
 	 * overseer and brood lord a little more as the owner set them; buildings at model size, the hatchery twice. */
 	public float modelScale() {
-		if (structure() && this != EGG) return this == HATCHERY ? 2.0f : 1f;
+		if (structure() && this != EGG) return width / modelWidth; // its model stretched to its footprint
 		return UNIT_SIZE * switch (this) {
 			case KERRIGAN -> 1.0f; // the queen's model (4 wide at this size) stands in for her
 			case RAYNOR -> 1.15f;

@@ -472,4 +472,33 @@ public class MechanicsGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+	/**
+	 * Buildings stand on the grid of 3-block cells (1 SC2 cell = 3 blocks, owner 15.10) at their SC2 footprint,
+	 * and do not move: not by water, an explosion or a push. A lifted terran building flies.
+	 */
+	@GameTest(template = ARENA, batch = "buildingsHold", timeoutTicks = 200)
+	public void buildingsStandOnTheGridAndDoNotMove(GameTestHelper helper) {
+		clear(helper);
+		var level = helper.getLevel();
+		StarUnit barracks = unit(helper, UnitKind.BARRACKS, 20.3, 20.8, java.util.UUID.randomUUID());
+		helper.assertTrue(UnitKind.BARRACKS.width == 9 && UnitKind.COMMAND_CENTER.width == 15 && UnitKind.PYLON.width == 6,
+			"footprints: barracks " + UnitKind.BARRACKS.width + ", command center " + UnitKind.COMMAND_CENTER.width + ", pylon " + UnitKind.PYLON.width);
+		helper.runAfterDelay(2, () -> {
+			net.minecraft.world.phys.Vec3 at = barracks.position();
+			double corner = at.x - barracks.kind.width / 2;
+			helper.assertTrue(Math.abs(corner / UnitKind.CELL - Math.round(corner / UnitKind.CELL)) < 1e-6
+				&& Math.abs((at.z - barracks.kind.width / 2) / UnitKind.CELL - Math.round((at.z - barracks.kind.width / 2) / UnitKind.CELL)) < 1e-6,
+				"the barracks is off the grid at " + at);
+			// a push, a blow, water and an explosion
+			barracks.setDeltaMovement(2, 0.5, 2);
+			barracks.push(3, 0, 3);
+			for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(barracks.blockPosition().offset(-6, 0, -6), barracks.blockPosition().offset(-5, 0, 6)))
+				level.setBlock(pos, net.minecraft.world.level.block.Blocks.WATER.defaultBlockState(), 3);
+			level.explode(null, at.x + 5, at.y + 1, at.z, 3, net.minecraft.world.level.Level.ExplosionInteraction.NONE);
+			helper.runAfterDelay(60, () -> {
+				helper.assertTrue(barracks.position().distanceTo(at) < 1e-3, "the barracks moved from " + at + " to " + barracks.position());
+				helper.succeed();
+			});
+		});
+	}
 }

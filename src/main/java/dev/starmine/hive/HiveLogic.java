@@ -128,13 +128,14 @@ public final class HiveLogic {
 			if (outlet == null) return null;
 			site = outlet.above();
 			if (!level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.gas() && mob.isAlive()).isEmpty()) return null;
-		} else if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) {
-			return null;
+		} else {
+			site = BlockPos.containing(kind.gridCentre(Vec3.atBottomCenterOf(site))); // on the grid (owner 15.10)
+			if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) return null;
 		}
 		hive.pay(kind, 1);
 		hive.expect(kind, 1);
 		if (!kind.gas()) HiveTerrain.lay(level, site, half);
-		StarUnit building = spawn(level, hive, kind, Vec3.atBottomCenterOf(site), null);
+		StarUnit building = spawn(level, hive, kind, kind.gas() ? Vec3.atBottomCenterOf(site) : kind.gridCentre(Vec3.atBottomCenterOf(site)), null);
 		if (building != null) building.startConstruction(kind.economy().trainTicks());
 		hive.buildOrder = null;
 		drone.discard();
