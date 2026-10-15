@@ -834,5 +834,13 @@
 	"block.starmine.zerg_teleporter": "Zerg Teleporter",
 	"block.starmine.terran_teleporter": "Terran Teleporter",
 	"block.starmine.protoss_teleporter": "Protoss Teleporter",
-	"message.starmine.teleporter_guarded": "The teleporter is guarded: %s guards left"
+	"message.starmine.teleporter_guarded": "The teleporter is guarded: %s guards left",
+	"ability.starmine.leaping_strike": "Leaping Strike",
+	"ability.starmine.psionic_shift": "Psionic Shift",
+	"ability.starmine.hyperion_strike": "Hyperion",
+	"ability.starmine.lightning_dash": "Lightning Dash",
+	"ability.starmine.leaping_strike.tip": "Kerrigan leaps at a foe: 150 damage",
+	"ability.starmine.psionic_shift.tip": "Kerrigan dashes, 50 damage to foes on her way",
+	"ability.starmine.hyperion_strike.tip": "The Hyperion fires its Yamato: 600 damage after 1.5 s, splash around",
+	"ability.starmine.lightning_dash.tip": "Artanis dashes to a foe: 100 damage around, 2 s stun"
 }

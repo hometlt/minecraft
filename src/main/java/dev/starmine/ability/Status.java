@@ -69,7 +69,9 @@ public enum Status {
 	/** A summon that vanishes when it ends: a MULE (64 s), a changeling (150 s). */
 	TEMPORARY(      1,     1,    false),
 	/** A hallucination: deals no damage, takes double, vanishes when it ends (SC2 43 s). */
-	HALLUCINATION(  1,     1,    false);
+	HALLUCINATION(  1,     1,    false),
+	/** Stunned (Artanis's lightning dash, SC2 2 s): neither moves nor fights. */
+	STUNNED(        0,     1,    true);
 
 	public final double speed, pace;
 	public final boolean disarms;
@@ -121,7 +123,7 @@ public enum Status {
 
 	private static @Nullable Holder<MobEffect> vanilla(Status status) {
 		return switch (status) {
-			case SLOW, ROOTED, STASIS -> MobEffects.MOVEMENT_SLOWDOWN;
+			case SLOW, ROOTED, STASIS, STUNNED -> MobEffects.MOVEMENT_SLOWDOWN;
 			case LIFTED -> MobEffects.LEVITATION;
 			case BLINDED -> MobEffects.BLINDNESS;
 			case REVEALED -> MobEffects.GLOWING;
@@ -133,7 +135,7 @@ public enum Status {
 	private static int amplifier(Status status) {
 		return switch (status) {
 			case SLOW -> 2; // about half speed
-			case ROOTED, STASIS -> 9; // no speed left
+			case ROOTED, STASIS, STUNNED -> 9; // no speed left
 			case STIM, AFTERBURNERS -> 2;
 			default -> 0;
 		};

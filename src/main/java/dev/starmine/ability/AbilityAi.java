@@ -131,6 +131,11 @@ final class AbilityAi {
 			case LOAD -> unit.kind == UnitKind.BUNKER && foeWithin(unit, 12) && cast(unit, level, ability);
 			case UNLOAD -> unit.kind == UnitKind.BUNKER && calm && cast(unit, level, ability, unit.position());
 			case CHARGE -> target != null && reach > 2 && cast(unit, level, ability, target);
+			// the heroes: Kerrigan leaps at a foe a little off and shifts through a group; Raynor calls the Hyperion on a strong
+			// foe (not a player: 600 damage would end anyone at once); Artanis dashes at a foe
+			case LEAPING_STRIKE, LIGHTNING_DASH -> target != null && reach > 3 && reach < ability.range && cast(unit, level, ability, target);
+			case PSIONIC_SHIFT -> target != null && reach < ability.range && foesAround(unit, at, 4) >= 2 && cast(unit, level, ability, at);
+			case HYPERION_STRIKE -> target != null && target.getMaxHealth() >= 30 && reach < ability.range && cast(unit, level, ability, target);
 			case BLINK -> {
 				if (target == null || unit.getHealth() + unit.shield() > (unit.getMaxHealth() + unit.kind.shields) * 0.35) yield false;
 				Vec3 away = unit.position().subtract(target.position()).multiply(1, 0, 1);

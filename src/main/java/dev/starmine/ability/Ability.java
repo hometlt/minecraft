@@ -85,6 +85,11 @@ public enum Ability {
 	CHRONO_BOOST(       "chrono_boost",        'C', Target.UNIT,    50,    0,       0,    0,      0),
 	BATTERY_OVERCHARGE( "battery_overcharge",  'B', Target.UNIT,    0,     60,      0,    0,      0),
 	WARP_GATE(          "warp_gate",           'G', Target.TOGGLE,  0,     0,       0,    0,      0),
+	// ---- heroes (CLOUD_TASK_2 stage 8; HeroAbilities): cooldowns instead of SC2 energy, a boss fights for minutes ----
+	LEAPING_STRIKE(     "leaping_strike",      'Q', Target.UNIT,    0,     8,       6,    0,      0),
+	PSIONIC_SHIFT(      "psionic_shift",       'W', Target.POINT,   0,     12,      6,    0,      0),
+	HYPERION_STRIKE(    "hyperion_strike",     'H', Target.UNIT,    0,     30,      15,   0,      1.5),
+	LIGHTNING_DASH(     "lightning_dash",      'D', Target.UNIT,    0,     10,      8,    0,      0),
 	// ---- transports (every race) ----
 	LOAD(               "load",                'L', Target.NONE,    0,     0,       0,    0,      0),
 	UNLOAD(             "unload",              'D', Target.POINT,   0,     0,       0,    0,      0);
@@ -140,7 +145,7 @@ public enum Ability {
 			case BLINDING_CLOUD, ABDUCT, PARASITIC_BOMB, CONSUME -> List.of(VIPER);
 			case CAUSTIC_SPRAY -> List.of(CORRUPTOR);
 			case STIMPACK -> List.of(MARINE, MARAUDER);
-			case KD8_CHARGE -> List.of(REAPER);
+			case KD8_CHARGE -> List.of(REAPER, RAYNOR); // Raynor's grenade
 			case CLOAK -> List.of(GHOST, BANSHEE);
 			case EMP, STEADY_TARGETING, NUKE -> List.of(GHOST);
 			case HELLBAT -> List.of(HELLION);
@@ -158,7 +163,11 @@ public enum Ability {
 			case BLINK -> List.of(STALKER);
 			case PSIONIC_TRANSFER -> List.of(ADEPT);
 			case FORCE_FIELD, GUARDIAN_SHIELD, HALLUCINATION -> List.of(SENTRY);
-			case PSIONIC_STORM, FEEDBACK -> List.of(HIGH_TEMPLAR);
+			case PSIONIC_STORM -> List.of(HIGH_TEMPLAR, ARTANIS);
+			case FEEDBACK -> List.of(HIGH_TEMPLAR);
+			case LEAPING_STRIKE, PSIONIC_SHIFT -> List.of(KERRIGAN);
+			case HYPERION_STRIKE -> List.of(RAYNOR);
+			case LIGHTNING_DASH -> List.of(ARTANIS);
 			case ARCHON_WARP -> List.of(HIGH_TEMPLAR, DARK_TEMPLAR);
 			case SHADOW_STRIDE -> List.of(DARK_TEMPLAR);
 			case PURIFICATION_NOVA -> List.of(DISRUPTOR);

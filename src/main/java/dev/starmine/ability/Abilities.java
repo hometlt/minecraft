@@ -232,6 +232,10 @@ public final class Abilities {
 			case CHRONO_BOOST -> {
 				if (target instanceof StarUnit building) Status.apply(building, Status.CHRONO, ProtossAbilities.CHRONO_TICKS);
 			}
+			case LEAPING_STRIKE -> HeroAbilities.leapingStrike(unit, level, target);
+			case PSIONIC_SHIFT -> HeroAbilities.psionicShift(unit, level, point);
+			case HYPERION_STRIKE -> HeroAbilities.hyperionStrike(unit, level, target);
+			case LIGHTNING_DASH -> HeroAbilities.lightningDash(unit, level, target);
 			case BATTERY_OVERCHARGE -> {
 				if (target instanceof StarUnit battery) Status.apply(battery, Status.OVERCHARGE, ProtossAbilities.OVERCHARGE_TICKS);
 			}

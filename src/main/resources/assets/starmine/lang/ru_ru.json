@@ -834,5 +834,13 @@
 	"block.starmine.zerg_teleporter": "Телепорт зергов",
 	"block.starmine.terran_teleporter": "Телепорт терранов",
 	"block.starmine.protoss_teleporter": "Телепорт протоссов",
-	"message.starmine.teleporter_guarded": "Телепорт охраняется: осталось стражей — %s"
+	"message.starmine.teleporter_guarded": "Телепорт охраняется: осталось стражей — %s",
+	"ability.starmine.leaping_strike": "Удар в прыжке",
+	"ability.starmine.psionic_shift": "Пси-рывок",
+	"ability.starmine.hyperion_strike": "«Гиперион»",
+	"ability.starmine.lightning_dash": "Молниеносный рывок",
+	"ability.starmine.leaping_strike.tip": "Керриган прыгает на врага: 150 урона",
+	"ability.starmine.psionic_shift.tip": "Керриган проносится вперёд, 50 урона врагам на пути",
+	"ability.starmine.hyperion_strike.tip": "«Гиперион» бьёт «Ямато»: 600 урона через 1,5 с и вокруг",
+	"ability.starmine.lightning_dash.tip": "Артанис бросается к врагу: 100 урона вокруг, оглушение 2 с"
 }

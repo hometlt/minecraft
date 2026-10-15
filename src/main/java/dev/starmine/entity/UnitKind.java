@@ -373,7 +373,7 @@ public enum UnitKind {
 	/** SC2 energy of casters (owner 14.10, abilities): the most it holds; 0 for kinds without energy. */
 	public int maxEnergy() {
 		return switch (this) {
-			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS -> 200;
+			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS, ARTANIS -> 200;
 			case SHIELD_BATTERY -> 100;
 			default -> 0;
 		};
@@ -385,6 +385,7 @@ public enum UnitKind {
 			case GHOST -> 75;
 			case QUEEN -> 25;
 			case SHIELD_BATTERY -> 100;
+			case ARTANIS -> 200; // his storm from the first moment of the fight
 			default -> maxEnergy() > 0 ? 50 : 0;
 		};
 	}

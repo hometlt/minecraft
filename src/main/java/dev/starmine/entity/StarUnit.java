@@ -289,6 +289,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
+		if (kind.boss()) Heroes.tick(this, server);
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
@@ -712,6 +713,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!valuable.isEmpty()) this.spawnAtLocation(valuable.copy());
 		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
 		for (ItemStack loot : dev.starmine.suit.Suits.drops(this, source, recentlyHit)) this.spawnAtLocation(loot);
+		if (kind.boss()) for (ItemStack loot : Heroes.reward(this)) this.spawnAtLocation(loot);
 		valuable = ItemStack.EMPTY;
 		fillSlots.clear();
 	}
@@ -859,6 +861,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public void remove(Entity.RemovalReason reason) {
 		if (kind.worker() && !this.level().isClientSide) DroneWork.releaseAll(this.getUUID());
+		if (kind.boss() && !this.level().isClientSide) Heroes.gone(this);
 		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null && !queue.isEmpty()) {
 			Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 			if (hive != null) for (UnitKind queued : queue) hive.born(queued, 1); // their supply is free again
