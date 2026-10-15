@@ -267,6 +267,7 @@ public final class Abilities {
 		Cloak.tick(unit, level);
 		if (state.modeTicks > 0 && --state.modeTicks == 0) Modes.finish(unit);
 		if (Ability.LIFT_OFF.users().contains(unit.kind)) LiftOff.tick(unit);
+		if (unit.kind == UnitKind.CHANGELING) Changeling.tick(unit, level);
 		if (state.channel != null) channel(unit, level, state);
 		else if (state.pending != null) approach(unit, level, state);
 		Passives.tick(unit, level);

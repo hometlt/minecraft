@@ -178,6 +178,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<Boolean> CLOAKED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> REVEALED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	/** A changeling's look (dev.starmine.ability.Changeling): "" its own, "villager", or a player's UUID. */
+	private static final EntityDataAccessor<String> DISGUISE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** Cooldowns, channels, mode changes, unloading (server). */
 	public final dev.starmine.ability.AbilityState abilities = new dev.starmine.ability.AbilityState();
 	/**
@@ -243,6 +245,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind == UnitKind.OVERLORD) this.goalSelector.addGoal(1, new ZergGoals.Transport(this));
 		if (kind != UnitKind.DRONE && kind.attack != UnitKind.Attack.NONE) this.goalSelector.addGoal(3, new ZergGoals.Raid(this));
 		if (kind == UnitKind.QUEEN) this.goalSelector.addGoal(3, new ZergGoals.PlantTumor(this));
+		if (kind == UnitKind.CHANGELING) this.goalSelector.addGoal(3, new dev.starmine.ability.Changeling.Spy(this));
 		this.goalSelector.addGoal(5, kind.hoverHeight() > 0 ? new ZergGoals.HoverWander(this)
 			: kind.flying ? new WaterAvoidingRandomFlyingGoal(this, 0.8) : new WaterAvoidingRandomStrollGoal(this, 0.8));
 	}
@@ -398,6 +401,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (this.getVehicle() instanceof StarUnit transport && dev.starmine.ability.Transport.capacity(transport.kind) > 0
 			&& !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false; // cargo is out of harm's way (SC2)
 		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
+		if (kind == UnitKind.CHANGELING && amount > 0 && !this.isInvulnerableTo(source)) amount = this.getMaxHealth() * 100; // owner: any harm kills it
 		// SC2 has no moment of invulnerability after a hit: every shot of a StarMine weapon or spell counts (a vanilla
 		// mob's or player's own blows keep vanilla's half second)
 		boolean weapon = source.getEntity() instanceof StarUnit || source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player
@@ -695,6 +699,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(CLOAKED, false);
 		builder.define(REVEALED, false);
 		builder.define(MODE, 0);
+		builder.define(DISGUISE, "");
 	}
 
 	@Override
@@ -907,6 +912,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (maxEnergy() > 0) tag.putFloat("StarMineEnergy", energy());
 		if (cloaked()) tag.putBoolean("StarMineCloaked", true);
 		if (mode() != 0) tag.putInt("StarMineMode", mode());
+		if (!disguise().isEmpty()) tag.putString("StarMineDisguise", disguise());
 		if (summoned) tag.putBoolean("StarMineSummoned", true);
 		if (summoner != null) tag.putUUID("StarMineSummoner", summoner);
 		if (orbitalCharged) tag.putBoolean("StarMineOrbitalCharged", true);
@@ -948,6 +954,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (tag.contains("StarMineEnergy")) setEnergy(tag.getFloat("StarMineEnergy"));
 		setCloaked(tag.getBoolean("StarMineCloaked"));
 		setMode(tag.getInt("StarMineMode"));
+		setDisguise(tag.getString("StarMineDisguise"));
 		abilities.load(tag);
 		summoned = tag.getBoolean("StarMineSummoned");
 		summoner = tag.hasUUID("StarMineSummoner") ? tag.getUUID("StarMineSummoner") : null;
@@ -1429,6 +1436,15 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public void setMode(int mode) {
 		this.entityData.set(MODE, mode);
+	}
+
+	/** A changeling's look: "" its own, "villager", or the UUID of the player it copied (both sides: the client draws it). */
+	public String disguise() {
+		return this.entityData.get(DISGUISE);
+	}
+
+	public void setDisguise(String disguise) {
+		this.entityData.set(DISGUISE, disguise);
 	}
 
 	/** Its weapon and mobility in a mode (the attack goals read the weapon each tick); an immobile mode stops it. */

@@ -74,6 +74,9 @@ public final class Hive {
 
 	/** Game time the next raid may start. */
 	public long nextRaid;
+	/** Where its changelings last saw villagers or a player, and until when it remembers (dev.starmine.ability.Changeling). */
+	public BlockPos scouted;
+	public long scoutedUntil;
 	/** The thick creep under the hatchery has been laid. */
 	public boolean foundation;
 	public final Map<UnitKind, Integer> members = new EnumMap<>(UnitKind.class);
@@ -181,6 +184,8 @@ public final class Hive {
 		tag.putInt("queenTicks", queenTicks);
 		tag.putBoolean("foundation", foundation);
 		tag.putLong("nextRaid", nextRaid);
+		if (scouted != null) tag.put("scouted", NbtUtils.writeBlockPos(scouted));
+		tag.putLong("scoutedUntil", scoutedUntil);
 		tag.putInt("tier", tier);
 		tag.putInt("tierTicks", tierTicks);
 		tag.putInt("attackLevel", attackLevel);
@@ -223,6 +228,8 @@ public final class Hive {
 		hive.queenTicks = tag.getInt("queenTicks");
 		hive.foundation = tag.getBoolean("foundation");
 		hive.nextRaid = tag.getLong("nextRaid");
+		hive.scouted = NbtUtils.readBlockPos(tag, "scouted").orElse(null);
+		hive.scoutedUntil = tag.getLong("scoutedUntil");
 		hive.tier = Math.max(1, tag.getInt("tier"));
 		hive.tierTicks = tag.contains("tierTicks") ? tag.getInt("tierTicks") : -1;
 		hive.attackLevel = tag.getInt("attackLevel");

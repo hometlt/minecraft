@@ -46,6 +46,10 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 	@Override
 	public void render(StarUnit entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int packedLight) {
 		if (entity.isInvisible()) return; // a worker inside a vespene building
+		// a changeling in disguise looks like what it copied, except to its own side (dev.starmine.ability.Changeling)
+		if (entity.kind == UnitKind.CHANGELING && !entity.disguise().isEmpty() && entity.deathTime == 0
+			&& !(net.minecraft.client.Minecraft.getInstance().player != null && dev.starmine.faction.Faction.allied(entity, net.minecraft.client.Minecraft.getInstance().player))
+			&& Disguises.render(entity, partialTick, poseStack, buffers, packedLight)) return;
 		SkinnedModel model = StarMineModels.get(entity.kind.id);
 		float sink = 0f;
 		boolean visible = model != null;

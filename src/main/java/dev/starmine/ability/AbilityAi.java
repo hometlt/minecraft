@@ -76,7 +76,7 @@ final class AbilityAi {
 					&& other.getHealth() < other.getMaxHealth() * 0.5f);
 				yield wounded != null && cast(unit, level, ability, wounded);
 			}
-			case SPAWN_CHANGELING -> unit.energy() >= 150 && foeWithin(unit, 24) && cast(unit, level, ability);
+			case SPAWN_CHANGELING -> Changeling.due(unit, level) && cast(unit, level, ability); // owner: every 2–3 minutes, at most 2 alive
 			case NEURAL_PARASITE -> target != null && target.getMaxHealth() >= 40 && cast(unit, level, ability, target);
 			case FUNGAL_GROWTH -> target != null && foesAround(unit, at, ZergAbilities.FUNGAL_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case BLINDING_CLOUD -> target != null && foesAround(unit, at, ZergAbilities.CLOUD_RADIUS) >= 3 && cast(unit, level, ability, at);

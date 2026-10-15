@@ -157,6 +157,83 @@ public class ZergAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	private static StarUnit changeling(GameTestHelper helper) {
+		List<StarUnit> found = helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(helper.absolutePos(BlockPos.ZERO)).inflate(80),
+			unit -> unit.kind == UnitKind.CHANGELING && unit.isAlive());
+		return found.isEmpty() ? null : found.get(0);
+	}
+
+	/**
+	 * The owner's changeling (docs/HIVE_DESIGN.md 7b): it takes the look of the villager it sees, stays
+	 * among the villagers, tells its hive where they are, passes for a villager with iron golems and dies
+	 * from any harm.
+	 */
+	@GameTest(template = ARENA, batch = "zergChangelingVillager", timeoutTicks = 400)
+	public void changelingCopiesAVillagerAndSpies(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		Hive hive = new Hive(UUID.randomUUID(), level.dimension().location().toString(), helper.absolutePos(new BlockPos(4, 2, 4)));
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(hive);
+		StarUnit overseer = unit(helper, UnitKind.OVERSEER, 10, 24, null);
+		overseer.setNoAi(true);
+		overseer.joinHive(hive);
+		net.minecraft.world.entity.npc.Villager villager = net.minecraft.world.entity.EntityType.VILLAGER.create(level);
+		Vec3 home = point(helper, 22, 24); // 12 blocks off: within sight, not among them yet
+		villager.moveTo(home.x, home.y, home.z, 0, 0);
+		villager.setNoAi(true);
+		level.addFreshEntity(villager);
+		helper.runAfterDelay(2, () -> {
+			overseer.setEnergy(50);
+			helper.assertTrue(Abilities.cast(overseer, level, Ability.SPAWN_CHANGELING, null, null), "no changeling");
+		});
+		helper.runAfterDelay(300, () -> {
+			StarUnit changeling = changeling(helper);
+			helper.assertTrue(changeling != null, "no changeling");
+			helper.assertTrue(Changeling.VILLAGER.equals(changeling.disguise()), "no villager look: '" + changeling.disguise() + "'");
+			helper.assertTrue(changeling.distanceTo(villager) < Changeling.AMONG + 3, "not among the villagers: "
+				+ changeling.distanceTo(villager) + " blocks off, at " + TestArena.where(helper, changeling));
+			helper.assertTrue(hive.scouted != null && hive.scouted.closerThan(villager.blockPosition(), 2), "the hive does not know where: " + hive.scouted);
+			net.minecraft.world.entity.animal.IronGolem golem = net.minecraft.world.entity.EntityType.IRON_GOLEM.create(level);
+			helper.assertTrue(!golem.canAttack(changeling), "a golem sees through the villager look");
+			changeling.hurt(level.damageSources().generic(), 0.1f);
+			helper.assertTrue(!changeling.isAlive(), "a scratch did not kill it");
+			villager.discard();
+			helper.succeed();
+		});
+	}
+
+	/** A changeling that saw a player first looks like that player and keeps 8–16 blocks behind them. */
+	@GameTest(template = ARENA, batch = "zergChangelingPlayer", timeoutTicks = 400)
+	public void changelingCopiesAPlayerAndFollows(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		Vec3 near = point(helper, 22, 24), far = point(helper, 36, 36);
+		player.teleportTo(near.x, near.y, near.z);
+		StarUnit overseer = unit(helper, UnitKind.OVERSEER, 10, 24, null);
+		overseer.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			overseer.setEnergy(50);
+			helper.assertTrue(Abilities.cast(overseer, level, Ability.SPAWN_CHANGELING, null, null), "no changeling");
+		});
+		helper.runAfterDelay(40, () -> {
+			StarUnit changeling = changeling(helper);
+			if (changeling == null || !player.getUUID().toString().equals(changeling.disguise())) {
+				player.discard();
+				helper.fail("no look of the player: '" + (changeling == null ? "no changeling" : changeling.disguise()) + "'");
+			}
+			player.teleportTo(far.x, far.y, far.z);
+		});
+		helper.runAfterDelay(340, () -> {
+			StarUnit changeling = changeling(helper);
+			double distance = changeling == null ? -1 : changeling.distanceTo(player);
+			player.discard(); // a mock player left in the world would make every other test's mobs despawn
+			helper.assertTrue(distance >= Changeling.BEHIND_MIN - 2 && distance <= Changeling.BEHIND_MAX + 2,
+				"not behind the player: " + distance + " blocks");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "zergParasite", timeoutTicks = 300)
 	public void neuralParasiteTurnsAUnit(GameTestHelper helper) {
 		clear(helper);

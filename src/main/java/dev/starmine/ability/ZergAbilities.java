@@ -125,7 +125,7 @@ public final class ZergAbilities {
 		});
 	}
 
-	/** The overseer sends out a changeling: nobody attacks it unprovoked; it lives 150 s and sees for its side. */
+	/** The overseer sends out a changeling: nobody attacks it unprovoked; it lives 150 s, takes a look and spies ({@link Changeling}). */
 	static void changeling(StarUnit unit, ServerLevel level) {
 		StarUnit changeling = StarMine.type(UnitKind.CHANGELING).create(level);
 		if (changeling == null) return;
@@ -134,6 +134,7 @@ public final class ZergAbilities {
 		summon(unit, changeling, level);
 		Status.apply(changeling, Status.TEMPORARY, CHANGELING_TICKS);
 		level.addFreshEntity(changeling);
+		Changeling.spawned(unit, level);
 		level.sendParticles(ParticleTypes.SQUID_INK, at.x, at.y + 1, at.z, 10, 0.3, 0.3, 0.3, 0.02);
 	}
 

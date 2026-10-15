@@ -25,6 +25,9 @@ public final class AbilityState {
 	int modeTicks;
 	/** The mode it changes to. */
 	int nextMode;
+	/** A changeling: whom it follows ({@link Changeling}); an overseer: when it may send the next one out (wild). */
+	@Nullable java.util.UUID spied;
+	long nextChangeling;
 	/** Where a terran building lifted off (a landed command center moves its base's anchor from there). */
 	@Nullable Vec3 liftedFrom;
 	/** A transport's unload point. */

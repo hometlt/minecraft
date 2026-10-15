@@ -173,8 +173,9 @@ public final class HiveLogic {
 	/**
 	 * Raids (owner): with at least 4 warriors and 2 drones at home the hive sends a party every 5 min to
 	 * the nearest settlement within 96 blocks — beds, workstations, bells (points of interest), else a
-	 * player — for 3 min. Warriors kill what lives there; drones open the way through walls (not metal
-	 * or very hard blocks), bridge gaps, steal food and break mechanisms and crops.
+	 * player, else where its changelings last saw villagers or a player — for 3 min. Warriors kill what
+	 * lives there; drones open the way through walls (not metal or very hard blocks), bridge gaps, steal
+	 * food and break mechanisms and crops.
 	 */
 
 	private static void maybeRaid(StarUnit hatchery, ServerLevel level, Hive hive) {
@@ -195,6 +196,7 @@ public final class HiveLogic {
 				entity -> entity instanceof Player p && !p.isCreative() && !p.isSpectator());
 			if (player != null) target = player.blockPosition();
 		}
+		if (target == null && hive.scouted != null && now < hive.scoutedUntil) target = hive.scouted; // what its changelings saw
 		hive.nextRaid = now + RAID_COOLDOWN;
 		if (target == null) return;
 		long until = now + RAID_LENGTH;
