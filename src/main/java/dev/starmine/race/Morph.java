@@ -41,7 +41,7 @@ public final class Morph {
 		UnitKind.Economy cost = price(kind);
 		if (base.minerals < cost.minerals()) return "message.starmine.need_minerals";
 		if (base.vespene < cost.vespene()) return "message.starmine.need_vespene";
-		if (base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply";
+		if (cost.food() > 0 && base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply"; // a morph that takes no more supply
 		return null;
 	}
 

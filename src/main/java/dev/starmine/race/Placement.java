@@ -40,7 +40,7 @@ public final class Placement {
 		UnitKind.Economy cost = kind.economy();
 		if (base.minerals < cost.minerals()) return "message.starmine.need_minerals";
 		if (base.vespene < cost.vespene()) return "message.starmine.need_vespene";
-		if (base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply";
+		if (cost.food() > 0 && base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply"; // buildings take none
 		return null;
 	}
 

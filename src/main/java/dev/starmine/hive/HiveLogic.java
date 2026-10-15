@@ -65,6 +65,10 @@ public final class HiveLogic {
 		data.add(hive);
 		hatchery.joinHive(hive);
 		hive.join(UnitKind.HATCHERY);
+		// a wild hatchery starts as a wild command center or nexus does: 50 minerals and 4 drones (it
+		// started with none, and its AI grew them one a minute from larvae: its first wave came last)
+		hive.minerals = dev.starmine.colony.Founding.START_MINERALS;
+		dev.starmine.colony.Founding.startWorkers(level, hive, hatchery);
 		return hive;
 	}
 

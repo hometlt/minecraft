@@ -42,18 +42,23 @@ public final class Founding {
 		base.join(main.kind);
 		ServerPlayer player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
 		if (fresh) {
-			UnitKind worker = UnitKind.workerOf(main.kind.race);
-			for (int i = 0; worker != null && i < START_WORKERS; i++) {
-				double angle = i * Math.PI / 2 + 0.4, radius = main.kind.width * main.kind.modelScale() / 2 + 1.5;
-				BlockPos ground = BlockPos.containing(main.getX() + Math.cos(angle) * radius, main.getY() + 2, main.getZ() + Math.sin(angle) * radius);
-				for (int step = 0; step < 6 && level.getBlockState(ground.below()).isAir(); step++) ground = ground.below();
-				HiveLogic.spawn(level, base, worker, Vec3.atBottomCenterOf(ground), null);
-			}
+			startWorkers(level, base, main);
 			if (player != null) player.sendSystemMessage(Component.translatable("message.starmine.base_founded"));
 		} else if (player != null) {
 			player.sendSystemMessage(Component.translatable("message.starmine.expansion"));
 		}
 		data.setDirty();
 		return base;
+	}
+
+	/** The start of a fresh base: {@link #START_WORKERS} workers of its race around its main building. */
+	public static void startWorkers(ServerLevel level, Hive base, StarUnit main) {
+		UnitKind worker = UnitKind.workerOf(main.kind.race);
+		for (int i = 0; worker != null && i < START_WORKERS; i++) {
+			double angle = i * Math.PI / 2 + 0.4, radius = main.kind.width * main.kind.modelScale() / 2 + 1.5;
+			BlockPos ground = BlockPos.containing(main.getX() + Math.cos(angle) * radius, main.getY() + 2, main.getZ() + Math.sin(angle) * radius);
+			for (int step = 0; step < 6 && level.getBlockState(ground.below()).isAir(); step++) ground = ground.below();
+			HiveLogic.spawn(level, base, worker, Vec3.atBottomCenterOf(ground), null);
+		}
 	}
 }

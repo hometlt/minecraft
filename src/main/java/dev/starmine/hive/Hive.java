@@ -134,8 +134,10 @@ public final class Hive {
 
 	public boolean canAfford(UnitKind kind, int count) {
 		UnitKind.Economy cost = kind.economy();
+		// supply only for what takes it: over its cap (an overlord lost) a hive still builds and morphs an
+		// overlord (SC2); it used to afford nothing at all and stood so for ever
 		return minerals >= cost.minerals() * count && vespene >= cost.vespene() * count
-			&& supplyUsed() + cost.food() * count <= supplyCap();
+			&& (cost.food() <= 0 || supplyUsed() + cost.food() * count <= supplyCap());
 	}
 
 	/** Resources brought in: stores, and the panel's tally by resource label. */

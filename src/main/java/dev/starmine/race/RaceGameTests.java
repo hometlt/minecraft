@@ -135,6 +135,37 @@ public class RaceGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Over its supply cap (an overlord lost) a hive still affords an overlord and buildings, not a zergling. */
+	@GameTest(template = ARENA, batch = "zergSupply", timeoutTicks = 40)
+	public void overSupplyStillAffordsAnOverlord(GameTestHelper helper) {
+		Hive hive = new Hive(UUID.randomUUID(), helper.getLevel().dimension().location().toString(), helper.absolutePos(new BlockPos(24, 2, 24)));
+		hive.join(UnitKind.HATCHERY);
+		for (int i = 0; i < 10; i++) hive.join(UnitKind.DRONE); // supply 10 of 6 (a hatchery's)
+		hive.minerals = 1000;
+		helper.assertTrue(hive.supplyUsed() > hive.supplyCap(), "not over the cap: " + hive.supplyUsed() + "/" + hive.supplyCap());
+		helper.assertTrue(hive.canAfford(UnitKind.OVERLORD, 1), "a hive over its cap cannot afford an overlord");
+		helper.assertTrue(hive.canAfford(UnitKind.SPAWNING_POOL, 1), "a hive over its cap cannot afford a building");
+		helper.assertFalse(hive.canAfford(UnitKind.ZERGLING, 2), "a hive over its cap affords zerglings");
+		helper.succeed();
+	}
+
+	/** A wild hatchery starts its hive as a wild command center or nexus starts a base: 4 drones, 50 minerals. */
+	@GameTest(template = ARENA, batch = "wildZergStart", timeoutTicks = 100)
+	public void wildHatcheryStartsWithFourDrones(GameTestHelper helper) {
+		arena(helper);
+		StarUnit hatchery = StarMine.type(UnitKind.HATCHERY).create(helper.getLevel());
+		Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(24, 2, 24)));
+		hatchery.moveTo(at.x, at.y, at.z, 0, 0);
+		helper.getLevel().addFreshEntity(hatchery);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, hatchery);
+			helper.assertTrue(base != null && base.owner == null, "no wild hive");
+			helper.assertTrue(base.count(UnitKind.DRONE) == 4 && base.minerals == dev.starmine.colony.Founding.START_MINERALS,
+				"a wild hive starts with " + base.members + " and " + base.minerals + " minerals");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "wildProtoss", timeoutTicks = 4800)
 	public void wildProtossBaseTrainsZealots(GameTestHelper helper) {
 		wildBaseGrows(helper, UnitKind.NEXUS, UnitKind.GATEWAY, UnitKind.ZEALOT);

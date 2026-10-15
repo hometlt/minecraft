@@ -168,7 +168,8 @@ public class VespeneGameTests implements FabricGameTest {
 					+ " hatchery " + (hatchery.isRemoved() ? "removed" : "alive") + " same hive " + (HiveSavedData.get(helper.getLevel().getServer()).get(hatchery.getUUID()) == hive)
 					+ " timer " + hive.decisionTimer + " larvae " + hive.count(UnitKind.LARVA) + " order " + hive.buildOrder + " tick " + hatchery.tickCount
 					+ " extractors " + hive.count(UnitKind.EXTRACTOR) + "+" + hive.pending(UnitKind.EXTRACTOR) + " minerals " + hive.minerals + " outlet " + helper.getLevel().getBlockState(outlet)
-					+ " " + drones.stream().map(d -> helper.relativePos(d.blockPosition()).toShortString() + (d.isAlive() ? "" : " dead") + " " + d.buildKind() + d.goalsRunning()).toList());
+					+ " " + helper.getLevel().getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(48), d -> d.kind == UnitKind.DRONE).stream()
+						.map(d -> helper.relativePos(d.blockPosition()).toShortString() + " " + d.buildKind() + " cargo " + d.cargoBlocks + " " + d.goalsRunning()).toList());
 				helper.assertTrue(hive.vespene >= Vespene.PER_TRIP, "no vespene brought home; vespene " + hive.vespene);
 			});
 		});
