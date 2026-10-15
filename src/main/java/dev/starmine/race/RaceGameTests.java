@@ -235,4 +235,60 @@ public class RaceGameTests implements FabricGameTest {
 			});
 		});
 	}
+	/**
+	 * The prices of `data/starmine/costs` (CLOUD_TASK_2 stage 2) are read at start: every kind, research
+	 * and ability with an SC2 price is in them, at that price.
+	 */
+	@GameTest(template = ARENA, batch = "costs", timeoutTicks = 20)
+	public void costsAreReadFromTheConfig(GameTestHelper helper) {
+		var units = dev.starmine.colony.Costs.loaded("units");
+		for (UnitKind kind : UnitKind.values()) {
+			UnitKind.Economy sc2 = kind.race.rules().economy(kind);
+			if (sc2.minerals() == 0 && sc2.vespene() == 0) continue;
+			var cost = units.get(kind.id);
+			helper.assertTrue(cost != null, "no price of " + kind.id + " in costs/units.json");
+			helper.assertTrue(cost.minerals() == sc2.minerals() && cost.vespene() == sc2.vespene(),
+				kind.id + " costs " + cost + " in the config against SC2 " + sc2.minerals() + "/" + sc2.vespene());
+		}
+		for (Research research : Research.values())
+			for (int level = 1; level <= (research.once() ? 1 : 3); level++) {
+				if ((research == Research.LAIR || research == Research.HIVE) && level > 1) break;
+				int at = research == Research.LAIR ? 2 : research == Research.HIVE ? 3 : level;
+				var cost = dev.starmine.colony.Costs.loaded("research").get(dev.starmine.colony.Costs.researchId(research, at));
+				int[] sc2 = research.sc2Cost(at);
+				helper.assertTrue(cost != null && cost.minerals() == sc2[0] && cost.vespene() == sc2[1],
+					"research " + dev.starmine.colony.Costs.researchId(research, at) + " costs " + cost + " against SC2 " + sc2[0] + "/" + sc2[1]);
+			}
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) {
+			if (ability.minerals == 0 && ability.vespene == 0) continue;
+			var cost = dev.starmine.colony.Costs.loaded("abilities").get(ability.id);
+			helper.assertTrue(cost != null && cost.minerals() == ability.minerals && cost.vespene() == ability.vespene,
+				"ability " + ability.id + " costs " + cost);
+		}
+		helper.succeed();
+	}
+
+	/** A price in resources («морпех — 10 минералов и 2 железа») is checked and taken from the base's stock, and given back. */
+	@GameTest(template = ARENA, batch = "costs", timeoutTicks = 20)
+	public void aPriceInResourcesComesFromTheStock(GameTestHelper helper) {
+		var before = dev.starmine.colony.Costs.loaded("units").get(UnitKind.MARINE.id);
+		dev.starmine.colony.Costs.set("units", UnitKind.MARINE.id, new dev.starmine.colony.Costs.Cost(10, 0, java.util.Map.of("iron", 2)));
+		try {
+			Hive base = new Hive(UUID.randomUUID(), "minecraft:overworld", BlockPos.ZERO);
+			base.race = UnitKind.Race.TERRAN;
+			base.minerals = 100;
+			helper.assertTrue(UnitKind.MARINE.economy().minerals() == 10, "the configured minerals are not the marine's");
+			helper.assertFalse(base.canAfford(UnitKind.MARINE, 1), "a marine was affordable with no iron in the stock");
+			base.deliver(8, 0, 0, "iron", 3);
+			helper.assertTrue(base.canAfford(UnitKind.MARINE, 1), "a marine is not affordable with 3 iron");
+			base.pay(UnitKind.MARINE, 1);
+			helper.assertTrue(base.collected.get("iron") == 1 && base.minerals == 98, "paid: iron " + base.collected.get("iron") + ", minerals " + base.minerals);
+			helper.assertFalse(base.canAfford(UnitKind.MARINE, 1), "a second marine with 1 iron");
+			base.refund(UnitKind.MARINE, 1);
+			helper.assertTrue(base.collected.get("iron") == 3 && base.minerals == 108, "refunded: iron " + base.collected.get("iron") + ", minerals " + base.minerals);
+		} finally {
+			dev.starmine.colony.Costs.set("units", UnitKind.MARINE.id, before);
+		}
+		helper.succeed();
+	}
 }

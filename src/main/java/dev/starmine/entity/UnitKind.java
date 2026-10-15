@@ -208,8 +208,9 @@ public enum UnitKind {
 	public record Economy(int minerals, int vespene, double food, int trainTicks, int supply, int cargo) {
 	}
 
+	/** SC2's economy with the minerals and vespene of `data/starmine/costs` ({@link dev.starmine.colony.Costs}). */
 	public Economy economy() {
-		return race.rules().economy(this);
+		return dev.starmine.colony.Costs.economy(this, race.rules().economy(this));
 	}
 
 	/** Immobile parts of a hive or base: no movement, no knockback, solid to walk on. */

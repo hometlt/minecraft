@@ -79,8 +79,19 @@ public enum Research {
 		};
 	}
 
-	/** Minerals and vespene (SC2): weapons/armor 100/175/250 each; lair 150/100; hive 200/150. */
+	/** Its price at a level: `data/starmine/costs/research.json`, else SC2's ({@link #sc2Cost}). */
+	public dev.starmine.colony.Costs.Cost price(int level) {
+		return dev.starmine.colony.Costs.research(this, level, sc2Cost(level));
+	}
+
+	/** Minerals and vespene of its price at a level. */
 	public int[] cost(int level) {
+		dev.starmine.colony.Costs.Cost price = price(level);
+		return new int[] {price.minerals(), price.vespene()};
+	}
+
+	/** Minerals and vespene (SC2): weapons/armor 100/175/250 each; lair 150/100; hive 200/150. */
+	public int[] sc2Cost(int level) {
 		return switch (this) {
 			case WEAPONS, ARMOR -> new int[] {25 + 75 * level, 25 + 75 * level};
 			case LAIR -> new int[] {150, 100};
@@ -125,10 +136,7 @@ public enum Research {
 				if (this == CENTRIFUGAL_HOOKS && base.tier < 2) return "message.starmine.need_tech";
 			}
 		}
-		int[] cost = cost(level);
-		if (base.minerals < cost[0]) return "message.starmine.need_minerals";
-		if (base.vespene < cost[1]) return "message.starmine.need_vespene";
-		return null;
+		return base.lacking(price(level));
 	}
 
 	/** Done: the base gets the level. */

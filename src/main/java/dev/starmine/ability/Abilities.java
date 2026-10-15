@@ -56,11 +56,12 @@ public final class Abilities {
 		if (unit.energy() < ability.energy) return "message.starmine.need_energy";
 		double health = ability.healthCost(unit.kind) * UnitKind.SCALE;
 		if (health > 0 && unit.body().getHealth() <= health) return "message.starmine.need_health";
-		if (ability.minerals > 0 || ability.vespene > 0) {
+		dev.starmine.colony.Costs.Cost price = dev.starmine.colony.Costs.ability(ability);
+		if (price.any()) {
 			Hive base = base(unit);
 			if (base == null) return "message.starmine.no_base";
-			if (base.minerals < ability.minerals) return "message.starmine.need_minerals";
-			if (base.vespene < ability.vespene) return "message.starmine.need_vespene";
+			String lacking = base.lacking(price);
+			if (lacking != null) return lacking;
 		}
 		return switch (ability) {
 			case LOAD, UNLOAD -> unit.pilot() != null ? "message.starmine.pilot_transport" : Transport.refusal(unit, ability);
@@ -120,10 +121,10 @@ public final class Abilities {
 			if (ability.cooldownTicks > 0) unit.abilities.readyAt.put(ability, level.getGameTime() + ability.cooldownTicks);
 			double health = ability.healthCost(unit.kind) * UnitKind.SCALE;
 			if (health > 0) unit.body().setHealth((float) (unit.body().getHealth() - health));
-			Hive base = ability.minerals > 0 || ability.vespene > 0 ? base(unit) : null;
+			dev.starmine.colony.Costs.Cost price = dev.starmine.colony.Costs.ability(ability);
+			Hive base = price.any() ? base(unit) : null;
 			if (base != null) {
-				base.minerals -= ability.minerals;
-				base.vespene -= ability.vespene;
+				base.pay(price);
 				HiveSavedData.get(level.getServer()).setDirty();
 			}
 		}

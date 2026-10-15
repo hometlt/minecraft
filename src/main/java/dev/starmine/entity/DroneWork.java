@@ -107,6 +107,15 @@ final class DroneWork extends Goal {
 	private List<DronePlanner.Step> plan;
 	private int stepIndex, stepTicks, failures, stuckTicks;
 	private double bestDistance;
+	/** Debug: why it last planned again, and how often. */
+	private String why = "";
+	private int replans;
+	/** Mining: the nearest it came to its ore, ticks since it came nearer; ores it gave up on, till when. */
+	private double mineBest = Double.MAX_VALUE;
+	private int mineStuck;
+	private final Map<BlockPos, Long> unreachable = new HashMap<>();
+	/** Ticks without coming nearer to its ore (or breaking a block) before it gives the ore up for {@link #GIVE_UP_FOR}. */
+	static final int MINE_PATIENCE = 400, GIVE_UP_FOR = 2400;
 
 	DroneWork(StarUnit drone) {
 		this.drone = drone;
@@ -162,7 +171,7 @@ final class DroneWork extends Goal {
 	@Override
 	public String toString() {
 		return state + (mineTarget != null ? " ore " + mineTarget.toShortString() : "") + (gasOutlet != null ? " gas " + gasOutlet.toShortString() + " t" + gasTicks + (inside ? " inside" : "") : "") + (moveGoal != null ? " to " + BlockPos.containing(moveGoal).toShortString() : "")
-			+ (plan != null ? " plan " + stepIndex + "/" + plan.size() : "") + " fail " + failures;
+			+ (plan != null ? " plan " + stepIndex + "/" + plan.size() : "") + " fail " + failures + (replans > 0 ? " replans " + replans + " (" + why + ")" : "");
 	}
 
 	@Override
@@ -224,9 +233,16 @@ final class DroneWork extends Goal {
 	}
 
 	private void to(State next) {
+		// work elsewhere (a building, an army's way, a raid): its marks on ore are given up, or nobody mines that ore again
+		if ((next == State.BUILD || next == State.ENGINEER || next == State.RAID || next == State.EXPLORE || next == State.TUNNEL) && mineTarget != null) {
+			releaseAll(drone.getUUID());
+			mineTarget = null;
+		}
 		if (next == State.CARRY && state != State.CARRY) resume = state == State.GAS || state == State.MINE ? state : State.SEEK;
 		state = next;
 		stateTicks = 0;
+		mineBest = Double.MAX_VALUE;
+		mineStuck = 0;
 		resetMove();
 	}
 
@@ -275,7 +291,10 @@ final class DroneWork extends Goal {
 		drone.getNavigation().stop();
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		Set<Long> routes = hive != null ? hive.routes : Set.of();
-		plan = DronePlanner.plan(level, DronePlanner.feetOf(drone.position()), goal, arrive, routes, dig, drone.fillCount(), 3000);
+		replans++;
+		// ore of another kind than its load is not broken on the way (it would be lost): the way goes round it
+		plan = DronePlanner.plan(level, DronePlanner.feetOf(drone.position()), goal, arrive, routes, dig, drone.fillCount(), 3000, DronePlanner.Body.DRONE,
+			state -> HiveResources.isOre(state) && !drone.canTake(state));
 		stepIndex = 0;
 		stepTicks = 0;
 		planned = true;
@@ -287,18 +306,26 @@ final class DroneWork extends Goal {
 	}
 
 	private Move followPlan(ServerLevel level, Vec3 goal, double arrive, boolean dig) {
-		if (stepIndex >= plan.size()) return replan(level, goal, arrive, dig); // a partial plan ran out
+		if (stepIndex >= plan.size()) {
+			why = "plan ran out";
+			return replan(level, goal, arrive, dig); // a partial plan ran out
+		}
 		DronePlanner.Step step = plan.get(stepIndex);
 		for (BlockPos block : step.dig()) {
 			if (!DronePlanner.solid(level, block)) continue;
-			if (!reach(block) || !DronePlanner.breakable(level, block, null) || !drone.canTake(level.getBlockState(block)))
+			if (!reach(block) || !DronePlanner.breakable(level, block, null) || !drone.canTake(level.getBlockState(block))) {
+				why = !reach(block) ? "out of reach" : !drone.canTake(level.getBlockState(block)) ? "cannot take " + level.getBlockState(block).getBlock() : "unbreakable";
 				return replan(level, goal, arrive, dig);
+			}
 			start(level, block);
 			return Move.MOVING;
 		}
 		for (BlockPos floor : step.fill()) {
 			if (DronePlanner.solid(level, floor)) continue;
-			if (!drone.placeFill(floor)) return replan(level, goal, arrive, dig);
+			if (!drone.placeFill(floor)) {
+				why = "no fill";
+				return replan(level, goal, arrive, dig);
+			}
 			return Move.MOVING;
 		}
 		Vec3 centre = DronePlanner.centre(step.feet());
@@ -310,7 +337,10 @@ final class DroneWork extends Goal {
 			stepTicks = 0;
 			return Move.MOVING;
 		}
-		if (++stepTicks > 80) return replan(level, goal, arrive, dig);
+		if (++stepTicks > 80) {
+			why = String.format(java.util.Locale.ROOT, "step %d off by %.1f %.1f", stepIndex, Math.sqrt(dx * dx + dz * dz), drone.getY() - centre.y);
+			return replan(level, goal, arrive, dig);
+		}
 		drone.getMoveControl().setWantedPosition(centre.x, centre.y, centre.z, 1.0);
 		return Move.MOVING;
 	}
@@ -484,7 +514,9 @@ final class DroneWork extends Goal {
 	 * half the hive's drones mined, and zerg brought in 416 minerals a minute against 704.)
 	 */
 	BlockPos oreNear(ServerLevel level) {
-		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID());
+		long now = level.getGameTime();
+		unreachable.values().removeIf(until -> until < now);
+		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID(), unreachable.keySet());
 		if (ore != null || drone.hiveId() == null) return ore;
 		StarUnit main = null;
 		double best = Double.MAX_VALUE;
@@ -496,10 +528,10 @@ final class DroneWork extends Goal {
 				main = unit;
 			}
 		}
-		return main == null ? null : findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID());
+		return main == null ? null : findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID(), unreachable.keySet());
 	}
 
-	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius, UUID self) {
+	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius, UUID self, Set<BlockPos> skip) {
 		List<BlockPos> others = new ArrayList<>();
 		for (Map.Entry<BlockPos, UUID> claim : CLAIMS.entrySet())
 			if (!claim.getValue().equals(self) && !claim.getValue().equals(NOBODY) && claim.getKey().distSqr(centre) < (radius + SPREAD) * (radius + SPREAD))
@@ -507,7 +539,8 @@ final class DroneWork extends Goal {
 		BlockPos best = null, crowded = null;
 		double bestDist = Double.MAX_VALUE, crowdedDist = Double.MAX_VALUE;
 		for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-radius, -radius, -radius), centre.offset(radius, radius, radius))) {
-			if (CLAIMS.containsKey(pos) || !HiveResources.isOre(level.getBlockState(pos))) continue;
+			UUID owner = CLAIMS.get(pos);
+			if (owner != null && !owner.equals(self) || skip.contains(pos) || !HiveResources.isOre(level.getBlockState(pos))) continue;
 			double d = pos.distSqr(centre);
 			boolean near = false;
 			for (BlockPos other : others) if (other.distSqr(pos) < SPREAD * SPREAD) { near = true; break; }
@@ -556,6 +589,18 @@ final class DroneWork extends Goal {
 			start(level, mineTarget);
 			return;
 		}
+		// no nearer for a long time (a way that cannot be walked, others in the way): it gives this ore up for a while
+		double distance = drone.position().distanceTo(Vec3.atCenterOf(mineTarget));
+		if (distance < mineBest - 0.5) {
+			mineBest = distance;
+			mineStuck = 0;
+		} else if (++mineStuck > MINE_PATIENCE && !deep) {
+			unreachable.put(mineTarget, level.getGameTime() + GIVE_UP_FOR);
+			releaseAll(drone.getUUID());
+			mineTarget = null;
+			to(State.SEEK);
+			return;
+		}
 		Move move = moveTo(level, Vec3.atCenterOf(mineTarget), deep ? 2.0 : 2.8, true);
 		if (move == Move.ARRIVED && deep) {
 			deep = false;
@@ -575,6 +620,7 @@ final class DroneWork extends Goal {
 			UUID owner = CLAIMS.get(near);
 			if ((owner == null || owner.equals(drone.getUUID())) && HiveResources.isOre(level.getBlockState(near))) {
 				mineTarget = near.immutable();
+				mineBest = Double.MAX_VALUE;
 				claim(mineTarget);
 				return true;
 			}
@@ -894,6 +940,7 @@ final class DroneWork extends Goal {
 
 	private void start(ServerLevel level, BlockPos pos) {
 		if (pos.equals(breaking)) return;
+		mineStuck = 0; // breaking its way is progress
 		breaking = pos.immutable();
 		breakTicks = 0;
 		breakNeeded = Math.max(4, (int) (level.getBlockState(pos).getDestroySpeed(level, pos) * 12));

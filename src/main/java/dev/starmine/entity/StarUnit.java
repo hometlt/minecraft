@@ -1341,9 +1341,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		} else if (research != null) {
 			dev.starmine.race.Research what = dev.starmine.race.Research.byId(research);
 			if (hive != null && what != null) {
-				int[] cost = what.cost(what.nextLevel(hive));
-				hive.minerals += cost[0];
-				hive.vespene += cost[1];
+				hive.refund(what.price(what.nextLevel(hive)));
 			}
 			research = null;
 			researchTicks = 0;
@@ -1410,9 +1408,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (hive == null || what.refusal(hive, kind) != null) return false;
 		if (what.at(UnitKind.BARRACKS) && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
 		int level = what.nextLevel(hive);
-		int[] cost = what.cost(level);
-		hive.minerals -= cost[0];
-		hive.vespene -= cost[1];
+		hive.pay(what.price(level));
 		research = what.id();
 		researchTicks = what.ticks(level);
 		HiveSavedData.get(server.getServer()).setDirty();

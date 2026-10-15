@@ -354,6 +354,7 @@
 	"message.starmine.need_tech": "Сначала нужно другое здание",
 	"message.starmine.need_minerals": "Недостаточно минералов",
 	"message.starmine.need_vespene": "Недостаточно веспенового газа",
+	"message.starmine.need_materials": "Не хватает ресурсов на складе",
 	"message.starmine.need_supply": "Не хватает снабжения: постройте склады снабжения",
 	"message.starmine.queue_full": "Очередь заполнена",
 	"message.starmine.cannot_research": "Это исследование сейчас недоступно",

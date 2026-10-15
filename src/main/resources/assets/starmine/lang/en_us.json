@@ -354,6 +354,7 @@
 	"message.starmine.need_tech": "Requires another building first",
 	"message.starmine.need_minerals": "Not enough minerals",
 	"message.starmine.need_vespene": "Not enough vespene gas",
+	"message.starmine.need_materials": "Not enough resources in the stock",
 	"message.starmine.need_supply": "Not enough supply: build Supply Depots",
 	"message.starmine.queue_full": "The queue is full",
 	"message.starmine.cannot_research": "Cannot research that now",

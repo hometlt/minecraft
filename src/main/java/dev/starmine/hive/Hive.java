@@ -29,7 +29,10 @@ public final class Hive {
 	 * of the base's first main building.
 	 */
 	public UUID owner;
-	/** What its workers (and its player) brought in, by resource label (wood, iron, ...): the resource panel. */
+	/**
+	 * Its stock of each resource by label (iron, diamond, ...): what its workers and its player brought in,
+	 * less what prices in resources took ({@link dev.starmine.colony.Costs}); the resource panel shows it.
+	 */
 	public final Map<String, Integer> collected = new java.util.LinkedHashMap<>();
 	/** Zerg: warriors gathered before the next attack on a terran base, and when it may start. */
 	public int waveSize = 6;
@@ -139,7 +142,7 @@ public final class Hive {
 		UnitKind.Economy cost = kind.economy();
 		// supply only for what takes it: over its cap (an overlord lost) a hive still builds and morphs an
 		// overlord (SC2); it used to afford nothing at all and stood so for ever
-		return minerals >= cost.minerals() * count && vespene >= cost.vespene() * count
+		return minerals >= cost.minerals() * count && vespene >= cost.vespene() * count && has(dev.starmine.colony.Costs.materials(kind), count)
 			&& (cost.food() <= 0 || supplyUsed() + cost.food() * count <= supplyCap());
 	}
 
@@ -156,11 +159,53 @@ public final class Hive {
 	public void refund(UnitKind kind, int count) {
 		minerals += kind.economy().minerals() * count;
 		vespene += kind.economy().vespene() * count;
+		give(dev.starmine.colony.Costs.materials(kind), count);
 	}
 
 	public void pay(UnitKind kind, int count) {
 		minerals -= kind.economy().minerals() * count;
 		vespene -= kind.economy().vespene() * count;
+		take(dev.starmine.colony.Costs.materials(kind), count);
+	}
+
+	/** Whether the stock holds these resources (by label) `count` times. */
+	public boolean has(Map<String, Integer> materials, int count) {
+		for (Map.Entry<String, Integer> material : materials.entrySet())
+			if (collected.getOrDefault(material.getKey(), 0) < material.getValue() * count) return false;
+		return true;
+	}
+
+	public void take(Map<String, Integer> materials, int count) {
+		for (Map.Entry<String, Integer> material : materials.entrySet()) collected.merge(material.getKey(), -material.getValue() * count, Integer::sum);
+	}
+
+	public void give(Map<String, Integer> materials, int count) {
+		for (Map.Entry<String, Integer> material : materials.entrySet()) collected.merge(material.getKey(), material.getValue() * count, Integer::sum);
+	}
+
+	/** Whether the base can pay a price now (minerals, vespene, stock). */
+	public boolean canPay(dev.starmine.colony.Costs.Cost cost) {
+		return minerals >= cost.minerals() && vespene >= cost.vespene() && has(cost.materials(), 1);
+	}
+
+	/** The lang key of what is missing for a price, or null. */
+	public String lacking(dev.starmine.colony.Costs.Cost cost) {
+		if (minerals < cost.minerals()) return "message.starmine.need_minerals";
+		if (vespene < cost.vespene()) return "message.starmine.need_vespene";
+		if (!has(cost.materials(), 1)) return "message.starmine.need_materials";
+		return null;
+	}
+
+	public void pay(dev.starmine.colony.Costs.Cost cost) {
+		minerals -= cost.minerals();
+		vespene -= cost.vespene();
+		take(cost.materials(), 1);
+	}
+
+	public void refund(dev.starmine.colony.Costs.Cost cost) {
+		minerals += cost.minerals();
+		vespene += cost.vespene();
+		give(cost.materials(), 1);
 	}
 
 	public CompoundTag save() {

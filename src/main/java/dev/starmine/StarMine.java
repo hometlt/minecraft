@@ -128,6 +128,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.colony.CommandPanel.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
+		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new dev.starmine.colony.Costs());
 		// owner: hostile mobs (creepers, zombies, skeletons...) attack zerg as zerg attack them
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (entity instanceof Monster monster && !(entity instanceof StarUnit))

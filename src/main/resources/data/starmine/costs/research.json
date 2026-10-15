@@ -1,0 +1,17 @@
+{
+	"weapons_1": {"minerals": 100, "vespene": 100},
+	"weapons_2": {"minerals": 175, "vespene": 175},
+	"weapons_3": {"minerals": 250, "vespene": 250},
+	"armor_1": {"minerals": 100, "vespene": 100},
+	"armor_2": {"minerals": 175, "vespene": 175},
+	"armor_3": {"minerals": 250, "vespene": 250},
+	"lair": {"minerals": 150, "vespene": 100},
+	"hive": {"minerals": 200, "vespene": 150},
+	"metabolic_boost": {"minerals": 100, "vespene": 100},
+	"centrifugal_hooks": {"minerals": 100, "vespene": 100},
+	"combat_shield": {"minerals": 100, "vespene": 100},
+	"stimpack": {"minerals": 100, "vespene": 100},
+	"charge": {"minerals": 100, "vespene": 100},
+	"concussive_shells": {"minerals": 50, "vespene": 50},
+	"blink": {"minerals": 150, "vespene": 150}
+}

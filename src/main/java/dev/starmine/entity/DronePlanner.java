@@ -108,9 +108,15 @@ public final class DronePlanner {
 
 	/** {@link #plan} for any body; costs follow how long a worker takes: walking, digging by hardness, bridging. */
 	public static List<Step> plan(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body) {
+		return plan(level, start, target, arrive, routes, dig, fill, budget, body, null);
+	}
+
+	/** {@link #plan}, never breaking blocks `keep` names (a worker's way past ore it cannot carry now). */
+	public static List<Step> plan(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body,
+			java.util.function.Predicate<BlockState> keep) {
 		long began = System.nanoTime();
 		int[] expanded = new int[1];
-		List<Step> steps = search(level, start, target, arrive, routes, dig, fill, budget, body, expanded);
+		List<Step> steps = search(level, start, target, arrive, routes, dig, fill, budget, body, expanded, keep);
 		long spent = System.nanoTime() - began;
 		STATS.searches++;
 		STATS.expanded += expanded[0];
@@ -121,9 +127,9 @@ public final class DronePlanner {
 	}
 
 	private static List<Step> search(ServerLevel level, BlockPos start, Vec3 target, double arrive, Set<Long> routes, boolean dig, int fill, int budget, Body body,
-			int[] count) {
+			int[] count, java.util.function.Predicate<BlockState> keep) {
 		Set<Long> buildings = buildings(level, start, body.reach());
-		Cells cells = new Cells(level, routes);
+		Cells cells = new Cells(level, routes, keep);
 		// a wide body pays its whole face of rock (a thor: 30 blocks, ~110) for every step of a tunnel: a plain
 		// A* first walked every free cell in front of a ridge and ran out of nodes there. Weighted toward the
 		// goal by about that price, it cuts its tunnel straight (weighted A*: a way not the cheapest, but found)
@@ -287,11 +293,13 @@ public final class DronePlanner {
 		private static final byte KNOWN = 1, SOLID = 2, FLUID = 4, BREAKABLE = 8;
 		final ServerLevel level;
 		final Set<Long> routes;
+		final java.util.function.Predicate<BlockState> keep;
 		private final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap known = new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap();
 
-		Cells(ServerLevel level, Set<Long> routes) {
+		Cells(ServerLevel level, Set<Long> routes, java.util.function.Predicate<BlockState> keep) {
 			this.level = level;
 			this.routes = routes;
+			this.keep = keep;
 		}
 
 		private byte of(BlockPos pos) {
@@ -301,7 +309,7 @@ public final class DronePlanner {
 			info = KNOWN;
 			if (DronePlanner.solid(level, pos)) info |= SOLID;
 			if (!level.getFluidState(pos).isEmpty()) info |= FLUID;
-			if ((info & SOLID) != 0 && DronePlanner.breakable(level, pos, routes)) info |= BREAKABLE;
+			if ((info & SOLID) != 0 && DronePlanner.breakable(level, pos, routes) && (keep == null || !keep.test(level.getBlockState(pos)))) info |= BREAKABLE;
 			known.put(key, info);
 			return info;
 		}

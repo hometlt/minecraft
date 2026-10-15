@@ -41,6 +41,7 @@ public final class Morph {
 		UnitKind.Economy cost = price(kind);
 		if (base.minerals < cost.minerals()) return "message.starmine.need_minerals";
 		if (base.vespene < cost.vespene()) return "message.starmine.need_vespene";
+		if (!base.has(dev.starmine.colony.Costs.materials(kind), 1)) return "message.starmine.need_materials";
 		if (cost.food() > 0 && base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply"; // a morph that takes no more supply
 		return null;
 	}
@@ -56,6 +57,7 @@ public final class Morph {
 		UnitKind.Economy cost = price(kind);
 		base.minerals -= cost.minerals();
 		base.vespene -= cost.vespene();
+		base.take(dev.starmine.colony.Costs.materials(kind), 1);
 		boolean airborne = unit.kind.flying;
 		var at = unit.position();
 		unit.discard(); // leaves the base: its supply goes to the cocoon
