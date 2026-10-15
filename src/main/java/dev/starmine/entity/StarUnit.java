@@ -191,7 +191,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public StarUnit(EntityType<? extends Monster> type, Level level) {
 		super(type, level);
 		this.kind = StarMine.kindOf(type);
-		this.xpReward = (int) Math.min(20, 1 + kind.health / 5);
+		// owner 15.10: no experience for larvae (a larva every 11 s would be an experience farm)
+		this.xpReward = kind == UnitKind.LARVA ? 0 : (int) Math.min(20, 1 + kind.health / 5);
 		this.lifeLeft = kind.lifeTicks();
 		this.entityData.set(SHIELD, (float) kind.shields);
 		this.entityData.set(ENERGY, (float) kind.startEnergy());

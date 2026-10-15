@@ -26,7 +26,8 @@ import net.minecraft.world.phys.Vec3;
  * common AI's ({@link dev.starmine.ai.AiCommander}); a player's hive decides nothing by itself.
  */
 public final class HiveLogic {
-	public static final int LARVA_TICKS = 60 * 20;
+	/** SC2: a larva every 11 s (owner 15.10; it was one a minute). */
+	public static final int LARVA_TICKS = 11 * 20;
 	public static final int MAX_LARVAE = 3;
 	public static final int DECISION_TICKS = 100;
 	public static final int MAX_WORKERS = 8;

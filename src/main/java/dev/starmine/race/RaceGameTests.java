@@ -166,6 +166,30 @@ public class RaceGameTests implements FabricGameTest {
 		});
 	}
 
+	/** A hatchery gives a larva every 11 s as in SC2 (owner 15.10: it was one a minute); larvae give no experience. */
+	@GameTest(template = ARENA, batch = "larvaPace", timeoutTicks = 400)
+	public void larvaeComeEveryElevenSecondsAndGiveNoExperience(GameTestHelper helper) {
+		arena(helper);
+		StarUnit hatchery = main(helper, UnitKind.HATCHERY, 24, 24);
+		int[] start = new int[1];
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, hatchery);
+			helper.assertTrue(base != null, "no hive");
+			start[0] = base.count(UnitKind.LARVA);
+			base.larvaTimer = 0;
+		});
+		helper.runAfterDelay(5 + HiveLogic.LARVA_TICKS + 20, () -> {
+			Hive base = base(helper, hatchery);
+			helper.assertTrue(HiveLogic.LARVA_TICKS == 11 * 20, "a larva every " + HiveLogic.LARVA_TICKS / 20 + " s");
+			helper.assertTrue(base.count(UnitKind.LARVA) > start[0] || start[0] >= HiveLogic.MAX_LARVAE, "no larva in 12 s: " + base.members);
+			StarUnit larva = nearest(helper, base, UnitKind.LARVA, hatchery);
+			StarUnit zergling = StarMine.type(UnitKind.ZERGLING).create(helper.getLevel());
+			helper.assertTrue(larva != null && larva.getExperienceReward(helper.getLevel(), null) == 0, "a larva gives experience");
+			helper.assertTrue(zergling.getExperienceReward(helper.getLevel(), null) > 0, "a zergling gives none");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "wildProtoss", timeoutTicks = 4800)
 	public void wildProtossBaseTrainsZealots(GameTestHelper helper) {
 		wildBaseGrows(helper, UnitKind.NEXUS, UnitKind.GATEWAY, UnitKind.ZEALOT);
