@@ -116,7 +116,9 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		helper.runAfterDelay(60, () -> {
 			helper.assertTrue(hellion.mode() == Modes.HELLBAT && hellion.biological(), "not a hellbat");
 			helper.assertTrue(hellion.getMaxHealth() > UnitKind.HELLION.health + 10, "no more health: " + hellion.getMaxHealth());
-			helper.assertTrue(hellion.weapon().range() < 4, "not a short flame");
+			// SC2 hellbat flame reach 2 against the hellion's 5
+			helper.assertTrue(hellion.weapon().range() <= 2 * UnitKind.BLOCKS_PER_UNIT + 1 && hellion.weapon().range() < UnitKind.HELLION.range / 2,
+				"not a short flame: " + hellion.weapon().range());
 			helper.succeed();
 		});
 	}
@@ -185,7 +187,8 @@ public class TerranAbilityGameTests implements FabricGameTest {
 			helper.assertTrue(Abilities.cast(ghost, level, Ability.NUKE, null, crawler.position()), "no nuke: " + Abilities.refusal(ghost, Ability.NUKE));
 			helper.assertTrue(base.minerals == 900 && base.vespene == 900, "the nuke is not paid");
 		});
-		helper.runAfterDelay(205, () -> helper.assertTrue(crawler.getHealth() == crawler.getMaxHealth(), "the nuke landed early"));
+		helper.runAfterDelay(205, () -> helper.assertTrue(crawler.getHealth() == crawler.getMaxHealth(), "the nuke landed early: the crawler has "
+			+ crawler.getHealth() + " of " + crawler.getMaxHealth() + ", hurt by " + crawler.getLastHurtByMob() + " with " + crawler.getLastDamageSource()));
 		helper.runAfterDelay(305, () -> {
 			helper.assertTrue(!crawler.isAlive() || crawler.getHealth() < crawler.getMaxHealth() * 0.2, "the nuke left " + crawler.getHealth());
 			helper.succeed();

@@ -316,9 +316,12 @@ public enum UnitKind {
 		};
 	}
 
-	/** Flying kinds keep at least this many blocks above the ground unless diving at a target. */
+	/**
+	 * Flying kinds keep at least this many blocks above the ground unless diving at a target; grown with
+	 * the units ({@link #UNIT_SIZE}), like ranges and sight.
+	 */
 	public double hoverHeight() {
-		return switch (this) {
+		return UNIT_SIZE * switch (this) {
 			case OVERLORD, OVERSEER -> 6;
 			case BROOD_LORD -> 7;
 			case MUTALISK, CORRUPTOR, VIPER -> 4;

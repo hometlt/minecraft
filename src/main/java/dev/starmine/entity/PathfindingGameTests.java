@@ -104,18 +104,20 @@ public class PathfindingGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "pathGaps", timeoutTicks = 800)
 	public void unitsFindGapsTheirSize(GameTestHelper helper) {
 		clear(helper);
-		// a wall 3 high across the arena with gaps 1, 2 and 3 wide
+		// a wall 3 high across the arena with gaps 2, 4 and 7 wide: a zergling and a marine (1.3 and 1.6 wide)
+		// fit the first, a roach (2.6) the second, an ultralisk (5.6) the third; the game's pathfinder wants
+		// a body's width plus one free (`DronePlanner.Body`)
 		fill(helper, 24, 2, 0, 24, 4, 47, Blocks.STONE.defaultBlockState());
-		fill(helper, 24, 2, 8, 24, 4, 8, Blocks.AIR.defaultBlockState());
-		fill(helper, 24, 2, 20, 24, 4, 21, Blocks.AIR.defaultBlockState());
-		fill(helper, 24, 2, 34, 24, 4, 36, Blocks.AIR.defaultBlockState());
+		fill(helper, 24, 2, 7, 24, 4, 8, Blocks.AIR.defaultBlockState());
+		fill(helper, 24, 2, 19, 24, 4, 22, Blocks.AIR.defaultBlockState());
+		fill(helper, 24, 2, 33, 24, 4, 39, Blocks.AIR.defaultBlockState());
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		goals.put(unit(helper, UnitKind.ZERGLING, 12, 4, player), point(helper, 36, 4));
 		goals.put(unit(helper, UnitKind.MARINE, 12, 14, player), point(helper, 36, 14));
 		goals.put(unit(helper, UnitKind.ROACH, 12, 24, player), point(helper, 36, 24));
 		goals.put(unit(helper, UnitKind.ULTRALISK, 12, 40, player), point(helper, 36, 40));
-		race(helper, "wall with gaps 1/2/3", goals, 1.5, 700);
+		race(helper, "wall with gaps 2/4/7", goals, 1.5, 700);
 	}
 
 	@GameTest(template = ARENA, batch = "pathCliff", timeoutTicks = 900)
@@ -251,11 +253,11 @@ public class PathfindingGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "pathTunnels", timeoutTicks = 900)
 	public void zergFollowWindingTunnels(GameTestHelper helper) {
 		clear(helper);
-		// solid rock 4 high with a winding 2x2 tunnel: east, north, east, south, east
-		fill(helper, 0, 2, 0, 47, 5, 47, Blocks.STONE.defaultBlockState());
+		// solid rock with a winding 3x3 tunnel (a roach is 2.6 wide, a drone 1.9): east, north, east, south, east
+		fill(helper, 0, 2, 0, 47, 6, 47, Blocks.STONE.defaultBlockState());
 		int[][] legs = {{2, 22, 14, 22}, {14, 22, 14, 10}, {14, 10, 30, 10}, {30, 10, 30, 30}, {30, 30, 45, 30}};
 		for (int[] leg : legs)
-			fill(helper, Math.min(leg[0], leg[2]), 2, Math.min(leg[1], leg[3]), Math.max(leg[0], leg[2]) + 1, 3, Math.max(leg[1], leg[3]) + 1,
+			fill(helper, Math.min(leg[0], leg[2]), 2, Math.min(leg[1], leg[3]), Math.max(leg[0], leg[2]) + 2, 4, Math.max(leg[1], leg[3]) + 2,
 				Blocks.AIR.defaultBlockState());
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
@@ -263,19 +265,20 @@ public class PathfindingGameTests implements FabricGameTest {
 		goals.put(unit(helper, UnitKind.ZERGLING, 3, 23, player), end);
 		goals.put(unit(helper, UnitKind.ROACH, 5, 23, player), end);
 		goals.put(unit(helper, UnitKind.DRONE, 8, 23, player), end);
-		race(helper, "winding 2x2 tunnel", goals, 2.5, 800);
+		race(helper, "winding 3x3 tunnel", goals, 2.5, 800);
 	}
 
 	@GameTest(template = ARENA, batch = "pathForest", timeoutTicks = 900)
 	public void unitsCrossAForest(GameTestHelper helper) {
 		clear(helper);
-		// oaks every 5 blocks: a trunk 5 high and a crown of leaves from 4 up (a stalker, 3.1 tall, walks under it)
-		for (int x = 14; x <= 34; x += 5)
-			for (int z = 2; z <= 46; z += 5) {
-				int ox = x + (z / 5 % 2) * 2;
-				fill(helper, ox - 1, 6, z - 1, ox + 1, 7, z + 1, Blocks.OAK_LEAVES.defaultBlockState()
+		// tall trees every 9 blocks, staggered: a trunk 9 high and a crown of leaves from 8 up (an ultralisk, 7.4
+		// tall, walks under it; a tank, 5.8 wide, between the trunks)
+		for (int x = 14; x <= 34; x += 9)
+			for (int z = 2; z <= 46; z += 9) {
+				int ox = x + (z / 9 % 2) * 4;
+				fill(helper, ox - 1, 10, z - 1, ox + 1, 11, z + 1, Blocks.OAK_LEAVES.defaultBlockState()
 					.setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true));
-				fill(helper, ox, 2, z, ox, 6, z, Blocks.OAK_LOG.defaultBlockState());
+				fill(helper, ox, 2, z, ox, 10, z, Blocks.OAK_LOG.defaultBlockState());
 			}
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
@@ -304,7 +307,7 @@ public class PathfindingGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "pathFlyCeiling", timeoutTicks = 800)
 	public void flyersUnderACeiling(GameTestHelper helper) {
 		clear(helper);
-		fill(helper, 0, 9, 0, 47, 9, 47, Blocks.STONE.defaultBlockState()); // a cave roof 7 blocks over the floor
+		fill(helper, 0, 12, 0, 47, 12, 47, Blocks.STONE.defaultBlockState()); // a cave roof 10 blocks over the floor (an overseer is 7.6 tall)
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		UnitKind[] kinds = {UnitKind.MUTALISK, UnitKind.VIKING, UnitKind.MEDIVAC, UnitKind.PHOENIX, UnitKind.OVERSEER};
@@ -315,7 +318,7 @@ public class PathfindingGameTests implements FabricGameTest {
 			flyers.add(flyer);
 			goals.put(flyer, point(helper, 40, z));
 		}
-		double roof = point(helper, 0, 0).y + 7;
+		double roof = point(helper, 0, 0).y + 10;
 		helper.onEachTick(() -> {
 			for (StarUnit flyer : flyers)
 				if (flyer.isAlive() && flyer.getY() + flyer.getBbHeight() > roof + 0.01) helper.fail(flyer.kind.id + " is in the roof");
