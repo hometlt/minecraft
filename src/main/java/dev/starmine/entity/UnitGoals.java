@@ -296,7 +296,7 @@ public final class UnitGoals {
 			}
 			// the last blocks straight when nothing stands between: the game's path lets a big unit off up to
 			// half its width short of its point (a thor sent onto a tunnel's axis stopped 3 blocks aside of it)
-			if (flat < 2.5 + unit.getBbWidth() / 2 && Math.abs(unit.getY() - goal.y) < 1.5
+			if (flat < 2.5 + unit.getBbWidth() / 2 && Math.abs(unit.getY() - goal.y) < 1.5 && dry(unit, goal)
 				&& unit.level().clip(new net.minecraft.world.level.ClipContext(unit.position().add(0, 0.5, 0), new Vec3(goal.x, unit.getY() + 0.5, goal.z),
 					net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, unit)).getType()
 					== net.minecraft.world.phys.HitResult.Type.MISS) {
@@ -306,9 +306,22 @@ public final class UnitGoals {
 			}
 			if (--repath > 0) return;
 			repath = 20;
-			if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0)) {
+			if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0) && dry(unit, goal)) {
 				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 			}
+		}
+
+		/**
+		 * No water on the straight line to the goal (CLOUD_TASK_2 stage 4): with no way there a unit used to
+		 * walk straight at its point, into a river; now it stays on the bank.
+		 */
+		private static boolean dry(StarUnit unit, Vec3 goal) {
+			double dx = goal.x - unit.getX(), dz = goal.z - unit.getZ(), length = Math.sqrt(dx * dx + dz * dz);
+			for (double t = 0; t <= length; t += 0.5) {
+				BlockPos feet = BlockPos.containing(unit.getX() + dx / Math.max(length, 1e-6) * t, unit.getY() + 0.2, unit.getZ() + dz / Math.max(length, 1e-6) * t);
+				if (!unit.level().getFluidState(feet).isEmpty() || !unit.level().getFluidState(feet.below()).isEmpty()) return false;
+			}
+			return true;
 		}
 	}
 }

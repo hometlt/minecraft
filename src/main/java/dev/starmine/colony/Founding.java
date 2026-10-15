@@ -6,11 +6,9 @@ import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveLogic;
 import dev.starmine.hive.HiveSavedData;
 import java.util.UUID;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.phys.Vec3;
 
 /**
  * A main building (hatchery, command center, nexus) founds or joins a base (owner 14.10,
@@ -55,10 +53,10 @@ public final class Founding {
 	public static void startWorkers(ServerLevel level, Hive base, StarUnit main) {
 		UnitKind worker = UnitKind.workerOf(main.kind.race);
 		for (int i = 0; worker != null && i < START_WORKERS; i++) {
-			double angle = i * Math.PI / 2 + 0.4, radius = main.kind.width * main.kind.modelScale() / 2 + 1.5;
-			BlockPos ground = BlockPos.containing(main.getX() + Math.cos(angle) * radius, main.getY() + 2, main.getZ() + Math.sin(angle) * radius);
-			for (int step = 0; step < 6 && level.getBlockState(ground.below()).isAir(); step++) ground = ground.below();
-			HiveLogic.spawn(level, base, worker, Vec3.atBottomCenterOf(ground), null);
+			// just outside the building (its width is already its size: scaled by the model's size again, a command
+			// center's SCVs came out 11 blocks off, behind walls and over cliffs, and never reached its minerals)
+			double angle = i * Math.PI / 2 + 0.4, radius = main.kind.width / 2 + worker.width / 2 + 1;
+			HiveLogic.spawn(level, base, worker, dev.starmine.entity.Spots.outside(level, worker, main.position(), angle, radius), null);
 		}
 	}
 }

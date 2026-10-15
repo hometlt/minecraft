@@ -122,8 +122,17 @@ final class UnitNavigation extends GroundPathNavigation {
 			net.minecraft.world.level.pathfinder.Node start = super.getStart();
 			if (start == null || this.mob.getBbWidth() <= BIG) return start;
 			double half = (int) (this.mob.getBbWidth() + 1.0F) * 0.5;
-			return this.getStartNode(new BlockPos(net.minecraft.util.Mth.floor(this.mob.getX() - half + 0.5), start.y,
-				net.minecraft.util.Mth.floor(this.mob.getZ() - half + 0.5)));
+			int x0 = net.minecraft.util.Mth.floor(this.mob.getX() - half + 0.5), z0 = net.minecraft.util.Mth.floor(this.mob.getZ() - half + 0.5);
+			// the corner whose cells are free, of this one and those next to it: a tank 5.8 wide standing a block off the
+			// middle of a passage 6 wide had its corner cell in the wall, and no way began there
+			for (int r = 0; r <= 1; r++)
+				for (int dx = -r; dx <= r; dx++)
+					for (int dz = -r; dz <= r; dz++) {
+						if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+						if (this.mob.getPathfindingMalus(this.getCachedPathType(x0 + dx, start.y, z0 + dz)) >= 0)
+							return this.getStartNode(new BlockPos(x0 + dx, start.y, z0 + dz));
+					}
+			return this.getStartNode(new BlockPos(x0, start.y, z0));
 		}
 
 		@Override

@@ -65,8 +65,7 @@ public class MiningGameTests implements FabricGameTest {
 		timeline.at(20, () -> { // after the base's first workers came out
 			Hive base = TestArena.base(helper, building);
 			helper.assertTrue(base != null, "no base");
-			int have = helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(building.blockPosition()).inflate(30), unit -> unit.kind == worker).size();
-			for (int i = have; i < WORKERS; i++) TestArena.member(helper, base, worker, 18, 10 + i * 4);
+			for (int i = base.count(worker); i < WORKERS; i++) TestArena.member(helper, base, worker, 18, 10 + i * 4);
 		});
 		timeline.every(() -> {
 			for (StarUnit unit : helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(building.blockPosition()).inflate(60),
