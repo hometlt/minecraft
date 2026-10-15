@@ -105,4 +105,28 @@ public class HeroGameTests implements FabricGameTest {
 				"no zerg chestplate among " + drops.size() + " drops");
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "heroPhases", timeoutTicks = 100)
+	public void heroesGoThroughPhases(GameTestHelper helper) {
+		clear(helper);
+		var level = helper.getLevel();
+		StarUnit raynor = unit(helper, UnitKind.RAYNOR, 24, 24, null);
+		raynor.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			helper.assertTrue(Heroes.phase(raynor) == 1, "Raynor starts in phase " + Heroes.phase(raynor));
+			raynor.setShield(0);
+			raynor.setHealth(raynor.getMaxHealth() * 0.5f);
+			helper.runAfterDelay(12, () -> {
+				helper.assertTrue(Heroes.phase(raynor) == 2, "Raynor at half is in phase " + Heroes.phase(raynor));
+				long guard = level.getEntitiesOfClass(StarUnit.class, raynor.getBoundingBox().inflate(12), unit -> unit != raynor).size();
+				helper.assertTrue(guard >= 3, "only " + guard + " guards came at phase 2");
+				raynor.setHealth(raynor.getMaxHealth() * 0.1f);
+				helper.runAfterDelay(12, () -> {
+					helper.assertTrue(Heroes.phase(raynor) == 3, "Raynor at a tenth is in phase " + Heroes.phase(raynor));
+					helper.assertTrue(Status.has(raynor, Status.STIM), "Raynor does not rage in phase 3");
+					helper.succeed();
+				});
+			});
+		});
+	}
 }

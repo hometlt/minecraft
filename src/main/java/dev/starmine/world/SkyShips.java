@@ -259,7 +259,8 @@ public final class SkyShips {
 		frame.box(-28, bridgeTop, 2, -28, bridgeTop + 2, 2, Blocks.END_ROD.defaultBlockState());
 		// the cargo bay's chests, the bridge's (the boss's reward is its own drop)
 		painter.chest(frame.at(-64, lowerFloor + 1, 8), BuiltInLootTables.STRONGHOLD_CORRIDOR);
-		painter.chest(frame.at(-64, lowerFloor + 1, -8), BuiltInLootTables.SIMPLE_DUNGEON);
+		painter.chest(frame.at(-64, lowerFloor + 1, -8), FactionLoot.TERRAN);
+		painter.chest(frame.at(-36, deck + 1, -6), FactionLoot.TERRAN);
 		painter.chest(frame.at(-36, deck + 1, 6), BuiltInLootTables.STRONGHOLD_LIBRARY);
 		// the teleporter pad on the forward deck
 		int padX = 64, padTop = hull.top(padX, 0);
@@ -381,7 +382,8 @@ public final class SkyShips {
 			for (int d = 0; d < 10 + spire % 3 * 3; d++) frame.put(x, from - d, z, d % 4 == 3 ? light : Blocks.PURPUR_PILLAR.defaultBlockState());
 		}
 		painter.chest(frame.at(16, lower, 6), BuiltInLootTables.END_CITY_TREASURE);
-		painter.chest(frame.at(-16, lower, 6), BuiltInLootTables.DESERT_PYRAMID);
+		painter.chest(frame.at(-16, lower, 6), FactionLoot.PROTOSS);
+		painter.chest(frame.at(-4, mid + 1, -4), FactionLoot.PROTOSS);
 		painter.chest(frame.at(4, mid + 1, 4), BuiltInLootTables.END_CITY_TREASURE);
 		// the teleporter pad on the top of the disc
 		int padX = -24, padTop = disc.top(padX, 0);
@@ -529,6 +531,21 @@ public final class SkyShips {
 		List<BlockPos> away = floor.stream().filter(pos -> pos.distSqr(pad) > 12 * 12).toList();
 		if (!away.isEmpty()) {
 			painter.chest(away.get(random.nextInt(away.size())), BuiltInLootTables.ANCIENT_CITY);
+			for (int i = 0; i < 2; i++) painter.chest(away.get(random.nextInt(away.size())), FactionLoot.ZERG);
+			// pools of liquid creep sunk into the floors, 3 x 3 where the floor under them is whole
+			for (int i = 0; i < 4; i++) {
+				BlockPos at = away.get(random.nextInt(away.size())).below();
+				painter.then(() -> {
+					for (int dx = -1; dx <= 1; dx++)
+						for (int dz = -1; dz <= 1; dz++) {
+							BlockPos pool = at.offset(dx, 0, dz);
+							if (painter.stateAt(pool.below()).isAir() || painter.stateAt(pool.above()).isSolid()) return;
+						}
+					for (int dx = -1; dx <= 1; dx++)
+						for (int dz = -1; dz <= 1; dz++)
+							painter.level().setBlock(at.offset(dx, 0, dz), dev.starmine.block.StarMineBlocks.LIQUID_CREEP.defaultBlockState(), 2);
+				});
+			}
 			for (int i = 0; i < 6; i++) {
 				BlockPos at = away.get(random.nextInt(away.size()));
 				UnitKind brood = i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.HYDRALISK;

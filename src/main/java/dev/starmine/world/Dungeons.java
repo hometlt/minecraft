@@ -126,7 +126,7 @@ public final class Dungeons {
 			for (int dz = -1; dz <= 1; dz++)
 				if (dx != 0 || dz != 0) for (int y = 0; y < 3; y++) painter.set(core.offset(dx, y, dz), Blocks.IRON_BARS.defaultBlockState());
 		painter.chest(core.offset(3, 0, 3), BuiltInLootTables.STRONGHOLD_LIBRARY);
-		painter.chest(core.offset(-3, 0, -3), BuiltInLootTables.SIMPLE_DUNGEON);
+		painter.chest(core.offset(-3, 0, -3), FactionLoot.TERRAN);
 		spawns.add(Spawn.guard(UnitKind.GHOST, core.offset(3, 0, -3), core));
 		spawns.add(Spawn.guard(UnitKind.GHOST, core.offset(-3, 0, 3), core));
 		spawns.add(Spawn.guard(UnitKind.MARAUDER, core.offset(4, 0, 0), core));
@@ -145,7 +145,16 @@ public final class Dungeons {
 			}
 			Collections.shuffle(wallCells, new java.util.Random(random.nextLong()));
 			for (int i = 0; i < 5; i++) painter.set(wallCells.get(i), benches[random.nextInt(benches.length)]);
-			painter.chest(wallCells.get(5), random.nextBoolean() ? BuiltInLootTables.SIMPLE_DUNGEON : BuiltInLootTables.STRONGHOLD_CORRIDOR);
+			painter.chest(wallCells.get(5), FactionLoot.TERRAN); // owner 16.10: the labs keep the armory's stock
+			// an armory rack: an armour stand with a gauss rifle
+			BlockPos rack = room.offset(2, 0, -1);
+			painter.then(() -> {
+				var stand = net.minecraft.world.entity.EntityType.ARMOR_STAND.create(painter.level());
+				if (stand == null) return;
+				stand.moveTo(rack.getX() + 0.5, rack.getY(), rack.getZ() + 0.5, 90, 0);
+				stand.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, new net.minecraft.world.item.ItemStack(dev.starmine.gear.Guns.GAUSS_RIFLE));
+				painter.level().addFreshEntity(stand);
+			});
 			// a cage
 			for (int y = 0; y < 3; y++) {
 				painter.set(room.offset(-3, y, -1), Blocks.IRON_BARS.defaultBlockState());
@@ -264,7 +273,7 @@ public final class Dungeons {
 			painter.set(end.offset(0, 1, 0), gold);
 			painter.set(end.offset(0, 2, 0), gold);
 			painter.set(end.offset(0, 3, 0), light);
-			painter.chest(end.offset(1, 0, 1), random.nextBoolean() ? BuiltInLootTables.DESERT_PYRAMID : BuiltInLootTables.SIMPLE_DUNGEON);
+			painter.chest(end.offset(1, 0, 1), FactionLoot.PROTOSS);
 			for (UnitKind kind : keepers[i]) spawns.add(Spawn.guard(kind, end.offset(random.nextInt(7) - 3, 0, random.nextInt(7) - 3), end));
 		}
 		// the stair up from the north shrine

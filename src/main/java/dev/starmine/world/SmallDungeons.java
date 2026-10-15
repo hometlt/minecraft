@@ -168,7 +168,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 				: pick == 2 ? Blocks.GRAVEL.defaultBlockState() : pick == 3 ? Blocks.COBBLESTONE_SLAB.defaultBlockState()
 				: pick == 4 ? Blocks.ANDESITE_SLAB.defaultBlockState() : Blocks.BARREL.defaultBlockState());
 		}
-		chest(level, random, ground.offset(-3, 0, 2), BuiltInLootTables.SIMPLE_DUNGEON);
+		chest(level, random, ground.offset(-3, 0, 2), FactionLoot.TERRAN);
 		if (random.nextBoolean()) chest(level, random, ground.offset(2, 0, -3), BuiltInLootTables.ABANDONED_MINESHAFT);
 		DungeonHeart.Heart heart = heart(level, ground.offset(0, -1, 0), Blocks.GRAY_CONCRETE);
 		if (heart == null) return null;
@@ -347,7 +347,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		for (int dx = -3; dx <= 3; dx++)
 			for (int dz = -3; dz <= 3; dz++)
 				if (Math.max(Math.abs(dx), Math.abs(dz)) == 3) set(level, new BlockPos(shaft.getX() + dx, surface, shaft.getZ() + dz), flesh);
-		chest(level, random, centre.offset(-6, -3, 3), BuiltInLootTables.ABANDONED_MINESHAFT);
+		chest(level, random, centre.offset(-6, -3, 3), FactionLoot.ZERG);
 		DungeonHeart.Heart heart = heart(level, centre.offset(0, -4, 0), Blocks.CRIMSON_NYLIUM);
 		if (heart == null) return null;
 		int eggs = 4 + random.nextInt(3);
@@ -387,7 +387,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		set(level, floorCentre.above(1), crystal);
 		set(level, floorCentre.above(2), Blocks.END_ROD.defaultBlockState());
 		for (int[] side : new int[][] {{-3, 0}, {3, 0}, {0, -3}, {0, 3}}) set(level, floorCentre.offset(side[0], 0, side[1]), light);
-		chest(level, random, floorCentre.offset(0, 1, 2), BuiltInLootTables.DESERT_PYRAMID);
+		chest(level, random, floorCentre.offset(0, 1, 2), FactionLoot.PROTOSS);
 		// a spiral stair up to a little shrine of two pillars
 		BlockPos shaft = floorCentre.offset(-12, 0, 0);
 		box(level, floorCentre.offset(-r - 1, 0, -1), floorCentre.offset(-10, 4, 1), air);

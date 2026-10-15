@@ -74,6 +74,8 @@ public final class PortalHall {
 					portal.add(pos.immutable());
 				}
 			}
+		// the race's chest by the far wall
+		painter.chest(centre.relative(out.getOpposite(), HALF - 1), FactionLoot.of(race));
 		// the door and the stair up
 		BlockPos door = centre.relative(out, HALF + 1);
 		Direction side = out.getClockWise();

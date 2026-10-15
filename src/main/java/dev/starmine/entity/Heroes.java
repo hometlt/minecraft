@@ -36,12 +36,56 @@ public final class Heroes {
 			case PROTOSS -> BossEvent.BossBarColor.BLUE;
 		}, BossEvent.BossBarOverlay.NOTCHED_10));
 		float full = (float) (hero.getMaxHealth() + hero.kind.shields);
-		bar.setProgress(Math.max(0, Math.min(1, (hero.getHealth() + hero.shield()) / full)));
+		float left = Math.max(0, Math.min(1, (hero.getHealth() + hero.shield()) / full));
+		bar.setProgress(left);
+		phases(hero, level, bar, left);
 		for (ServerPlayer player : level.players()) {
 			boolean near = player.distanceTo(hero) <= BAR_RANGE && hero.isAlive();
 			if (near && !bar.getPlayers().contains(player)) bar.addPlayer(player);
 			else if (!near && bar.getPlayers().contains(player)) bar.removePlayer(player);
 		}
+	}
+
+	/** The share of health and shields at which a hero enters its second and third phase (owner 16.10: bosses with phases). */
+	public static final float PHASE_TWO = 0.66f, PHASE_THREE = 0.33f;
+
+	/** A hero's phase now: 1, 2 or 3 (kept on the hero as a tag, so a reload does not replay a phase). */
+	public static int phase(StarUnit hero) {
+		return hero.getTags().contains("starmine_phase3") ? 3 : hero.getTags().contains("starmine_phase2") ? 2 : 1;
+	}
+
+	/**
+	 * Phases: at two thirds the hero calls its guard (four of its race appear round it) and its shields come
+	 * back; at a third it rages — faster and quicker to strike for the rest of the fight — and calls more.
+	 * The bar names the phase; everyone near hears of it.
+	 */
+	private static void phases(StarUnit hero, ServerLevel level, ServerBossEvent bar, float left) {
+		int phase = phase(hero);
+		int next = left <= PHASE_THREE ? 3 : left <= PHASE_TWO ? 2 : 1;
+		if (next > phase) {
+			hero.addTag(next == 3 ? "starmine_phase3" : "starmine_phase2");
+			if (next == 2) hero.setShield((float) hero.kind.shields);
+			if (next == 3) dev.starmine.ability.Status.apply(hero, dev.starmine.ability.Status.STIM, 20 * 60 * 10);
+			UnitKind[] guard = switch (hero.kind.race) {
+				case ZERG -> new UnitKind[] {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.HYDRALISK, UnitKind.ROACH};
+				case TERRAN -> new UnitKind[] {UnitKind.MARINE, UnitKind.MARINE, UnitKind.MARAUDER, UnitKind.GHOST};
+				case PROTOSS -> new UnitKind[] {UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.HIGH_TEMPLAR};
+			};
+			for (int i = 0; i < guard.length; i++) {
+				double a = i * Math.PI / 2;
+				net.minecraft.world.phys.Vec3 at = Spots.near(level, guard[i], hero.position().add(Math.cos(a) * 4, 0, Math.sin(a) * 4));
+				StarUnit add = dev.starmine.hive.HiveLogic.spawnNest(level, null, guard[i], at, hero.blockPosition());
+				if (add != null && hero.getTarget() != null) add.setTarget(hero.getTarget());
+			}
+			level.sendParticles(next == 3 ? net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER : net.minecraft.core.particles.ParticleTypes.FLASH,
+				hero.getX(), hero.getY() + hero.getBbHeight() * 0.6, hero.getZ(), next == 3 ? 20 : 1, 1, 1, 1, 0);
+			for (ServerPlayer player : bar.getPlayers())
+				player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.boss_phase." + next, hero.getDisplayName()), true);
+			phase = next;
+		}
+		bar.setName(phase == 1 ? hero.getDisplayName()
+			: net.minecraft.network.chat.Component.translatable("boss.starmine.phase", hero.getDisplayName(), phase));
+		if (phase == 3) bar.setColor(BossEvent.BossBarColor.RED);
 	}
 
 	/** Whether a hero shows a bar now (tests). */
