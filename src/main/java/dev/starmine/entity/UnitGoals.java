@@ -318,7 +318,7 @@ public final class UnitGoals {
 		private static boolean dry(StarUnit unit, Vec3 goal) {
 			double dx = goal.x - unit.getX(), dz = goal.z - unit.getZ(), length = Math.sqrt(dx * dx + dz * dz);
 			for (double t = 0; t <= length; t += 0.5) {
-				BlockPos feet = BlockPos.containing(unit.getX() + dx / Math.max(length, 1e-6) * t, unit.getY() + 0.2, unit.getZ() + dz / Math.max(length, 1e-6) * t);
+				net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(unit.getX() + dx / Math.max(length, 1e-6) * t, unit.getY() + 0.2, unit.getZ() + dz / Math.max(length, 1e-6) * t);
 				if (!unit.level().getFluidState(feet).isEmpty() || !unit.level().getFluidState(feet.below()).isEmpty()) return false;
 			}
 			return true;
