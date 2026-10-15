@@ -91,8 +91,10 @@ public class PlatformGameTests implements FabricGameTest {
 			helper.assertTrue(cc.blockPosition().distManhattan(pos) <= 2, "the command center is not on the platform's place: " + TestArena.where(helper, cc));
 			helper.assertTrue(!(helper.getLevel().getBlockState(pos).getBlock() instanceof PlatformBlock), "the platform is still there");
 			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.MEDIVAC).isEmpty(), "the medivac is still there");
-			StarUnit scv = helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.SCV).stream().findFirst().orElse(null);
-			helper.assertTrue(scv != null && base.id.equals(scv.hiveId()) && scv.owner().map(player.getUUID()::equals).orElse(false), "the SCV is not the player's");
+			// (other tests' SCVs may stand within this area: the brought one is the base's)
+			StarUnit scv = helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.SCV && base.id.equals(unit.hiveId()))
+				.stream().findFirst().orElse(null);
+			helper.assertTrue(scv != null && scv.owner().map(player.getUUID()::equals).orElse(false), "the base has no SCV of the player's");
 			helper.assertTrue(base.collected.getOrDefault("coal", 0) == 5, "the platform's coal did not go to the base: " + base.collected);
 		});
 	}
