@@ -228,6 +228,25 @@ public enum UnitKind {
 	}
 
 	/** What a ranged attack throws (drawn as that item until SC2 missile models are imported). */
+	/** How a unit's shot looks in flight (owner 16.10: a model of its own for each kind of missile). */
+	public enum Shot { ACID, NEEDLE, CORROSIVE, EGG, ROCKET, GRENADE, PLASMA }
+
+	/**
+	 * A ranged unit's shot that flies (the rest are hitscan: a tracer and a puff): every zerg missile, the
+	 * terrans' rockets and grenades, the protoss' plasma bolts. Null for a hitscan weapon.
+	 */
+	public @org.jetbrains.annotations.Nullable Shot shot() {
+		return switch (this) {
+			case HYDRALISK, MUTALISK -> Shot.NEEDLE;
+			case CORRUPTOR -> Shot.CORROSIVE;
+			case BROOD_LORD -> Shot.EGG;
+			case VIKING, MISSILE_TURRET, BANSHEE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
+			case MARAUDER -> Shot.GRENADE;
+			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
+			default -> race == Race.ZERG ? Shot.ACID : null;
+		};
+	}
+
 	public Item missile() {
 		return switch (this) {
 			case ROACH, INFESTOR -> Items.SLIME_BALL;

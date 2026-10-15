@@ -1,0 +1,334 @@
+{
+	"textures": {
+		"gold": "starmine:item/weapon/gold",
+		"blue": "starmine:item/weapon/blue",
+		"particle": "starmine:item/weapon/gold"
+	},
+	"elements": [
+		{
+			"from": [
+				6,
+				0,
+				7
+			],
+			"to": [
+				10,
+				5,
+				9
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4,
+						5
+					],
+					"texture": "#gold"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4,
+						5
+					],
+					"texture": "#gold"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#gold"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#gold"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4,
+						2
+					],
+					"texture": "#gold"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						4,
+						2
+					],
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				5.5,
+				4,
+				6.5
+			],
+			"to": [
+				10.5,
+				6,
+				9.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						2
+					],
+					"texture": "#gold"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						2
+					],
+					"texture": "#gold"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						2
+					],
+					"texture": "#gold"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						2
+					],
+					"texture": "#gold"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						3.0
+					],
+					"texture": "#gold"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						3.0
+					],
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				7.6,
+				6,
+				7.2
+			],
+			"to": [
+				8.4,
+				22,
+				8.8
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						1,
+						16
+					],
+					"texture": "#blue"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						1,
+						16
+					],
+					"texture": "#blue"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						1.6000000000000005,
+						16
+					],
+					"texture": "#blue"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						1.6000000000000005,
+						16
+					],
+					"texture": "#blue"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						1,
+						1.6000000000000005
+					],
+					"texture": "#blue"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						1,
+						1.6000000000000005
+					],
+					"texture": "#blue"
+				}
+			},
+			"rotation": {
+				"origin": [
+					8,
+					6,
+					8
+				],
+				"axis": "z",
+				"angle": -22.5
+			}
+		}
+	],
+	"gui_light": "front",
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [
+				0,
+				90,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				1
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [
+				0,
+				90,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				1
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				-90,
+				0,
+				4
+			],
+			"translation": [
+				-1,
+				4,
+				0
+			],
+			"scale": [
+				0.55,
+				0.55,
+				0.55
+			]
+		},
+		"firstperson_lefthand": {
+			"rotation": [
+				-90,
+				0,
+				-4
+			],
+			"translation": [
+				-1,
+				4,
+				0
+			],
+			"scale": [
+				0.55,
+				0.55,
+				0.55
+			]
+		},
+		"gui": {
+			"rotation": [
+				0,
+				0,
+				-45
+			],
+			"translation": [
+				0,
+				-2,
+				0
+			],
+			"scale": [
+				0.62,
+				0.62,
+				0.62
+			]
+		},
+		"ground": {
+			"rotation": [
+				90,
+				0,
+				0
+			],
+			"scale": [
+				0.5,
+				0.5,
+				0.5
+			]
+		},
+		"fixed": {
+			"rotation": [
+				0,
+				0,
+				-45
+			],
+			"scale": [
+				0.7,
+				0.7,
+				0.7
+			]
+		}
+	}
+}

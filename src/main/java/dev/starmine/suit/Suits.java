@@ -150,7 +150,10 @@ public final class Suits {
 		}
 		if (player.getCooldowns().isOnCooldown(item)) return false;
 		boolean done = Possession.castModule(player, caster(player, kind), item.ability);
-		if (done) player.swing(hand, true);
+		if (done) {
+			player.swing(hand, true);
+			ModuleItem.spend(player, player.getItemInHand(hand)); // owner 16.10: a loose module wears out
+		}
 		return done;
 	}
 

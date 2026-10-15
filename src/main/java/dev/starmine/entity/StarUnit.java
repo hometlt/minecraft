@@ -553,7 +553,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			foe.hurt(attackSource(), (float) (weapon.damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, foe)));
 		dev.starmine.ability.Passives.onHit(this, foe);
 		if (terran) tracer(server, foe);
-		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 1.0f);
+		shotSounds();
 	}
 
 	/** The hive's evolution chamber upgrades: +0.5 damage and +2 armor per level. */
@@ -1134,8 +1134,39 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			for (LivingEntity other : enemiesAround(target.position(), SPLASH_RADIUS))
 				if (other != target) other.hurt(attackSource(), (float) kind.damage * 0.5f);
 		}
-		if (hurt) this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
+		if (hurt) shotSounds();
 		return hurt;
+	}
+
+	/**
+	 * A shot at a point with no one there (owner 16.10: a player playing as the unit fires where they aim, not
+	 * only at a target): a flying shot goes that way, a hitscan weapon draws its tracer to the point.
+	 */
+	public void fireAtPoint(Vec3 point) {
+		this.swing(InteractionHand.MAIN_HAND);
+		shotSounds();
+		Entity body = body();
+		if (kind.shot() != null && kind.attack != UnitKind.Attack.LINE) {
+			ZergSpit spit = new ZergSpit(this.level(), body instanceof LivingEntity living ? living : this, kind);
+			Vec3 from = spit.position(), to = point.subtract(from);
+			spit.shoot(to.x, to.y, to.z, ZergSpit.speed(kind), 0.5f);
+			this.level().addFreshEntity(spit);
+		} else if (this.level() instanceof ServerLevel server) {
+			Vec3 from = body.position().add(0, body.getBbHeight() * 0.7, 0);
+			int steps = (int) Math.min(24, from.distanceTo(point) * 2);
+			for (int i = 1; i <= steps; i++) {
+				Vec3 at = from.lerp(point, i / (double) steps);
+				server.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+			}
+			server.sendParticles(ParticleTypes.SMOKE, point.x, point.y, point.z, 4, 0.1, 0.1, 0.1, 0.01);
+		}
+	}
+
+	/** A shot or blow is heard: its weapon every time (owner 16.10), the unit's attack line now and then. */
+	public void shotSounds() {
+		float pitch = 0.9f + this.random.nextFloat() * 0.2f;
+		this.playSound(StarMine.sounds(kind).fire(), 1.0f, pitch);
+		if (this.random.nextInt(4) == 0) this.playSound(StarMine.sounds(kind).attack(), 1.0f, pitch);
 	}
 
 	/** The ultralisk's cleave around its target (SC2 about 1) and the baneling's burst (SC2 2.2), grown with the units. */
@@ -1159,7 +1190,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public void performRangedAttack(LivingEntity target, float power) {
 		this.swing(InteractionHand.MAIN_HAND);
-		this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
+		shotSounds();
 		if (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.HALLUCINATION)) return; // an illusion shoots for show
 		if (kind == UnitKind.CARRIER) { // its interceptors are its weapon
 			dev.starmine.ability.ProtossAbilities.launchInterceptors(this, target);
@@ -1169,13 +1200,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			dev.starmine.ability.Passives.onHit(this, target);
 			return;
 		}
-		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED) { // terran shots, protoss beams: hitscan
+		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED && kind.shot() == null) { // terran shots, protoss beams: hitscan
 			target.hurt(attackSource(), (float) (weapon().damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, target)));
 			dev.starmine.ability.Passives.onHit(this, target);
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
 			return;
 		}
-		switch (kind.attack) {
+		switch (kind.attack) { // a flying shot (zerg missiles, rockets, grenades, plasma) by default
 			case LINE -> spineLine(target);
 			case PULL -> { // the viper: its abduct is its weapon when it has the energy
 				if (this.level() instanceof ServerLevel server)
@@ -1191,7 +1222,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				double dy = target.getY(0.4) - spit.getY();
 				double dz = target.getZ() - this.getZ();
 				double flat = Math.sqrt(dx * dx + dz * dz);
-				spit.shoot(dx, dy + flat * (kind == UnitKind.BROOD_LORD ? 0.0 : 0.15), dz, 1.4f, 4.0f);
+				spit.shoot(dx, dy + flat * (kind == UnitKind.BROOD_LORD ? 0.0 : 0.15), dz, ZergSpit.speed(kind), 4.0f);
 				spit.aimAt(target);
 				this.level().addFreshEntity(spit);
 			}

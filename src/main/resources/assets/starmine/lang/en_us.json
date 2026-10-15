@@ -857,5 +857,6 @@
 	"item.starmine.mineral_shard": "Mineral Shard",
 	"message.starmine.near_minerals": "Too close to minerals: main buildings stand 16 blocks off the crystals",
 	"message.starmine.no_base_view": "No base yet: the map shows where the races' bases are",
-	"message.starmine.drop_incoming": "%s are dropping on your home!"
+	"message.starmine.drop_incoming": "%s are dropping on your home!",
+	"item.starmine.module.charges": "Uses: %s of %s"
 }

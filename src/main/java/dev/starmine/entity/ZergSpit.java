@@ -26,6 +26,9 @@ import net.minecraft.world.phys.HitResult;
  * A brood lord's egg is lobbed and lands where it falls.
  */
 public class ZergSpit extends ThrowableItemProjectile {
+	/** How it looks in flight ({@link UnitKind.Shot}), synced: the client draws its model and trail by it. */
+	private static final net.minecraft.network.syncher.EntityDataAccessor<Integer> SHOT =
+		net.minecraft.network.syncher.SynchedEntityData.defineId(ZergSpit.class, net.minecraft.network.syncher.EntityDataSerializers.INT);
 	private UnitKind kind = UnitKind.ROACH;
 	/** What it flies at (server side, not saved: after a reload it flies on straight). */
 	private @org.jetbrains.annotations.Nullable LivingEntity target;
@@ -38,7 +41,26 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super(StarMine.SPIT, shooter, level);
 		this.kind = kind;
 		this.setItem(new ItemStack(kind.missile()));
+		UnitKind.Shot shot = kind.shot();
+		this.entityData.set(SHOT, (shot == null ? UnitKind.Shot.ACID : shot).ordinal());
 		this.setPos(shooter.getX(), shooter.getY(0.6), shooter.getZ());
+	}
+
+	@Override
+	protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(SHOT, 0);
+	}
+
+	public UnitKind.Shot shot() {
+		int i = this.entityData.get(SHOT);
+		return UnitKind.Shot.values()[Math.max(0, Math.min(UnitKind.Shot.values().length - 1, i))];
+	}
+
+	/** Speed a shot of this style flies at (blocks a tick): rockets and plasma faster than spit. */
+	public static float speed(UnitKind kind) {
+		UnitKind.Shot shot = kind.shot();
+		return shot == UnitKind.Shot.ROCKET ? 2.0f : shot == UnitKind.Shot.PLASMA ? 1.8f : shot == UnitKind.Shot.GRENADE ? 1.5f : 1.4f;
 	}
 
 	/** Follow this target (not a brood lord's egg). */
@@ -48,6 +70,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 
 	@Override
 	public void tick() {
+		if (this.level().isClientSide) trail();
 		if (!this.level().isClientSide && target != null) {
 			if (!target.isAlive() || target.level() != this.level()) target = null;
 			else {
@@ -101,8 +124,35 @@ public class ZergSpit extends ThrowableItemProjectile {
 		if (this.level().isClientSide) return;
 		if (kind == UnitKind.BROOD_LORD && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
 			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
-		if (this.level() instanceof ServerLevel server)
-			server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY(), this.getZ(), 6, 0.2, 0.2, 0.2, 0.05);
+		if (this.level() instanceof ServerLevel server) switch (shot()) {
+			case ROCKET, GRENADE -> {
+				server.sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(), this.getZ(), 1, 0, 0, 0, 0);
+				server.playSound(null, this.getX(), this.getY(), this.getZ(), net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(),
+					net.minecraft.sounds.SoundSource.HOSTILE, 0.4f, 1.4f);
+			}
+			case PLASMA -> server.sendParticles(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 8, 0.15, 0.15, 0.15, 0.08);
+			case CORROSIVE -> server.sendParticles(ParticleTypes.WITCH, this.getX(), this.getY(), this.getZ(), 8, 0.2, 0.2, 0.2, 0.05);
+			default -> server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY(), this.getZ(), 6, 0.2, 0.2, 0.2, 0.05);
+		}
 		this.discard();
+	}
+
+	/** The client's trail behind a shot: smoke behind a rocket, sparks behind plasma, drips behind spit. */
+	private void trail() {
+		Level level = this.level();
+		switch (shot()) {
+			case ROCKET -> {
+				level.addParticle(ParticleTypes.SMOKE, this.getX(), this.getY(), this.getZ(), 0, 0.01, 0);
+				level.addParticle(ParticleTypes.FLAME, this.getX(), this.getY(), this.getZ(), 0, 0, 0);
+			}
+			case GRENADE -> level.addParticle(ParticleTypes.SMOKE, this.getX(), this.getY(), this.getZ(), 0, 0.01, 0);
+			case PLASMA -> level.addParticle(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 0, 0, 0);
+			case CORROSIVE -> level.addParticle(ParticleTypes.WITCH, this.getX(), this.getY(), this.getZ(), 0, 0, 0);
+			case EGG -> {
+			}
+			default -> {
+				if (this.tickCount % 2 == 0) level.addParticle(ParticleTypes.ITEM_SLIME, this.getX(), this.getY(), this.getZ(), 0, 0, 0);
+			}
+		}
 	}
 }

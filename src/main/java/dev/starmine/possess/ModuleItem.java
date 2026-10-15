@@ -37,7 +37,9 @@ import org.jetbrains.annotations.Nullable;
 public final class ModuleItem extends Item {
 	public enum Type { WEAPON, ABILITY, UPGRADE }
 
-	public static final String LOCKED = "StarMineLocked", KIND = "StarMineKind", LEVEL = "StarMineLevel";
+	public static final String LOCKED = "StarMineLocked", KIND = "StarMineKind", LEVEL = "StarMineLevel", CHARGES = "StarMineCharges";
+	/** Uses a loose ability module has (owner 16.10: one left by a unit or crafted wears out); a built-in one never does. */
+	public static final int MAX_CHARGES = 24;
 	private static final Map<Ability, ModuleItem> ABILITIES = new EnumMap<>(Ability.class);
 	public static final ModuleItem WEAPON = register("module_weapon", new ModuleItem(Type.WEAPON, null, null));
 	public static final ModuleItem WEAPON_UPGRADE = register("module_weapons_upgrade", new ModuleItem(Type.UPGRADE, null, "weapons"));
@@ -79,6 +81,41 @@ public final class ModuleItem extends Item {
 		if (level > 0) tag.putInt(LEVEL, level);
 		stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
 		return stack;
+	}
+
+	/** Uses left in a loose module. */
+	public static int charges(ItemStack stack) {
+		CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+		return data == null || !data.copyTag().contains(CHARGES) ? MAX_CHARGES : data.copyTag().getInt(CHARGES);
+	}
+
+	/** A loose module was used: one charge less; the last one breaks it. */
+	public static void spend(Player player, ItemStack stack) {
+		if (!(stack.getItem() instanceof ModuleItem) || locked(stack) || player.getAbilities().instabuild) return;
+		int left = charges(stack) - 1;
+		if (left <= 0) {
+			player.level().playSound(null, player.blockPosition(), net.minecraft.sounds.SoundEvents.ITEM_BREAK, net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 1.0f);
+			stack.shrink(1);
+			return;
+		}
+		CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+		tag.putInt(CHARGES, left);
+		stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+	}
+
+	@Override
+	public boolean isBarVisible(ItemStack stack) {
+		return type == Type.ABILITY && !locked(stack) && charges(stack) < MAX_CHARGES;
+	}
+
+	@Override
+	public int getBarWidth(ItemStack stack) {
+		return Math.round(13f * charges(stack) / MAX_CHARGES);
+	}
+
+	@Override
+	public int getBarColor(ItemStack stack) {
+		return net.minecraft.util.Mth.hsvToRgb(Math.max(0f, charges(stack) / (float) MAX_CHARGES) / 3f, 1f, 1f);
 	}
 
 	/** Whether a stack is a module built into a unit (it may not leave its player's inventory). */
@@ -141,5 +178,6 @@ public final class ModuleItem extends Item {
 			case UPGRADE -> lines.add(Component.translatable("item.starmine.module_" + upgrade + "_upgrade.tip").withColor(0xFFC0C0C0));
 		}
 		if (locked(stack)) lines.add(Component.translatable("item.starmine.module.built_in").withColor(0xFF808080));
+		else if (type == Type.ABILITY) lines.add(Component.translatable("item.starmine.module.charges", charges(stack), MAX_CHARGES).withColor(0xFFB0B0B0));
 	}
 }

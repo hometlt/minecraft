@@ -42,8 +42,18 @@ import net.minecraft.world.item.SpawnEggItem;
 public final class StarMine implements ModInitializer {
 	public static final String MOD_ID = "starmine";
 
-	/** The four sound events of a kind; their files come from SC2 through Modkit. */
-	public record KindSounds(SoundEvent attack, SoundEvent death, SoundEvent ambient, SoundEvent hurt) {
+	/**
+	 * The sound events of a kind; their files come from SC2 through Modkit: its weapon's shot or blow (`fire`,
+	 * owner 16.10), its attack line, death, idle lines and pain.
+	 */
+	public record KindSounds(SoundEvent fire, SoundEvent attack, SoundEvent death, SoundEvent ambient, SoundEvent hurt) {
+	}
+
+	/** An ability's sound when it is cast (owner 16.10; from SC2 through Modkit: `ability.<id>`). */
+	private static final Map<dev.starmine.ability.Ability, SoundEvent> ABILITY_SOUNDS = new java.util.EnumMap<>(dev.starmine.ability.Ability.class);
+
+	public static SoundEvent abilitySound(dev.starmine.ability.Ability ability) {
+		return ABILITY_SOUNDS.get(ability);
 	}
 
 	private static final Map<UnitKind, EntityType<StarUnit>> TYPES = new EnumMap<>(UnitKind.class);
@@ -60,10 +70,12 @@ public final class StarMine implements ModInitializer {
 					.build(kind.id));
 			TYPES.put(kind, type);
 			KINDS.put(type, kind);
-			SOUNDS.put(kind, new KindSounds(sound(kind.id + ".attack"), sound(kind.id + ".death"), sound(kind.id + ".ambient"), sound(kind.id + ".hurt")));
+			SOUNDS.put(kind, new KindSounds(sound(kind.id + ".fire"), sound(kind.id + ".attack"), sound(kind.id + ".death"), sound(kind.id + ".ambient"), sound(kind.id + ".hurt")));
 			EGGS.put(kind, Registry.register(BuiltInRegistries.ITEM, id(kind.id + "_spawn_egg"),
 				new StarSpawnEggItem(type, kind.eggBase, kind.eggSpots, new Item.Properties())));
 		}
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values())
+			ABILITY_SOUNDS.put(ability, sound("ability." + ability.id));
 	}
 
 	/** Creep grows from hatcheries and tumors (on by default). */

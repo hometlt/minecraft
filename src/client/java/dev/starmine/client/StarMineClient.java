@@ -63,7 +63,12 @@ public final class StarMineClient implements ClientModInitializer {
 		}, modules.toArray(net.minecraft.world.item.Item[]::new));
 		ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new StarMineModels());
 		for (UnitKind kind : UnitKind.values()) EntityRendererRegistry.register(StarMine.type(kind), UnitRenderer::new);
-		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
+		EntityRendererRegistry.register(StarMine.SPIT, ShotRenderer::new);
+		// owner 16.10: a weapon module looks like its unit's weapon in the hand (dev.starmine.possess.WeaponLook)
+		net.minecraft.client.renderer.item.ItemProperties.register(dev.starmine.possess.ModuleItem.WEAPON, StarMine.id("weapon"), (stack, level, entity, seed) -> {
+			UnitKind kind = dev.starmine.possess.ModuleItem.kindOf(stack);
+			return kind == null ? 0 : dev.starmine.possess.WeaponLook.of(kind).property();
+		});
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
 		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());

@@ -1,0 +1,28 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"ingredients": [
+		{
+			"item": "starmine:zerg_armor_shard"
+		},
+		{
+			"item": "starmine:zerg_armor_shard"
+		},
+		{
+			"item": "starmine:zerg_armor_shard"
+		},
+		{
+			"item": "starmine:mineral_shard"
+		},
+		{
+			"item": "starmine:mineral_shard"
+		},
+		{
+			"item": "starmine:vespene_bucket"
+		}
+	],
+	"result": {
+		"id": "starmine:module_burrow",
+		"count": 1
+	}
+}

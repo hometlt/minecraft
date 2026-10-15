@@ -2,5 +2,67 @@
 	"parent": "minecraft:item/generated",
 	"textures": {
 		"layer0": "starmine:item/module_weapon"
-	}
+	},
+	"overrides": [
+		{
+			"predicate": {
+				"starmine:weapon": 0.0312
+			},
+			"model": "starmine:item/weapon_gauss_rifle"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.0625
+			},
+			"model": "starmine:item/weapon_launcher"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.125
+			},
+			"model": "starmine:item/weapon_sniper"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.1875
+			},
+			"model": "starmine:item/weapon_flamer"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.25
+			},
+			"model": "starmine:item/weapon_cannon"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.3125
+			},
+			"model": "starmine:item/weapon_tool"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.375
+			},
+			"model": "starmine:item/weapon_psi_blade"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.4375
+			},
+			"model": "starmine:item/weapon_disruptor"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.5
+			},
+			"model": "starmine:item/weapon_claws"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.5625
+			},
+			"model": "starmine:item/weapon_spitter"
+		}
+	]
 }

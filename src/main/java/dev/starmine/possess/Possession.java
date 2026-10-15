@@ -410,7 +410,12 @@ public final class Possession {
 			case MELEE, SPLASH -> {
 				if (weapon.range() <= 0) return false; // burrowed, lifted…
 				LivingEntity target = aimed(player, player.entityInteractionRange(), false);
-				if (target == null) return false;
+				if (target == null) { // a swing at the air
+					player.swing(InteractionHand.MAIN_HAND, true);
+					player.getCooldowns().addCooldown(ModuleItem.WEAPON, Math.max(4, weapon.interval() / 2));
+					return true;
+				}
+				puppet.shotSounds();
 				target.hurt(puppet.attackSource(), (float) (player.getAttributeValue(Attributes.ATTACK_DAMAGE) + dev.starmine.ability.Passives.bonus(puppet, target)));
 				dev.starmine.ability.Passives.onHit(puppet, target);
 				if (kind.attack == UnitKind.Attack.SPLASH)
@@ -421,11 +426,15 @@ public final class Possession {
 			default -> {
 				if (weapon.range() <= 0) return false;
 				LivingEntity target = aimed(player, weapon.range(), false);
-				if (target == null) {
-					player.displayClientMessage(Component.translatable("message.starmine.no_target"), true);
-					return false;
-				}
-				puppet.performRangedAttack(target, 1f);
+				if (target == null) { // owner 16.10: it fires where the crosshair is, at the first block or the end of its reach
+					Vec3 eye = player.getEyePosition(), end = eye.add(player.getLookAngle().scale(weapon.range()));
+					var hit = level.clip(new net.minecraft.world.level.ClipContext(eye, end, net.minecraft.world.level.ClipContext.Block.COLLIDER,
+						net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+					puppet.fireAtPoint(hit.getLocation());
+				} else puppet.performRangedAttack(target, 1f);
+				Vec3 muzzle = player.getEyePosition().add(player.getLookAngle().scale(0.8)).add(0, -0.25, 0);
+				level.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : kind.race == UnitKind.Race.ZERG ? ParticleTypes.ITEM_SLIME
+					: ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 3, 0.05, 0.05, 0.05, 0.01); // the muzzle's flash
 			}
 		}
 		player.getCooldowns().addCooldown(ModuleItem.WEAPON, Math.max(4, weapon.interval()));

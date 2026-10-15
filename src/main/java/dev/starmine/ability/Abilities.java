@@ -127,6 +127,14 @@ public final class Abilities {
 				base.pay(price);
 				HiveSavedData.get(level.getServer()).setDirty();
 			}
+			Entity body = unit.body(); // owner 16.10: every ability is heard
+			level.playSound(null, body.getX(), body.getY(), body.getZ(), dev.starmine.StarMine.abilitySound(ability), net.minecraft.sounds.SoundSource.HOSTILE, 1.0f, 1.0f);
+			// and seen: a burst of the race's colour round the caster
+			level.sendParticles(switch (unit.kind.race) {
+				case ZERG -> net.minecraft.core.particles.ParticleTypes.SQUID_INK;
+				case TERRAN -> net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK;
+				case PROTOSS -> net.minecraft.core.particles.ParticleTypes.END_ROD;
+			}, body.getX(), body.getY() + body.getBbHeight() * 0.6, body.getZ(), 14, body.getBbWidth() * 0.4, body.getBbHeight() * 0.3, body.getBbWidth() * 0.4, 0.04);
 		}
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)

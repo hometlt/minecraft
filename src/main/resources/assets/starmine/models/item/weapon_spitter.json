@@ -1,0 +1,394 @@
+{
+	"textures": {
+		"flesh": "starmine:item/weapon/flesh",
+		"bone": "starmine:item/weapon/bone",
+		"green": "starmine:item/weapon/green",
+		"particle": "starmine:item/weapon/flesh"
+	},
+	"elements": [
+		{
+			"from": [
+				6.5,
+				0,
+				6.5
+			],
+			"to": [
+				9.5,
+				6,
+				9.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						3.0
+					],
+					"texture": "#flesh"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						3.0,
+						3.0
+					],
+					"texture": "#flesh"
+				}
+			}
+		},
+		{
+			"from": [
+				5.5,
+				6,
+				5.5
+			],
+			"to": [
+				10.5,
+				12,
+				10.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						6
+					],
+					"texture": "#flesh"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						5.0
+					],
+					"texture": "#flesh"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						5.0,
+						5.0
+					],
+					"texture": "#flesh"
+				}
+			}
+		},
+		{
+			"from": [
+				7,
+				12,
+				7
+			],
+			"to": [
+				9,
+				17,
+				9
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#bone"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#bone"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#bone"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						5
+					],
+					"texture": "#bone"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#bone"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#bone"
+				}
+			}
+		},
+		{
+			"from": [
+				7.4,
+				17,
+				7.4
+			],
+			"to": [
+				8.6,
+				18,
+				8.6
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1
+					],
+					"texture": "#green"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1
+					],
+					"texture": "#green"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1
+					],
+					"texture": "#green"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1
+					],
+					"texture": "#green"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1.1999999999999993
+					],
+					"texture": "#green"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						1.1999999999999993,
+						1.1999999999999993
+					],
+					"texture": "#green"
+				}
+			}
+		}
+	],
+	"gui_light": "front",
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [
+				0,
+				90,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				1
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [
+				0,
+				90,
+				0
+			],
+			"translation": [
+				0,
+				-1,
+				1
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				-90,
+				0,
+				4
+			],
+			"translation": [
+				-1,
+				4,
+				0
+			],
+			"scale": [
+				0.55,
+				0.55,
+				0.55
+			]
+		},
+		"firstperson_lefthand": {
+			"rotation": [
+				-90,
+				0,
+				-4
+			],
+			"translation": [
+				-1,
+				4,
+				0
+			],
+			"scale": [
+				0.55,
+				0.55,
+				0.55
+			]
+		},
+		"gui": {
+			"rotation": [
+				0,
+				0,
+				-45
+			],
+			"translation": [
+				0,
+				-2,
+				0
+			],
+			"scale": [
+				0.62,
+				0.62,
+				0.62
+			]
+		},
+		"ground": {
+			"rotation": [
+				90,
+				0,
+				0
+			],
+			"scale": [
+				0.5,
+				0.5,
+				0.5
+			]
+		},
+		"fixed": {
+			"rotation": [
+				0,
+				0,
+				-45
+			],
+			"scale": [
+				0.7,
+				0.7,
+				0.7
+			]
+		}
+	}
+}
