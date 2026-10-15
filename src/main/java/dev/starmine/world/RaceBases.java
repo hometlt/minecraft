@@ -35,8 +35,8 @@ import org.jetbrains.annotations.Nullable;
 public final class RaceBases {
 	public static final int MIN_DISTANCE = 176, MAX_DISTANCE = 256, TRIGGER = 128, SEPARATION = 128;
 	public static final String LEVIATHAN = "LEVIATHAN";
-	/** How high over the base's ground a sky ship's middle hangs. */
-	public static final int SKY = 55;
+	/** How high over the base's ground a sky ship's middle hangs (the ships grew 2-2.5 times: their tails and tentacles hang 45 below it). */
+	public static final int SKY = 80;
 
 	private RaceBases() {
 	}
@@ -117,7 +117,7 @@ public final class RaceBases {
 	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		Painter painter = new Painter(level, random);
-		painter.load(site, 144);
+		painter.load(site, 160);
 		BlockPos centre = new BlockPos(site.getX(), HiveStructure.ground(level, site.getX(), site.getZ()), site.getZ());
 		UnitKind main = race.rules().main();
 		Hive base = new Hive(UUID.randomUUID(), level.dimension().location().toString(), centre);
@@ -162,50 +162,83 @@ public final class RaceBases {
 		// under the base and over it
 		int depth = 26;
 		int under = Math.max(level.getMinBuildHeight() + 8, centre.getY() - depth);
-		int sky = Math.min(level.getMaxBuildHeight() - 30, centre.getY() + SKY);
+		int sky = Math.min(level.getMaxBuildHeight() - 40, centre.getY() + SKY);
+		Painter above = Painter.deferred(level, random);
+		SkyShips.Ship ship;
 		if (terran) {
 			int span = Dungeons.MAZE_CELLS * Dungeons.PITCH;
 			spawns.addAll(Dungeons.techLabyrinth(painter, new BlockPos(centre.getX() + PLAZA + depth + 4, under, centre.getZ() - span / 2)));
-			spawns.addAll(SkyShips.hyperion(painter, new BlockPos(centre.getX(), sky, centre.getZ()), random.nextInt(4)));
+			ship = SkyShips.hyperion(above, new BlockPos(centre.getX(), sky, centre.getZ()), random.nextInt(4));
 		} else {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
-			spawns.addAll(SkyShips.mothership(painter, new BlockPos(centre.getX(), sky, centre.getZ())));
+			ship = SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ()));
 		}
+		spawns.addAll(groundPad(level, painter, race, groundAt(level, centre, Math.PI, PLAZA + 6), terran ? Blocks.IRON_BLOCK.defaultBlockState()
+			: Blocks.GOLD_BLOCK.defaultBlockState(), ship, above));
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
+		finish(level, data, base.id, ship, above);
 		data.setDirty();
-		return new Report(base.id, painter.placed(), spawns.size());
+		return new Report(base.id, painter.placed() + above.placed(), spawns.size() + ship.spawns().size());
+	}
+
+	/** The teleporter by a base, its guards; it is paired with the ship's once the ship is built ({@link #finish}). */
+	private static List<Spawn> groundPad(ServerLevel level, Painter painter, UnitKind.Race race, BlockPos at, BlockState rim, SkyShips.Ship ship, Painter above) {
+		Teleporter.pad(painter, at, race, rim);
+		above.then(() -> Teleporter.link(level, at, ship.pad()));
+		UnitKind[] guards = switch (race) {
+			case ZERG -> new UnitKind[] {UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.ZERGLING, UnitKind.HYDRALISK};
+			case TERRAN -> new UnitKind[] {UnitKind.MARINE, UnitKind.MARAUDER, UnitKind.MARINE, UnitKind.MARINE};
+			case PROTOSS -> new UnitKind[] {UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.ZEALOT, UnitKind.ADEPT};
+		};
+		List<Spawn> spawns = new ArrayList<>();
+		for (int i = 0; i < guards.length; i++) {
+			double angle = i * Math.PI / 2 + Math.PI / 4;
+			spawns.add(Spawn.guard(guards[i], groundAt(level, at, angle, 7), at));
+		}
+		return spawns;
+	}
+
+	/** Once a ship is built, its guards wait for their chunks to tick (they would have fallen through it before). */
+	private static void finish(ServerLevel level, HiveSavedData data, UUID base, SkyShips.Ship ship, Painter above) {
+		above.then(() -> {
+			for (Spawn spawn : ship.spawns()) wait(data, base, spawn);
+			data.setDirty();
+		});
+		above.start();
 	}
 
 	/** A leviathan over the generated lair at `lair`; its guards belong to the lair's hive when it still stands. */
 	public static Report leviathan(ServerLevel level, BlockPos lair, RandomSource random) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		Painter painter = new Painter(level, random);
-		painter.load(lair, 64);
+		painter.load(lair, 112);
 		int ground = HiveStructure.ground(level, lair.getX(), lair.getZ());
-		BlockPos middle = new BlockPos(lair.getX(), Math.min(level.getMaxBuildHeight() - 30, ground + SKY), lair.getZ());
+		BlockPos middle = new BlockPos(lair.getX(), Math.min(level.getMaxBuildHeight() - 40, ground + SKY), lair.getZ());
 		Hive hive = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(lair) < 32 * 32)
 			.findFirst().orElse(null);
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
-		List<Spawn> spawns = SkyShips.leviathan(painter, middle, random.nextInt(4));
+		Painter above = Painter.deferred(level, random);
+		SkyShips.Ship ship = SkyShips.leviathan(above, middle, random.nextInt(4));
+		List<Spawn> spawns = groundPad(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 24),
+			Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(), ship, above);
 		for (Spawn spawn : spawns) wait(data, id, spawn);
+		finish(level, data, id, ship, above);
 		data.setDirty();
-		return new Report(hive == null ? null : hive.id, painter.placed(), spawns.size());
+		return new Report(hive == null ? null : hive.id, painter.placed() + above.placed(), spawns.size() + ship.spawns().size());
 	}
 
 	/** A sky ship alone (for the command): `what` is hyperion, mothership or leviathan; its guards have no base. */
 	public static Report ship(ServerLevel level, String what, BlockPos middle, RandomSource random) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
-		Painter painter = new Painter(level, random);
-		painter.load(middle, 64);
-		List<Spawn> spawns = switch (what) {
+		Painter painter = Painter.deferred(level, random);
+		painter.load(middle, 112);
+		SkyShips.Ship ship = switch (what) {
 			case "hyperion" -> SkyShips.hyperion(painter, middle, random.nextInt(4));
 			case "mothership" -> SkyShips.mothership(painter, middle);
 			default -> SkyShips.leviathan(painter, middle, random.nextInt(4));
 		};
-		UUID none = UUID.randomUUID();
-		for (Spawn spawn : spawns) wait(data, none, spawn);
-		data.setDirty();
-		return new Report(null, painter.placed(), spawns.size());
+		finish(level, data, UUID.randomUUID(), ship, painter);
+		return new Report(null, painter.placed(), ship.spawns().size());
 	}
 
 	private static BlockPos groundAt(ServerLevel level, BlockPos centre, double angle, double distance) {

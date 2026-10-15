@@ -77,26 +77,76 @@ public class StructureGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
-	@GameTest(template = ARENA, batch = "structures", timeoutTicks = 200)
-	public void skyShipsAreBuilt(GameTestHelper helper) {
+	/**
+	 * The sky ships (CLOUD_TASK_2 stage 6): two to two and a half times the old ones (the old Hyperion and
+	 * leviathan were about 80 blocks long, the mothership 46 across), two decks, a boss room with the
+	 * race's hero, a teleporter pad, no scaffolding, built over ticks by a deferred painter.
+	 */
+	@GameTest(template = ARENA, batch = "structuresSky", timeoutTicks = 400)
+	public void skyShipsAreBigWithDecksABossAndNoLadders(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
-		BlockPos base = far(helper, 400).above(40);
+		BlockPos base = far(helper, 400).above(60);
 		int i = 0;
-		for (String ship : new String[] {"hyperion", "mothership", "leviathan"}) {
-			Painter painter = new Painter(level, RandomSource.create(3 + i));
-			BlockPos middle = base.offset(i++ * 110, 0, 0);
-			painter.load(middle, 64);
-			List<Spawn> spawns = switch (ship) {
+		for (String name : new String[] {"hyperion", "mothership", "leviathan"}) {
+			Painter painter = Painter.deferred(level, RandomSource.create(3 + i));
+			BlockPos middle = base.offset(i++ * 260, 0, 0);
+			painter.load(middle, 112);
+			SkyShips.Ship ship = switch (name) {
 				case "hyperion" -> SkyShips.hyperion(painter, middle, 0);
 				case "mothership" -> SkyShips.mothership(painter, middle);
 				default -> SkyShips.leviathan(painter, middle, 0);
 			};
-			helper.assertTrue(painter.placed() > 1500, ship + " has only " + painter.placed() + " blocks");
-			helper.assertTrue(spawns.size() >= 8, ship + " has " + spawns.size() + " guards");
-			helper.assertTrue(spawns.stream().anyMatch(s -> s.kind().flying), ship + " has no flyers");
+			helper.assertTrue(level.getBlockState(ship.pad()).isAir() || !(level.getBlockState(ship.pad()).getBlock() instanceof Teleporter),
+				name + ": built before its ticks");
+			painter.start();
+			Painter.finishAll();
+			int length = name.equals("mothership") ? 100 : 160;
+			helper.assertTrue(ship.length() >= length, name + " is " + ship.length() + " blocks long, under " + length);
+			helper.assertTrue(painter.placed() > 15000, name + " has only " + painter.placed() + " blocks");
+			helper.assertTrue(ship.decks() >= 2, name + " has " + ship.decks() + " decks");
+			helper.assertTrue(level.getBlockState(ship.pad()).getBlock() instanceof Teleporter, name + ": no teleporter pad at " + ship.pad().toShortString());
+			UnitKind hero = name.equals("hyperion") ? UnitKind.RAYNOR : name.equals("mothership") ? UnitKind.ARTANIS : UnitKind.KERRIGAN;
+			helper.assertTrue(ship.spawns().stream().anyMatch(spawn -> spawn.kind() == hero && spawn.pos().equals(ship.bossRoom())), name + ": no " + hero.id);
+			for (int up = 0; up < 4; up++)
+				helper.assertTrue(!level.getBlockState(ship.bossRoom().above(up)).isSolid(), name + ": the boss room is not open at " + ship.bossRoom().above(up).toShortString());
+			helper.assertTrue(ship.spawns().size() >= 15 && ship.spawns().stream().anyMatch(spawn -> spawn.kind().flying), name + " has " + ship.spawns().size() + " guards");
+			int scaffolds = 0;
+			for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-110, -60, -70), middle.offset(110, 40, 70)))
+				if (level.getBlockState(pos).is(Blocks.SCAFFOLDING)) scaffolds++;
+			helper.assertTrue(scaffolds == 0, name + " has " + scaffolds + " scaffolding blocks");
 		}
-		helper.assertTrue(level.getBlockState(base.offset(30, 0, 0)).is(Blocks.SEA_LANTERN), "no Yamato muzzle");
+		// the Hyperion's two decks: the upper deck's floor over the lower one, both open
+		BlockPos hyperion = base;
+		helper.assertTrue(level.getBlockState(hyperion.offset(10, 0, 0)).is(Blocks.POLISHED_ANDESITE), "no upper deck floor");
+		helper.assertTrue(level.getBlockState(hyperion.offset(10, -4, 0)).isAir() && level.getBlockState(hyperion.offset(10, 3, 0)).isAir(), "the decks are not open");
 		helper.succeed();
+	}
+
+	/** A race's teleporter carries a player to its pair only once its guards are dead (CLOUD_TASK_2 stage 7), both ways. */
+	@GameTest(template = ARENA, batch = "teleporters", timeoutTicks = 300)
+	public void teleportersOpenOnceTheirGuardsAreDead(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos a = helper.absolutePos(new BlockPos(6, 2, 6)), b = helper.absolutePos(new BlockPos(40, 2, 40));
+		Painter painter = new Painter(level, RandomSource.create(1));
+		Teleporter.pad(painter, a, UnitKind.Race.TERRAN, Blocks.IRON_BLOCK.defaultBlockState());
+		Teleporter.pad(painter, b, UnitKind.Race.TERRAN, Blocks.IRON_BLOCK.defaultBlockState());
+		Teleporter.link(level, a, b);
+		dev.starmine.entity.StarUnit guard = dev.starmine.ability.TestArena.unit(helper, UnitKind.MARINE, 12, 6, null);
+		net.minecraft.world.entity.player.Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+		player.moveTo(a.getX() + 0.5, a.getY() + 0.3, a.getZ() + 0.5);
+		helper.assertTrue(Teleporter.guards(level, a) == 1, "guards at the pad: " + Teleporter.guards(level, a));
+		helper.assertFalse(Teleporter.use(level, a, player), "a guarded pad carried the player");
+		guard.discard();
+		helper.runAfterDelay(50, () -> {
+			helper.assertTrue(Teleporter.use(level, a, player), "the free pad does not carry the player");
+			helper.assertTrue(player.blockPosition().distManhattan(b) <= 1, "the player is at " + player.blockPosition().toShortString() + ", not at the pair");
+			helper.runAfterDelay(Teleporter.REST + 5, () -> {
+				helper.assertTrue(Teleporter.use(level, b, player), "the way back does not work");
+				helper.assertTrue(player.blockPosition().distManhattan(a) <= 1, "back at " + player.blockPosition().toShortString());
+				helper.succeed();
+			});
+		});
 	}
 
 	@GameTest(template = ARENA, batch = "structuresBase", timeoutTicks = 400)
@@ -105,6 +155,7 @@ public class StructureGameTests implements FabricGameTest {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		BlockPos site = far(helper, 700).below(70);
 		RaceBases.Report report = RaceBases.build(level, UnitKind.Race.TERRAN, site, RandomSource.create(5));
+		Painter.finishAll(); // the Hyperion is put over ticks: its guards wait for it
 		Hive base = data.get(report.base());
 		try {
 			helper.assertTrue(base != null && base.owner == null && base.race == UnitKind.Race.TERRAN, "no wild terran base");

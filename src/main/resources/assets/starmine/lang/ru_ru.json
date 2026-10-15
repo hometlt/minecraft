@@ -824,5 +824,15 @@
 	"message.starmine.platform_holds": "На платформе: %s (минералы / газ, ресурсы)",
 	"message.starmine.platform_short": "На платформе мало ресурсов, чтобы вызвать главное здание: %s (нужно 500 минералов, 500 железа или 100 алмазов — costs/platform.json)",
 	"message.starmine.platform_called": "Транспорт уже в пути",
-	"message.starmine.platform_calling": "Транспорт летит с рабочим (на платформе осталось: %s)"
+	"message.starmine.platform_calling": "Транспорт летит с рабочим (на платформе осталось: %s)",
+	"entity.starmine.kerrigan": "Керриган",
+	"item.starmine.kerrigan_spawn_egg": "Яйцо призыва: Керриган",
+	"entity.starmine.raynor": "Рейнор",
+	"item.starmine.raynor_spawn_egg": "Яйцо призыва: Рейнор",
+	"entity.starmine.artanis": "Артанис",
+	"item.starmine.artanis_spawn_egg": "Яйцо призыва: Артанис",
+	"block.starmine.zerg_teleporter": "Телепорт зергов",
+	"block.starmine.terran_teleporter": "Телепорт терранов",
+	"block.starmine.protoss_teleporter": "Телепорт протоссов",
+	"message.starmine.teleporter_guarded": "Телепорт охраняется: осталось стражей — %s"
 }

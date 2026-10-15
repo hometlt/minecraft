@@ -824,5 +824,15 @@
 	"message.starmine.platform_holds": "The platform holds %s (minerals / vespene, resources)",
 	"message.starmine.platform_short": "Not enough on the platform to call a main building: %s (see costs/platform.json: 500 minerals, 500 iron or 100 diamonds)",
 	"message.starmine.platform_called": "A transport is already on its way",
-	"message.starmine.platform_calling": "A transport is on its way with a worker (left on the platform: %s)"
+	"message.starmine.platform_calling": "A transport is on its way with a worker (left on the platform: %s)",
+	"entity.starmine.kerrigan": "Kerrigan",
+	"item.starmine.kerrigan_spawn_egg": "Kerrigan Spawn Egg",
+	"entity.starmine.raynor": "Raynor",
+	"item.starmine.raynor_spawn_egg": "Raynor Spawn Egg",
+	"entity.starmine.artanis": "Artanis",
+	"item.starmine.artanis_spawn_egg": "Artanis Spawn Egg",
+	"block.starmine.zerg_teleporter": "Zerg Teleporter",
+	"block.starmine.terran_teleporter": "Terran Teleporter",
+	"block.starmine.protoss_teleporter": "Protoss Teleporter",
+	"message.starmine.teleporter_guarded": "The teleporter is guarded: %s guards left"
 }

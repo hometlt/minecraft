@@ -26,6 +26,16 @@ public final class SkinnedModelDrawer {
 		}
 	}
 
+	/** Draws the last skinned pose solid, tinted by `argb` (a hero drawn with another unit's model). */
+	public void drawTinted(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay, int argb) {
+		color = argb;
+		for (SkinnedModel.Part part : model.parts) {
+			VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(StarMine.id("textures/entity/sc2/" + part.texture() + ".png")));
+			drawPart(model, part, pose, consumer, light, overlay);
+		}
+		color = 0xFFFFFFFF;
+	}
+
 	/** Draws the last skinned pose see-through and tinted by `argb` (a building being placed). */
 	public void drawTranslucent(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay, int argb) {
 		color = argb;

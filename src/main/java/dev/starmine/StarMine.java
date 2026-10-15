@@ -127,6 +127,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.vespene.Vespene.load();
 		dev.starmine.colony.CommandPanel.load();
 		dev.starmine.colony.PlatformBlock.load();
+		dev.starmine.world.Teleporter.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new dev.starmine.colony.Costs());
@@ -137,6 +138,7 @@ public final class StarMine implements ModInitializer {
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.Painter::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ability.Delayed::tick);
 		dev.starmine.colony.ColonyNetwork.register();
 		dev.starmine.possess.Possession.register();

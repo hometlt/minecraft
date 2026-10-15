@@ -118,7 +118,11 @@ public enum UnitKind {
 	TEMPLAR_ARCHIVES( Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.0f, 2.4f,  0xc8a030, 0x8080ff),
 	DARK_SHRINE(      Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 2.6f, 6.2f,  0x403050, 0x80ff80),
 	ROBOTICS_BAY(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.3f, 2.0f,  0xc8a030, 0xd0d0d0),
-	FLEET_BEACON(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.9f,  0xc8a030, 0xffd040);
+	FLEET_BEACON(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.9f,  0xc8a030, 0xffd040),
+	// ---- heroes: the bosses of the sky ships (CLOUD_TASK_2 stage 8; numbers and sources in docs/BALANCE.md) ----
+	KERRIGAN(         Race.ZERG,    800, 0,    3.94,  false, Attack.MELEE,  40,  1.5,   1,    true,  1.1f, 2.3f,  0x5a2a6a, 0xd060ff),
+	RAYNOR(           Race.TERRAN,  600, 0,    3.15,  false, Attack.RANGED, 18,  0.61,  6,    true,  1.1f, 2.1f,  0x3a5a8a, 0xffb060),
+	ARTANIS(          Race.PROTOSS, 500, 500,  3.15,  false, Attack.MELEE,  40,  1.2,   1,    true,  1.2f, 2.4f,  0xc8a030, 0x80c0ff);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -211,6 +215,34 @@ public enum UnitKind {
 	/** SC2's economy with the minerals and vespene of `data/starmine/costs` ({@link dev.starmine.colony.Costs}). */
 	public Economy economy() {
 		return dev.starmine.colony.Costs.economy(this, race.rules().economy(this));
+	}
+
+	/** The heroes of the sky ships' boss rooms: Kerrigan, Raynor, Artanis (dev.starmine.boss). */
+	public boolean boss() {
+		return this == KERRIGAN || this == RAYNOR || this == ARTANIS;
+	}
+
+	/**
+	 * Whose model it is drawn with: a hero has none of its own until the owner imports it (the queen for
+	 * Kerrigan, the marine for Raynor, the zealot for Artanis, larger and tinted: {@link #tint}).
+	 */
+	public UnitKind look() {
+		return switch (this) {
+			case KERRIGAN -> QUEEN;
+			case RAYNOR -> MARINE;
+			case ARTANIS -> ZEALOT;
+			default -> this;
+		};
+	}
+
+	/** The colour a stand-in model is tinted with (ARGB), white for the others. */
+	public int tint() {
+		return switch (this) {
+			case KERRIGAN -> 0xFFC080FF;
+			case RAYNOR -> 0xFFFFC890;
+			case ARTANIS -> 0xFF9AD0FF;
+			default -> 0xFFFFFFFF;
+		};
 	}
 
 	/** Immobile parts of a hive or base: no movement, no knockback, solid to walk on. */
@@ -309,6 +341,9 @@ public enum UnitKind {
 	public float modelScale() {
 		if (structure() && this != EGG) return this == HATCHERY ? 2.0f : 1f;
 		return UNIT_SIZE * switch (this) {
+			case KERRIGAN -> 1.0f; // the queen's model (4 wide at this size) stands in for her
+			case RAYNOR -> 1.15f;
+			case ARTANIS -> 1.2f;
 			case LURKER -> 1.1f;
 			case OVERLORD -> 1.6f;
 			case OVERSEER -> 1.44f;
