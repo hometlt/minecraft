@@ -94,9 +94,11 @@ public class PathfindingGameTests implements FabricGameTest {
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		UnitKind[] kinds = {UnitKind.ZERGLING, UnitKind.MARINE, UnitKind.ROACH, UnitKind.STALKER, UnitKind.ULTRALISK, UnitKind.COLOSSUS, UnitKind.THOR};
-		for (int i = 0; i < kinds.length; i++) {
-			double z = 3 + i * 6.5;
-			goals.put(unit(helper, kinds[i], 6, z, player), point(helper, 38, z));
+		double edge = 0.5; // side by side by their widths (a thor is 10 wide), a block apart
+		for (UnitKind kind : kinds) {
+			double z = edge + kind.width / 2;
+			edge += kind.width + 1;
+			goals.put(unit(helper, kind, 6, z - 0.5, player), point(helper, 38, z - 0.5));
 		}
 		race(helper, "open ground, 32 blocks", goals, 1.5, 700);
 	}

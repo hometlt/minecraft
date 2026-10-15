@@ -226,6 +226,15 @@ public final class DronePlanner {
 					}
 			}
 			if (fill < bridge.size()) return null;
+		} else if (w > 2 && floor < w * w) {
+			// a wide body stands on its whole floor: the holes under it are filled (a thor's way, 11 wide, stepped
+			// up onto the first row of a ridge with the rest of it over the air, and its workers' place was there)
+			for (int x = 0; x < w; x++)
+				for (int z = 0; z < w; z++) {
+					BlockPos under = to.offset(x, -1, z);
+					if (!breaks.contains(under) && !cells.solid(under) && !cells.fluid(under)) bridge.add(under);
+				}
+			if (fill < bridge.size()) return null;
 		}
 		return new Step(to, breaks, bridge);
 	}

@@ -268,10 +268,10 @@ public final class ProtossAbilities {
 		List<StarUnit> army = level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(RECALL_RADIUS, 12, RECALL_RADIUS),
 			other -> other.isAlive() && !other.kind.structure() && Faction.allied(unit, other) && other.distanceTo(unit.body()) <= RECALL_RADIUS + 6);
 		int i = 0;
-		double widest = army.stream().mapToDouble(other -> other.kind.width).max().orElse(1);
+		double widest = army.stream().filter(other -> !other.flying()).mapToDouble(other -> other.kind.width).max().orElse(1);
 		for (StarUnit other : army) {
-			// round the nexus (6 wide), apart by the widest body: a colossus or an immortal landed in it or in each other
-			double angle = i * 2.4, spread = 3.5 + widest * (0.6 + 0.3 * i);
+			// round the nexus (6 wide), apart by the widest walker: a colossus or an immortal landed in it or in each other
+			double angle = i * 2.4, spread = UnitKind.NEXUS.width / 2 + 0.5 + widest * (0.6 + 0.3 * i);
 			i++;
 			Vec3 spot = new Vec3(home.x + Math.cos(angle) * spread, home.y, home.z + Math.sin(angle) * spread);
 			Vec3 at = other.flying() ? spot.add(0, other.kind.hoverHeight(), 0) : Abilities.standable(other, level, spot);
