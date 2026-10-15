@@ -246,7 +246,7 @@ public class MechanicsGameTests implements FabricGameTest {
 			+ " blocks up does not see the zergling under it"));
 	}
 
-	/** Melee reach is SC2's (0.1 x 1.153 and 0.3 for pushing bodies, edge to edge), not vanilla's 0.83 blocks. */
+	/** Melee reach is SC2's (0.1 x BLOCKS_PER_UNIT and 0.3 for pushing bodies, edge to edge), not vanilla's 0.83 blocks. */
 	@GameTest(template = ARENA, batch = "mechReach", timeoutTicks = 40)
 	public void meleeReachIsSc2s(GameTestHelper helper) {
 		clear(helper);

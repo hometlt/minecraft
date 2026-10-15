@@ -114,11 +114,11 @@ public final class Engineering {
 		for (StarUnit unit : units) release(unit.getUUID());
 		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
 		if (army.isEmpty()) return Set.of();
-		StarUnit lead = army.stream().max(Comparator.comparingDouble(unit -> unit.kind.width * unit.kind.modelScale())).orElseThrow();
+		StarUnit lead = army.stream().max(Comparator.comparingDouble(unit -> unit.kind.width)).orElseThrow();
 		Path path = lead.getNavigation().createPath(BlockPos.containing(goal), 1);
 		if (path != null && path.canReach()) return Set.of();
-		double width = army.stream().mapToDouble(unit -> unit.kind.width * unit.kind.modelScale()).max().orElse(1);
-		double height = army.stream().mapToDouble(unit -> unit.kind.height * unit.kind.modelScale()).max().orElse(2);
+		double width = army.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
+		double height = army.stream().mapToDouble(unit -> unit.kind.height).max().orElse(2);
 		DronePlanner.Body body = DronePlanner.Body.of(width, height, REACH);
 		double arrive = 2 + body.width() / 2.0;
 		BlockPos start = DronePlanner.feetOf(lead.position(), body);

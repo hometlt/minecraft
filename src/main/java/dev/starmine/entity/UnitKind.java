@@ -11,14 +11,15 @@ import net.minecraft.world.item.Items;
  * the scales the owner accepted on the zergling: health and damage x{@link #SCALE} (10/35; a
  * zergling has half a player's health, a hydralisk more than a player), attack period kept,
  * walking speed x{@link #SPEED_SCALE}, range in blocks = SC2 range x{@link #BLOCKS_PER_UNIT}.
- * Hitboxes follow the imported model sizes (1.153 blocks per SC2 unit, a zergling 1 block tall);
- * drones (2 blocks across) dig and walk 2x2 tunnels.
+ * Units (not buildings) are drawn {@link #UNIT_SIZE} times the imported model size (owner 15.10: a marine
+ * a little taller than a zombie, the rest in SC2 proportion); hitboxes in the table are at model size and
+ * scaled the same way, workers kept within 1.9 blocks so they still dig and walk 2x2 tunnels.
  * Model and sound names follow the enum name in lower case without underscores.
  */
 public enum UnitKind {
 	//           sc2Hp  speed  fly    attack                  dmg   period range  aggressive  hitbox w/h (from model size)  egg colours
-	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.8f, 0.9f, 0x4b1f4f, 0xc79a52),
-	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 1.8f, 1.0f,  0x6a4a2a, 0xd8c08a),
+	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.65f, 0.72f, 0x4b1f4f, 0xc79a52),
+	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 1.3f, 0.72f, 0x6a4a2a, 0xd8c08a),
 	OVERLORD(    200,   0.902, true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 4.0f,  0x5a3a5a, 0xb08ab0),
 	OVERSEER(    200,   2.62,  true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 3.8f,  0x3a5a3a, 0xc0d080),
 	QUEEN(       175,   1.31,  false, Attack.RANGED,          8,    0.71,  5,    true,  2.0f, 2.6f,  0x40205a, 0xe0b040),
@@ -122,7 +123,12 @@ public enum UnitKind {
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
 	public static final double SPEED_SCALE = 0.087;
-	public static final double BLOCKS_PER_UNIT = 1.153;
+	/** Owner 15.10: units are twice the imported model size (1.153 blocks per SC2 unit), a marine about 2 blocks tall. */
+	public static final float UNIT_SIZE = 2f;
+	/** Blocks per SC2 distance unit (ranges, radii, sight), grown with the units. */
+	public static final double BLOCKS_PER_UNIT = 1.153 * UNIT_SIZE;
+	/** Workers' hitbox limit: they dig and walk 2x2 tunnels. */
+	private static final float WORKER_BODY = 1.9f;
 
 	public enum Attack { NONE, MELEE, SPLASH, EXPLODE, RANGED, SLOW, LINE, PULL, SPAWN_BROODLINGS, SPAWN_LOCUSTS }
 
@@ -168,8 +174,11 @@ public enum UnitKind {
 		this.interval = Math.max(8, (int) Math.round(period * 20));
 		this.range = Math.max(2, sc2Range * BLOCKS_PER_UNIT + 1);
 		this.aggressive = aggressive;
-		this.width = width;
-		this.height = height;
+		boolean unit = sc2Speed > 0 || name().equals("EGG"); // buildings and the hatchery keep their size
+		boolean worker = name().equals("DRONE") || name().equals("SCV") || name().equals("PROBE");
+		float grow = unit ? UNIT_SIZE : 1f;
+		this.width = worker ? Math.min(WORKER_BODY, width * grow) : width * grow;
+		this.height = worker ? Math.min(WORKER_BODY, height * grow) : height * grow;
 		this.eggBase = eggBase;
 		this.eggSpots = eggSpots;
 	}
@@ -272,6 +281,10 @@ public enum UnitKind {
 
 	/** How far it sees, in blocks (about SC2 sight x {@link #BLOCKS_PER_UNIT}): fog of war in command mode. */
 	public double sight() {
+		return sightAtModelSize() * BLOCKS_PER_UNIT / 1.153;
+	}
+
+	private double sightAtModelSize() {
 		if (building()) return this == COMMAND_CENTER ? 13 : 10;
 		return switch (this) {
 			case SCV, PROBE -> 9;
@@ -290,12 +303,11 @@ public enum UnitKind {
 		return race.rules().tier(this);
 	}
 
-	/** Owner's sizes: the drone 2 blocks across, the lurker 3, overlord, overseer and brood lord 4. */
+	/** How the imported model is drawn: units {@link #UNIT_SIZE} times (owner 15.10), the lurker, overlord,
+	 * overseer and brood lord a little more as the owner set them; buildings at model size, the hatchery twice. */
 	public float modelScale() {
-		return switch (this) {
-			case ZERGLING -> 1.25f;
-			case DRONE -> 1.4f;
-			case HATCHERY -> 2.0f;
+		if (structure() && this != EGG) return this == HATCHERY ? 2.0f : 1f;
+		return UNIT_SIZE * switch (this) {
 			case LURKER -> 1.1f;
 			case OVERLORD -> 1.6f;
 			case OVERSEER -> 1.44f;

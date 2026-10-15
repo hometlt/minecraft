@@ -23,7 +23,7 @@ import static dev.starmine.race.Times.seconds;
  */
 public final class ProtossRace implements RaceRules {
 	static final ProtossRace INSTANCE = new ProtossRace();
-	/** SC2 pylon power radius 6.5 x 1.153 blocks per unit. */
+	/** SC2 pylon power radius 6.5 x BLOCKS_PER_UNIT. */
 	public static final double POWER_RADIUS = 7.5;
 
 	private ProtossRace() {
@@ -183,7 +183,7 @@ public final class ProtossRace implements RaceRules {
 			.isEmpty();
 	}
 
-	/** SC2 warp prism phasing field radius 3.75 x 1.153 blocks per unit + 1. */
+	/** SC2 warp prism phasing field radius 3.75 x BLOCKS_PER_UNIT + 1. */
 	public static final double PRISM_RADIUS = 3.75 * BLOCKS_PER_UNIT + 1;
 
 	@Override

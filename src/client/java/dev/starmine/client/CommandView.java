@@ -375,7 +375,7 @@ public final class CommandView {
 	}
 
 	private static void ring(PoseStack pose, VertexConsumer lines, StarUnit unit, int color) {
-		double r = unit.kind.width / 2 * unit.kind.modelScale() + 0.3;
+		double r = unit.kind.width / 2 + 0.3;
 		double y = unit.getY() + 0.06;
 		PoseStack.Pose last = pose.last();
 		int segments = 24;

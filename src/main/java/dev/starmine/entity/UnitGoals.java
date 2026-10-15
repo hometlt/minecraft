@@ -127,12 +127,12 @@ public final class UnitGoals {
 
 	/**
 	 * Melee reach SC2's way: from edge to edge, the weapon's SC2 range (0.1 for most, an ultralisk's 1)
-	 * x 1.153 and 0.3 blocks for bodies that push each other. (Vanilla's reach is the attacker's box grown
+	 * x BLOCKS_PER_UNIT and 0.3 blocks for bodies that push each other. (Vanilla's reach is the attacker's box grown
 	 * by 0.83 blocks: zerglings and zealots struck from the second row, and melee armies beat ranged ones of
 	 * equal cost far more than in SC2.)
 	 */
 	public static boolean withinReach(StarUnit unit, LivingEntity target) {
-		double reach = (unit.kind == UnitKind.ULTRALISK ? 1.0 : 0.1) * 1.153 + 0.3;
+		double reach = (unit.kind == UnitKind.ULTRALISK ? 1.0 : 0.1) * UnitKind.BLOCKS_PER_UNIT + 0.3;
 		double dx = unit.getX() - target.getX(), dz = unit.getZ() - target.getZ();
 		double edge = Math.sqrt(dx * dx + dz * dz) - (unit.getBbWidth() + target.getBbWidth()) / 2;
 		boolean level = unit.getY() < target.getY() + target.getBbHeight() + 0.5 && target.getY() < unit.getY() + unit.getBbHeight() + 0.5;
