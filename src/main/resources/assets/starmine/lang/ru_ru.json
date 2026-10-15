@@ -842,5 +842,6 @@
 	"ability.starmine.leaping_strike.tip": "Керриган прыгает на врага: 150 урона",
 	"ability.starmine.psionic_shift.tip": "Керриган проносится вперёд, 50 урона врагам на пути",
 	"ability.starmine.hyperion_strike.tip": "«Гиперион» бьёт «Ямато»: 600 урона через 1,5 с и вокруг",
-	"ability.starmine.lightning_dash.tip": "Артанис бросается к врагу: 100 урона вокруг, оглушение 2 с"
+	"ability.starmine.lightning_dash.tip": "Артанис бросается к врагу: 100 урона вокруг, оглушение 2 с",
+	"block.starmine.dungeon_heart": "Сердце данжа"
 }

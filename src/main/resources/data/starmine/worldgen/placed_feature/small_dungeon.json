@@ -1,0 +1,12 @@
+{
+	"feature": "starmine:small_dungeon",
+	"placement": [
+		{
+			"type": "minecraft:rarity_filter",
+			"chance": 48
+		},
+		{
+			"type": "minecraft:biome"
+		}
+	]
+}

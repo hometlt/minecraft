@@ -149,6 +149,39 @@ public class StructureGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * Small dungeons (owner 15.10): each of the three is built in a block of stone, keeps its guards in its heart
+	 * until a player comes, then they appear — zerg eggs, zerglings and a roach; marines; zealots or dark templars.
+	 */
+	@GameTest(template = ARENA, batch = "smallDungeons", timeoutTicks = 200)
+	public void smallDungeonsKeepTheirGuards(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		int i = 0;
+		for (SmallDungeons.Kind kind : SmallDungeons.Kind.values()) {
+			BlockPos at = helper.absolutePos(BlockPos.ZERO).offset(2000 + i++ * 80, 0, 400);
+			Painter painter = new Painter(level, RandomSource.create(11));
+			painter.load(at, 40);
+			int top = level.getMinBuildHeight() + 64;
+			for (BlockPos pos : BlockPos.betweenClosed(at.offset(-24, 0, -24).atY(level.getMinBuildHeight() + 5), at.offset(24, 0, 24).atY(top - 1)))
+				level.setBlock(pos, Blocks.STONE.defaultBlockState(), 2);
+			BlockPos heartAt = SmallDungeons.build(level, RandomSource.create(5 + i), kind, at.getX(), at.getZ(), top);
+			helper.assertTrue(heartAt != null && level.getBlockEntity(heartAt) instanceof DungeonHeart.Heart, kind + ": no heart");
+			DungeonHeart.Heart heart = (DungeonHeart.Heart) level.getBlockEntity(heartAt);
+			List<UnitKind> kinds = heart.guards().stream().map(DungeonHeart.Guard::kind).toList();
+			switch (kind) {
+				case ZERG_NEST -> helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the nest keeps " + kinds);
+				case TERRAN_OUTPOST -> helper.assertTrue(kinds.stream().filter(k -> k == UnitKind.MARINE).count() >= 2, "the outpost keeps " + kinds);
+				case XELNAGA_TEMPLE -> helper.assertTrue(kinds.stream().allMatch(k -> k == UnitKind.ZEALOT || k == UnitKind.DARK_TEMPLAR) && !kinds.isEmpty(),
+					"the temple keeps " + kinds);
+			}
+			var made = heart.wake(level);
+			helper.assertTrue(made.size() == kinds.size(), kind + ": " + made.size() + " of " + kinds.size() + " guards appeared");
+			helper.assertTrue(!(level.getBlockState(heartAt).getBlock() instanceof DungeonHeart), kind + ": the heart is still there");
+			for (var unit : made) unit.discard(); // other tests share the world
+		}
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "structuresBase", timeoutTicks = 400)
 	public void terranBaseIsWild(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();

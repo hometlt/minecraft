@@ -842,5 +842,6 @@
 	"ability.starmine.leaping_strike.tip": "Kerrigan leaps at a foe: 150 damage",
 	"ability.starmine.psionic_shift.tip": "Kerrigan dashes, 50 damage to foes on her way",
 	"ability.starmine.hyperion_strike.tip": "The Hyperion fires its Yamato: 600 damage after 1.5 s, splash around",
-	"ability.starmine.lightning_dash.tip": "Artanis dashes to a foe: 100 damage around, 2 s stun"
+	"ability.starmine.lightning_dash.tip": "Artanis dashes to a foe: 100 damage around, 2 s stun",
+	"block.starmine.dungeon_heart": "Dungeon Heart"
 }
