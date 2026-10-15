@@ -137,7 +137,7 @@ public final class DungeonHeart extends Block implements EntityBlock {
 		if (level.isClientSide || type != ENTITY) return null;
 		return (world, pos, blockState, entity) -> {
 			if (world.getGameTime() % 20 != 0 || !(world instanceof ServerLevel server) || !(entity instanceof Heart heart)) return;
-			if (server.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, WAKE, player -> !player.isSpectator() && !player.isCreative()) != null)
+			if (server.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, WAKE, entity -> entity instanceof net.minecraft.world.entity.player.Player player && !player.isSpectator() && !player.isCreative()) != null)
 				heart.wake(server);
 		};
 	}
