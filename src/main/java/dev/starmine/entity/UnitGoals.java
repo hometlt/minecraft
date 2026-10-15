@@ -47,7 +47,13 @@ public final class UnitGoals {
 		if (!kind.worker() && kind.aggressive)
 			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
 				other -> dev.starmine.faction.Faction.hostile(unit, other)
-					&& !(other instanceof StarUnit cloaked && !dev.starmine.ability.Cloak.seen(cloaked, unit))));
+					&& !(other instanceof StarUnit cloaked && !dev.starmine.ability.Cloak.seen(cloaked, unit))) {
+				// vanilla looks only 4 blocks up and down: a carrier hovering 8 blocks up never saw the ground under it
+				@Override
+				protected net.minecraft.world.phys.AABB getTargetSearchArea(double range) {
+					return unit.flying() ? unit.getBoundingBox().inflate(range, range, range) : super.getTargetSearchArea(range);
+				}
+			});
 	}
 
 	/** Whether it may fight now: it has a weapon in its mode and states, and does not ride a transport (a bunker's garrison does fight). */

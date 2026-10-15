@@ -199,6 +199,19 @@ public class MechanicsGameTests implements FabricGameTest {
 		helper.assertTrue(Math.abs(lost - expected) < 1e-3, what + " took " + lost / UnitKind.SCALE + " (SC2 " + expected / UnitKind.SCALE + ")");
 	}
 
+	/** A flyer at its hover height finds a ground foe under it (vanilla's target search reaches only 4 blocks up and down). */
+	@GameTest(template = ARENA, batch = "mechFlyerSight", timeoutTicks = 100)
+	public void aFlyerHighUpFindsAGroundFoe(GameTestHelper helper) {
+		clear(helper);
+		StarUnit carrier = unit(helper, UnitKind.CARRIER, 10, 24, UUID.randomUUID());
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 12, 24, null);
+		zergling.setNoAi(true);
+		Vec3 high = point(helper, 10, 24).add(0, 9, 0);
+		carrier.teleportTo(high.x, high.y, high.z);
+		helper.succeedWhen(() -> helper.assertTrue(carrier.getTarget() == zergling, "the carrier " + (carrier.getY() - zergling.getY())
+			+ " blocks up does not see the zergling under it"));
+	}
+
 	/** Melee reach is SC2's (0.1 x 1.153 and 0.3 for pushing bodies, edge to edge), not vanilla's 0.83 blocks. */
 	@GameTest(template = ARENA, batch = "mechReach", timeoutTicks = 40)
 	public void meleeReachIsSc2s(GameTestHelper helper) {
