@@ -49,6 +49,7 @@ public final class Abilities {
 		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING)
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
+		if (!dev.starmine.race.Research.has(unit, dev.starmine.race.Research.of(ability))) return "message.starmine.need_research";
 		long now = unit.level().getGameTime();
 		if (unit.abilities.cooldownLeft(ability, now) > 0) return "message.starmine.cooldown";
 		if (unit.energy() < ability.energy) return "message.starmine.need_energy";
@@ -88,7 +89,7 @@ public final class Abilities {
 	}
 
 	/** The unit's base, or null. */
-	static @Nullable Hive base(StarUnit unit) {
+	public static @Nullable Hive base(StarUnit unit) {
 		return unit.level() instanceof ServerLevel server && unit.hiveId() != null ? HiveSavedData.get(server.getServer()).get(unit.hiveId()) : null;
 	}
 

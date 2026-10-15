@@ -781,6 +781,11 @@
 	"message.starmine.no_partner": "Рядом нет второго храмовника для слияния",
 	"message.starmine.pilot_transport": "Транспорт, которым вы управляете, не перевозит: выйдите из него и загрузите из командного вида",
 	"message.starmine.need_techlab": "Нужна техлаборатория на здании",
+	"command.starmine.stimpack": "Стимулятор",
+	"command.starmine.concussive_shells": "Сотрясающие снаряды",
+	"command.starmine.charge": "Рывок",
+	"command.starmine.blink": "Скачок",
+	"message.starmine.need_research": "Ещё не исследовано",
 	"command.starmine.metabolic_boost": "Метаболический ускоритель",
 	"command.starmine.centrifugal_hooks": "Центробежные крюки",
 	"command.starmine.combat_shield": "Боевой щит"

@@ -1363,7 +1363,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || what.refusal(hive, kind) != null) return false;
-		if (what == dev.starmine.race.Research.COMBAT_SHIELD && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
+		if (what.at(UnitKind.BARRACKS) && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
 		int level = what.nextLevel(hive);
 		int[] cost = what.cost(level);
 		hive.minerals -= cost[0];

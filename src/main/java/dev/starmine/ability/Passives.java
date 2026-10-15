@@ -50,7 +50,8 @@ public final class Passives {
 
 	/** After a hit lands: concussive shells slow, a hellbat sets alight. */
 	public static void onHit(StarUnit attacker, LivingEntity target) {
-		if (attacker.kind == UnitKind.MARAUDER) Status.apply(target, Status.SLOW, CONCUSSIVE_TICKS);
+		if (attacker.kind == UnitKind.MARAUDER && dev.starmine.race.Research.has(attacker, dev.starmine.race.Research.CONCUSSIVE_SHELLS))
+			Status.apply(target, Status.SLOW, CONCUSSIVE_TICKS);
 		if (attacker.kind == UnitKind.HELLION && attacker.mode() == Modes.HELLBAT) target.igniteForSeconds(2);
 	}
 

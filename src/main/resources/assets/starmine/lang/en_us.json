@@ -781,6 +781,11 @@
 	"message.starmine.no_partner": "No other templar near to merge with",
 	"message.starmine.pilot_transport": "A transport you play as cannot carry: leave it and command the load from the command view",
 	"message.starmine.need_techlab": "Needs a tech lab on the building",
+	"command.starmine.stimpack": "Stimpack",
+	"command.starmine.concussive_shells": "Concussive Shells",
+	"command.starmine.charge": "Charge",
+	"command.starmine.blink": "Blink",
+	"message.starmine.need_research": "Not researched yet",
 	"command.starmine.metabolic_boost": "Metabolic Boost",
 	"command.starmine.centrifugal_hooks": "Centrifugal Hooks",
 	"command.starmine.combat_shield": "Combat Shield"

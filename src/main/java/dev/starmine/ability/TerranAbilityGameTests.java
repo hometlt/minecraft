@@ -380,4 +380,34 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+
+	/**
+	 * A marine of a base stims only once its base has researched the stimpack, at a barracks with a tech
+	 * lab (SC2); a lone wild marine (no base) keeps it.
+	 */
+	@GameTest(template = ARENA, batch = "terranStimResearch", timeoutTicks = 100)
+	public void stimpackNeedsItsResearch(GameTestHelper helper) {
+		clear(helper);
+		StarUnit cc = commandCenter(helper);
+		StarUnit lone = unit(helper, UnitKind.MARINE, 10, 10, null);
+		lone.setNoAi(true);
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			StarUnit marine = TestArena.member(helper, base, UnitKind.MARINE, 10, 24);
+			StarUnit barracks = TestArena.member(helper, base, UnitKind.BARRACKS, 24, 10);
+			marine.setNoAi(true);
+			helper.assertTrue("message.starmine.need_research".equals(Abilities.refusal(marine, Ability.STIMPACK)), "a base's marine stims unresearched");
+			helper.assertTrue(Abilities.refusal(lone, Ability.STIMPACK) == null, "a lone wild marine cannot stim");
+			base.minerals = 500;
+			base.vespene = 500;
+			helper.assertFalse(barracks.startResearch("stimpack"), "the stimpack was researched without a tech lab");
+			barracks.setMode(Modes.TECHLAB);
+			helper.assertTrue(barracks.startResearch("stimpack"), "no stimpack research at a barracks with a tech lab");
+			dev.starmine.race.Research.STIMPACK.apply(base);
+			helper.assertTrue(Abilities.refusal(marine, Ability.STIMPACK) == null, "researched, the marine still cannot stim: " + Abilities.refusal(marine, Ability.STIMPACK));
+			helper.succeed();
+		});
+	}
+
 }

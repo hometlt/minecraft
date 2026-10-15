@@ -12,9 +12,15 @@ import java.util.List;
  * docs/ABILITIES.md): metabolic boost (zergling speed, spawning pool), centrifugal hooks (baneling
  * speed, baneling nest), combat shield (marine health, a barracks with a tech lab). One owner for player
  * commands and the AI; a unit upgrade works through {@link #speedFactor} and {@link #extraHealth}.
+ *
+ * Abilities SC2 opens by research ({@link #of(dev.starmine.ability.Ability)}): the stimpack and concussive
+ * shells (a barracks with a tech lab), charge and blink (twilight council). Without them a marine
+ * stimmed and zealots charged from the first minute, and the balance stand's early armies were not
+ * SC2's early armies. A unit with no base (a lone wild one) keeps them all.
  */
 public enum Research {
-	WEAPONS('E'), ARMOR('A'), LAIR('L'), HIVE('H'), METABOLIC_BOOST('M'), CENTRIFUGAL_HOOKS('E'), COMBAT_SHIELD('S');
+	WEAPONS('E'), ARMOR('A'), LAIR('L'), HIVE('H'), METABOLIC_BOOST('M'), CENTRIFUGAL_HOOKS('E'), COMBAT_SHIELD('S'),
+	STIMPACK('T'), CONCUSSIVE_SHELLS('C'), CHARGE('C'), BLINK('B');
 
 	public final char hotkey;
 
@@ -33,13 +39,14 @@ public enum Research {
 			case LAIR, HIVE -> building == UnitKind.HATCHERY;
 			case METABOLIC_BOOST -> building == UnitKind.SPAWNING_POOL;
 			case CENTRIFUGAL_HOOKS -> building == UnitKind.BANELING_NEST;
-			case COMBAT_SHIELD -> building == UnitKind.BARRACKS;
+			case COMBAT_SHIELD, STIMPACK, CONCUSSIVE_SHELLS -> building == UnitKind.BARRACKS;
+			case CHARGE, BLINK -> building == UnitKind.TWILIGHT_COUNCIL;
 		};
 	}
 
 	/** A unit upgrade done once (not weapons, armor or a tier). */
 	public boolean once() {
-		return this == METABOLIC_BOOST || this == CENTRIFUGAL_HOOKS || this == COMBAT_SHIELD;
+		return this != WEAPONS && this != ARMOR && this != LAIR && this != HIVE;
 	}
 
 	/** SC2 speed of a kind with its base's upgrades against its own: a zergling 6.58 against 4.13, a baneling 4.13 against 3.5. */
@@ -78,7 +85,9 @@ public enum Research {
 			case WEAPONS, ARMOR -> new int[] {25 + 75 * level, 25 + 75 * level};
 			case LAIR -> new int[] {150, 100};
 			case HIVE -> new int[] {200, 150};
-			case METABOLIC_BOOST, CENTRIFUGAL_HOOKS, COMBAT_SHIELD -> new int[] {100, 100};
+			case METABOLIC_BOOST, CENTRIFUGAL_HOOKS, COMBAT_SHIELD, STIMPACK, CHARGE -> new int[] {100, 100};
+			case CONCUSSIVE_SHELLS -> new int[] {50, 50};
+			case BLINK -> new int[] {150, 150};
 		};
 	}
 
@@ -89,6 +98,9 @@ public enum Research {
 			case HIVE -> 71 * 20;
 			case METABOLIC_BOOST, COMBAT_SHIELD -> 79 * 20; // SC2 LotV
 			case CENTRIFUGAL_HOOKS -> 71 * 20;
+			case STIMPACK, CHARGE -> 100 * 20;
+			case CONCUSSIVE_SHELLS -> 43 * 20;
+			case BLINK -> 121 * 20;
 		};
 	}
 
@@ -108,7 +120,7 @@ public enum Research {
 				if (base.tier >= 3) return "message.starmine.research_done";
 				if (base.tier < 2 || base.count(UnitKind.INFESTATION_PIT) == 0) return "message.starmine.need_tech";
 			}
-			case METABOLIC_BOOST, CENTRIFUGAL_HOOKS, COMBAT_SHIELD -> {
+			case METABOLIC_BOOST, CENTRIFUGAL_HOOKS, COMBAT_SHIELD, STIMPACK, CONCUSSIVE_SHELLS, CHARGE, BLINK -> {
 				if (base.researched.contains(id())) return "message.starmine.research_done";
 				if (this == CENTRIFUGAL_HOOKS && base.tier < 2) return "message.starmine.need_tech";
 			}
@@ -128,6 +140,23 @@ public enum Research {
 			case HIVE -> base.tier = Math.max(base.tier, 3);
 			default -> base.researched.add(id());
 		}
+	}
+
+	/** The research an ability (or a passive: concussive shells) needs, or null. */
+	public static Research of(dev.starmine.ability.Ability ability) {
+		return switch (ability) {
+			case STIMPACK -> STIMPACK;
+			case CHARGE -> CHARGE;
+			case BLINK -> BLINK;
+			default -> null;
+		};
+	}
+
+	/** Whether this unit's base has the research (a unit with no base has it: a lone wild unit). */
+	public static boolean has(dev.starmine.entity.StarUnit unit, Research research) {
+		if (research == null) return true;
+		Hive base = dev.starmine.ability.Abilities.base(unit);
+		return base == null || base.researched.contains(research.id());
 	}
 
 	public static Research byId(String id) {

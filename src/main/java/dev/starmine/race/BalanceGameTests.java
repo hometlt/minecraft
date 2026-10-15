@@ -5,6 +5,7 @@ import dev.starmine.ai.AiCommander;
 import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.UnitKind;
 import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveSavedData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -108,10 +109,11 @@ public class BalanceGameTests implements FabricGameTest {
 	/** A fight of tier `tier` between army `a` (west) and army `b` (east). */
 	private static void fight(GameTestHelper helper, int tier, int a, int b, long seed) {
 		if (off(helper)) return;
-		walls(helper);
+		walls(helper, false); // not every base: the fights of a batch start together, each with bases of its own
 		Army west = TIERS[tier][a], east = TIERS[tier][b];
 		Random random = new Random(seed);
 		List<StarUnit> left = deploy(helper, buy(west, BUDGET[tier]), 5, random), right = deploy(helper, buy(east, BUDGET[tier]), 42, random);
+		List<Hive> bases = List.of(armyBase(helper, left, tier), armyBase(helper, right, tier));
 		int leftWorth = worth(left), rightWorth = worth(right);
 		long[] start = {-1};
 		boolean[] done = {false};
@@ -154,8 +156,26 @@ public class BalanceGameTests implements FabricGameTest {
 						unit.kind.id, TestArena.where(helper, unit), unit.getTarget() instanceof StarUnit foe ? foe.kind.id + " " + TestArena.where(helper, foe)
 							: unit.getTarget(), unit.order(), unit.goalsRunning()));
 			done[0] = true;
+			for (Hive base : bases) HiveSavedData.get(helper.getLevel().getServer()).remove(base.id);
 			helper.succeed();
 		});
+	}
+
+	/** What tiers 2 and 3 have researched (SC2: an early army has none, later ones their unit upgrades). */
+	private static final Research[] UPGRADES = {Research.STIMPACK, Research.CONCUSSIVE_SHELLS, Research.COMBAT_SHIELD, Research.CHARGE, Research.BLINK,
+		Research.METABOLIC_BOOST};
+
+	/**
+	 * A wild base of the army's own (no main building), so that its abilities follow its research: none
+	 * at tier 1, the unit upgrades at tiers 2 and 3. Removed after the fight.
+	 */
+	private static Hive armyBase(GameTestHelper helper, List<StarUnit> army, int tier) {
+		Hive base = new Hive(UUID.randomUUID(), helper.getLevel().dimension().location().toString(), helper.absolutePos(new BlockPos(24, 2, 24)));
+		base.race = army.get(0).kind.race;
+		if (tier > 0) for (Research upgrade : UPGRADES) base.researched.add(upgrade.id());
+		HiveSavedData.get(helper.getLevel().getServer()).add(base);
+		for (StarUnit unit : army) unit.joinHive(base);
+		return base;
 	}
 
 	/** Debug: a unit that got under the arena's floor (the fight cannot end), logged once with what it was doing. */
