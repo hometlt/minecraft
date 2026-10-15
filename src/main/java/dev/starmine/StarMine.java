@@ -153,6 +153,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();
 		dev.starmine.guide.Goals.load();
+		dev.starmine.guide.Guide.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new dev.starmine.colony.Costs());
