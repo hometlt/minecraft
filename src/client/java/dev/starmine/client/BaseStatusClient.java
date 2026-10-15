@@ -21,6 +21,8 @@ import net.minecraft.world.item.Items;
  */
 public final class BaseStatusClient {
 	static ColonyNetwork.BaseStatus status = ColonyNetwork.BaseStatus.NONE;
+	/** The bases on the map (owner 16.10): the races' main bases and the player's own ({@link CommandMinimap}). */
+	static List<ColonyNetwork.Mark> marks = List.of();
 	private static final ItemStack MINERALS = new ItemStack(dev.starmine.mineral.Minerals.SHARD),
 		VESPENE = new ItemStack(dev.starmine.vespene.Vespene.BUCKET), SUPPLY = new ItemStack(Items.IRON_BARS);
 

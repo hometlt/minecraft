@@ -81,6 +81,7 @@ final class CommandMinimap {
 			graphics.fill(at[0] - r, at[1] - r, at[0] + r + 1, at[1] + r + 1, colour);
 		}
 		Orders.minimap(graphics, (x, z) -> screen(x, z, height));
+		marks(graphics, height);
 		// the camera's view: the screen corners on the ground
 		int[][] corners = new int[4][];
 		double[][] screenCorners = {{0, 0}, {width, 0}, {width, height}, {0, height}};
@@ -143,5 +144,59 @@ final class CommandMinimap {
 	/** Swaps red and blue: ARGB to ABGR (NativeImage pixels, map colours) and back. */
 	private static int toAbgr(int argb) {
 		return (argb & 0xFF00FF00) | (argb & 0xFF) << 16 | (argb >> 16) & 0xFF;
+	}
+
+	/** A base's colour on the minimap: zerg violet, terran blue, protoss gold, the player's own white. */
+	static int markColour(String race) {
+		return switch (race) {
+			case "ZERG" -> 0xFFC060FF;
+			case "TERRAN" -> 0xFF60A0FF;
+			case "PROTOSS" -> 0xFFFFD040;
+			default -> 0xFFFFFFFF;
+		};
+	}
+
+	/**
+	 * The bases (owner 16.10, scouted or not): a framed square with the race's letter on the minimap where it
+	 * lies on it; for those beyond its edge, an arrow on the edge toward the nearest one, with its distance.
+	 */
+	private static void marks(GuiGraphics graphics, int height) {
+		Minecraft mc = Minecraft.getInstance();
+		int x0 = left(), y0 = top(height);
+		var font = mc.font;
+		dev.starmine.colony.ColonyNetwork.Mark nearest = null;
+		double best = Double.MAX_VALUE;
+		for (dev.starmine.colony.ColonyNetwork.Mark mark : BaseStatusClient.marks) {
+			int[] at = screen(mark.x() + 0.5, mark.z() + 0.5, height);
+			int colour = markColour(mark.race());
+			if (at[0] >= x0 + 3 && at[1] >= y0 + 3 && at[0] < x0 + SIZE - 3 && at[1] < y0 + SIZE - 3) {
+				graphics.fill(at[0] - 3, at[1] - 3, at[0] + 4, at[1] + 4, 0xFF000000);
+				graphics.fill(at[0] - 2, at[1] - 2, at[0] + 3, at[1] + 3, colour);
+				String letter = mark.race().equals("PLAYER") ? "★" : mark.race().substring(0, 1);
+				graphics.drawString(font, letter, at[0] + 4, at[1] - 4, colour);
+				continue;
+			}
+			double d = Math.hypot(mark.x() - centreX, mark.z() - centreZ);
+			if (d < best) {
+				best = d;
+				nearest = mark;
+			}
+		}
+		if (nearest == null) return;
+		// the arrow on the minimap's edge, pointing to it
+		double angle = Math.atan2(nearest.z() - centreZ, nearest.x() - centreX);
+		double cx = x0 + SIZE / 2.0, cy = y0 + SIZE / 2.0, r = SIZE / 2.0 - 6;
+		int tipX = (int) (cx + Math.cos(angle) * r), tipY = (int) (cy + Math.sin(angle) * r);
+		int colour = markColour(nearest.race());
+		for (int k = 0; k < 6; k++) { // a little triangle: rows across the direction, narrowing to the tip
+			double back = 6 - k, half = (6 - k) * 0.6;
+			double bx = tipX - Math.cos(angle) * back, by = tipY - Math.sin(angle) * back;
+			int[] a = {(int) (bx - Math.sin(angle) * half), (int) (by + Math.cos(angle) * half)};
+			int[] b = {(int) (bx + Math.sin(angle) * half), (int) (by - Math.cos(angle) * half)};
+			line(graphics, a, b, colour);
+		}
+		String label = (nearest.race().equals("PLAYER") ? "★" : nearest.race().substring(0, 1)) + " " + Math.round(best);
+		graphics.drawString(font, label, Math.max(x0, Math.min(x0 + SIZE - font.width(label), tipX - font.width(label) / 2)),
+			tipY + (Math.sin(angle) > 0 ? -12 : 4), colour);
 	}
 }

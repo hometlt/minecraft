@@ -35,7 +35,8 @@ import org.jetbrains.annotations.Nullable;
  * ({@link dev.starmine.ai.AiCommander}). Units wait in {@link HiveSavedData#pending} until their chunk ticks.
  */
 public final class RaceBases {
-	public static final int MIN_DISTANCE = 256, MAX_DISTANCE = 256, TRIGGER = 128, SEPARATION = 256;
+	/** Owner 16.10: the three bases farther apart, 480 blocks (30 chunks) round the first player's place. */
+	public static final int MIN_DISTANCE = 480, MAX_DISTANCE = 480, TRIGGER = 128, SEPARATION = 480;
 	public static final String LEVIATHAN = "LEVIATHAN";
 	/** How high over the base's ground a sky ship's middle hangs (the ships grew 2-2.5 times: their tails and tentacles hang 45 below it). */
 	public static final int SKY = 80;

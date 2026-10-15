@@ -133,6 +133,7 @@ public final class BaseLogic {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			Hive base = data.baseOf(player.getUUID(), player.serverLevel().dimension().location().toString());
 			ColonyNetwork.sendStatus(player, base);
+			ColonyNetwork.sendMarks(player, base);
 		}
 	}
 }

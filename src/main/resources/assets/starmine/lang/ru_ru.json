@@ -855,5 +855,6 @@
 	"block.starmine.mineral_crystal": "Кристалл минералов",
 	"block.starmine.mineralized_earth": "Минерализованная земля",
 	"item.starmine.mineral_shard": "Осколок минерала",
-	"message.starmine.near_minerals": "Слишком близко к минералам: главные здания ставятся в 16 блоках от кристаллов"
+	"message.starmine.near_minerals": "Слишком близко к минералам: главные здания ставятся в 16 блоках от кристаллов",
+	"message.starmine.no_base_view": "Базы ещё нет: карта показывает, где базы рас"
 }

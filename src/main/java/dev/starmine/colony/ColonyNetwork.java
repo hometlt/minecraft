@@ -108,9 +108,53 @@ public final class ColonyNetwork {
 		}
 	}
 
+	/** A base on the map: a race's main base (`race` its name) or the player's own (`race` "PLAYER"). */
+	public record Mark(String race, int x, int z) {
+	}
+
+	/**
+	 * Where the bases are (owner 16.10): the three races' main bases, scouted or not, and the player's own,
+	 * for the command view's minimap — marks on it, an arrow toward the nearest one beyond its edge.
+	 */
+	public record BaseMarks(List<Mark> marks) implements CustomPacketPayload {
+		public static final Type<BaseMarks> TYPE = new Type<>(StarMine.id("base_marks"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, BaseMarks> CODEC = StreamCodec.of((buf, value) -> {
+			buf.writeVarInt(value.marks.size());
+			for (Mark mark : value.marks) {
+				buf.writeUtf(mark.race(), 16);
+				buf.writeVarInt(mark.x());
+				buf.writeVarInt(mark.z());
+			}
+		}, buf -> {
+			int n = buf.readVarInt();
+			List<Mark> marks = new ArrayList<>();
+			for (int i = 0; i < n; i++) marks.add(new Mark(buf.readUtf(16), buf.readVarInt(), buf.readVarInt()));
+			return new BaseMarks(marks);
+		});
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** The marks a player sees: the generated main bases of this dimension (sites chosen so far) and their own base. */
+	static void sendMarks(ServerPlayer player, @org.jetbrains.annotations.Nullable Hive base) {
+		if (!ServerPlayNetworking.canSend(player, BaseMarks.TYPE)) return;
+		List<Mark> marks = new ArrayList<>();
+		if (player.level().dimension() == net.minecraft.world.level.Level.OVERWORLD) {
+			dev.starmine.hive.HiveSavedData data = dev.starmine.hive.HiveSavedData.get(player.getServer());
+			if (data.spawnHiveSite != null) marks.add(new Mark("ZERG", data.spawnHiveSite.getX(), data.spawnHiveSite.getZ()));
+			data.structureSites.forEach((race, site) -> marks.add(new Mark(race, site.getX(), site.getZ())));
+		}
+		if (base != null) marks.add(new Mark("PLAYER", base.hatchery.getX(), base.hatchery.getZ()));
+		ServerPlayNetworking.send(player, new BaseMarks(marks));
+	}
+
 	/** Common registration: payload types and the server's command receiver. */
 	public static void register() {
 		PayloadTypeRegistry.playS2C().register(BaseStatus.TYPE, BaseStatus.CODEC);
+		PayloadTypeRegistry.playS2C().register(BaseMarks.TYPE, BaseMarks.CODEC);
 		PayloadTypeRegistry.playC2S().register(UnitCommand.TYPE, UnitCommand.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(UnitCommand.TYPE, (command, context) -> Commands.command(context.player(), command));
 	}

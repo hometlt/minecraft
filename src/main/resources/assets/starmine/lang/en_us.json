@@ -855,5 +855,6 @@
 	"block.starmine.mineral_crystal": "Mineral Crystal",
 	"block.starmine.mineralized_earth": "Mineralized Earth",
 	"item.starmine.mineral_shard": "Mineral Shard",
-	"message.starmine.near_minerals": "Too close to minerals: main buildings stand 16 blocks off the crystals"
+	"message.starmine.near_minerals": "Too close to minerals: main buildings stand 16 blocks off the crystals",
+	"message.starmine.no_base_view": "No base yet: the map shows where the races' bases are"
 }

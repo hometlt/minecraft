@@ -98,10 +98,8 @@ public final class CommandView {
 	/** Enters the view (the player must have a base in this dimension). */
 	static void enter(Minecraft mc) {
 		if (mc.player == null || mc.level == null) return;
-		if (!BaseStatusClient.status.present()) {
-			mc.player.displayClientMessage(Component.translatable("message.starmine.no_base"), true);
-			return;
-		}
+		// owner 16.10: the view works without a base too (the map, the marks of the bases); there is just nothing to command
+		if (!BaseStatusClient.status.present()) mc.player.displayClientMessage(Component.translatable("message.starmine.no_base_view"), true);
 		camera = new Marker(EntityType.MARKER, mc.level);
 		targetX = mc.player.getX();
 		targetZ = mc.player.getZ();

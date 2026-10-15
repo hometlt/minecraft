@@ -26,20 +26,21 @@ import net.minecraft.world.level.block.Blocks;
 public class StructureGameTests implements FabricGameTest {
 	private static final String ARENA = "starmine:arena";
 
-	/** Fixed radial layout stays 16 chunks from its captured origin, at the requested race angles. */
+	/** Fixed radial layout stays {@link RaceBases#MIN_DISTANCE} from its captured origin, at the requested race angles. */
 	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 40)
 	public void basesUseSixteenChunkRadialLayout(GameTestHelper helper) {
 		BlockPos origin = new BlockPos(120, 64, -240);
 		BlockPos zerg = RaceBases.baseOffset(origin, 0, UnitKind.Race.ZERG);
 		BlockPos protoss = RaceBases.baseOffset(origin, 0, UnitKind.Race.PROTOSS);
 		BlockPos terran = RaceBases.baseOffset(origin, 0, UnitKind.Race.TERRAN);
-		helper.assertTrue(zerg.equals(origin.offset(-222, 0, 128)), "zerg must be at 60 degrees");
-		helper.assertTrue(protoss.equals(origin.offset(-222, 0, -128)), "protoss must be at 120 degrees");
-		helper.assertTrue(terran.equals(origin.offset(0, 0, -256)), "terran must be at 180 degrees");
+		int r = RaceBases.MIN_DISTANCE;
+		helper.assertTrue(zerg.equals(origin.offset((int) Math.round(-Math.sin(Math.toRadians(60)) * r), 0, (int) Math.round(Math.cos(Math.toRadians(60)) * r))),
+			"zerg must be at 60 degrees: " + zerg);
+		helper.assertTrue(terran.equals(origin.offset(0, 0, -r)), "terran must be at 180 degrees");
 		for (BlockPos site : List.of(zerg, protoss, terran))
-			helper.assertTrue(Math.abs(Math.sqrt(site.distSqr(origin)) - 256) < 1, "base is not 16 chunks away");
-		helper.assertTrue(zerg.distSqr(protoss) >= 256 * 256 && protoss.distSqr(terran) >= 256 * 256, "bases too close");
-		helper.assertTrue(RaceBases.baseOffset(origin, 90, UnitKind.Race.TERRAN).equals(origin.offset(256, 0, 0)), "heading ignored");
+			helper.assertTrue(Math.abs(Math.sqrt(site.distSqr(origin)) - r) < 1, "base is not " + r + " blocks away");
+		helper.assertTrue(zerg.distSqr(protoss) >= (r - 2) * (r - 2) && protoss.distSqr(terran) >= (r - 2) * (r - 2), "bases too close");
+		helper.assertTrue(RaceBases.baseOffset(origin, 90, UnitKind.Race.TERRAN).equals(origin.offset(r, 0, 0)), "heading ignored");
 		helper.succeed();
 	}
 
