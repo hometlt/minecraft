@@ -257,8 +257,9 @@ public class DroneGameTests implements FabricGameTest {
 		fill(helper, 21, 2, 21, 27, 5, 27, Blocks.STONE);
 		BlockPos ore = new BlockPos(24, 3, 24);
 		helper.setBlock(ore, Blocks.IRON_ORE);
-		helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(7, 2, 7));
-		StarUnit drone = helper.spawn(StarMine.type(UnitKind.DRONE), new BlockPos(16, 2, 16));
+		// the hatchery is 15 blocks wide (5 cells of 3): its levelled site stays within the arena, short of the stone
+		helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(12, 2, 12));
+		StarUnit drone = helper.spawn(StarMine.type(UnitKind.DRONE), new BlockPos(10, 2, 30));
 		helper.runAfterDelay(5, () -> {
 			HiveSavedData data = HiveSavedData.get(helper.getLevel().getServer());
 			Hive hive = data.all().stream().min((a, b) -> Double.compare(a.hatchery.distSqr(drone.blockPosition()), b.hatchery.distSqr(drone.blockPosition()))).orElse(null);

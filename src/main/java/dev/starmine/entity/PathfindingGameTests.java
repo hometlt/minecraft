@@ -186,6 +186,7 @@ public class PathfindingGameTests implements FabricGameTest {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");
 			base.minerals = 2000;
+			workersHome(helper, base);
 			Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 10), point(helper, 40, 10));
 			goals.put(TestArena.member(helper, base, UnitKind.MARAUDER, 8, 14), point(helper, 40, 14));
@@ -204,6 +205,20 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * The base's SCVs in two rows along the arena's near side (z 3 and 6, x 3 to 15): a command center is 15
+	 * blocks wide now (5 cells of 3), and the start workers round one by the arena's edge stood outside it.
+	 */
+	private static void workersHome(GameTestHelper helper, Hive base) {
+		List<StarUnit> scvs = helper.getLevel().getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(helper.absolutePos(BlockPos.ZERO)).inflate(80),
+			unit -> unit.kind == UnitKind.SCV && base.id.equals(unit.hiveId()) && unit.isAlive());
+		for (int i = 0; i < scvs.size(); i++) {
+			Vec3 at = point(helper, 3 + 3 * (i % 5), 3 + 3 * (i / 5));
+			scvs.get(i).teleportTo(at.x, at.y, at.z);
+			scvs.get(i).getNavigation().stop();
+		}
+	}
+
 	/** A river 12 wide and a medivac of the base: it carries the army over (no bridge), nobody gets wet. */
 	@GameTest(template = ARENA, batch = "pathFerry", timeoutTicks = 2400)
 	public void aTransportCarriesTheArmyOverARiver(GameTestHelper helper) {
@@ -214,6 +229,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		timeline.at(5, () -> {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");
+			workersHome(helper, base);
 			StarUnit medivac = TestArena.member(helper, base, UnitKind.MEDIVAC, 6, 16);
 			Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 10), point(helper, 38, 10));
@@ -333,7 +349,8 @@ public class PathfindingGameTests implements FabricGameTest {
 		fill(helper, 20, 2, 0, 27, 15, 47, Blocks.STONE.defaultBlockState());
 		fill(helper, 0, 2, 0, 47, 15, 0, Blocks.STONE.defaultBlockState()); // walls along the sides: no way round it outside the arena
 		fill(helper, 0, 2, 47, 47, 15, 47, Blocks.STONE.defaultBlockState());
-		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 8, 40, UUID.randomUUID());
+		// the command center (15 wide, on the grid) clear of the wall along z 47 and of the thor (10 wide)
+		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 8, 38, UUID.randomUUID());
 		TestArena.Timeline timeline = TestArena.Timeline.of(helper);
 		timeline.at(5, () -> {
 			Hive base = TestArena.base(helper, cc);
@@ -341,10 +358,11 @@ public class PathfindingGameTests implements FabricGameTest {
 			base.minerals = 2000;
 			// a thor's way (11x12 blocks) takes eight workers (Engineering.workers); the base was founded with four
 			for (int i = 0; i < 4; i++) TestArena.member(helper, base, UnitKind.SCV, 4 + 2 * i, 44);
+			workersHome(helper, base);
 			Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
-			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 14), point(helper, 38, 20));
-			goals.put(TestArena.member(helper, base, UnitKind.SIEGE_TANK, 8, 20), point(helper, 38, 24));
-			goals.put(TestArena.member(helper, base, UnitKind.THOR, 8, 27), point(helper, 38, 28));
+			goals.put(TestArena.member(helper, base, UnitKind.MARINE, 8, 9), point(helper, 38, 20));
+			goals.put(TestArena.member(helper, base, UnitKind.SIEGE_TANK, 8, 14), point(helper, 38, 24));
+			goals.put(TestArena.member(helper, base, UnitKind.THOR, 8, 23), point(helper, 38, 28));
 			armyRace(helper, timeline, base, "mountain, a tunnel for a thor", goals, 9500);
 		});
 	}

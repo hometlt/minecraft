@@ -483,7 +483,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			anchor = null;
 			return;
 		}
-		if (anchor == null) anchor = kind.gridCentre(this.position());
+		if (anchor == null) anchor = kind.gas() ? this.position() : kind.gridCentre(this.position()); // a gas building stands on its outlet
 		if (this.position().distanceToSqr(anchor) > 1e-6) this.setPos(anchor.x, anchor.y, anchor.z);
 		this.setDeltaMovement(Vec3.ZERO);
 	}

@@ -230,7 +230,7 @@ public final class HiveStructure {
 			hive.vespene = 200;
 			hive.tier = 2;
 			data.add(hive);
-			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 10);
+			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 14);
 			HiveTerrain.lay(level, centre, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
 			wait(UnitKind.HATCHERY, centre, null, null, 0);
@@ -371,7 +371,9 @@ public final class HiveStructure {
 			boolean close = near(feet);
 			UnitKind building = !undergroundLeft.isEmpty() && random.nextInt(100) < 45
 				? undergroundLeft.remove(random.nextInt(undergroundLeft.size())) : null;
-			int radius = building != null ? 10 : 8 + random.nextInt(3), height = HALL_HEIGHT;
+			// a hall with a building has room round its footprint (3x3 cells: 9 blocks) and over its height
+			int radius = building != null ? (int) Math.ceil(building.width / 2) + 7 : 8 + random.nextInt(3);
+			int height = building != null ? Math.max(HALL_HEIGHT, (int) Math.ceil(building.height) + 2) : HALL_HEIGHT;
 			List<BlockPos> floor = new ArrayList<>(), opened = new ArrayList<>();
 			for (int dx = -radius; dx <= radius; dx++)
 				for (int dz = -radius; dz <= radius; dz++)

@@ -180,8 +180,9 @@ public final class AiCommander {
 		for (int attempt = 0; attempt < 24; attempt++) {
 			StarUnit centre = centres.get(level.random.nextInt(centres.size()));
 			double angle = level.random.nextDouble() * Math.PI * 2;
-			double distance = centre == main ? main.kind.width * main.kind.modelScale() / 2 + 2 + half + level.random.nextInt(7)
-				: 1.5 + level.random.nextDouble() * (ProtossRace.POWER_RADIUS - 2);
+			// its width is already its size (scaled again by the model, a site was sought 26 blocks off and more)
+			double distance = centre == main ? main.kind.width / 2 + 2 + half + level.random.nextInt(7)
+				: centre.kind.width / 2 + half + level.random.nextDouble() * Math.max(1, ProtossRace.POWER_RADIUS - centre.kind.width / 2 - half);
 			int x = (int) Math.floor(centre.getX() + Math.cos(angle) * distance), z = (int) Math.floor(centre.getZ() + Math.sin(angle) * distance);
 			BlockPos feet = HiveLogic.groundNear(level, x, centre.getBlockY(), z);
 			if (feet == null) continue;

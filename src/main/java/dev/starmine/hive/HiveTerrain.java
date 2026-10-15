@@ -14,8 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * Bedrock and blocks with block entities are left alone.
  */
 public final class HiveTerrain {
-	/** A hatchery's footprint half-size (owner: twice SC2 size, a 12-block base) plus the ring. */
-	public static final int HATCHERY_FOUNDATION = 7;
+	/** The hatchery's foundation half-size: half its 15-block footprint (5 cells of 3 blocks) and a ring. */
+	public static final int HATCHERY_FOUNDATION = 9;
 
 	/** Foundation half-size of a building: its base plus the 1-block ring. */
 	public static int foundation(dev.starmine.entity.UnitKind kind) {

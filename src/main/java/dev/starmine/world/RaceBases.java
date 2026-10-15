@@ -111,7 +111,7 @@ public final class RaceBases {
 		UnitKind.PROBE, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.STALKER,
 		UnitKind.STALKER, UnitKind.SENTRY, UnitKind.OBSERVER};
 	/** The plaza's radius; buildings stand round the main building inside it. */
-	private static final int PLAZA = 18;
+	private static final int PLAZA = 30; // round a main building 15 wide and a ring of buildings 9 wide (3 blocks a cell)
 
 	/** Builds a wild base of `race` at `site` (the main building's ground cell), its dungeon and its sky ship. */
 	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random) {
@@ -129,7 +129,7 @@ public final class RaceBases {
 		boolean terran = race == UnitKind.Race.TERRAN;
 
 		// the plaza
-		HiveStructure.flatten(level, centre, PLAZA, 9);
+		HiveStructure.flatten(level, centre, PLAZA, 16);
 		BlockState pave = terran ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.SMOOTH_SANDSTONE.defaultBlockState();
 		BlockState line = terran ? Blocks.YELLOW_CONCRETE.defaultBlockState() : Blocks.GOLD_BLOCK.defaultBlockState();
 		BlockState inlay = terran ? Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState() : Blocks.LAPIS_BLOCK.defaultBlockState();

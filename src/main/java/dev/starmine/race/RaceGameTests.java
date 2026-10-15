@@ -59,7 +59,7 @@ public class RaceGameTests implements FabricGameTest {
 			helper.assertTrue(base != null && base.count(UnitKind.PROBE) == 4, "the nexus founded no base with 4 probes");
 			base.minerals = 2000;
 			StarUnit probe = nearest(helper, base, UnitKind.PROBE, nexus);
-			BlockPos gatewaySite = helper.absolutePos(new BlockPos(32, 2, 24)); // in the pylon's power, clear of it
+			BlockPos gatewaySite = helper.absolutePos(new BlockPos(38, 2, 24)); // in the pylon's power, clear of it (9 wide, the pylon 6, each on the grid)
 			// out of power: refused
 			helper.assertTrue(ProtossRace.INSTANCE.siteRefusal(helper.getLevel(), UnitKind.GATEWAY, gatewaySite, base.id) != null,
 				"a gateway may stand without power");

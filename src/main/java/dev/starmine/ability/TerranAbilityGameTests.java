@@ -183,6 +183,8 @@ public class TerranAbilityGameTests implements FabricGameTest {
 			helper.assertTrue(base != null, "no base");
 			base.minerals = 1000;
 			base.vespene = 1000;
+			// the base's SCVs stand round its command center (15 wide now), within the crawler's reach: they would fight it
+			for (StarUnit scv : level.getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(40), unit -> unit.kind == UnitKind.SCV)) scv.discard();
 			StarUnit ghost = TestArena.member(helper, base, UnitKind.GHOST, 6, 10);
 			ghost.setNoAi(true);
 			helper.assertTrue(Abilities.cast(ghost, level, Ability.NUKE, null, crawler.position()), "no nuke: " + Abilities.refusal(ghost, Ability.NUKE));
