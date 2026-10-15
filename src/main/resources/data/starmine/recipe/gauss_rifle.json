@@ -1,0 +1,30 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		"SII",
+		"MRS",
+		" W "
+	],
+	"key": {
+		"S": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"I": {
+			"item": "minecraft:iron_ingot"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"R": {
+			"item": "minecraft:redstone"
+		},
+		"W": {
+			"tag": "minecraft:planks"
+		}
+	},
+	"result": {
+		"id": "starmine:gauss_rifle",
+		"count": 1
+	}
+}

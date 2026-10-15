@@ -151,6 +151,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.world.Nydus.load();
 		dev.starmine.mineral.Minerals.load();
 		dev.starmine.world.WildPacks.load();
+		dev.starmine.gear.Guns.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new HiveResources());
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new dev.starmine.colony.Costs());

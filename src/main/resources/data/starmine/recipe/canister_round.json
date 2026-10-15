@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "starmine:mineral_shard"
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		},
+		{
+			"item": "starmine:vespene_bucket"
+		}
+	],
+	"result": {
+		"id": "starmine:canister_round",
+		"count": 8
+	}
+}

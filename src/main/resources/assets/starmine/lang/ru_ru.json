@@ -858,5 +858,15 @@
 	"message.starmine.near_minerals": "Слишком близко к минералам: главные здания ставятся в 16 блоках от кристаллов",
 	"message.starmine.no_base_view": "Базы ещё нет: карта показывает, где базы рас",
 	"message.starmine.drop_incoming": "%s высаживаются у вашего дома!",
-	"item.starmine.module.charges": "Запас: %s из %s"
+	"item.starmine.module.charges": "Запас: %s из %s",
+	"item.starmine.gauss_rifle": "Гаусс-винтовка",
+	"item.starmine.gauss_ammo": "Гаусс-патроны",
+	"item.starmine.canister_rifle": "Снайперская винтовка",
+	"item.starmine.canister_round": "Снайперские патроны",
+	"item.starmine.gun.tip": "Урон %s, дальность %s блоков; патроны: %s",
+	"message.starmine.no_ammo": "Нет патронов: %s",
+	"entity.starmine.marshal": "Маршал",
+	"entity.starmine.ghost_agent": "Призрак",
+	"item.starmine.marshal_spawn_egg": "Яйцо призыва маршала",
+	"item.starmine.ghost_agent_spawn_egg": "Яйцо призыва призрака"
 }
