@@ -951,6 +951,11 @@ final class DroneWork extends Goal {
 		if (pos != null) CLAIMS.remove(pos, drone.getUUID());
 	}
 
+	/** Ore blocks marked by workers now (tests). */
+	static int claims() {
+		return CLAIMS.size();
+	}
+
 	/** A drone that dies or unloads gives up its claims. */
 	static void releaseAll(UUID drone) {
 		CLAIMS.values().removeIf(drone::equals);

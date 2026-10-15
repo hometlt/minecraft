@@ -34,7 +34,7 @@ public final class TestArena {
 	/** {@link #clear}; `forget` false keeps the bases (tests of one batch that found bases side by side). */
 	public static void clear(GameTestHelper helper, boolean forget) {
 		ServerLevel level = helper.getLevel();
-		for (BlockPos rel : BlockPos.betweenClosed(0, 0, 0, 47, 16, 47))
+		for (BlockPos rel : BlockPos.betweenClosed(0, 0, 0, 47, 23, 47))
 			level.setBlock(helper.absolutePos(rel), rel.getY() == 1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
 		if (forget) HiveSavedData.get(level.getServer()).clear();
 	}
