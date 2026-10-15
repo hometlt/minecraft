@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "dev.starmine.mixin.client",
 	"compatibilityLevel": "JAVA_21",
-	"client": ["HideInFogMixin", "PilotRenderMixin"],
+	"client": ["HideInFogMixin", "PilotRenderMixin", "HideUnseenBlocksMixin", "SilhouetteMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	}

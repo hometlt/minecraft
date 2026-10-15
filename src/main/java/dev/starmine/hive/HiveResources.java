@@ -34,6 +34,8 @@ import org.slf4j.LoggerFactory;
 public final class HiveResources implements SimpleSynchronousResourceReloadListener {
 	private static final Logger LOG = LoggerFactory.getLogger("StarMine");
 	private static final ResourceLocation FILE = StarMine.id("hive/resources.json");
+	/** The resources of the panel, in order (labels of resources.json): a modded metal is added there and in resources.json. */
+	private static final ResourceLocation PANEL = StarMine.id("hive/panel.json");
 
 	/** One block's yield. */
 	public record Yield(int minerals, int vespene, int diamonds, boolean precious, String label) {
@@ -79,7 +81,7 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 		return Yield.NONE;
 	}
 
-	/** Panel lines in file order (each label once). */
+	/** Panel lines: the labels of `hive/panel.json` in its order (all labels of resources.json without it). */
 	public static List<Label> labels() {
 		return labels;
 	}
@@ -122,9 +124,25 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 				if (label != null && object.has("icon") && labelsSeen.add(label)) newLabels.add(new Label(label, object.get("icon").getAsString()));
 			}
 			entries = List.copyOf(loaded);
-			labels = List.copyOf(newLabels);
+			labels = List.copyOf(panel(manager, newLabels));
 		} catch (Exception error) {
 			LOG.error("StarMine: {} could not be read", FILE, error);
+		}
+	}
+
+	private static List<Label> panel(ResourceManager manager, List<Label> all) {
+		var resource = manager.getResource(PANEL);
+		if (resource.isEmpty()) return all;
+		try (Reader reader = new InputStreamReader(resource.get().open(), StandardCharsets.UTF_8)) {
+			List<Label> shown = new ArrayList<>();
+			for (JsonElement element : JsonParser.parseReader(reader).getAsJsonObject().getAsJsonArray("resources")) {
+				String label = element.getAsString();
+				for (Label known : all) if (known.label.equals(label)) shown.add(known);
+			}
+			return shown;
+		} catch (Exception error) {
+			LOG.error("StarMine: {} could not be read", PANEL, error);
+			return all;
 		}
 	}
 

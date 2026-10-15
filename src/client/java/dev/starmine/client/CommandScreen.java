@@ -90,7 +90,7 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public void removed() {
-		CommandView.panX = CommandView.panZ = CommandView.turn = 0;
+		CommandView.panX = CommandView.panZ = CommandView.turn = CommandView.climbing = 0;
 		CommandView.exit(Minecraft.getInstance());
 	}
 
@@ -499,6 +499,8 @@ public final class CommandScreen extends Screen {
 				return true;
 			}
 			case GLFW.GLFW_KEY_Q -> CommandView.rotate(-1);
+			case GLFW.GLFW_KEY_PAGE_UP -> CommandView.climbing = 1;
+			case GLFW.GLFW_KEY_PAGE_DOWN -> CommandView.climbing = -1;
 			case GLFW.GLFW_KEY_E -> {
 				if (!press('E')) CommandView.rotate(1);
 				return true;
@@ -554,6 +556,7 @@ public final class CommandScreen extends Screen {
 			case GLFW.GLFW_KEY_A, GLFW.GLFW_KEY_LEFT -> left = false;
 			case GLFW.GLFW_KEY_D, GLFW.GLFW_KEY_RIGHT -> right = false;
 			case GLFW.GLFW_KEY_Q -> turnLeft = false;
+			case GLFW.GLFW_KEY_PAGE_UP, GLFW.GLFW_KEY_PAGE_DOWN -> CommandView.climbing = 0;
 			case GLFW.GLFW_KEY_E -> turnRight = false;
 			default -> {
 			}
@@ -563,7 +566,7 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-		CommandView.distance = Math.max(8, Math.min(70, CommandView.distance - scrollY * 3));
+		CommandView.climb(-scrollY * (2 + CommandView.zoom() * 0.12)); // the wheel away lowers the camera, as zooming in
 		return true;
 	}
 
@@ -577,7 +580,7 @@ public final class CommandScreen extends Screen {
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) { // the view is isometric: dragging pans it
-			double step = 0.02 + CommandView.distance * 0.004;
+			double step = 0.02 + CommandView.zoom() * 0.004;
 			double sin = Math.sin(Math.toRadians(CommandView.yaw)), cos = Math.cos(Math.toRadians(CommandView.yaw));
 			CommandView.lookAt(CommandView.targetX + (cos * dragX - sin * dragY) * step, CommandView.targetZ + (sin * dragX + cos * dragY) * step);
 			return true;

@@ -40,13 +40,19 @@ import org.joml.Vector3f;
  * commands it as in StarCraft II — {@link CommandScreen} is the interface, this class the view.
  *
  * - Camera: a client-only marker entity the game renders from (the player's body stays where it is,
- *   so chunks around it stay loaded); it looks down at a point on the ground, from {@link #distance}
- *   at {@link #PITCH}, as in Reign of Nether (owner 14.10): a fixed isometric view along a diagonal,
- *   Q/E turn it by a quarter ({@link #rotate}); WASD, arrows, the screen edges and the minimap
- *   ({@link CommandMinimap}) move the point, the wheel zooms. It stays within {@link #REACH} of the player.
+ *   so chunks around it stay loaded); it looks down at {@link #PITCH} from its own height, as in Reign of
+ *   Nether (owner 14.10): a fixed isometric view along a diagonal, Q/E turn it by a quarter ({@link #rotate});
+ *   WASD, arrows, the screen edges and the minimap ({@link CommandMinimap}) move it. Its height is the
+ *   player's (CLOUD_TASK_2): anywhere from the bottom of the world to its top, the wheel and PageUp/PageDown
+ *   change it smoothly ({@link #climb}); nothing picks it by itself. (It used to stand over the client's
+ *   MOTION_BLOCKING_NO_LEAVES height, which the server does not send: the client read the bottom of the
+ *   world, and the view went down into the caves.) It stays within {@link #REACH} of the player.
  * - Fog of war: only what the base's units and buildings and the player's body see is shown
- *   ({@link #visible}); other entities are not drawn ({@link dev.starmine.mixin.client.HideInFogMixin})
+ *   ({@link #visible}: within sight and not behind blocks); other entities are not drawn
+ *   ({@link dev.starmine.mixin.client.HideInFogMixin}), blocks never seen are not drawn ({@link BlockFog}),
  *   and the ground is fogged: clear in sight, dimmed where seen before, dark where never seen ({@link #drawFog}).
+ *   Detectors (overseer, observer, turrets, spore crawler, photon cannon) sense creatures behind walls
+ *   within their sight: those are drawn with a glowing outline seen through blocks ({@link #silhouette}).
  * - Selection: unit ids; rings under selected (green for the base's own, red for others) and hovered
  *   units; a building being placed is drawn translucent where it would stand, green when the site is
  *   good ({@link HiveTerrain#prepare} check, no building in the way), red when not.
@@ -59,8 +65,10 @@ public final class CommandView {
 	private static Marker camera;
 	private static CameraType savedCameraType;
 	private static boolean savedHideGui;
-	static double targetX, targetZ, groundY, distance = 26, yaw;
-	static double panX, panZ, turn;
+	static double targetX, targetZ, groundY, yaw;
+	/** The camera's height and the height it eases to. */
+	static double height, targetHeight;
+	static double panX, panZ, turn, climbing;
 	static final Set<Integer> selection = new LinkedHashSet<>();
 	/** A building being placed (its ghost follows the cursor), and the ghost's current site. */
 	static UnitKind placing;
@@ -99,6 +107,7 @@ public final class CommandView {
 		targetZ = mc.player.getZ();
 		yaw = targetYaw = 45 + 90 * Math.round((mc.player.getYRot() - 45) / 90.0);
 		groundY = ground(mc.level, targetX, targetZ);
+		height = targetHeight = Mth.clamp(Math.max(groundY, mc.player.getEyeY()) + 22, mc.level.getMinBuildHeight(), mc.level.getMaxBuildHeight());
 		placeCamera(true);
 		savedCameraType = mc.options.getCameraType();
 		savedHideGui = mc.options.hideGui;
@@ -107,6 +116,7 @@ public final class CommandView {
 		mc.gameRenderer.setRenderHand(false);
 		mc.setCameraEntity(camera);
 		active = true;
+		BlockFog.start(mc);
 		mc.setScreen(new CommandScreen());
 	}
 
@@ -115,6 +125,8 @@ public final class CommandView {
 		active = false;
 		placing = null;
 		ghostSite = null;
+		BlockFog.stop(mc);
+		LOOKS.clear();
 		if (mc.player != null) mc.setCameraEntity(mc.player);
 		if (savedCameraType != null) mc.options.setCameraType(savedCameraType);
 		mc.options.hideGui = savedHideGui;
@@ -130,7 +142,9 @@ public final class CommandView {
 			exit(mc);
 			return;
 		}
-		double step = 0.6 + distance * 0.06;
+		if (climbing != 0) climb(climbing * (0.8 + zoom() * 0.04));
+		height += (targetHeight - height) * 0.35;
+		double step = 0.6 + zoom() * 0.06;
 		double sin = Math.sin(Math.toRadians(yaw)), cos = Math.cos(Math.toRadians(yaw));
 		// forward is where the camera looks (minecraft: -sin, cos)
 		double forward = panZ, right = panX;
@@ -144,6 +158,20 @@ public final class CommandView {
 		}
 		groundY = Mth.lerp(0.25, groundY, ground(mc.level, targetX, targetZ));
 		placeCamera(false);
+		updateSights(mc);
+		BlockFog.tick(mc);
+	}
+
+	/** Raises (or with a negative number lowers) the camera, between the bottom and the top of the world. */
+	static void climb(double blocks) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return;
+		targetHeight = Mth.clamp(targetHeight + blocks, mc.level.getMinBuildHeight(), mc.level.getMaxBuildHeight());
+	}
+
+	/** How high the camera is over the ground it looks at (at least a few blocks: under the ground it looks down a cave). */
+	static double zoom() {
+		return Math.max(6, height - groundY);
 	}
 
 	/** Turns the isometric view by a quarter (-1 left, 1 right). */
@@ -164,15 +192,16 @@ public final class CommandView {
 		return explored != null && explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
 	}
 
+	/** The top of the ground at a column (WORLD_SURFACE: a height the server sends to the client); for pan speed and the look point only. */
 	private static double ground(ClientLevel level, double x, double z) {
-		return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(x), Mth.floor(z));
+		return level.getHeight(Heightmap.Types.WORLD_SURFACE, Mth.floor(x), Mth.floor(z));
 	}
 
 	private static void placeCamera(boolean jump) {
 		if (camera == null) return;
-		double pitch = Math.toRadians(PITCH), back = distance * Math.cos(pitch);
+		double back = zoom() / Math.tan(Math.toRadians(PITCH));
 		double sin = Math.sin(Math.toRadians(yaw)), cos = Math.cos(Math.toRadians(yaw));
-		double x = targetX + sin * back, z = targetZ - cos * back, y = groundY + distance * Math.sin(pitch);
+		double x = targetX + sin * back, z = targetZ - cos * back, y = height;
 		if (jump) camera.setPos(x, y, z);
 		camera.xo = camera.getX();
 		camera.yo = camera.getY();
@@ -268,27 +297,75 @@ public final class CommandView {
 
 	// ---- fog of war ----
 
-	private record Sight(double x, double z, double radius) {
+	private record Sight(double x, double y, double z, double radius, boolean detector) {
 	}
 
 	private static List<Sight> sights = List.of();
 
-	/** Recomputed each frame: what the base's units and buildings and the player's body see. */
+	/** What the base's units and buildings and the player's body see (recomputed each tick and frame). */
 	private static void updateSights(Minecraft mc) {
 		List<Sight> list = new ArrayList<>();
-		if (mc.player != null) list.add(new Sight(mc.player.getX(), mc.player.getZ(), PLAYER_SIGHT));
+		if (mc.player != null) list.add(new Sight(mc.player.getX(), mc.player.getEyeY(), mc.player.getZ(), PLAYER_SIGHT, false));
 		if (mc.level != null)
 			for (Entity entity : mc.level.entitiesForRendering())
-				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit)) list.add(new Sight(unit.getX(), unit.getZ(), unit.kind.sight()));
+				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
+					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight(), unit.kind.detector()));
 		sights = list;
 	}
 
-	/** Shown in the command view: own units always, others only within sight of the base or the player. */
+	/** How an entity was last found: seen, sensed by a detector only, or neither; and when (ticks). */
+	private record Look(long tick, boolean seen, boolean sensed) {
+	}
+
+	private static final java.util.Map<Integer, Look> LOOKS = new java.util.HashMap<>();
+	/** Ticks a look at an entity is kept before it is looked at again. */
+	private static final int LOOK_TICKS = 4;
+
+	/** Shown in the command view: own units always; others within sight and not behind blocks, or sensed by a detector. */
 	public static boolean visible(Entity entity) {
 		if (!active) return true;
 		if (entity instanceof StarUnit unit && own(unit)) return true;
 		if (entity == Minecraft.getInstance().player) return true;
-		return seen(entity.getX(), entity.getZ(), entity.getBbWidth() / 2);
+		Look look = look(entity);
+		return look.seen || look.sensed;
+	}
+
+	/** Sensed by a detector behind blocks (not seen): drawn as an outline through the wall. */
+	public static boolean silhouette(Entity entity) {
+		if (!active || entity instanceof StarUnit unit && own(unit) || entity == Minecraft.getInstance().player) return false;
+		Look look = look(entity);
+		return look.sensed && !look.seen;
+	}
+
+	private static Look look(Entity entity) {
+		Minecraft mc = Minecraft.getInstance();
+		long now = mc.level == null ? 0 : mc.level.getGameTime();
+		Look look = LOOKS.get(entity.getId());
+		if (look != null && now - look.tick < LOOK_TICKS) return look;
+		boolean seen = false, sensed = false;
+		Vec3 centre = entity.position().add(0, entity.getBbHeight() / 2, 0);
+		double margin = entity.getBbWidth() / 2;
+		for (Sight sight : sights) {
+			double dx = centre.x - sight.x, dy = centre.y - sight.y, dz = centre.z - sight.z, r = sight.radius + margin;
+			if (dx * dx + dy * dy + dz * dz > r * r) continue;
+			if (sight.detector) sensed = true;
+			if (!seen && mc.level != null && clear(mc, new Vec3(sight.x, sight.y, sight.z), entity, centre)) seen = true;
+			if (seen) break;
+		}
+		look = new Look(now, seen, sensed);
+		LOOKS.put(entity.getId(), look);
+		if (LOOKS.size() > 4096) LOOKS.clear();
+		return look;
+	}
+
+	/** No block between an eye and an entity (its middle, or the top of a tall one). */
+	private static boolean clear(Minecraft mc, Vec3 eye, Entity entity, Vec3 centre) {
+		Entity viewer = camera != null ? camera : mc.player;
+		for (Vec3 to : new Vec3[] {centre, entity.position().add(0, entity.getBbHeight() * 0.9, 0)}) {
+			BlockHitResult hit = mc.level.clip(new ClipContext(eye, to, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, viewer));
+			if (hit.getType() == HitResult.Type.MISS) return true;
+		}
+		return false;
 	}
 
 	static boolean seen(double x, double z, double margin) {
@@ -306,7 +383,6 @@ public final class CommandView {
 		if (!active) return;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || context.consumers() == null || context.matrixStack() == null) return;
-		updateSights(mc);
 		Vec3 cam = context.camera().getPosition();
 		PoseStack pose = context.matrixStack();
 		MultiBufferSource buffers = context.consumers();

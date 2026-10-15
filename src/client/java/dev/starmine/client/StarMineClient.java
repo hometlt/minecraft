@@ -36,7 +36,6 @@ public final class StarMineClient implements ClientModInitializer {
 			CommandView.tick(mc);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, delta) -> {
-			if (!CommandView.active()) BaseStatusClient.drawPanel(graphics, graphics.guiWidth());
 			PilotClient.drawHud(graphics);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::render);
