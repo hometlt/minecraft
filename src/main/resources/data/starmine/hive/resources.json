@@ -2,6 +2,16 @@
 	"deepslateBonus": 1.5,
 	"entries": [
 		{
+			"block": "starmine:mineral_crystal",
+			"minerals": 5,
+			"precious": true,
+			"label": "minerals",
+			"icon": "starmine:mineral_shard",
+			"items": [
+				"starmine:mineral_shard"
+			]
+		},
+		{
 			"block": "starmine:vespene",
 			"vespene": 4,
 			"label": "vespene",

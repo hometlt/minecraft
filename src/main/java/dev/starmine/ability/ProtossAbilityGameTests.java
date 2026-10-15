@@ -43,14 +43,19 @@ public class ProtossAbilityGameTests implements FabricGameTest {
 	public void zealotChargesIn(GameTestHelper helper) {
 		clear(helper);
 		StarUnit zealot = unit(helper, UnitKind.ZEALOT, 10, 24, UUID.randomUUID());
-		StarUnit marine = unit(helper, UnitKind.MARINE, 14, 24, null);
-		zealot.setNoAi(true);
+		StarUnit marine = unit(helper, UnitKind.MARINE, 20, 24, null);
 		marine.setNoAi(true);
 		ServerLevel level = helper.getLevel();
+		double[] before = new double[1];
 		helper.runAfterDelay(2, () -> {
+			before[0] = zealot.distanceTo(marine);
 			helper.assertTrue(Abilities.cast(zealot, level, Ability.CHARGE, marine, null), "no charge");
-			helper.assertTrue(zealot.distanceTo(marine) < 2, "the zealot did not dash: " + zealot.distanceTo(marine));
-			helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the charge did not strike");
+			// owner 16.10: a run, not a jump
+			helper.assertTrue(zealot.distanceTo(marine) > before[0] - 2, "the zealot jumped: " + zealot.distanceTo(marine));
+			helper.assertTrue(Status.has(zealot, Status.CHARGING), "not charging");
+		});
+		helper.runAfterDelay(2 + ProtossAbilities.CHARGE_TICKS, () -> {
+			helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the charge did not strike; " + zealot.distanceTo(marine) + " off");
 			helper.succeed();
 		});
 	}

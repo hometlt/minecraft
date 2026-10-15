@@ -1,0 +1,12 @@
+{
+	"feature": "starmine:wild_pack",
+	"placement": [
+		{
+			"type": "minecraft:rarity_filter",
+			"chance": 40
+		},
+		{
+			"type": "minecraft:biome"
+		}
+	]
+}

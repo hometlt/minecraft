@@ -1,0 +1,7 @@
+{
+	"variants": {
+		"": {
+			"model": "starmine:block/mineralized_earth"
+		}
+	}
+}

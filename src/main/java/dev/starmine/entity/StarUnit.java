@@ -623,6 +623,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Whether the drone may take this block now: not a second kind of valuable resource. */
 	public boolean canTake(BlockState state) {
+		if (dev.starmine.mineral.Minerals.isCrystal(state)) return cargoBlocks == 0; // a trip of minerals alone
 		if (!HiveResources.yieldOf(state).any()) return true;
 		return valuable.isEmpty() || valuable.is(state.getBlock().asItem()) && valuable.getCount() < LOAD && !precious;
 	}
@@ -686,6 +687,16 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			return true;
 		}
 		return false;
+	}
+
+	/** Minerals taken from a crystal (owner 16.10): a trip's load, carried home as a shard. */
+	public void takeMinerals(int amount) {
+		cargoMinerals += amount;
+		cargoBlocks++;
+		cargoLabel = "minerals";
+		precious = true;
+		valuable = new ItemStack(dev.starmine.mineral.Minerals.SHARD);
+		updateCarried();
 	}
 
 	/** Vespene drawn from an outlet (owner 14.10): a full load, carried home in a vespene bucket. */

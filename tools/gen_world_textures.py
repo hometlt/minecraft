@@ -168,3 +168,39 @@ if __name__ == '__main__':
     frame('protoss', (200, 190, 150), (150, 120, 60), (80, 180, 230), 11)
     orifice(12)
     creep_bucket()
+
+
+def mineral_textures():
+    """The mineral crystal (facets: light lines on blue), mineralized earth (dirt with blue grains), the shard item."""
+    rnd = random.Random(13)
+    crystal = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            v = y / 15
+            c = mix((150, 230, 255), (30, 90, 200), v)
+            if x % 8 in (0, 7):
+                c = mix(c, (230, 250, 255), 0.6)  # the edges between facets
+            if rnd.random() < 0.06:
+                c = (255, 255, 255)
+            crystal.putpixel((x, y), c + (255,))
+    save(crystal, 'mineral_crystal')
+    earth = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            c = mix((95, 66, 45), (130, 92, 62), rnd.random())
+            if rnd.random() < 0.12:
+                c = mix((70, 160, 230), (170, 230, 255), rnd.random())
+            earth.putpixel((x, y), c + (255,))
+    save(earth, 'mineralized_earth')
+    shard = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    for y in range(2, 15):
+        half = (y - 2) * 0.35 + 0.5
+        for x in range(16):
+            if abs(x - 7.5 - (14 - y) * 0.15) <= half:
+                t = (x - 4) / 8
+                shard.putpixel((x, y), mix((170, 235, 255), (30, 90, 200), max(0, min(1, t))) + (255,))
+    shard.save(os.path.join(ITEM, 'mineral_shard.png'))
+
+
+if __name__ == '__main__':
+    mineral_textures()

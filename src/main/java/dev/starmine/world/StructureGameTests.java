@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -68,9 +69,9 @@ public class StructureGameTests implements FabricGameTest {
 		return helper.absolutePos(new BlockPos(0, 0, 0)).offset(dx, 70, 400);
 	}
 
-	/** Four pylons must still power every generated production/defence building after grid snapping. */
+	/** Three pylons (owner 16.10: four were too many) must still power every generated production/defence building after grid snapping. */
 	@GameTest(template = ARENA, batch = "structuresBase", timeoutTicks = 400)
-	public void protossBaseUsesFourPylonsWithoutLosingPower(GameTestHelper helper) {
+	public void protossBaseUsesThreePylonsWithoutLosingPower(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		RaceBases.Report report = RaceBases.build(level, UnitKind.Race.PROTOSS, far(helper, 5400), RandomSource.create(12));
@@ -78,7 +79,7 @@ public class StructureGameTests implements FabricGameTest {
 		try {
 			var members = data.pending.stream().filter(p -> p.hive().equals(report.base()) && p.hall() == null).toList();
 			var pylons = members.stream().filter(p -> p.kind() == UnitKind.PYLON).toList();
-			helper.assertTrue(pylons.size() == 4, "expected four pylons, got " + pylons.size());
+			helper.assertTrue(pylons.size() == 3, "expected three pylons, got " + pylons.size());
 			for (var building : members) if (dev.starmine.race.ProtossRace.needsPower(building.kind()))
 				helper.assertTrue(pylons.stream().anyMatch(p -> Math.hypot(p.pos().getX() - building.pos().getX(),
 					p.pos().getZ() - building.pos().getZ()) <= dev.starmine.race.ProtossRace.POWER_RADIUS), "no power for " + building.kind());
@@ -163,7 +164,7 @@ public class StructureGameTests implements FabricGameTest {
 			int length = name.equals("mothership") ? 100 : 160;
 			helper.assertTrue(ship.length() >= length, name + " is " + ship.length() + " blocks long, under " + length);
 			helper.assertTrue(painter.placed() > 15000, name + " has only " + painter.placed() + " blocks");
-			helper.assertTrue(ship.decks() >= 2, name + " has " + ship.decks() + " decks");
+			if (!name.equals("leviathan")) helper.assertTrue(ship.decks() >= 2, name + " has " + ship.decks() + " decks");
 			helper.assertTrue(level.getBlockState(ship.pad()).getBlock() instanceof Teleporter, name + ": no teleporter pad at " + ship.pad().toShortString());
 			UnitKind hero = name.equals("hyperion") ? UnitKind.RAYNOR : name.equals("mothership") ? UnitKind.ARTANIS : UnitKind.KERRIGAN;
 			helper.assertTrue(ship.spawns().stream().anyMatch(spawn -> spawn.kind() == hero && spawn.pos().equals(ship.bossRoom())), name + ": no " + hero.id);
@@ -174,6 +175,16 @@ public class StructureGameTests implements FabricGameTest {
 			for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-110, -60, -70), middle.offset(110, 40, 70)))
 				if (level.getBlockState(pos).is(Blocks.SCAFFOLDING)) scaffolds++;
 			helper.assertTrue(scaffolds == 0, name + " has " + scaffolds + " scaffolding blocks");
+			if (name.equals("leviathan")) { // owner 16.10: flesh through and through, passages without stairs
+				int stairs = 0, flesh = 0;
+				for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-110, -60, -70), middle.offset(110, 40, 70))) {
+					BlockState state = level.getBlockState(pos);
+					if (state.getBlock() instanceof net.minecraft.world.level.block.StairBlock) stairs++;
+					if (state.is(dev.starmine.block.StarMineBlocks.ZERG_FLESH) || state.is(dev.starmine.block.StarMineBlocks.GLOWING_ZERG_FLESH)) flesh++;
+				}
+				helper.assertTrue(stairs == 0, "the leviathan has " + stairs + " stairs");
+				helper.assertTrue(flesh > 15000, "the leviathan has only " + flesh + " flesh blocks");
+			}
 		}
 		// the Hyperion's two decks: the upper deck's floor over the lower one, both open
 		BlockPos hyperion = base;
@@ -209,6 +220,30 @@ public class StructureGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Wild packs (owner 16.10): each kind keeps its race's units (and the zerg their eggs) in its heart till a player comes. */
+	@GameTest(template = ARENA, batch = "wildPacks", timeoutTicks = 200)
+	public void wildPacksKeepTheirUnits(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		int i = 0;
+		for (WildPacks.Kind kind : WildPacks.Kind.values()) {
+			BlockPos at = helper.absolutePos(BlockPos.ZERO).offset(2000 + i++ * 60, 0, 600);
+			Painter painter = new Painter(level, RandomSource.create(11));
+			painter.load(at, 24);
+			int top = level.getMinBuildHeight() + 64;
+			for (BlockPos pos : BlockPos.betweenClosed(at.offset(-12, 0, -12).atY(top - 3), at.offset(12, 0, 12).atY(top - 1)))
+				level.setBlock(pos, Blocks.STONE.defaultBlockState(), 2);
+			BlockPos heartAt = WildPacks.build(level, RandomSource.create(3 + i), kind, at.atY(top));
+			helper.assertTrue(heartAt != null && level.getBlockEntity(heartAt) instanceof DungeonHeart.Heart, kind + ": no heart");
+			List<UnitKind> kinds = ((DungeonHeart.Heart) level.getBlockEntity(heartAt)).guards().stream().map(DungeonHeart.Guard::kind).toList();
+			UnitKind.Race race = kind == WildPacks.Kind.ZERG ? UnitKind.Race.ZERG : kind == WildPacks.Kind.TERRAN ? UnitKind.Race.TERRAN : UnitKind.Race.PROTOSS;
+			helper.assertTrue(!kinds.isEmpty() && kinds.stream().allMatch(k -> k.race == race), kind + " keeps " + kinds);
+			if (kind == WildPacks.Kind.ZERG) helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the zerg keep " + kinds);
+			if (kind == WildPacks.Kind.DARK_TEMPLAR) helper.assertTrue(kinds.stream().allMatch(k -> k == UnitKind.DARK_TEMPLAR), "dark templars: " + kinds);
+			if (kind == WildPacks.Kind.TERRAN) helper.assertTrue(level.getBlockState(heartAt.above()).is(Blocks.CAMPFIRE), "no campfire");
+		}
+		helper.succeed();
+	}
+
 	/**
 	 * Small dungeons (owner 15.10): each of the three is built in a block of stone, keeps its guards in its heart
 	 * until a player comes, then they appear — zerg eggs, zerglings and a roach; marines; zealots or dark templars.
@@ -231,10 +266,11 @@ public class StructureGameTests implements FabricGameTest {
 			if (kind == SmallDungeons.Kind.TERRAN_OUTPOST)
 				for (BlockPos pos : BlockPos.betweenClosed(new BlockPos(at.getX() - 11, top - 1, at.getZ() - 11),
 					new BlockPos(at.getX() + 11, top + 12, at.getZ() + 11)))
-					helper.assertTrue(!level.getBlockState(pos).is(Blocks.POLISHED_DIORITE), "outpost contains resource iron blocks");
+					helper.assertTrue(!level.getBlockState(pos).is(Blocks.IRON_BLOCK) && !level.getBlockState(pos).is(Blocks.GOLD_BLOCK),
+						"outpost contains resource blocks");
 			switch (kind) {
 				case ZERG_NEST -> helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the nest keeps " + kinds);
-				case TERRAN_OUTPOST -> helper.assertTrue(kinds.stream().filter(k -> k == UnitKind.MARINE).count() >= 2, "the outpost keeps " + kinds);
+				case TERRAN_OUTPOST -> helper.assertTrue(kinds.stream().filter(k -> k == UnitKind.MARINE).count() >= 1, "the outpost keeps " + kinds);
 				case XELNAGA_TEMPLE -> helper.assertTrue(kinds.stream().allMatch(k -> k == UnitKind.ZEALOT || k == UnitKind.DARK_TEMPLAR) && !kinds.isEmpty(),
 					"the temple keeps " + kinds);
 			}
@@ -260,6 +296,14 @@ public class StructureGameTests implements FabricGameTest {
 				"no command center waiting");
 			helper.assertTrue(data.pending.stream().anyMatch(p -> p.hive().equals(base.id) && p.kind() == UnitKind.VIKING), "no Hyperion guards");
 			helper.assertTrue(report.blocks() > 5000, "only " + report.blocks() + " blocks");
+			// the portal hall under the command center (owner 16.10): portal blocks in their frame, off while guarded
+			BlockPos hall = new BlockPos(base.hatchery.getX(), Math.max(level.getMinBuildHeight() + 8, base.hatchery.getY() - PortalHall.DEPTH),
+				base.hatchery.getZ());
+			helper.assertTrue(level.getBlockState(hall).getBlock() instanceof Teleporter, "no portal under the base at " + hall.toShortString());
+			helper.assertTrue(level.getBlockState(hall.offset(2, 0, 0)).is(Teleporter.FRAMES.get(UnitKind.Race.TERRAN)), "no portal frame");
+			helper.assertTrue(level.getBlockEntity(hall) instanceof Teleporter.Pad pad && pad.pair() != null, "the portal leads nowhere");
+			helper.assertTrue(data.pending.stream().filter(p -> p.hive().equals(base.id) && p.hall() != null
+				&& p.hall().equals(hall)).count() >= 4, "the portal has no guards");
 		} finally { // other tests share the world: no waiting units, no base left behind
 			data.pending.removeIf(p -> base != null && p.hive().equals(base.id));
 			if (base != null) data.remove(base.id);

@@ -211,7 +211,9 @@ public final class UnitGoals {
 		private final StarUnit unit;
 		private int repath, stuck;
 		private double best;
-		private Vec3 last;
+		private Vec3 last, goalWas;
+		/** Ticks without coming nearer before a unit gives its order up (owner 16.10: it holds to its order). */
+		static final int PATIENCE = 240;
 
 		Orders(StarUnit unit) {
 			this.unit = unit;
@@ -262,6 +264,12 @@ public final class UnitGoals {
 			}
 			Vec3 goal = unit.orderPos();
 			if (goal == null) return; // the order changed this tick (a new command, a way cut for the army)
+			if (!goal.equals(goalWas)) { // a new point: off at once (owner 16.10: as responsive as SC2), not at the next repath
+				goalWas = goal;
+				repath = 0;
+				stuck = 0;
+				best = Double.MAX_VALUE;
+			}
 			double dx = unit.getX() - goal.x, dz = unit.getZ() - goal.z;
 			double flat = Math.sqrt(dx * dx + dz * dz);
 			if (flat < Math.min(1.0 + unit.kind.width / 2, 1.5)) {
@@ -280,7 +288,7 @@ public final class UnitGoals {
 				stuck = 0;
 			} else if (moving) {
 				stuck = Math.max(0, stuck - 1);
-			} else if (++stuck > 100) {
+			} else if (++stuck > PATIENCE) {
 				unit.finishOrder();
 				return;
 			}

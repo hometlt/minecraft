@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
@@ -434,43 +435,27 @@ public final class SkyShips {
 	}
 
 	/**
-	 * A zerg leviathan (about 185 blocks long, 2.2 times the old one): flesh of nether wart with a dark
-	 * carapace veined with crying obsidian, bone spines along the back, glowing eyes, a toothed maw, and
-	 * long tentacles hanging and curling below. Inside: the gut (eggs, a chest, roaches and a queen on
-	 * creep) and over it a dorsal chamber on a floor of sinew (hydralisks), joined by ramps of flesh; in
-	 * the head, behind a wall of sinew, the boss room — Kerrigan's. Its teleporter pad is on the back,
-	 * a spiracle with stairs leads down into the dorsal chamber.
+	 * A zerg leviathan (about 185 blocks long, 2.2 times the old one; owner 16.10: all of zerg flesh, some of
+	 * it glowing, bone spines and teeth, long tentacles hanging and curling below). Inside, no stairs: a
+	 * chaotic network of passages wound through the flesh ({@link #burrow}), from the chamber of its
+	 * teleporter pad amidships to the boss room in the head — Kerrigan's — with eggs, a chest, roaches,
+	 * hydralisks and a queen on creep along the way.
 	 */
 	public static Ship leviathan(Painter painter, BlockPos middle, int turn) {
 		Frame frame = new Frame(painter, middle, turn);
 		RandomSource random = painter.random;
 		double s = LEVIATHAN_SCALE;
-		BlockState flesh = Blocks.NETHER_WART_BLOCK.defaultBlockState(), carapace = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState(),
-			vein = Blocks.CRYING_OBSIDIAN.defaultBlockState(), belly = Blocks.CRIMSON_HYPHAE.defaultBlockState(),
-			bone = Blocks.BONE_BLOCK.defaultBlockState(), sinew = Blocks.CRIMSON_NYLIUM.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
-			light = Blocks.SHROOMLIGHT.defaultBlockState();
-		int x0 = (int) (-42 * s), x1 = (int) (42 * s), gutFrom = (int) (-24 * s), headWall = (int) (24 * s), headEnd = (int) (35 * s);
-		List<BlockPos> gutFloor = new ArrayList<>(), chamberFloor = new ArrayList<>();
+		BlockState flesh = dev.starmine.block.StarMineBlocks.ZERG_FLESH.defaultBlockState(),
+			glow = dev.starmine.block.StarMineBlocks.GLOWING_ZERG_FLESH.defaultBlockState(),
+			bone = Blocks.BONE_BLOCK.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+		int x0 = (int) (-42 * s), x1 = (int) (42 * s);
+		// the body, solid
 		for (int x = x0; x <= x1; x++) {
 			double[] section = section(x);
 			int ry = (int) Math.ceil(section[2]) + 1, rz = (int) Math.ceil(section[3]) + 1;
-			int membrane = (int) Math.round(section[0]); // the dorsal chamber's floor
 			for (int y = (int) Math.floor(section[0]) - ry; y <= section[0] + ry; y++)
-				for (int z = (int) Math.floor(section[1]) - rz; z <= section[1] + rz; z++) {
-					if (!leviathanInside(x, y, z, 0)) continue;
-					boolean hollow = x > gutFrom && x < headEnd && leviathanInside(x, y, z, 3);
-					if (hollow) {
-						boolean wall = x == headWall && !(Math.abs(z - section[1]) <= 3 && y > membrane && y <= membrane + 6);
-						boolean floor = y == membrane && x < headWall;
-						frame.put(x, y, z, wall ? sinew : floor ? (Math.floorMod(x * 7 + z * 3, 23) == 0 ? light : sinew) : air);
-						if (!floor && !wall && !leviathanInside(x, y - 1, z, 3)) gutFloor.add(frame.at(x, y, z));
-						if (!wall && y == membrane + 1 && x < headWall) chamberFloor.add(frame.at(x, y, z));
-						continue;
-					}
-					double up = (y - section[0]) / section[2];
-					BlockState state = up > 0.35 ? (random.nextInt(9) == 0 ? vein : carapace) : up < -0.45 ? belly : flesh;
-					frame.put(x, y, z, state);
-				}
+				for (int z = (int) Math.floor(section[1]) - rz; z <= section[1] + rz; z++)
+					if (leviathanInside(x, y, z, 0)) frame.put(x, y, z, random.nextInt(16) == 0 ? glow : flesh);
 			// teeth round the maw
 			if (x >= (int) (33 * s) && x <= (int) (41 * s) && x % 2 == 1)
 				for (int side = -1; side <= 1; side += 2)
@@ -480,15 +465,6 @@ public final class SkyShips {
 				int top = (int) Math.round(section[0] + section[2]), height = 5 + random.nextInt(6);
 				for (int h = 1; h <= height; h++) frame.put(x, top + h, (int) Math.round(section[1]), bone);
 			}
-		}
-		// ramps of flesh between the gut and the dorsal chamber, fore and aft
-		for (int rampX : new int[] {(int) (-14 * s), (int) (12 * s)}) {
-			double[] section = section(rampX);
-			int membrane = (int) Math.round(section[0]), cz = (int) Math.round(section[1]);
-			int bottom = membrane;
-			while (bottom > section[0] - section[2] && leviathanInside(rampX, bottom - 1, cz, 3)) bottom--;
-			frame.box(rampX, membrane, cz - 3, rampX + membrane - bottom + 2, membrane, cz + 3, air);
-			frame.stairs(rampX + membrane - bottom, bottom, cz - 2, membrane - bottom + 1, 5, Direction.WEST, flesh, Blocks.CRIMSON_STAIRS.defaultBlockState());
 		}
 		// tentacles: long, hanging, curling out and back; thick at the root
 		for (int x = (int) (-20 * s); x < (int) (30 * s); x += 15) {
@@ -507,7 +483,7 @@ public final class SkyShips {
 							for (int dz = -r; dz <= r; dz++)
 								if (dx * dx + dy * dy + dz * dz <= radius * radius)
 									frame.put((int) Math.round(px) + dx, (int) Math.round(py) + dy, (int) Math.round(pz) + dz,
-										f > 0.85 ? Blocks.CRIMSON_HYPHAE.defaultBlockState() : (t + dy) % 5 == 0 ? belly : flesh);
+										(t + dy) % 7 == 0 ? glow : flesh);
 					if (t == length) frame.put((int) Math.round(px), (int) Math.round(py) - r - 1, (int) Math.round(pz), Blocks.WEEPING_VINES.defaultBlockState());
 				}
 			}
@@ -516,53 +492,114 @@ public final class SkyShips {
 		double[] head = section((int) (36 * s));
 		for (int side = -1; side <= 1; side += 2)
 			frame.box((int) (36 * s), (int) Math.round(head[0] + 4), (int) Math.round(head[1] + side * (head[3] - 1)),
-				(int) (36 * s) + 2, (int) Math.round(head[0] + 5), (int) Math.round(head[1] + side * (head[3] - 1)), Blocks.SHROOMLIGHT.defaultBlockState());
-		// the spiracle on the back: the pad, and stairs down into the dorsal chamber
-		int padX = (int) (-6 * s);
-		double[] back = section(padX);
-		int padTop = (int) Math.floor(back[0] + back[2]), padZ = (int) Math.round(back[1]);
-		while (leviathanInside(padX, padTop + 1, padZ, 0)) padTop++;
-		BlockPos pad = frame.at(padX, padTop + 1, padZ);
-		Teleporter.pad(painter, pad, UnitKind.Race.ZERG, carapace);
-		int membrane = (int) Math.round(back[0]), spiracle = padX + 8;
-		frame.box(spiracle - 1, membrane + 1, padZ - 2, spiracle + padTop - membrane + 1, padTop + 1, padZ + 2, air);
-		frame.stairs(spiracle, membrane + 1, padZ - 2, padTop - membrane + 1, 5, Direction.EAST, flesh,
-			Blocks.CRIMSON_STAIRS.defaultBlockState());
-		// creep in the gut, eggs, a chest, guards
+				(int) (36 * s) + 2, (int) Math.round(head[0] + 5), (int) Math.round(head[1] + side * (head[3] - 1)), glow);
+		// the inside: the pad's chamber amidships, the boss room in the head, passages winding between and about
+		java.util.Set<Long> hollow = new java.util.HashSet<>();
+		int padX = (int) (-6 * s), bossX = (int) (31 * s);
+		double[] amid = section(padX), skull = section(bossX);
+		chamber(hollow, padX, amid[0], amid[1], 6, 4.5);
+		chamber(hollow, bossX, skull[0], skull[1], 7, 5);
+		java.util.List<double[]> reached = new java.util.ArrayList<>();
+		reached.add(new double[] {padX, amid[0], amid[1]});
+		reached.add(new double[] {bossX, skull[0], skull[1]});
+		burrow(hollow, random, new double[] {padX, amid[0], amid[1]}, new double[] {bossX, skull[0], skull[1]}, reached); // pad to boss, winding
+		for (int i = 0; i < 7; i++) { // and more passages from anywhere already open, every way
+			double[] from = reached.get(random.nextInt(reached.size()));
+			int tx = x0 + 12 + random.nextInt(x1 - x0 - 24);
+			double[] to = section(tx);
+			burrow(hollow, random, from, new double[] {tx, to[0] + (random.nextDouble() - 0.5) * to[2], to[1] + (random.nextDouble() - 0.5) * to[3]}, reached);
+		}
+		List<BlockPos> floor = new ArrayList<>();
+		for (long cell : hollow) {
+			int x = BlockPos.getX(cell), y = BlockPos.getY(cell), z = BlockPos.getZ(cell);
+			frame.put(x, y, z, air);
+			if (!hollow.contains(BlockPos.asLong(x, y - 1, z))) floor.add(frame.at(x, y, z));
+		}
+		// the pad on the chamber's floor
+		int padY = (int) Math.round(amid[0]), padZ = (int) Math.round(amid[1]);
+		while (hollow.contains(BlockPos.asLong(padX, padY - 1, padZ))) padY--;
+		BlockPos pad = frame.at(padX, padY, padZ);
+		Teleporter.pad(painter, pad, UnitKind.Race.ZERG, flesh);
+		// creep on the floors, eggs, a chest, guards
 		List<Spawn> spawns = new ArrayList<>();
-		BlockPos hall = frame.at(0, (int) Math.round(section(0)[0]), (int) Math.round(section(0)[1]));
-		List<BlockPos> lining = List.copyOf(gutFloor);
+		List<BlockPos> lining = List.copyOf(floor);
 		painter.then(() -> {
 			for (BlockPos pos : lining) CreepGrowth.lineCavity(painter.level(), pos);
 		});
-		if (!gutFloor.isEmpty()) {
-			painter.chest(gutFloor.get(random.nextInt(gutFloor.size())), BuiltInLootTables.ANCIENT_CITY);
+		List<BlockPos> away = floor.stream().filter(pos -> pos.distSqr(pad) > 12 * 12).toList();
+		if (!away.isEmpty()) {
+			painter.chest(away.get(random.nextInt(away.size())), BuiltInLootTables.ANCIENT_CITY);
 			for (int i = 0; i < 6; i++) {
-				BlockPos at = gutFloor.get(random.nextInt(gutFloor.size()));
+				BlockPos at = away.get(random.nextInt(away.size()));
 				UnitKind brood = i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.HYDRALISK;
-				spawns.add(new Spawn(UnitKind.EGG, at, hall, brood, brood == UnitKind.ZERGLING ? 2 : 1));
+				spawns.add(new Spawn(UnitKind.EGG, at, at, brood, brood == UnitKind.ZERGLING ? 2 : 1));
 			}
-			for (int i = 0; i < 4; i++) spawns.add(Spawn.guard(i == 0 ? UnitKind.QUEEN : UnitKind.ROACH, gutFloor.get(random.nextInt(gutFloor.size())), hall));
+			for (int i = 0; i < 8; i++) {
+				BlockPos at = away.get(random.nextInt(away.size()));
+				spawns.add(Spawn.guard(i == 0 ? UnitKind.QUEEN : i < 4 ? UnitKind.ROACH : UnitKind.HYDRALISK, at, at));
+			}
 		}
-		BlockPos chamber = frame.at(0, (int) Math.round(section(0)[0]) + 1, (int) Math.round(section(0)[1]));
-		for (int i = 0; i < 4 && !chamberFloor.isEmpty(); i++)
-			spawns.add(Spawn.guard(UnitKind.HYDRALISK, chamberFloor.get(random.nextInt(chamberFloor.size())), chamber));
 		for (int i = 0; i < 4; i++)
-			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.ROACH, frame.at(padX + (i % 2 == 0 ? -5 : 5), padTop + 1, padZ + (i < 2 ? -3 : 3)), pad));
-		double[] room = section((headWall + headEnd) / 2);
-		BlockPos boss = frame.at((headWall + headEnd) / 2, (int) Math.round(room[0]) + 1, (int) Math.round(room[1]));
-		int bossFloor = (int) Math.round(room[0]) + 1;
-		while (leviathanInside((headWall + headEnd) / 2, bossFloor - 1, (int) Math.round(room[1]), 3)) bossFloor--;
-		boss = frame.at((headWall + headEnd) / 2, bossFloor, (int) Math.round(room[1]));
+			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.ROACH, frame.at(padX + (i % 2 == 0 ? -4 : 4), padY, padZ + (i < 2 ? -3 : 3)), pad));
+		int bossY = (int) Math.round(skull[0]), bossZ = (int) Math.round(skull[1]);
+		while (hollow.contains(BlockPos.asLong(bossX, bossY - 1, bossZ))) bossY--;
+		BlockPos boss = frame.at(bossX, bossY, bossZ);
 		spawns.add(Spawn.guard(UnitKind.KERRIGAN, boss, boss));
-		spawns.add(Spawn.guard(UnitKind.ZERGLING, boss.offset(2, 0, 2), boss));
-		spawns.add(Spawn.guard(UnitKind.ZERGLING, boss.offset(-2, 0, -2), boss));
+		spawns.add(Spawn.guard(UnitKind.ZERGLING, frame.at(bossX + 2, bossY, bossZ + 2), boss));
+		spawns.add(Spawn.guard(UnitKind.ZERGLING, frame.at(bossX - 2, bossY, bossZ - 2), boss));
 		int above = (int) Math.round(section(0)[0] + section(0)[2]) + 18;
 		for (int i = 0; i < 6; i++) {
 			UnitKind kind = i < 4 ? UnitKind.MUTALISK : UnitKind.CORRUPTOR;
 			spawns.add(Spawn.guard(kind, frame.at((int) ((-20 + i * 9) * s), above, (i % 2 == 0 ? 1 : -1) * 34), pad));
 		}
 		spawns.add(Spawn.guard(UnitKind.BROOD_LORD, frame.at((int) (-30 * s), above + 6, 0), pad));
-		return new Ship(spawns, pad, boss, 2, x1 - x0 + 1);
+		return new Ship(spawns, pad, boss, 1, x1 - x0 + 1);
+	}
+
+	/** A round chamber in the leviathan about (x, y, z): `radius` across, `half` high, flat-bottomed. */
+	private static void chamber(java.util.Set<Long> hollow, int x, double y, double z, double radius, double half) {
+		int r = (int) Math.ceil(radius), h = (int) Math.ceil(half);
+		for (int dx = -r; dx <= r; dx++)
+			for (int dy = -h + 1; dy <= h; dy++)
+				for (int dz = -r; dz <= r; dz++) {
+					if (Painter.sq(dx / radius) + Painter.sq(Math.max(0, dy) / half) + Painter.sq(dz / radius) > 1) continue;
+					int cx = x + dx, cy = (int) Math.round(y) + dy, cz = (int) Math.round(z) + dz;
+					if (leviathanInside(cx, cy, cz, 2)) hollow.add(BlockPos.asLong(cx, cy, cz));
+				}
+	}
+
+	/**
+	 * A passage wound through the flesh from `from` toward `to`: it wanders (never quite straight, never
+	 * steep — walkable, no stairs), turns back from the walls, about 5 across. Points it passes join `reached`.
+	 */
+	private static void burrow(java.util.Set<Long> hollow, RandomSource random, double[] from, double[] to, java.util.List<double[]> reached) {
+		double x = from[0], y = from[1], z = from[2];
+		double yaw = Math.atan2(to[2] - z, to[0] - x);
+		for (int step = 0; step < 400; step++) {
+			double dx = to[0] - x, dz = to[2] - z, dy = to[1] - y;
+			double distance = Math.sqrt(dx * dx + dz * dz);
+			if (distance < 3 && Math.abs(dy) < 3) break;
+			double want = Math.atan2(dz, dx), turn = Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw));
+			yaw += turn * 0.25 + (random.nextDouble() - 0.5) * 1.1; // drawn to its end, wandering on the way
+			double climb = Mth.clamp(dy / Math.max(4, distance), -0.45, 0.45) + (random.nextDouble() - 0.5) * 0.3;
+			double nx = x + Math.cos(yaw), ny = y + climb, nz = z + Math.sin(yaw);
+			if (!leviathanInside((int) Math.round(nx), (int) Math.round(ny), (int) Math.round(nz), 4)) {
+				yaw += Math.PI * (0.4 + random.nextDouble() * 0.4) * (random.nextBoolean() ? 1 : -1); // a wall: turn away
+				continue;
+			}
+			x = nx;
+			y = ny;
+			z = nz;
+			double radius = 2.3 + random.nextDouble() * 0.8;
+			int r = (int) Math.ceil(radius);
+			for (int ox = -r; ox <= r; ox++)
+				for (int oy = -1; oy <= r + 1; oy++) // flat-ish below, high above: room to walk
+					for (int oz = -r; oz <= r; oz++) {
+						if (ox * ox + Math.max(0, oy - 1) * Math.max(0, oy - 1) + oz * oz > radius * radius) continue;
+						int cx = (int) Math.round(x) + ox, cy = (int) Math.round(y) + oy, cz = (int) Math.round(z) + oz;
+						if (leviathanInside(cx, cy, cz, 2)) hollow.add(BlockPos.asLong(cx, cy, cz));
+					}
+			if (step % 6 == 0) reached.add(new double[] {x, y, z});
+		}
 	}
 }

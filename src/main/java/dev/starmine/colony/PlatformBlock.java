@@ -130,6 +130,7 @@ public final class PlatformBlock extends Block implements EntityBlock {
 	public static @Nullable String put(ServerLevel level, BlockPos pos, Player player, ItemStack stack) {
 		if (!(level.getBlockEntity(pos) instanceof PlatformBlockEntity platform)) return null;
 		if (platform.called) return "message.starmine.platform_called";
+		if (dev.starmine.mineral.Minerals.nearSite(level, pos, UnitKind.COMMAND_CENTER.width / 2.0)) return "message.starmine.near_minerals";
 		HiveResources.Yield yield = HiveResources.yieldOfItem(stack);
 		if (!yield.any()) return null;
 		int count = stack.getCount();

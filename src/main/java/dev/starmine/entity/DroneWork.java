@@ -980,7 +980,8 @@ final class DroneWork extends Goal {
 		mineStuck = 0; // breaking its way is progress
 		breaking = pos.immutable();
 		breakTicks = 0;
-		breakNeeded = Math.max(4, (int) (level.getBlockState(pos).getDestroySpeed(level, pos) * 12));
+		breakNeeded = dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(pos)) ? dev.starmine.mineral.Minerals.MINE_TICKS
+			: Math.max(4, (int) (level.getBlockState(pos).getDestroySpeed(level, pos) * 12));
 		drone.getNavigation().stop();
 	}
 
@@ -997,6 +998,11 @@ final class DroneWork extends Goal {
 		level.destroyBlockProgress(drone.getId(), pos, Math.min(9, breakTicks * 10 / Math.max(1, breakNeeded)));
 		if (breakTicks < breakNeeded) return false;
 		level.destroyBlockProgress(drone.getId(), pos, -1);
+		if (dev.starmine.mineral.Minerals.isCrystal(state)) { // a crystal is not broken: a trip's minerals are taken from it
+			int taken = dev.starmine.mineral.Minerals.harvest(level, pos, dev.starmine.mineral.Minerals.PER_TRIP);
+			if (taken > 0) drone.takeMinerals(taken);
+			return true;
+		}
 		drone.collect(state);
 		boolean creeped = coveredByCreep(level, pos);
 		level.destroyBlock(pos, false, drone);

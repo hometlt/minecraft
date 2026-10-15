@@ -86,6 +86,8 @@ public final class DungeonHeart extends Block implements EntityBlock {
 				StarUnit unit = HiveLogic.spawnNest(level, null, guard.kind(), at, hall);
 				if (unit == null) continue;
 				if (guard.brood() != null) unit.becomeCocoon(guard.brood(), guard.count(), StarUnit.DORMANT);
+				if (unit.kind == UnitKind.HELLION) // a wild terran pack's hellion stands as a hellbat (owner 16.10: firebats)
+					dev.starmine.ability.Abilities.cast(unit, level, dev.starmine.ability.Ability.HELLBAT, null, null);
 				made.add(unit);
 			}
 			guards.clear();

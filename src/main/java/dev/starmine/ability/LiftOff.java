@@ -37,17 +37,28 @@ public final class LiftOff {
 	/** Why it cannot lift off or land now (a lang key), or null. */
 	static @Nullable String refusal(StarUnit unit) {
 		if (!airborne(unit)) return unit.working() ? "message.starmine.busy" : null;
-		return siteFree(unit) ? null : "message.starmine.site_blocked";
+		return landingSite(unit) != null ? null : "message.starmine.site_blocked";
 	}
 
-	/** Whether its body fits on the ground under it: no other building, no blocks. */
-	static boolean siteFree(StarUnit unit) {
-		double ground = unit.groundBelow(unit.getX(), unit.getZ());
-		double half = unit.getBbWidth() / 2;
-		AABB box = new AABB(unit.getX() - half, ground + 0.01, unit.getZ() - half, unit.getX() + half, ground + unit.getBbHeight(), unit.getZ() + half);
+	/**
+	 * Where it lands from where it hovers (owner 16.10: it could hardly land anywhere — any grass, any bump
+	 * under its 15 x 15 body refused it): its place on the grid under it, on the ground under the middle;
+	 * earth, stone, sand and plants in its way are cut away as for a new building
+	 * ({@link dev.starmine.hive.HiveTerrain#prepare}). No other building may stand there, no trees, no water,
+	 * no chasm. Null when it cannot land here.
+	 */
+	public static @Nullable Vec3 landingSite(StarUnit unit) {
+		Vec3 centre = unit.kind.gridCentre(unit.position());
+		double ground = unit.groundBelow(centre.x, centre.z);
+		double half = unit.kind.width / 2.0;
+		AABB box = new AABB(centre.x - half + 0.05, ground + 0.01, centre.z - half + 0.05, centre.x + half - 0.05, ground + unit.kind.height,
+			centre.z + half - 0.05);
 		if (!unit.level().getEntitiesOfClass(StarUnit.class, box, other -> other != unit && other.kind.structure() && other.isAlive()).isEmpty())
-			return false;
-		return unit.level().getBlockCollisions(unit, box).iterator().hasNext() == false;
+			return null;
+		net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(centre.x, ground, centre.z);
+		int halfSize = (int) Math.ceil(half) - 1;
+		if (!dev.starmine.hive.HiveTerrain.prepare(unit.level(), feet, halfSize, (int) Math.ceil(unit.kind.height), false)) return null;
+		return new Vec3(centre.x, ground, centre.z);
 	}
 
 	/** Each tick of a building that can lift off: rises, flies to its order point, lands. */
@@ -60,10 +71,15 @@ public final class LiftOff {
 			return;
 		}
 		unit.setNoGravity(true);
-		double ground = unit.groundBelow(unit.getX(), unit.getZ());
+		Vec3 site = landing ? landingSite(unit) : null;
+		double ground = site != null ? site.y : unit.groundBelow(unit.getX(), unit.getZ());
 		double height = landing ? ground : ground + HOVER;
 		double dy = Math.max(-0.15, Math.min(0.15, (height - unit.getY()) * 0.3));
 		double dx = 0, dz = 0;
+		if (site != null) { // onto its place on the grid as it comes down
+			dx = Math.max(-PER_TICK, Math.min(PER_TICK, site.x - unit.getX()));
+			dz = Math.max(-PER_TICK, Math.min(PER_TICK, site.z - unit.getZ()));
+		}
 		Vec3 to = rising || landing ? null : unit.orderPos();
 		if (to != null) {
 			double x = to.x - unit.getX(), z = to.z - unit.getZ(), length = Math.sqrt(x * x + z * z);
@@ -82,7 +98,12 @@ public final class LiftOff {
 	/** After landing: on the ground, and a command center takes its base's anchor along. */
 	static void landed(StarUnit unit, @Nullable Hive base, @Nullable Vec3 liftedFrom) {
 		unit.setNoGravity(false);
-		unit.setPos(unit.getX(), unit.groundBelow(unit.getX(), unit.getZ()), unit.getZ());
+		Vec3 site = landingSite(unit);
+		if (site != null) {
+			net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(site);
+			dev.starmine.hive.HiveTerrain.prepare(unit.level(), feet, (int) Math.ceil(unit.kind.width / 2.0) - 1, (int) Math.ceil(unit.kind.height), true);
+			unit.setPos(site.x, site.y, site.z);
+		} else unit.setPos(unit.getX(), unit.groundBelow(unit.getX(), unit.getZ()), unit.getZ());
 		if (base != null && unit.kind.main() && liftedFrom != null && base.hatchery.closerToCenterThan(liftedFrom, 2))
 			base.hatchery = unit.blockPosition();
 	}

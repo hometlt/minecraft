@@ -86,6 +86,11 @@ public final class VespeneVeinFeature extends Feature<NoneFeatureConfiguration> 
 		}
 
 		vein.build(root);
+		// owner 16.10: mineral crystals often lie near a geyser, across the chunk from it
+		if (reach && random.nextInt(3) > 0) {
+			int fx = cx + (x >= cx ? -7 : 7), fz = cz + (z >= cz ? -7 : 7);
+			dev.starmine.mineral.Minerals.field(level, random, fx, fz, 8, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS));
+		}
 		return true;
 	}
 

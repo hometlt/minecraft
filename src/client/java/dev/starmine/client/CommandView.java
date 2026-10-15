@@ -293,6 +293,10 @@ public final class CommandView {
 		int[] ids = selected().stream().filter(CommandView::own).mapToInt(Entity::getId).toArray();
 		if (ids.length == 0) return;
 		ClientPlayNetworking.send(new ColonyNetwork.UnitCommand(ids, action, at.x, at.y, at.z, target, arg == null ? "" : arg));
+		Minecraft mc = Minecraft.getInstance();
+		Vec3 point = target > 0 && mc.level != null && mc.level.getEntity(target) instanceof Entity aimed ? aimed.position() : at;
+		if (!action.equals("train") && !action.equals("cancel") && !action.equals("build") && !(action.equals("ability") && point.lengthSqr() == 0))
+			Orders.sent(ids, action, point);
 	}
 
 	// ---- fog of war ----
@@ -391,6 +395,7 @@ public final class CommandView {
 		drawFog(mc.level, pose, buffers.getBuffer(RenderType.debugQuads()));
 		VertexConsumer lines = buffers.getBuffer(RenderType.lines());
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
+		Orders.render(pose, lines, context.tickCounter().getGameTimeDeltaPartialTick(false));
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
 		if (placing != null && ghostSite != null) drawGhost(pose, buffers);
 		// what detectors sense behind walls: a frame of its body seen through the blocks (as well as the glowing

@@ -99,6 +99,7 @@ public final class CommandScreen extends Screen {
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		drawHidden(graphics);
+		Bars.draw(graphics, width, height);
 		BaseStatusClient.drawPanel(graphics, width);
 		CommandMinimap.draw(graphics, width, height);
 		drawSelection(graphics);
@@ -132,9 +133,9 @@ public final class CommandScreen extends Screen {
 		}
 		if (targeting != null)
 			graphics.drawCenteredString(font, Component.translatable("command.starmine.target", targeting.startsWith("ability:")
-				? Component.translatable("ability.starmine." + targeting.substring(8)) : Component.translatable("command.starmine." + targeting)), width / 2, 8, 0xFFFFFF60);
+				? Component.translatable("ability.starmine." + targeting.substring(8)) : Component.translatable("command.starmine." + targeting)), width / 2, 24, 0xFFFFFF60);
 		else if (CommandView.placing != null)
-			graphics.drawCenteredString(font, Component.translatable("command.starmine.place", name(CommandView.placing)), width / 2, 8, 0xFFFFFF60);
+			graphics.drawCenteredString(font, Component.translatable("command.starmine.place", name(CommandView.placing)), width / 2, 24, 0xFFFFFF60);
 		if (hover != null) graphics.renderComponentTooltip(font, hover.tooltip, mouseX, mouseY);
 	}
 

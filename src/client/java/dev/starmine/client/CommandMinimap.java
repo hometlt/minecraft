@@ -80,6 +80,7 @@ final class CommandMinimap {
 			int colour = own ? (CommandView.selection.contains(unit.getId()) ? 0xFFFFFFFF : 0xFF40FF40) : 0xFFFF4040;
 			graphics.fill(at[0] - r, at[1] - r, at[0] + r + 1, at[1] + r + 1, colour);
 		}
+		Orders.minimap(graphics, (x, z) -> screen(x, z, height));
 		// the camera's view: the screen corners on the ground
 		int[][] corners = new int[4][];
 		double[][] screenCorners = {{0, 0}, {width, 0}, {width, height}, {0, height}};

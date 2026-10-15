@@ -58,6 +58,8 @@ public final class Placement {
 		BlockPos site = site(level, kind, chosen);
 		if (refusal == null && site == null) refusal = "message.starmine.need_outlet";
 		if (refusal == null) refusal = kind.race.rules().siteRefusal(level, kind, site, base.id);
+		if (refusal == null && (kind.main() || kind == UnitKind.HATCHERY) && dev.starmine.mineral.Minerals.nearSite(level, site, kind.width / 2.0))
+			refusal = "message.starmine.near_minerals"; // owner 16.10: main buildings keep 16 blocks off mineral crystals
 		if (refusal == null && !siteFree(level, kind, site)) refusal = "message.starmine.site_blocked";
 		if (refusal == null && !kind.gas() && !HiveTerrain.prepare(level, site, half(kind), (int) Math.ceil(kind.height), true))
 			refusal = "message.starmine.site_blocked";

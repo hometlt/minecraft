@@ -63,6 +63,7 @@ public final class StarMineClient implements ClientModInitializer {
 		for (UnitKind kind : UnitKind.values()) EntityRendererRegistry.register(StarMine.type(kind), UnitRenderer::new);
 		EntityRendererRegistry.register(StarMine.SPIT, ThrownItemRenderer::new);
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
+		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
 		// the liquids (owner 16.10): vespene and liquid creep, their own still and flowing textures
 		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(dev.starmine.vespene.Vespene.SOURCE,

@@ -19,7 +19,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Fog of war for blocks in the command view (CLOUD_TASK_2 stage 2): the player sees only what their
- * units, buildings and body have seen. Rays go out from each one's eyes to its sight
+ * units, buildings and body have seen. On the surface each one opens a whole disc of land round it, its
+ * sight wide, hills and hollows alike ({@link #disc}); rays go out from each one's eyes to its sight
  * ({@link dev.starmine.entity.UnitKind#sight}) and stop at the first block that hides what is behind
  * it (glass, leaves, water let them through): ground and walls hide what lies beyond. Every block a ray
  * met is explored; blocks never explored are not drawn at all
@@ -112,7 +113,33 @@ public final class BlockFog {
 		int spent = 0;
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		for (int i = 0; i < directions.length; i += 3) spent += ray(level, eye, directions[i], directions[i + 1], directions[i + 2], pos, dirty);
-		return spent;
+		return spent + disc(level, eye, dirty);
+	}
+
+	/** Blocks of the surface skin opened in every column of an eye's sight disc. */
+	static final int SKIN = 6;
+
+	/**
+	 * The surface round an eye on the surface (owner 16.10: the rays left the sight ragged — hollows behind
+	 * a rise and hills behind a hollow stayed dark): every column within its sight, measured flat, has its
+	 * top {@link #SKIN} blocks opened, so a unit sees a whole round piece of land, as in SC2. An eye deep
+	 * underground opens no surface (its rays show its cave).
+	 */
+	private static int disc(ClientLevel level, Eye eye, LongOpenHashSet dirty) {
+		int ex = Mth.floor(eye.x), ez = Mth.floor(eye.z);
+		if (eye.y < level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, ex, ez) - SKIN) return 0;
+		int r = (int) Math.ceil(eye.radius), reads = 0;
+		for (int dx = -r; dx <= r; dx++)
+			for (int dz = -r; dz <= r; dz++) {
+				if (dx * dx + dz * dz > eye.radius * eye.radius) continue;
+				int x = ex + dx, z = ez + dz;
+				int top = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z);
+				for (int y = top - 1; y >= Math.max(level.getMinBuildHeight(), top - SKIN); y--) {
+					reads++;
+					if (mark(x, y, z)) dirty.add(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
+				}
+			}
+		return reads;
 	}
 
 	/** Even directions over a sphere (a Fibonacci lattice), dense enough for a ray a block apart at the sight's end. */

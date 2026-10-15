@@ -360,6 +360,39 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/**
+	 * A command center lifts off, flies and lands again on rough ground (owner 16.10: it could not land):
+	 * grass and a bump of earth under it are cut away, it stands on the grid.
+	 */
+	@GameTest(template = ARENA, batch = "terranLiftOffCommandCenter", timeoutTicks = 700)
+	public void commandCenterLandsOnRoughGround(GameTestHelper helper) {
+		clear(helper);
+		StarUnit cc = commandCenter(helper);
+		ServerLevel level = helper.getLevel();
+		double floor = helper.absolutePos(BlockPos.ZERO).getY() + 2;
+		helper.runAfterDelay(5, () -> helper.assertTrue(Abilities.cast(cc, level, Ability.LIFT_OFF, null, null), "no lift-off"));
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(cc.mode() == Modes.AIRBORNE && cc.flying(), "not in the air");
+			cc.command(StarUnit.Order.MOVE, point(helper, 22, 34));
+		});
+		helper.runAfterDelay(260, () -> {
+			Vec3 at = TestArena.rel(helper, cc);
+			helper.assertTrue(Math.abs(at.x - 22.5) < 0.6 && Math.abs(at.z - 34.5) < 0.6, "not flown there: " + at);
+			for (int dx = -5; dx <= 5; dx++)
+				for (int dz = -5; dz <= 5; dz++) helper.setBlock(new BlockPos(22 + dx, 2, 34 + dz), net.minecraft.world.level.block.Blocks.SHORT_GRASS);
+			helper.setBlock(new BlockPos(24, 2, 36), net.minecraft.world.level.block.Blocks.DIRT);
+			helper.assertTrue(Abilities.cast(cc, level, Ability.LIFT_OFF, null, null), "no landing on rough ground");
+		});
+		helper.runAfterDelay(380, () -> {
+			helper.assertTrue(cc.mode() == Modes.NORMAL && !cc.flying() && !cc.isNoGravity(), "not landed");
+			helper.assertTrue(Math.abs(cc.getY() - floor) < 0.2, "landed " + (cc.getY() - floor) + " blocks up");
+			helper.assertTrue(helper.getBlockState(new BlockPos(24, 2, 36)).isAir(), "the bump is still under it");
+			Vec3 grid = cc.kind.gridCentre(cc.position());
+			helper.assertTrue(Math.abs(grid.x - cc.getX()) < 0.01 && Math.abs(grid.z - cc.getZ()) < 0.01, "not on the grid");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "terranAfterburners", timeoutTicks = 200)
 	public void afterburnersSpeedUpTheMedivac(GameTestHelper helper) {
 		clear(helper);
