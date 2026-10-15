@@ -72,7 +72,8 @@ public class PathfindingGameTests implements FabricGameTest {
 				over[0] = true;
 				List<String> stuck = new ArrayList<>();
 				goals.forEach((unit, goal) -> {
-					if (!arrived.containsKey(unit)) stuck.add(unit.kind.id + " at " + TestArena.where(helper, unit) + (unit.isAlive() ? "" : " (dead)"));
+					if (!arrived.containsKey(unit)) stuck.add(unit.kind.id + " at " + TestArena.where(helper, unit) + " order " + unit.order()
+						+ (unit.isAlive() ? "" : " (dead)")); // NONE: it gave the order up as stuck (UnitGoals.Orders) and wandered off
 				});
 				LOG.info("[pathfinding] {}: {} of {} arrived in {} ticks; ticks {}; stuck {}; planner {}", scenario, arrived.size(), goals.size(), limit,
 					times(arrived), stuck, DronePlanner.STATS);

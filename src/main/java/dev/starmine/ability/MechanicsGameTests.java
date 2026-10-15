@@ -97,10 +97,15 @@ public class MechanicsGameTests implements FabricGameTest {
 		StarUnit marine = unit(helper, UnitKind.MARINE, 16, 24, null);
 		marine.setNoAi(true);
 		ServerLevel level = helper.getLevel();
+		Vec3 home = lurker.position();
 		helper.runAfterDelay(80, () -> {
 			helper.assertTrue(marine.getHealth() == marine.getMaxHealth(), "an unburrowed lurker attacked");
+			// back where it was: a zerg strolls about when idle, and the lurker sometimes wandered out of its reach
+			// of the marine before it burrowed (and, burrowed, could not come back)
+			lurker.teleportTo(home.x, home.y, home.z);
 			helper.assertTrue(Abilities.cast(lurker, level, Ability.BURROW, null, null), "no burrow");
-			helper.succeedWhen(() -> helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the burrowed lurker does not attack"));
+			helper.succeedWhen(() -> helper.assertTrue(marine.getHealth() < marine.getMaxHealth(), "the burrowed lurker does not attack: at "
+				+ TestArena.where(helper, lurker) + " mode " + lurker.mode() + " target " + lurker.getTarget() + " weapon " + lurker.weapon() + " goals " + lurker.goalsRunning()));
 		});
 	}
 
@@ -336,7 +341,9 @@ public class MechanicsGameTests implements FabricGameTest {
 		zergling.setNoAi(true);
 		helper.succeedWhen(() -> {
 			List<StarUnit> out = ProtossAbilities.launched(carrier, helper.getLevel());
-			helper.assertTrue(!out.isEmpty() || zergling.isDeadOrDying(), "no interceptor out");
+			helper.assertTrue(!out.isEmpty() || zergling.isDeadOrDying(), "no interceptor out: carrier target " + carrier.getTarget()
+				+ ", aboard " + carrier.abilities.interceptors() + ", at " + TestArena.where(helper, carrier) + ", zergling " + carrier.distanceTo(zergling)
+				+ " blocks off at " + TestArena.where(helper, zergling));
 			helper.assertTrue(zergling.getHealth() < zergling.getMaxHealth(), "the interceptors did not hit");
 			helper.assertTrue(carrier.abilities.interceptors() + out.size() <= ProtossAbilities.INTERCEPTORS, "too many interceptors");
 		});
