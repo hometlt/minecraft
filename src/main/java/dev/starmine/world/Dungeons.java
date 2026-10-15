@@ -121,7 +121,7 @@ public final class Dungeons {
 		openRoom(painter, corner, mid - 1, mid - 1, 3);
 		BlockPos core = cellFloor(corner, mid, mid);
 		for (int y = 0; y < 3; y++) painter.set(core.above(y), Blocks.RED_STAINED_GLASS.defaultBlockState());
-		painter.set(core.above(3), Blocks.BEACON.defaultBlockState());
+		painter.set(core.above(3), Blocks.END_ROD.defaultBlockState());
 		for (int dx = -1; dx <= 1; dx++)
 			for (int dz = -1; dz <= 1; dz++)
 				if (dx != 0 || dz != 0) for (int y = 0; y < 3; y++) painter.set(core.offset(dx, y, dz), Blocks.IRON_BARS.defaultBlockState());
@@ -134,7 +134,7 @@ public final class Dungeons {
 		int[][] labs = {{1, 1}, {MAZE_CELLS - 3, 1}, {1, MAZE_CELLS - 3}, {MAZE_CELLS - 3, MAZE_CELLS - 3}};
 		BlockState[] benches = {Blocks.BLAST_FURNACE.defaultBlockState(), Blocks.SMITHING_TABLE.defaultBlockState(),
 			Blocks.BREWING_STAND.defaultBlockState(), Blocks.LECTERN.defaultBlockState(), Blocks.CRAFTER.defaultBlockState(),
-			Blocks.OBSERVER.defaultBlockState(), Blocks.COPPER_BULB.defaultBlockState()};
+			Blocks.OBSERVER.defaultBlockState(), Blocks.REDSTONE_LAMP.defaultBlockState()};
 		for (int[] lab : labs) {
 			openRoom(painter, corner, lab[0], lab[1], 2);
 			BlockPos room = cellFloor(corner, lab[0], lab[1]).offset(2, 0, 2);

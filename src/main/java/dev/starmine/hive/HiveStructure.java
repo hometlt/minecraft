@@ -450,8 +450,14 @@ public final class HiveStructure {
 
 	/** Clears a square site (trees, plants, earth above) and fills holes under it, up to `height`. */
 	public static void flatten(ServerLevel level, BlockPos feet, int half, int height) {
+		flatten(level, feet, half, height, false);
+	}
+
+	/** {@link #flatten}; `round`: only the disc of radius `half` (owner 16.10: the land round a base's plaza stays as it was). */
+	public static void flatten(ServerLevel level, BlockPos feet, int half, int height, boolean round) {
 		for (int dx = -half; dx <= half; dx++)
 			for (int dz = -half; dz <= half; dz++) {
+				if (round && dx * dx + dz * dz > (half + 0.5) * (half + 0.5)) continue;
 				for (int dy = 0; dy <= height + 12; dy++) {
 					BlockPos pos = feet.offset(dx, dy, dz);
 					BlockState state = level.getBlockState(pos);

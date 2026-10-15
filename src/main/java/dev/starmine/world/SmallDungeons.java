@@ -30,8 +30,8 @@ import net.minecraft.world.level.storage.loot.LootTable;
  * Small dungeons scattered over the world (owner 15.10), about one attempt in {@code 192} chunks
  * (`worldgen/placed_feature/small_dungeon.json`), one of three at random:
  * - a zerg nest underground: a cave of flesh with eggs and a few zerglings and a roach, a tunnel up;
- * - a terran outpost on the surface: a concrete pad, decorative andesite walls with a door and windows, crates,
- *   a landing mark; marines, sometimes a marauder;
+ * - a terran outpost on the surface (rare, one in seven): an abandoned, broken hangar, factory or barracks with
+ *   sheds and pipes between them; a few marines, sometimes a marauder;
  * - a Xel'Naga temple underground: a hall of deepslate with purpur pillars, amethyst and light, an altar
  *   with a chest; two or three zealots, or one or two dark templars; a spiral stair up to a small shrine.
  * Built while the world generates (its chunk and the ones next to it only); the guards appear when a
@@ -57,7 +57,9 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		WorldGenLevel level = context.level();
 		RandomSource random = context.random();
 		int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
-		Kind kind = Kind.values()[random.nextInt(Kind.values().length)];
+		// owner 16.10: terran outposts are rare (one dungeon in seven), the others share the rest
+		int roll = random.nextInt(7);
+		Kind kind = roll == 0 ? Kind.TERRAN_OUTPOST : roll <= 3 ? Kind.ZERG_NEST : Kind.XELNAGA_TEMPLE;
 		return build(level, random, kind, cx, cz) != null;
 	}
 
@@ -124,48 +126,202 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 
 	// ---- the terran outpost ----
 
+	/**
+	 * An abandoned terran outpost (owner 16.10: rare, broken technical buildings): a cracked pad with one
+	 * of a hangar (a half-vault of plating), a factory (a hall with a fallen chimney) or barracks (a long low
+	 * block of rooms), two or three small sheds, and pipes on posts between them. Walls and roofs have holes,
+	 * windows are broken, rubble, cobwebs and moss lie about; nothing in it is a resource block. A few
+	 * marines still keep it.
+	 */
 	private static BlockPos outpost(WorldGenLevel level, RandomSource random, BlockPos ground) {
-		BlockState concrete = Blocks.GRAY_CONCRETE.defaultBlockState(), light = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-			yellow = Blocks.YELLOW_CONCRETE.defaultBlockState(), iron = Blocks.POLISHED_ANDESITE.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
-			glass = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), lamp = Blocks.SEA_LANTERN.defaultBlockState();
-		int r = 11;
+		BlockState air = Blocks.AIR.defaultBlockState();
+		int r = 15;
 		for (int dx = -r; dx <= r; dx++)
 			for (int dz = -r; dz <= r; dz++) {
+				if (dx * dx + dz * dz > r * r + random.nextInt(30)) continue; // a ragged edge
 				BlockPos column = ground.offset(dx, 0, dz);
-				for (int y = 0; y <= 12; y++) set(level, column.above(y), air);
+				for (int y = 0; y <= 14; y++) set(level, column.above(y), air);
 				for (int y = 2; y <= 5; y++) if (level.getBlockState(column.below(y)).isAir()) set(level, column.below(y), Blocks.STONE.defaultBlockState());
-				boolean line = Math.abs(dx) == r || Math.abs(dz) == r;
-				set(level, column.below(), line ? yellow : (Math.floorMod(dx, 6) < 3) == (Math.floorMod(dz, 6) < 3) ? concrete : light);
+				set(level, column.below(), crackedFloor(random, dx, dz));
 			}
-		// the barracks: decorative stone walls (not mineable iron storage), windows and lights
-		BlockPos a = ground.offset(-8, 0, -6), b = ground.offset(3, 7, 6);
+		int type = random.nextInt(3);
+		switch (type) {
+			case 0 -> hangar(level, random, ground);
+			case 1 -> factory(level, random, ground);
+			default -> barracks(level, random, ground);
+		}
+		// sheds round it, joined by pipes
+		BlockPos main = ground.offset(0, 0, 0);
+		int sheds = 2 + random.nextInt(2);
+		for (int i = 0; i < sheds; i++) {
+			double angle = Math.PI * 2 * i / sheds + random.nextDouble() * 0.6;
+			BlockPos at = ground.offset((int) Math.round(Math.cos(angle) * 12), 0, (int) Math.round(Math.sin(angle) * 12));
+			shed(level, random, at);
+			pipe(level, random, main.above(4), at.above(3));
+		}
+		// rubble, cobwebs, moss
+		for (int i = 0; i < 40; i++) {
+			BlockPos at = ground.offset(random.nextInt(2 * r + 1) - r, 0, random.nextInt(2 * r + 1) - r);
+			if (!level.getBlockState(at).isAir() || level.getBlockState(at.below()).isAir()) continue;
+			int pick = random.nextInt(6);
+			set(level, at, pick == 0 ? Blocks.COBWEB.defaultBlockState() : pick == 1 ? Blocks.MOSS_CARPET.defaultBlockState()
+				: pick == 2 ? Blocks.GRAVEL.defaultBlockState() : pick == 3 ? Blocks.COBBLESTONE_SLAB.defaultBlockState()
+				: pick == 4 ? Blocks.ANDESITE_SLAB.defaultBlockState() : Blocks.BARREL.defaultBlockState());
+		}
+		chest(level, random, ground.offset(-3, 0, 2), BuiltInLootTables.SIMPLE_DUNGEON);
+		if (random.nextBoolean()) chest(level, random, ground.offset(2, 0, -3), BuiltInLootTables.ABANDONED_MINESHAFT);
+		DungeonHeart.Heart heart = heart(level, ground.offset(0, -1, 0), Blocks.GRAY_CONCRETE);
+		if (heart == null) return null;
+		int marines = 1 + random.nextInt(3);
+		for (int i = 0; i < marines; i++) heart.add(UnitKind.MARINE, ground.offset(-4 + i * 4, 0, 4 - (i % 2) * 8), null, 0);
+		if (random.nextInt(3) == 0) heart.add(UnitKind.MARAUDER, ground.offset(4, 0, 0), null, 0);
+		return heart.getBlockPos();
+	}
+
+	private static BlockState crackedFloor(RandomSource random, int dx, int dz) {
+		int pick = random.nextInt(10);
+		if (pick == 0) return Blocks.GRAVEL.defaultBlockState();
+		if (pick == 1) return Blocks.COARSE_DIRT.defaultBlockState();
+		if (pick == 2) return Blocks.CRACKED_STONE_BRICKS.defaultBlockState();
+		if (pick == 3) return Blocks.MOSSY_STONE_BRICKS.defaultBlockState();
+		if (Math.floorMod(dx, 9) == 0 || Math.floorMod(dz, 9) == 0) return random.nextInt(3) == 0 ? Blocks.GRAY_CONCRETE.defaultBlockState()
+			: Blocks.YELLOW_TERRACOTTA.defaultBlockState(); // worn marking lines
+		return (Math.floorMod(dx, 6) < 3) == (Math.floorMod(dz, 6) < 3) ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState();
+	}
+
+	/** A wall or roof cell of a ruin: mostly `state`, sometimes cracked, sometimes a hole. */
+	private static void ruin(WorldGenLevel level, RandomSource random, BlockPos pos, BlockState state, float holes) {
+		float roll = random.nextFloat();
+		if (roll < holes) return;
+		set(level, pos, roll < holes + 0.12f ? Blocks.CRACKED_DEEPSLATE_TILES.defaultBlockState() : state);
+	}
+
+	/** A hangar: a half-vault of plating 9 high over 17 x 23, open at both ends, its roof half fallen in. */
+	private static void hangar(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		BlockState plate = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(), rib = Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+			stripe = Blocks.YELLOW_CONCRETE.defaultBlockState();
+		double radius = 8.5;
+		for (int dz = -11; dz <= 11; dz++)
+			for (int dx = -9; dx <= 9; dx++)
+				for (int dy = 0; dy <= 9; dy++) {
+					double d = Math.sqrt(dx * dx + dy * dy);
+					if (d < radius - 0.5 || d > radius + 0.5) continue;
+					BlockPos pos = ground.offset(dx, dy, dz);
+					boolean ribCell = Math.floorMod(dz, 5) == 0;
+					float holes = dy > 5 ? 0.35f : 0.12f;
+					ruin(level, random, pos, ribCell ? rib : dy == 2 ? stripe : plate, ribCell ? 0.05f : holes);
+				}
+		// a wrecked dropship frame inside, crates
+		for (int dz = -4; dz <= 4; dz++) {
+			set(level, ground.offset(0, 0, dz), Blocks.POLISHED_DEEPSLATE_SLAB.defaultBlockState());
+			if (Math.abs(dz) == 4) for (int dx = -3; dx <= 3; dx++) set(level, ground.offset(dx, 1, dz), Blocks.IRON_BARS.defaultBlockState());
+		}
+		for (int i = 0; i < 4; i++) set(level, ground.offset(-6 + random.nextInt(3), 0, -9 + i * 5), Blocks.BARREL.defaultBlockState());
+		for (int y = 3; y <= 8; y++) set(level, ground.offset(4, y, 6), Blocks.CHAIN.defaultBlockState());
+	}
+
+	/** A factory: a hall of tiles 15 x 11, 8 high, its roof half gone, a chimney broken off and fallen across the pad. */
+	private static void factory(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		BlockState wall = Blocks.DEEPSLATE_TILES.defaultBlockState(), frame = Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+			glass = Blocks.GRAY_STAINED_GLASS.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+		BlockPos a = ground.offset(-7, 0, -5), b = ground.offset(7, 8, 5);
 		for (BlockPos pos : BlockPos.betweenClosed(a, b)) {
-			boolean wall = pos.getX() == a.getX() || pos.getX() == b.getX() || pos.getZ() == a.getZ() || pos.getZ() == b.getZ();
+			boolean x = pos.getX() == a.getX() || pos.getX() == b.getX(), z = pos.getZ() == a.getZ() || pos.getZ() == b.getZ();
 			boolean roof = pos.getY() == b.getY();
 			int up = pos.getY() - ground.getY();
-			BlockState state = roof ? concrete : wall ? (up == 4 && Math.floorMod(pos.getX() + pos.getZ(), 3) != 0 ? glass : iron) : air;
-			set(level, pos.immutable(), state);
+			if (!x && !z && !roof) {
+				set(level, pos.immutable(), air);
+				continue;
+			}
+			if (x && z) set(level, pos.immutable(), frame);
+			else if (roof) ruin(level, random, pos.immutable(), Blocks.SMOOTH_STONE_SLAB.defaultBlockState(), 0.45f);
+			else if (up >= 3 && up <= 5 && Math.floorMod(pos.getX() + pos.getZ(), 4) != 0) {
+				if (random.nextInt(3) != 0) set(level, pos.immutable(), glass); // the rest broken
+				else set(level, pos.immutable(), air);
+			} else ruin(level, random, pos.immutable(), wall, up > 5 ? 0.25f : 0.06f);
 		}
-		box(level, ground.offset(3, 0, -2), ground.offset(3, 4, 2), air); // the door
-		for (int dx = -6; dx <= 1; dx += 3) set(level, ground.offset(dx, 7, 0), lamp);
-		for (int up = 8; up <= 10; up++) set(level, ground.offset(-6, up, -4), Blocks.LIGHTNING_ROD.defaultBlockState());
-		// crates, a landing mark, lamp posts
-		chest(level, random, ground.offset(-7, 0, 5), BuiltInLootTables.SIMPLE_DUNGEON);
-		chest(level, random, ground.offset(6, 0, -9), BuiltInLootTables.VILLAGE_WEAPONSMITH);
-		for (int a2 = 0; a2 < 360; a2 += 15) {
-			double rad = Math.toRadians(a2);
-			set(level, ground.offset(6 + (int) Math.round(Math.cos(rad) * 3), -1, 6 + (int) Math.round(Math.sin(rad) * 3)), yellow);
+		box(level, ground.offset(7, 0, -1), ground.offset(7, 3, 1), air); // the gate
+		// machines inside
+		for (int dx = -5; dx <= 3; dx += 4) {
+			set(level, ground.offset(dx, 0, -3), Blocks.BLAST_FURNACE.defaultBlockState());
+			set(level, ground.offset(dx, 1, -3), Blocks.POLISHED_BASALT.defaultBlockState());
+			set(level, ground.offset(dx, 0, 3), Blocks.SMOKER.defaultBlockState());
 		}
-		for (int[] post : new int[][] {{-10, -10}, {10, -10}, {-10, 10}, {10, 10}}) {
-			box(level, ground.offset(post[0], 0, post[1]), ground.offset(post[0], 3, post[1]), Blocks.IRON_BARS.defaultBlockState());
-			set(level, ground.offset(post[0], 4, post[1]), lamp);
+		// the chimney: standing a while, then fallen along +z
+		BlockState brick = Blocks.BRICKS.defaultBlockState();
+		int standing = 6 + random.nextInt(5);
+		for (int y = 0; y < standing; y++)
+			for (int dx = -1; dx <= 1; dx++)
+				for (int dz = -1; dz <= 1; dz++)
+					if (dx != 0 || dz != 0) ruin(level, random, ground.offset(-5 + dx, y, dz), brick, y > standing - 3 ? 0.4f : 0.03f);
+		for (int k = 0; k < 9; k++) ruin(level, random, ground.offset(-5, 0, 7 + k), brick, 0.2f);
+	}
+
+	/** Barracks: a long low block of rooms 19 x 7, 5 high, with bunks, broken windows, a door at each end. */
+	private static void barracks(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		BlockState wall = Blocks.POLISHED_ANDESITE.defaultBlockState(), roof = Blocks.GRAY_CONCRETE.defaultBlockState(),
+			glass = Blocks.LIGHT_BLUE_STAINED_GLASS_PANE.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+		BlockPos a = ground.offset(-9, 0, -3), b = ground.offset(9, 5, 3);
+		for (BlockPos pos : BlockPos.betweenClosed(a, b)) {
+			boolean x = pos.getX() == a.getX() || pos.getX() == b.getX(), z = pos.getZ() == a.getZ() || pos.getZ() == b.getZ();
+			boolean top = pos.getY() == b.getY();
+			int up = pos.getY() - ground.getY();
+			if (top) ruin(level, random, pos.immutable(), roof, 0.2f);
+			else if (x || z) {
+				boolean window = z && up == 2 && Math.floorMod(pos.getX(), 3) == 1;
+				if (window) set(level, pos.immutable(), random.nextBoolean() ? glass : air);
+				else ruin(level, random, pos.immutable(), wall, 0.05f);
+			} else set(level, pos.immutable(), Math.floorMod(pos.getX(), 4) == 0 ? wall : air); // partitions between rooms
 		}
-		DungeonHeart.Heart heart = heart(level, ground.offset(-2, -1, 0), Blocks.GRAY_CONCRETE);
-		if (heart == null) return null;
-		int marines = 2 + random.nextInt(3);
-		for (int i = 0; i < marines; i++) heart.add(UnitKind.MARINE, ground.offset(6 - i * 3, 0, -6 + (i % 2) * 12), null, 0);
-		if (random.nextBoolean()) heart.add(UnitKind.MARAUDER, ground.offset(-3, 0, 0), null, 0);
-		return heart.getBlockPos();
+		for (int side = -1; side <= 1; side += 2) box(level, ground.offset(side * 9, 0, -1), ground.offset(side * 9, 2, 1), air);
+		for (int dx = -8; dx <= 8; dx++) set(level, ground.offset(dx, 0, 0), air); // the corridor through the partitions
+		for (int dx = -8; dx <= 8; dx++) set(level, ground.offset(dx, 1, 0), air);
+		for (int dx = -7; dx <= 7; dx += 4) {
+			set(level, ground.offset(dx, 0, -2), Blocks.WHITE_WOOL.defaultBlockState());
+			set(level, ground.offset(dx, 0, 2), Blocks.LIGHT_GRAY_WOOL.defaultBlockState());
+		}
+		// antennae on the roof, bent
+		for (int up = 6; up <= 8; up++) set(level, ground.offset(-6, up, 0), Blocks.END_ROD.defaultBlockState());
+	}
+
+	/** A small shed: a box 5 x 5 of plating with a door and a relay box on its roof. */
+	private static void shed(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		BlockState wall = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+		for (int dx = -2; dx <= 2; dx++)
+			for (int dz = -2; dz <= 2; dz++) {
+				set(level, ground.offset(dx, -1, dz), Blocks.GRAY_CONCRETE.defaultBlockState());
+				for (int y = 0; y <= 3; y++) {
+					boolean edge = Math.abs(dx) == 2 || Math.abs(dz) == 2;
+					BlockPos pos = ground.offset(dx, y, dz);
+					if (y == 3 || edge) ruin(level, random, pos, wall, y == 3 ? 0.25f : 0.08f);
+					else set(level, pos, air);
+				}
+			}
+		box(level, ground.offset(-2, 0, 0), ground.offset(-2, 1, 0), air);
+		set(level, ground.above(4), Blocks.DEEPSLATE_TILES.defaultBlockState());
+	}
+
+	/** A pipe on posts from `from` to `to`: logs of basalt along x, then along z, a post every 4 blocks; a few links fallen. */
+	private static void pipe(WorldGenLevel level, RandomSource random, BlockPos from, BlockPos to) {
+		BlockState alongX = Blocks.POLISHED_BASALT.defaultBlockState().setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS, Direction.Axis.X),
+			alongZ = Blocks.POLISHED_BASALT.defaultBlockState().setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS, Direction.Axis.Z),
+			post = Blocks.POLISHED_DEEPSLATE_WALL.defaultBlockState();
+		int y = from.getY(), x = from.getX(), z = from.getZ();
+		int k = 0;
+		while (x != to.getX()) {
+			x += Integer.signum(to.getX() - x);
+			if (random.nextInt(9) != 0) set(level, new BlockPos(x, y, z), alongX);
+			if (++k % 4 == 0) postDown(level, new BlockPos(x, y - 1, z), post);
+		}
+		while (z != to.getZ()) {
+			z += Integer.signum(to.getZ() - z);
+			if (random.nextInt(9) != 0) set(level, new BlockPos(x, y, z), alongZ);
+			if (++k % 4 == 0) postDown(level, new BlockPos(x, y - 1, z), post);
+		}
+	}
+
+	private static void postDown(WorldGenLevel level, BlockPos top, BlockState post) {
+		for (int i = 0; i < 8 && level.getBlockState(top.below(i)).isAir(); i++) set(level, top.below(i), post);
 	}
 
 	// ---- the zerg nest ----

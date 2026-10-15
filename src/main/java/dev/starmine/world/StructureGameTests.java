@@ -117,7 +117,7 @@ public class StructureGameTests implements FabricGameTest {
 		int mid = Dungeons.MAZE_CELLS / 2;
 		BlockPos door = corner.offset(0, 1, mid * Dungeons.PITCH + 2);
 		BlockPos core = corner.offset(mid * Dungeons.PITCH + 2, 1, mid * Dungeons.PITCH + 2);
-		helper.assertTrue(level.getBlockState(core.above(3)).is(Blocks.BEACON), "no reactor core");
+		helper.assertTrue(level.getBlockState(core.above(3)).is(Blocks.END_ROD), "no reactor core");
 		helper.assertTrue(walkable(level, door, core.offset(2, 0, 0), 4000), "the core cannot be reached from the door");
 		helper.assertTrue(guards.size() >= 11 && guards.stream().allMatch(g -> g.hall() != null), "guards " + guards.size());
 		helper.succeed();
@@ -189,8 +189,8 @@ public class StructureGameTests implements FabricGameTest {
 		ServerLevel level = helper.getLevel();
 		BlockPos a = helper.absolutePos(new BlockPos(6, 2, 6)), b = helper.absolutePos(new BlockPos(40, 2, 40));
 		Painter painter = new Painter(level, RandomSource.create(1));
-		Teleporter.pad(painter, a, UnitKind.Race.TERRAN, Blocks.IRON_BLOCK.defaultBlockState());
-		Teleporter.pad(painter, b, UnitKind.Race.TERRAN, Blocks.IRON_BLOCK.defaultBlockState());
+		Teleporter.pad(painter, a, UnitKind.Race.TERRAN, Blocks.POLISHED_DIORITE.defaultBlockState());
+		Teleporter.pad(painter, b, UnitKind.Race.TERRAN, Blocks.POLISHED_DIORITE.defaultBlockState());
 		Teleporter.link(level, a, b);
 		dev.starmine.entity.StarUnit guard = dev.starmine.ability.TestArena.unit(helper, UnitKind.MARINE, 12, 6, null);
 		net.minecraft.world.entity.player.Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
@@ -231,7 +231,7 @@ public class StructureGameTests implements FabricGameTest {
 			if (kind == SmallDungeons.Kind.TERRAN_OUTPOST)
 				for (BlockPos pos : BlockPos.betweenClosed(new BlockPos(at.getX() - 11, top - 1, at.getZ() - 11),
 					new BlockPos(at.getX() + 11, top + 12, at.getZ() + 11)))
-					helper.assertTrue(!level.getBlockState(pos).is(Blocks.IRON_BLOCK), "outpost contains resource iron blocks");
+					helper.assertTrue(!level.getBlockState(pos).is(Blocks.POLISHED_DIORITE), "outpost contains resource iron blocks");
 			switch (kind) {
 				case ZERG_NEST -> helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the nest keeps " + kinds);
 				case TERRAN_OUTPOST -> helper.assertTrue(kinds.stream().filter(k -> k == UnitKind.MARINE).count() >= 2, "the outpost keeps " + kinds);

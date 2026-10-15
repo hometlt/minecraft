@@ -1235,6 +1235,25 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return StarMine.sounds(kind).ambient();
 	}
 
+	/** Ticks between a unit's idle lines on average (owner 16.10: they talked too often; vanilla mobs every 4 s). */
+	public static final int AMBIENT_INTERVAL = 90 * 20;
+	/** Ticks a unit keeps quiet after a hurt line. */
+	public static final int HURT_LINE_REST = 8 * 20;
+	private long hurtLineUntil;
+
+	@Override
+	public int getAmbientSoundInterval() {
+		return AMBIENT_INTERVAL;
+	}
+
+	@Override
+	protected void playHurtSound(DamageSource source) {
+		long now = this.level().getGameTime();
+		if (now < hurtLineUntil) return;
+		hurtLineUntil = now + HURT_LINE_REST;
+		super.playHurtSound(source);
+	}
+
 	@Override
 	protected SoundEvent getHurtSound(DamageSource source) {
 		return StarMine.sounds(kind).hurt();

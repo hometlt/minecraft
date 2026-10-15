@@ -79,22 +79,44 @@ public final class ProtossAbilities {
 	private ProtossAbilities() {
 	}
 
-	/** Charge: the zealot dashes to the foe (stopped by walls) and strikes it for 8 more. */
+	/** Ticks a charge lasts at most (it ends on the strike). */
+	public static final int CHARGE_TICKS = 40;
+
+	/**
+	 * Charge (owner 16.10: not a jump): the zealot runs at its foe three times as fast ({@link Status#CHARGING})
+	 * and strikes it for 8 more when it gets there; walls stop it like any runner.
+	 */
 	static void charge(StarUnit unit, ServerLevel level, @Nullable LivingEntity target) {
 		if (target == null) return;
 		Entity body = unit.body();
-		Vec3 to = target.position().subtract(body.position()).multiply(1, 0, 1);
-		double gap = to.length() - (target.getBbWidth() + unit.getBbWidth()) / 2 - 0.3;
-		if (gap > 0) {
-			Vec3 step = to.normalize().scale(gap);
-			level.sendParticles(ParticleTypes.END_ROD, body.getX(), body.getY() + 0.8, body.getZ(), 10, 0.2, 0.4, 0.2, 0.05);
-			if (body == unit) unit.move(MoverType.SELF, step);
-			else body.teleportTo(body.getX() + step.x, body.getY(), body.getZ() + step.z);
-		}
 		unit.setTarget(target);
-		if (body.distanceTo(target) <= (target.getBbWidth() + unit.getBbWidth()) / 2 + 1.5) {
+		Status.apply(unit, Status.CHARGING, CHARGE_TICKS);
+		if (body != unit && body instanceof LivingEntity pilot) Status.apply(pilot, Status.CHARGING, CHARGE_TICKS);
+		Vec3 to = target.position().subtract(body.position()).multiply(1, 0, 1);
+		if (to.lengthSqr() > 1e-4) { // a first push toward the foe
+			Vec3 push = to.normalize().scale(0.6);
+			body.setDeltaMovement(push.x, body.getDeltaMovement().y, push.z);
+			body.hurtMarked = true;
+		}
+		level.sendParticles(ParticleTypes.END_ROD, body.getX(), body.getY() + 0.8, body.getZ(), 10, 0.2, 0.4, 0.2, 0.05);
+		chargeTick(unit, level);
+	}
+
+	/** Every tick of a charge: a trail, the run on, and the strike once the foe is in reach. */
+	static void chargeTick(StarUnit unit, ServerLevel level) {
+		Entity body = unit.body();
+		LivingEntity target = unit.getTarget();
+		if (target == null || !target.isAlive()) {
+			Status.end(unit, Status.CHARGING);
+			return;
+		}
+		if (unit.tickCount % 2 == 0)
+			level.sendParticles(ParticleTypes.END_ROD, body.getX(), body.getY() + 0.6, body.getZ(), 2, 0.2, 0.3, 0.2, 0.01);
+		if (body == unit && unit.getNavigation().isDone()) unit.getNavigation().moveTo(target, 1.0);
+		if (body.distanceTo(target) <= (target.getBbWidth() + body.getBbWidth()) / 2 + 1.5) {
 			target.hurt(unit.attackSource(), (float) (CHARGE_DAMAGE * SCALE));
 			unit.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+			Status.end(unit, Status.CHARGING);
 		}
 	}
 

@@ -52,6 +52,8 @@ public enum Status {
 	PARASITE(       1,     1,    false),
 	/** The immortal's barrier is up: absorbs damage (SC2 100 for 2 s). */
 	BARRIER(        1,     1,    false),
+	/** Zealot charge (owner 16.10: a dash, not a jump): three times as fast toward its foe until it strikes. */
+	CHARGING(       3.0,   1,    false),
 	/** Medivac afterburners: SC2 speed 5.94 for 4 s. */
 	AFTERBURNERS(   1.7,   1,    false),
 	/** Void ray prismatic alignment: +10 against armored, slower (SC2 14.3 s). */
@@ -127,7 +129,7 @@ public enum Status {
 			case LIFTED -> MobEffects.LEVITATION;
 			case BLINDED -> MobEffects.BLINDNESS;
 			case REVEALED -> MobEffects.GLOWING;
-			case STIM, AFTERBURNERS -> MobEffects.MOVEMENT_SPEED;
+			case STIM, AFTERBURNERS, CHARGING -> MobEffects.MOVEMENT_SPEED;
 			default -> null;
 		};
 	}
@@ -137,6 +139,7 @@ public enum Status {
 			case SLOW -> 2; // about half speed
 			case ROOTED, STASIS, STUNNED -> 9; // no speed left
 			case STIM, AFTERBURNERS -> 2;
+			case CHARGING -> 6;
 			default -> 0;
 		};
 	}
@@ -185,6 +188,7 @@ public enum Status {
 				level.sendParticles(ParticleTypes.END_ROD, unit.getX(), unit.getY() - 0.3, unit.getZ(), 3, 0.3, 0.2, 0.3, 0.01);
 		}
 		if (statuses.containsKey(STASIS)) unit.setDeltaMovement(Vec3.ZERO);
+		if (statuses.containsKey(CHARGING)) ProtossAbilities.chargeTick(unit, level);
 		if (statuses.containsKey(PARASITE) && unit.tickCount % 10 == 0) {
 			StarUnit caster = unit.abilities.parasiteCaster == null ? null
 				: level.getEntity(unit.abilities.parasiteCaster) instanceof StarUnit found && found.isAlive() ? found : null;

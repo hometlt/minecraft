@@ -154,7 +154,7 @@ public final class SkyShips {
 		Shape hull = new Shape((int) (-41 * s), (int) (37 * s), (int) (-5 * s), (int) (11 * s), (int) (-20 * s), (int) (20 * s),
 			(x, y, z) -> hyperionHull(x / s, y / s, z / s));
 		BlockState shell = Blocks.GRAY_CONCRETE.defaultBlockState(), stripe = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-			belly = Blocks.POLISHED_DEEPSLATE.defaultBlockState(), trim = Blocks.IRON_BLOCK.defaultBlockState(),
+			belly = Blocks.POLISHED_DEEPSLATE.defaultBlockState(), trim = Blocks.POLISHED_DIORITE.defaultBlockState(),
 			glass = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState(),
 			floor = Blocks.POLISHED_ANDESITE.defaultBlockState(), wall = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
 			engine = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
@@ -245,7 +245,7 @@ public final class SkyShips {
 		// the Yamato muzzle
 		int muzzle = (int) (30.5 * s);
 		for (int y = -3; y <= 3; y++)
-			for (int z = -4; z <= 4; z++) frame.put(muzzle, y, z, Math.abs(z) <= 2 && Math.abs(y) <= 2 ? Blocks.REDSTONE_BLOCK.defaultBlockState() : trim);
+			for (int z = -4; z <= 4; z++) frame.put(muzzle, y, z, Math.abs(z) <= 2 && Math.abs(y) <= 2 ? Blocks.RED_CONCRETE.defaultBlockState() : trim);
 		frame.box(muzzle, -1, -1, muzzle, 1, 1, light);
 		// laser turrets on the deck, antennae on the bridge
 		for (int x : new int[] {-50, 0, 28}) {
@@ -254,8 +254,8 @@ public final class SkyShips {
 			for (int dx = 3; dx <= 7; dx++) frame.put(x + dx, onTop + 1, z, Blocks.IRON_BARS.defaultBlockState());
 		}
 		int bridgeTop = hull.top(-24, 0) + 1;
-		frame.box(-24, bridgeTop, 0, -24, bridgeTop + 4, 0, Blocks.LIGHTNING_ROD.defaultBlockState());
-		frame.box(-28, bridgeTop, 2, -28, bridgeTop + 2, 2, Blocks.LIGHTNING_ROD.defaultBlockState());
+		frame.box(-24, bridgeTop, 0, -24, bridgeTop + 4, 0, Blocks.END_ROD.defaultBlockState());
+		frame.box(-28, bridgeTop, 2, -28, bridgeTop + 2, 2, Blocks.END_ROD.defaultBlockState());
 		// the cargo bay's chests, the bridge's (the boss's reward is its own drop)
 		painter.chest(frame.at(-64, lowerFloor + 1, 8), BuiltInLootTables.STRONGHOLD_CORRIDOR);
 		painter.chest(frame.at(-64, lowerFloor + 1, -8), BuiltInLootTables.SIMPLE_DUNGEON);
@@ -263,7 +263,7 @@ public final class SkyShips {
 		// the teleporter pad on the forward deck
 		int padX = 64, padTop = hull.top(padX, 0);
 		BlockPos pad = frame.at(padX, padTop + 1, 0);
-		Teleporter.pad(painter, pad, UnitKind.Race.TERRAN, Blocks.IRON_BLOCK.defaultBlockState());
+		Teleporter.pad(painter, pad, UnitKind.Race.TERRAN, Blocks.POLISHED_DIORITE.defaultBlockState());
 
 		List<Spawn> spawns = new ArrayList<>();
 		for (int i = 0; i < 4; i++) // the pad's guards
@@ -299,9 +299,9 @@ public final class SkyShips {
 		Frame frame = new Frame(painter, middle, 0);
 		double s = MOTHERSHIP_SCALE, rx = 15 * s, ry = 3.5 * s;
 		BlockState quartz = Blocks.QUARTZ_BRICKS.defaultBlockState(), smooth = Blocks.SMOOTH_QUARTZ.defaultBlockState(),
-			gold = Blocks.GOLD_BLOCK.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState(),
+			gold = Blocks.YELLOW_TERRACOTTA.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState(),
 			window = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
-			floor = Blocks.CHISELED_QUARTZ_BLOCK.defaultBlockState(), lapis = Blocks.LAPIS_BLOCK.defaultBlockState();
+			floor = Blocks.CHISELED_QUARTZ_BLOCK.defaultBlockState(), lapis = Blocks.BLUE_TERRACOTTA.defaultBlockState();
 		int r0 = (int) Math.ceil(rx), h0 = (int) Math.ceil(ry), mid = -1;
 		double dome = 7 * s, domeH = 6 * s;
 		Shape disc = new Shape(-r0, r0, -h0, h0 + (int) domeH + 4, -r0, r0, (x, y, z) -> {
@@ -332,7 +332,7 @@ public final class SkyShips {
 			boolean door = a < 12 || a > 348 || Math.abs(a - 180) < 12;
 			for (int y = mid + 1; y <= mid + 6; y++) if (!door && disc.in(x, y, z) && !disc.shell(x, y, z)) frame.put(x, y, z, quartz);
 		}
-		for (int y = mid + 1; y <= (int) (8 * s); y++) frame.put(0, y, 0, y == (int) (8 * s) ? Blocks.BEACON.defaultBlockState() : light); // the nexus core
+		for (int y = mid + 1; y <= (int) (8 * s); y++) frame.put(0, y, 0, y == (int) (8 * s) ? Blocks.END_ROD.defaultBlockState() : light); // the nexus core
 		frame.box(-2, mid + 1, -2, 2, mid + 1, 2, gold);
 		// stairs: the hatch from the top down to the upper level, the upper level to the lower one
 		int hatch = 22, topY = disc.top(hatch, 0);

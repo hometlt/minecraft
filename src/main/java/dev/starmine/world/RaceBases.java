@@ -37,6 +37,11 @@ public final class RaceBases {
 	public static final String LEVIATHAN = "LEVIATHAN";
 	/** How high over the base's ground a sky ship's middle hangs (the ships grew 2-2.5 times: their tails and tentacles hang 45 below it). */
 	public static final int SKY = 80;
+	/**
+	 * The middle height of the Hyperion and the mothership (owner 16.10): just over the clouds (y 192), higher
+	 * than the leviathan, which keeps under {@link #LEVIATHAN_CEILING}.
+	 */
+	public static final int OVER_CLOUDS = 212, LEVIATHAN_CEILING = 176;
 
 	private RaceBases() {
 	}
@@ -143,10 +148,10 @@ public final class RaceBases {
 		boolean terran = race == UnitKind.Race.TERRAN;
 
 		// the plaza
-		HiveStructure.flatten(level, centre, PLAZA, 16);
+		HiveStructure.flatten(level, centre, PLAZA, 16, true); // the disc only: the land round it stays as it was
 		BlockState pave = terran ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.SMOOTH_SANDSTONE.defaultBlockState();
-		BlockState line = terran ? Blocks.YELLOW_CONCRETE.defaultBlockState() : Blocks.GOLD_BLOCK.defaultBlockState();
-		BlockState inlay = terran ? Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState() : Blocks.LAPIS_BLOCK.defaultBlockState();
+		BlockState line = terran ? Blocks.YELLOW_CONCRETE.defaultBlockState() : Blocks.YELLOW_TERRACOTTA.defaultBlockState();
+		BlockState inlay = terran ? Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState() : Blocks.BLUE_TERRACOTTA.defaultBlockState();
 		for (int dx = -PLAZA; dx <= PLAZA; dx++)
 			for (int dz = -PLAZA; dz <= PLAZA; dz++) {
 				double r = Math.sqrt(dx * dx + dz * dz);
@@ -165,8 +170,10 @@ public final class RaceBases {
 			BlockPos at = groundAt(level, centre, angle, radius + ring[i].width / 2);
 			spawns.add(Spawn.member(ring[i], at));
 		}
-		if (!terran) for (int i = 0; i < 4; i++)
-			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 4 + i * Math.PI / 2, radius - 1.5)));
+		// three pylons power the whole ring (owner 16.10: four and more were too many)
+		if (!terran) for (int i = 0; i < 3; i++)
+			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5)));
+		lights(painter, centre, terran);
 		for (UnitKind kind : terran ? TERRAN_ARMY : PROTOSS_ARMY) {
 			double angle = random.nextDouble() * Math.PI * 2;
 			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 2.5); // out of the main building
@@ -176,7 +183,7 @@ public final class RaceBases {
 		// under the base and over it
 		int depth = 26;
 		int under = Math.max(level.getMinBuildHeight() + 8, centre.getY() - depth);
-		int sky = Math.min(level.getMaxBuildHeight() - 40, centre.getY() + SKY);
+		int sky = Math.min(level.getMaxBuildHeight() - 40, Math.max(centre.getY() + SKY, OVER_CLOUDS));
 		Painter above = Painter.deferred(level, random);
 		SkyShips.Ship ship;
 		if (terran) {
@@ -187,12 +194,31 @@ public final class RaceBases {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
 			ship = SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ()));
 		}
-		spawns.addAll(groundPad(level, painter, race, groundAt(level, centre, Math.PI, PLAZA + 6), terran ? Blocks.IRON_BLOCK.defaultBlockState()
-			: Blocks.GOLD_BLOCK.defaultBlockState(), ship, above));
+		spawns.addAll(groundPad(level, painter, race, groundAt(level, centre, Math.PI, PLAZA + 6), terran ? Blocks.POLISHED_DIORITE.defaultBlockState()
+			: Blocks.YELLOW_TERRACOTTA.defaultBlockState(), ship, above));
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
 		finish(level, data, base.id, ship, above);
 		data.setDirty();
 		return new Report(base.id, painter.placed() + above.placed(), spawns.size() + ship.spawns().size());
+	}
+
+	/**
+	 * Lights over a base's plaza (owner 16.10: no monsters spawn there): lamps on posts round its edge and
+	 * lights set in the paving — terran lamps, protoss sea lanterns.
+	 */
+	private static void lights(Painter painter, BlockPos centre, boolean terran) {
+		BlockState floor = terran ? Blocks.OCHRE_FROGLIGHT.defaultBlockState() : Blocks.SEA_LANTERN.defaultBlockState();
+		for (int dx = -PLAZA + 4; dx <= PLAZA - 4; dx += 8)
+			for (int dz = -PLAZA + 4; dz <= PLAZA - 4; dz += 8)
+				if (dx * dx + dz * dz <= (PLAZA - 2) * (PLAZA - 2)) painter.set(centre.offset(dx, -1, dz), floor);
+		BlockState post = terran ? Blocks.POLISHED_ANDESITE.defaultBlockState() : Blocks.CHISELED_SANDSTONE.defaultBlockState();
+		BlockState lamp = terran ? Blocks.LANTERN.defaultBlockState() : Blocks.SEA_LANTERN.defaultBlockState();
+		for (int a = 0; a < 360; a += 20) {
+			double rad = Math.toRadians(a);
+			BlockPos foot = centre.offset((int) Math.round(Math.cos(rad) * (PLAZA - 1)), 0, (int) Math.round(Math.sin(rad) * (PLAZA - 1)));
+			for (int up = 0; up < 3; up++) painter.set(foot.above(up), post);
+			painter.set(foot.above(3), lamp);
+		}
 	}
 
 	/** The teleporter by a base, its guards; it is paired with the ship's once the ship is built ({@link #finish}). */
@@ -227,7 +253,7 @@ public final class RaceBases {
 		Painter painter = new Painter(level, random);
 		painter.load(lair, 112);
 		int ground = HiveStructure.ground(level, lair.getX(), lair.getZ());
-		BlockPos middle = new BlockPos(lair.getX(), Math.min(level.getMaxBuildHeight() - 40, ground + SKY), lair.getZ());
+		BlockPos middle = new BlockPos(lair.getX(), Math.min(Math.min(level.getMaxBuildHeight() - 40, LEVIATHAN_CEILING), ground + SKY), lair.getZ());
 		Hive hive = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(lair) < 32 * 32)
 			.findFirst().orElse(null);
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
