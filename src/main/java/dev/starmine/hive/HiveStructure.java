@@ -32,8 +32,9 @@ import net.minecraft.world.phys.Vec3;
  * - Surface: the hatchery on its foundation with creep already grown, the spawning pool, evolution
  *   chamber, roach warren, spire (always on the surface), spine and spore crawlers, creep tumors,
  *   drones, zerglings, a queen, roaches, hydralisks and overlords. The hive starts as a lair.
- * - Tunnels: 4–6 branches leave the hatchery in different directions, go down by steps (3 wide, 4
- *   high, walkable by every ground zerg) to 20–40 blocks under the surface and wander 80–130 blocks,
+ * - Tunnels: 4–6 branches leave the hatchery in different directions, go down by steps ({@link #TUNNEL_WIDTH}
+ *   wide, {@link #TUNNEL_HEIGHT} high: its guards walk them — a hydralisk is 2.6 wide and 4.2 tall) to
+ *   20–40 blocks under the surface and wander 80–130 blocks,
  *   some forking. Halls open at their ends, at forks and (most branches) 14–20 blocks out. Water
  *   and lava next to a tunnel are sealed off.
  * - Near the hatchery (within {@link #NEAR}) tunnels and halls are lined with creep and tumors, and
@@ -48,6 +49,8 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class HiveStructure {
 	public static final int MIN_DISTANCE = 96, MAX_DISTANCE = 144, TRIGGER = 112;
+	/** A tunnel's cross-section and a hall's headroom for the units twice the model size (an ultralisk hatched in a hall is 7.4 tall). */
+	public static final int TUNNEL_WIDTH = 5, TUNNEL_HEIGHT = 6, HALL_HEIGHT = 10;
 	/** Tunnels and halls this close to the hatchery are the hive's own: creep, tumors, larvae. */
 	public static final int NEAR = 40;
 	/** How far from the hatchery tunnels may reach (owner 14.10: farther and deeper); chunks are loaded so far. */
@@ -182,6 +185,8 @@ public final class HiveStructure {
 	private static void spawn(ServerLevel level, HiveSavedData data, Pending p) {
 		Hive hive = data.get(p.hive());
 		Vec3 at = Vec3.atBottomCenterOf(p.pos());
+		// a unit (twice the model size) where its body fits: beside its base's buildings, off a dungeon's walls and statues
+		if (!p.kind().structure()) at = dev.starmine.entity.Spots.near(level, p.kind(), at);
 		if (p.kind().main() && p.hall() == null) { // the base's anchor: hatchery, command center, nexus
 			if (hive == null) return;
 			StarUnit main = StarMine.type(p.kind()).create(level);
@@ -262,7 +267,8 @@ public final class HiveStructure {
 				UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ZERGLING,
 				UnitKind.QUEEN, UnitKind.ROACH, UnitKind.ROACH, UnitKind.HYDRALISK, UnitKind.HYDRALISK, UnitKind.OVERLORD, UnitKind.OVERLORD};
 			for (UnitKind kind : army) {
-				double angle = random.nextDouble() * Math.PI * 2, distance = 8.5 + random.nextDouble() * 3;
+				// out of the hatchery by both bodies' half widths: an overlord (8 wide) stood in it
+				double angle = random.nextDouble() * Math.PI * 2, distance = UnitKind.HATCHERY.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 3;
 				int x = Mth.floor(centre.getX() + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + Math.sin(angle) * distance);
 				wait(kind, new BlockPos(x, ground(level, x, z), z), null, null, 0);
 			}
@@ -314,13 +320,16 @@ public final class HiveStructure {
 			return pos.distSqr(centre) < NEAR * NEAR;
 		}
 
-		/** The tunnel's cross-section at `feet`: 3 wide, 4 high, with a floor; false when it hits the void. */
+		/**
+		 * The tunnel's cross-section at `feet`: {@link #TUNNEL_WIDTH} wide (sampled every half block across, so
+		 * a diagonal stretch is as wide), {@link #TUNNEL_HEIGHT} high, with a floor; false when it hits the void.
+		 */
 		private boolean section(BlockPos feet, double angle) {
 			if (feet.getY() <= level.getMinBuildHeight() + 5) return false;
 			double px = -Math.sin(angle), pz = Math.cos(angle);
 			List<BlockPos> opened = new ArrayList<>();
-			for (int side = -1; side <= 1; side++)
-				for (int up = 0; up < 4; up++) {
+			for (double side = -TUNNEL_WIDTH / 2; side <= TUNNEL_WIDTH / 2; side += 0.5)
+				for (int up = 0; up < TUNNEL_HEIGHT; up++) {
 					BlockPos pos = BlockPos.containing(feet.getX() + 0.5 + px * side, feet.getY() + up, feet.getZ() + 0.5 + pz * side);
 					if (carve(pos)) opened.add(pos);
 					if (up == 0) floor(pos);
@@ -356,13 +365,13 @@ public final class HiveStructure {
 			return (pos.getY() < 0 ? Blocks.COBBLED_DEEPSLATE : Blocks.COBBLESTONE).defaultBlockState();
 		}
 
-		/** A hall: a dome 6–8 blocks across its floor at `feet`, with what lives in it. */
+		/** A hall: a dome 16–20 blocks across its floor at `feet`, {@link #HALL_HEIGHT} high, with what lives in it. */
 		private void hall(BlockPos feet) {
 			if (feet.getY() <= level.getMinBuildHeight() + 6) return;
 			boolean close = near(feet);
 			UnitKind building = !undergroundLeft.isEmpty() && random.nextInt(100) < 45
 				? undergroundLeft.remove(random.nextInt(undergroundLeft.size())) : null;
-			int radius = building != null ? 7 : 5 + random.nextInt(3), height = building != null ? 6 : 5;
+			int radius = building != null ? 10 : 8 + random.nextInt(3), height = HALL_HEIGHT;
 			List<BlockPos> floor = new ArrayList<>(), opened = new ArrayList<>();
 			for (int dx = -radius; dx <= radius; dx++)
 				for (int dz = -radius; dz <= radius; dz++)
@@ -389,34 +398,38 @@ public final class HiveStructure {
 			}
 			if (close) {
 				for (BlockPos pos : opened) CreepGrowth.lineCavity(level, pos);
-				BlockPos spot = pick(floor, feet, clear);
+				BlockPos spot = pick(floor, feet, clear, UnitKind.LARVA);
 				if (spot != null && CreepGrowth.placeTumor(level, spot, CreepSources.TUMOR_SPACING)) tumors++;
 				for (BlockPos pos : floor) if (random.nextInt(4) == 0) CreepGrowth.growthAt(level, pos);
 				for (int i = 1 + random.nextInt(3); i > 0; i--) {
-					BlockPos at = pick(floor, feet, clear);
+					BlockPos at = pick(floor, feet, clear, UnitKind.LARVA);
 					if (at != null) wait(UnitKind.LARVA, at, feet, null, 0);
 				}
 			}
 			for (int i = (close ? 3 : 2) + random.nextInt(3); i > 0; i--) {
-				BlockPos at = pick(floor, feet, clear);
-				if (at == null) continue;
 				UnitKind brood = BROOD[random.nextInt(BROOD.length)];
+				BlockPos at = pick(floor, feet, clear, brood); // room for what hatches from it
+				if (at == null) continue;
 				wait(UnitKind.EGG, at, feet, brood, brood == UnitKind.ZERGLING ? 2 : 1);
 				eggs++;
 			}
 			for (int i = 1 + random.nextInt(3); i > 0; i--) {
-				BlockPos at = pick(floor, feet, clear);
-				if (at != null) wait(GUARDS[random.nextInt(GUARDS.length)], at, feet, null, 0);
+				UnitKind guard = GUARDS[random.nextInt(GUARDS.length)];
+				BlockPos at = pick(floor, feet, clear, guard);
+				if (at != null) wait(guard, at, feet, null, 0);
 			}
 		}
 
-		/** A free floor cell of the hall at least `clear` blocks from its centre (around a building). */
-		private BlockPos pick(List<BlockPos> floor, BlockPos centre, int clear) {
-			for (int attempt = 0; attempt < 12; attempt++) {
+		/**
+		 * A free floor cell of the hall at least `clear` blocks from its centre (around a building) where a body
+		 * of `kind` fits under the dome (an ultralisk only near the middle).
+		 */
+		private BlockPos pick(List<BlockPos> floor, BlockPos centre, int clear, UnitKind kind) {
+			for (int attempt = 0; attempt < 16; attempt++) {
 				BlockPos pos = floor.get(random.nextInt(floor.size()));
-				if (Math.abs(pos.getX() - centre.getX()) <= clear && Math.abs(pos.getZ() - centre.getZ()) <= clear) continue;
+				if (Math.abs(pos.getX() - centre.getX()) <= clear + kind.width / 2 && Math.abs(pos.getZ() - centre.getZ()) <= clear + kind.width / 2) continue;
 				BlockState state = level.getBlockState(pos);
-				if ((state.isAir() || state.is(StarMineBlocks.CREEP)) && level.getBlockState(pos.above()).isAir()) return pos;
+				if ((state.isAir() || state.is(StarMineBlocks.CREEP)) && dev.starmine.entity.Spots.fits(level, kind, Vec3.atBottomCenterOf(pos))) return pos;
 			}
 			return null;
 		}

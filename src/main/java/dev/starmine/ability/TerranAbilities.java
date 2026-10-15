@@ -40,8 +40,8 @@ public final class TerranAbilities {
 	static final double YAMATO_DAMAGE = 240;
 	/** SC2 stimpack: 11 s. */
 	public static final int STIM_TICKS = 11 * 20;
-	/** SC2 KD8 charge: 5 damage and a knock back, radius 1.5 (2 blocks). */
-	public static final double KD8_DAMAGE = 5, KD8_RADIUS = 2;
+	/** SC2 KD8 charge: 5 damage and a knock back, radius 1.5. */
+	public static final double KD8_DAMAGE = 5, KD8_RADIUS = 1.5 * BLOCKS_PER_UNIT;
 	/** SC2 EMP: 100 shields and 100 energy, radius 1.5. */
 	public static final double EMP_DRAIN = 100, EMP_RADIUS = 1.5 * BLOCKS_PER_UNIT + 0.5;
 	/** SC2 steady targeting: 170 damage. */

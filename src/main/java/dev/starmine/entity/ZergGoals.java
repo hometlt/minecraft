@@ -252,7 +252,7 @@ final class ZergGoals {
 			if (cargo.getVehicle() != overlord) {
 				// fetch: fly right above the stuck zerg and take it
 				overlord.getMoveControl().setWantedPosition(cargo.getX(), cargo.getY() + cargo.getBbHeight() + 1.5, cargo.getZ(), 2.5);
-				if (horizontal(overlord.position(), cargo.position()) < 2 && overlord.getY() - cargo.getY() < 6) {
+				if (horizontal(overlord.position(), cargo.position()) < 2 && overlord.getY() - cargo.getY() < cargo.getBbHeight() + 3) {
 					cargo.startRiding(overlord, true);
 					// pick the cargo mates: others stuck near it with the same target
 					int room = CAPACITY - cargo.kind.economy().cargo();
@@ -271,11 +271,14 @@ final class ZergGoals {
 				overlord.ejectPassengers();
 				return;
 			}
+			// the cargo hangs under the overlord: it flies its tallest rider's height higher, and comes down to drop it
+			double hang = overlord.getPassengers().stream().mapToDouble(Entity::getBbHeight).max().orElse(0);
 			double distance = horizontal(overlord.position(), target.position());
-			double cruise = Math.max(ground(overlord, target.getX(), target.getZ()), target.getY()) + 6;
-			double y = distance < 6 ? target.getY() + 3 : Math.max(cruise, ground(overlord, overlord.getX(), overlord.getZ()) + 6);
+			double above = hang + overlord.kind.hoverHeight() / 2;
+			double cruise = Math.max(ground(overlord, target.getX(), target.getZ()), target.getY()) + above;
+			double y = distance < 6 ? target.getY() + hang + 1 : Math.max(cruise, ground(overlord, overlord.getX(), overlord.getZ()) + above);
 			overlord.getMoveControl().setWantedPosition(target.getX(), y, target.getZ(), 2.5);
-			if (distance < 3 && overlord.getY() - target.getY() < 6) {
+			if (distance < 3 && overlord.getY() - target.getY() < hang + 3) {
 				for (Entity passenger : List.copyOf(overlord.getPassengers())) {
 					passenger.stopRiding();
 					if (passenger instanceof StarUnit zerg) zerg.clearUnreachable();

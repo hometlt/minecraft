@@ -317,6 +317,8 @@ public class PathfindingGameTests implements FabricGameTest {
 		for (int i = 0; i < kinds.length; i++) {
 			double z = 4 + i * 9;
 			StarUnit flyer = unit(helper, kinds[i], 6, z, player);
+			Vec3 low = point(helper, 6, z).add(0, 0.5, 0); // under the roof from the start (spawned flyers come 3 blocks up)
+			flyer.moveTo(low.x, low.y, low.z, 0, 0);
 			flyers.add(flyer);
 			goals.put(flyer, point(helper, 40, z));
 		}

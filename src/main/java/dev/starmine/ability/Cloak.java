@@ -41,6 +41,9 @@ public final class Cloak {
 	private Cloak() {
 	}
 
+	/** Blocks around a cloaked unit searched for detectors: the farthest detector sight (an observer's, grown with the units). */
+	private static final double DETECT_SEARCH = 32;
+
 	static void toggle(StarUnit unit) {
 		unit.setCloaked(!unit.cloaked());
 	}
@@ -79,7 +82,7 @@ public final class Cloak {
 		}
 		if (unit.tickCount % 10 != 0) return;
 		Entity body = unit.body();
-		List<Entity> detectors = new ArrayList<>(level.getEntitiesOfClass(StarUnit.class, body.getBoundingBox().inflate(16),
+		List<Entity> detectors = new ArrayList<>(level.getEntitiesOfClass(StarUnit.class, body.getBoundingBox().inflate(DETECT_SEARCH),
 			other -> other.isAlive() && other.kind.detector() && !other.underConstruction() && other.distanceTo(body) <= other.kind.sight()));
 		long now = level.getGameTime();
 		for (Iterator<Scan> it = SCANS.iterator(); it.hasNext(); ) {

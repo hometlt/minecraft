@@ -155,7 +155,7 @@ public final class RaceBases {
 		if (!terran) spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, step / 2, radius - 1.5)));
 		for (UnitKind kind : terran ? TERRAN_ARMY : PROTOSS_ARMY) {
 			double angle = random.nextDouble() * Math.PI * 2;
-			BlockPos at = groundAt(level, centre, angle, main.width / 2 + 2 + random.nextDouble() * 2.5);
+			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 2.5); // out of the main building
 			spawns.add(Spawn.member(kind, kind.flying ? at.above(kind.hoverHeight() > 0 ? (int) kind.hoverHeight() : 4) : at));
 		}
 

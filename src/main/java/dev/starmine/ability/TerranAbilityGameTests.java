@@ -176,7 +176,8 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		clear(helper);
 		StarUnit cc = commandCenter(helper);
 		ServerLevel level = helper.getLevel();
-		StarUnit crawler = unit(helper, UnitKind.SPINE_CRAWLER, 16, 10, null);
+		// out of the crawler's reach (SC2 7, 17 blocks now): the ghost guides the nuke from 24 blocks off
+		StarUnit crawler = unit(helper, UnitKind.SPINE_CRAWLER, 30, 10, null);
 		helper.runAfterDelay(5, () -> {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");

@@ -85,7 +85,9 @@ public final class Passives {
 	/** A ranged attack: a projectile, or an attacker standing off (guardian shield). */
 	private static boolean ranged(StarUnit unit, DamageSource source) {
 		if (source.getDirectEntity() instanceof Projectile) return true;
-		return source.getEntity() != null && source.getEntity().distanceTo(unit) > 3;
+		net.minecraft.world.entity.Entity attacker = source.getEntity();
+		if (attacker instanceof StarUnit star) return star.kind.attack != UnitKind.Attack.MELEE && star.kind.attack != UnitKind.Attack.SPLASH;
+		return attacker != null && attacker.distanceTo(unit) - (attacker.getBbWidth() + unit.getBbWidth()) / 2 > 2;
 	}
 
 	/** Every tick of a unit (after its states). */

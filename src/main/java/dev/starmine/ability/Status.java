@@ -160,8 +160,8 @@ public enum Status {
 			Math.min(weapon.minRange(), range), weapon.mobile());
 	}
 
-	/** SC2 blinding cloud: range 1 (melee reach in blocks). */
-	public static final double BLINDED_RANGE = 2.2;
+	/** SC2 blinding cloud: range 1, from edge to edge like weapons ({@link dev.starmine.entity.UnitGoals}). */
+	public static final double BLINDED_RANGE = 1 * dev.starmine.entity.UnitKind.BLOCKS_PER_UNIT + 1;
 
 	/** Every tick of a unit: counts its states down; a lifted one floats up; ending ones take their effect away. */
 	static void tick(StarUnit unit, ServerLevel level) {

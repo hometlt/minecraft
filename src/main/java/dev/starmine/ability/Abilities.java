@@ -379,8 +379,10 @@ public final class Abilities {
 	static @Nullable Vec3 standable(StarUnit unit, Level level, Vec3 point) {
 		Entity body = unit.body();
 		BlockPos start = BlockPos.containing(point);
-		for (int r = 0; r <= 2; r++)
-			for (int dy = 2; dy >= -3; dy--)
+		// a big body needs a wider search to find room for itself (a stalker is 4.4 wide, a colossus 7)
+		int rings = Math.max(2, (int) Math.ceil(body.getBbWidth()) + 1), up = Math.max(2, (int) Math.ceil(body.getBbHeight() / 2));
+		for (int r = 0; r <= rings; r++)
+			for (int dy = up; dy >= -3; dy--)
 				for (int dx = -r; dx <= r; dx++)
 					for (int dz = -r; dz <= r; dz++) {
 						if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;

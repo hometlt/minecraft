@@ -259,7 +259,8 @@ public final class Engineering {
 			return false;
 		}
 		// the army waits at the end of the finished part
-		int behind = job.done - WAIT_BEHIND;
+		// a wide body waits farther back: half of it reaches forward over the workers' place
+		int behind = job.done - (WAIT_BEHIND + (int) Math.ceil(job.body.width() / 2.0));
 		Vec3 wait = DronePlanner.centre(behind <= 0 ? job.start : job.steps.get(behind - 1).feet(), job.body);
 		boolean moved = job.waitAt == null || job.waitAt.distanceToSqr(wait) > 0.25;
 		if (moved) job.waitAt = wait;
@@ -282,12 +283,13 @@ public final class Engineering {
 		if (job.raid || job.entered.contains(unit.getUUID())) return true;
 		Vec3 mouth = DronePlanner.centre(job.mouth, job.body);
 		double flat = Math.hypot(unit.getX() - mouth.x, unit.getZ() - mouth.z);
-		// within 2 blocks (an order to a point is done within 1.5 of it), or already past it
-		if (flat <= 2.0 || unit.position().distanceTo(job.goal) < mouth.distanceTo(job.goal) - 2) {
+		// within 2 blocks and half the way's width (an order is done within 1.5 of its point, and big bodies
+		// jostle there), or already past it
+		if (flat <= 2.0 + job.body.width() / 2.0 || unit.position().distanceTo(job.goal) < mouth.distanceTo(job.goal) - 2) {
 			job.entered.add(unit.getUUID());
 			return true;
 		}
-		boolean sent = unit.order() != StarUnit.Order.NONE && unit.orderPos() != null && unit.orderPos().distanceToSqr(mouth) <= 1;
+		boolean sent = unit.order() != StarUnit.Order.NONE && unit.orderPos() != null && unit.orderPos().distanceToSqr(mouth) <= 1 + job.body.width();
 		if (!sent) send(level, job, unit, mouth, false);
 		return false;
 	}

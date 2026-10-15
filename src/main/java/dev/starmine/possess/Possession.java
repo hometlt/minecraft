@@ -400,7 +400,7 @@ public final class Possession {
 				return false;
 			}
 			case EXPLODE -> { // the baneling bursts: everything around is hit and the unit is gone
-				for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(2.5),
+				for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(StarUnit.BURST_RADIUS),
 					other -> other != player && Faction.hostile(puppet, other)))
 					other.hurt(puppet.attackSource(), (float) kind.damage);
 				level.sendParticles(ParticleTypes.ITEM_SLIME, player.getX(), player.getY() + 0.5, player.getZ(), 40, 1.2, 0.5, 1.2, 0.1);
@@ -414,7 +414,7 @@ public final class Possession {
 				target.hurt(puppet.attackSource(), (float) (player.getAttributeValue(Attributes.ATTACK_DAMAGE) + dev.starmine.ability.Passives.bonus(puppet, target)));
 				dev.starmine.ability.Passives.onHit(puppet, target);
 				if (kind.attack == UnitKind.Attack.SPLASH)
-					for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(2),
+					for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(StarUnit.SPLASH_RADIUS),
 						other -> other != target && other != player && Faction.hostile(puppet, other)))
 						other.hurt(puppet.attackSource(), (float) kind.damage * 0.5f);
 			}

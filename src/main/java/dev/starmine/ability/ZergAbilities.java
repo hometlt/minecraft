@@ -33,8 +33,8 @@ import static dev.starmine.entity.UnitKind.SCALE;
  * channel, {@link Channels}).
  */
 public final class ZergAbilities {
-	/** SC2 corrosive bile: 60 damage; radius 0.5 drawn to 1.5 blocks so a hit can land in Minecraft. */
-	public static final double BILE_DAMAGE = 60, BILE_RADIUS = 1.5;
+	/** SC2 corrosive bile: 60 damage; radius 0.5, a block more so a hit can land in Minecraft. */
+	public static final double BILE_DAMAGE = 60, BILE_RADIUS = 0.5 * BLOCKS_PER_UNIT + 1;
 	/** SC2 fungal growth: 30 damage over 2.85 s, roots as long, radius 2.25. */
 	public static final double FUNGAL_DAMAGE = 30, FUNGAL_RADIUS = 2.25 * BLOCKS_PER_UNIT;
 	public static final int FUNGAL_TICKS = 57;
@@ -177,7 +177,7 @@ public final class ZergAbilities {
 		if (target == null) return;
 		var body = unit.body();
 		Vec3 at = target instanceof StarUnit star && star.flying() || target.isFallFlying()
-			? body.position().add(body.getLookAngle().scale(1.5))
+			? body.position().add(body.getLookAngle().scale(unit.getBbWidth() / 2 + target.getBbWidth() / 2 + 0.5))
 			: new Vec3(body.getX(), unit.groundBelow(body.getX(), body.getZ()), body.getZ());
 		Channels.beam(level, unit, target, ParticleTypes.PORTAL);
 		target.teleportTo(at.x, at.y, at.z);

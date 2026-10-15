@@ -212,8 +212,8 @@ public final class Dungeons {
 		for (int[] s : shrines) {
 			BlockPos end = centre.offset(s[0], 0, s[1]);
 			int dx = Integer.signum(s[0]), dz = Integer.signum(s[1]);
-			BlockPos a = centre.offset(dx * 12, -1, dz * 12), b = end.offset(-dx * 6, 4, -dz * 6);
-			painter.box(min(a, b).offset(-2 * Math.abs(dz), 0, -2 * Math.abs(dx)), max(a, b).offset(2 * Math.abs(dz), 0, 2 * Math.abs(dx)), p -> sandstone);
+			BlockPos a = centre.offset(dx * 12, -1, dz * 12), b = end.offset(-dx * 6, 8, -dz * 6);
+			painter.box(min(a, b).offset(-4 * Math.abs(dz), 0, -4 * Math.abs(dx)), max(a, b).offset(4 * Math.abs(dz), 0, 4 * Math.abs(dx)), p -> sandstone);
 			painter.box(end.offset(-7, -1, -7), end.offset(7, 8, 7), p -> (p.getX() + p.getZ()) % 4 == 0 && p.getY() == end.getY() + 3 ? light : dark);
 		}
 		painter.box(centre.offset(-13, -1, -13), centre.offset(13, 12, 13),
@@ -223,11 +223,12 @@ public final class Dungeons {
 		for (int[] s : shrines) {
 			BlockPos end = centre.offset(s[0], 0, s[1]);
 			int dx = Integer.signum(s[0]), dz = Integer.signum(s[1]);
-			BlockPos a = centre.offset(dx * 12, 0, dz * 12), b = end.offset(-dx * 6, 3, -dz * 6);
-			painter.hollow(min(a, b).offset(-Math.abs(dz), 0, -Math.abs(dx)), max(a, b).offset(Math.abs(dz), 0, Math.abs(dx)), sandstone);
+			// corridors 7 wide and 7 high: the shrines' stalkers (4.4 wide, 6.2 tall) and the hall's archon come out
+			BlockPos a = centre.offset(dx * 12, 0, dz * 12), b = end.offset(-dx * 6, 6, -dz * 6);
+			painter.hollow(min(a, b).offset(-3 * Math.abs(dz), 0, -3 * Math.abs(dx)), max(a, b).offset(3 * Math.abs(dz), 0, 3 * Math.abs(dx)), sandstone);
 			painter.hollow(end.offset(-6, 0, -6), end.offset(6, 7, 6), dark);
 			// lights along the corridor
-			for (int k = 14; k < 28; k += 5) painter.set(centre.offset(dx * k + dz * 2, 2, dz * k + dx * 2), light);
+			for (int k = 14; k < 28; k += 5) painter.set(centre.offset(dx * k + dz * 4, 2, dz * k + dx * 4), light);
 		}
 		// the hall: a floor with a gold ring, pillars, the altar
 		for (int x = -12; x <= 12; x++)

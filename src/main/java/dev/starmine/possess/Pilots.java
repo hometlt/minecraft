@@ -44,7 +44,8 @@ public final class Pilots {
 	public static @Nullable EntityDimensions dimensions(Player player) {
 		UnitKind kind = kindOf(player);
 		if (kind == null) return null;
-		float width = Math.min(kind.width, 4.5f), height = Math.max(0.6f, Math.min(kind.height, 6f));
+		// capped (a player 10 blocks wide would not fit through anything), grown with the units
+		float width = Math.min(kind.width, 4.5f * UnitKind.UNIT_SIZE), height = Math.max(0.6f, Math.min(kind.height, 6f * UnitKind.UNIT_SIZE));
 		return EntityDimensions.scalable(width, height).withEyeHeight(height * 0.85f);
 	}
 }

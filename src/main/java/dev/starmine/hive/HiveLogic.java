@@ -85,11 +85,11 @@ public final class HiveLogic {
 		CreepGrowth.grow(level, hive.hatchery, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
 		if (hive.count(UnitKind.LARVA) < MAX_LARVAE && ++hive.larvaTimer >= LARVA_TICKS) {
 			hive.larvaTimer = 0;
-			spawn(level, hive, UnitKind.LARVA, around(hatchery, level), null);
+			spawn(level, hive, UnitKind.LARVA, around(hatchery, level, UnitKind.LARVA), null);
 		}
 		if (hive.queenTicks >= 0 && --hive.queenTicks < 0) {
 			hive.born(UnitKind.QUEEN, 1);
-			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level), null);
+			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level, UnitKind.QUEEN), null);
 		}
 		if (hive.owner != null) { // a player's hive: the player decides (command view), not the hive's AI
 			data.setDirty();
@@ -225,7 +225,7 @@ public final class HiveLogic {
 	/** A cocoon's units are born: they join the hive at the cocoon's place. */
 	public static void hatch(StarUnit egg, ServerLevel level, Hive hive, UnitKind kind, int count) {
 		hive.born(kind, count);
-		for (int i = 0; i < count; i++) spawn(level, hive, kind, egg.position().add(level.random.nextGaussian() * 0.3, 0, level.random.nextGaussian() * 0.3), null);
+		for (int i = 0; i < count; i++) spawn(level, hive, kind, dev.starmine.entity.Spots.near(level, kind, egg.position()), null);
 	}
 
 	public static StarUnit spawn(ServerLevel level, Hive hive, UnitKind kind, Vec3 at, StarUnit unused) {
@@ -248,12 +248,9 @@ public final class HiveLogic {
 		return mob;
 	}
 
-	/** A spot on the ground just outside the hatchery. */
-	private static Vec3 around(StarUnit hatchery, ServerLevel level) {
-		double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + 1;
-		BlockPos column = BlockPos.containing(hatchery.getX() + Math.cos(angle) * radius, hatchery.getY() + 2, hatchery.getZ() + Math.sin(angle) * radius);
-		BlockPos ground = column;
-		for (int i = 0; i < 6 && level.getBlockState(ground.below()).isAir(); i++) ground = ground.below();
-		return Vec3.atBottomCenterOf(ground);
+	/** A spot just outside the hatchery where a body of `kind` fits (a queen, 4 wide, came out inside it). */
+	private static Vec3 around(StarUnit hatchery, ServerLevel level, UnitKind kind) {
+		double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + kind.width / 2 + 0.5;
+		return dev.starmine.entity.Spots.outside(level, kind, hatchery.position(), angle, radius);
 	}
 }

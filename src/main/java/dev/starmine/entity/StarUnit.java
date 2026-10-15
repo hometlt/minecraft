@@ -319,7 +319,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.race == UnitKind.Race.ZERG && this.tickCount % 10 == 0) creepEffects(server); // regeneration, creep speed: zerg only (SC2)
 		if (this.tickCount % 20 == 0) {
 			trackReachability();
-			overseerNear = !this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(20), mob -> mob.kind == UnitKind.OVERSEER).isEmpty();
+			overseerNear = !this.level().getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(UnitKind.OVERSEER.sight()), mob -> mob.kind == UnitKind.OVERSEER).isEmpty();
 			if (kind == UnitKind.OVERSEER) revealInvisible();
 		}
 	}
@@ -340,7 +340,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			return;
 		}
 		Path path = this.getNavigation().getPath();
-		boolean far = this.distanceToSqr(this.getTarget()) > 9;
+		// out of reach: farther than its weapon from edge to edge (a big ultralisk striking stands far from its target's middle)
+		double gap = this.distanceTo(this.getTarget()) - (this.getBbWidth() + this.getTarget().getBbWidth()) / 2;
+		boolean far = gap > Math.max(3, weapon().range());
 		unreachable = far && (path == null || !path.canReach() || this.getNavigation().isDone()) ? unreachable + 20 : 0;
 	}
 
@@ -768,7 +770,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Overseer: invisible creatures and players around it glow for everyone (SC2 detection). */
 	private void revealInvisible() {
-		for (LivingEntity other : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(16), LivingEntity::isInvisible))
+		for (LivingEntity other : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(kind.sight()), LivingEntity::isInvisible))
 			other.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
 	}
 
@@ -849,7 +851,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		cocoonKind = null;
 		if (nest != null) {
 			for (int i = 0; i < count; i++)
-				HiveLogic.spawnNest(server, hive, born, this.position().add(this.random.nextGaussian() * 0.3, 0, this.random.nextGaussian() * 0.3), nest);
+				HiveLogic.spawnNest(server, hive, born, Spots.near(server, born, this.position()), nest);
 		} else if (hive != null) HiveLogic.hatch(this, server, hive, born, count);
 		this.discard();
 	}
@@ -1072,17 +1074,20 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		modifier(Attributes.ATTACK_DAMAGE, BONUS_DAMAGE, 0);
 		if (hurt && target instanceof LivingEntity living) dev.starmine.ability.Passives.onHit(this, living);
 		if (hurt && kind.attack == UnitKind.Attack.SPLASH) {
-			for (LivingEntity other : enemiesAround(target.position(), 2.0))
+			for (LivingEntity other : enemiesAround(target.position(), SPLASH_RADIUS))
 				if (other != target) other.hurt(attackSource(), (float) kind.damage * 0.5f);
 		}
 		if (hurt) this.playSound(StarMine.sounds(kind).attack(), 1.0f, 0.9f + this.random.nextFloat() * 0.2f);
 		return hurt;
 	}
 
+	/** The ultralisk's cleave around its target (SC2 about 1) and the baneling's burst (SC2 2.2), grown with the units. */
+	public static final double SPLASH_RADIUS = 1 * UnitKind.BLOCKS_PER_UNIT, BURST_RADIUS = 2.2 * UnitKind.BLOCKS_PER_UNIT;
+
 	/** Baneling: acid burst on everything around, then it dies (its death is the burst). */
 	private void explode() {
 		this.swing(InteractionHand.MAIN_HAND);
-		for (LivingEntity other : enemiesAround(this.position(), 2.5))
+		for (LivingEntity other : enemiesAround(this.position(), BURST_RADIUS))
 			other.hurt(attackSource(), (float) (kind.damage + dev.starmine.ability.Passives.bonus(this, other)));
 		if (this.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.ITEM_SLIME, this.getX(), this.getY() + 0.5, this.getZ(), 40, 1.2, 0.5, 1.2, 0.1);
@@ -1120,7 +1125,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 					dev.starmine.ability.Abilities.cast(this, server, dev.starmine.ability.Ability.ABDUCT, target, null);
 			}
 			case SPAWN_LOCUSTS -> {
-				for (int i = 0; i < 2; i++) summon(StarMine.type(UnitKind.LOCUST), this.position().add(this.random.nextGaussian(), 0, this.random.nextGaussian()), target);
+				for (int i = 0; i < 2; i++) summon(StarMine.type(UnitKind.LOCUST), Spots.outside(this.level(), UnitKind.LOCUST, this.position(), this.random.nextDouble() * Math.PI * 2,
+					this.getBbWidth() / 2 + 1), target);
 			}
 			default -> {
 				ZergSpit spit = new ZergSpit(this.level(), body(), kind);
@@ -1373,11 +1379,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			if (mode() == dev.starmine.ability.Modes.WARPGATE && rally != null
 				&& dev.starmine.race.ProtossRace.poweredAt(server, rally.x, rally.y, rally.z, hiveId)) spot = rally;
 			if (spot == null) {
-				double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + 1;
-				Vec3 at = new Vec3(this.getX() + Math.cos(angle) * radius, this.getY(), this.getZ() + Math.sin(angle) * radius);
-				BlockPos ground = BlockPos.containing(at.x, this.getY() + 2, at.z);
-				for (int i = 0; i < 6 && server.getBlockState(ground.below()).isAir(); i++) ground = ground.below();
-				spot = unit.flying ? at.add(0, 2, 0) : Vec3.atBottomCenterOf(ground);
+				// out of the building by both bodies' half widths: a thor (10 wide) came out a block from its factory's edge, inside it
+				double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + unit.width / 2 + 1;
+				spot = Spots.outside(server, unit, this.position().add(0, unit.flying ? 2 : 0, 0), angle, radius);
 			} else server.sendParticles(ParticleTypes.END_ROD, spot.x, spot.y + 1, spot.z, 30, 0.5, 1, 0.5, 0.02);
 			StarUnit born = HiveLogic.spawn(server, hive, unit, spot, null);
 			if (born != null) {
@@ -1721,9 +1725,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.entityData.set(SHIELD, (float) Math.min(kind.shields, shield + 2 * UnitKind.SCALE / 2));
 	}
 
-	/** Medivac: heals the most wounded bio unit of its race within 6 blocks (SC2 12.6 hit points a second, 1 energy per 3 healed). */
+	/** SC2 medivac heal range 4. */
+	private static final double HEAL_RANGE = 4 * UnitKind.BLOCKS_PER_UNIT + 1;
+
+	/** Medivac: heals the most wounded bio unit of its race within {@link #HEAL_RANGE} (SC2 12.6 hit points a second, 1 energy per 3 healed). */
 	private void heal(ServerLevel server) {
-		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(6),
+		server.getEntitiesOfClass(StarUnit.class, this.getBoundingBox().inflate(HEAL_RANGE, HEAL_RANGE + kind.hoverHeight(), HEAL_RANGE),
 				mob -> mob.isAlive() && mob.biological() && dev.starmine.faction.Faction.allied(this, mob) && mob.getHealth() < mob.getMaxHealth())
 			.stream().min((a, b) -> Float.compare(a.getHealth() / a.getMaxHealth(), b.getHealth() / b.getMaxHealth()))
 			.ifPresent(mob -> {

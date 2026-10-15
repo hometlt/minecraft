@@ -33,7 +33,7 @@ public final class UnitGoals {
 			default -> goals.addGoal(2, new Shoot(unit));
 		}
 		if (kind.worker()) goals.addGoal(3, new DroneWork(unit));
-		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, kind.race == UnitKind.Race.ZERG ? 24 : 4));
+		else goals.addGoal(4, new ZergGoals.ReturnHome(unit, kind.race == UnitKind.Race.ZERG ? 24 : 4 + kind.width)); // a big body pushed aside stays
 		goals.addGoal(6, new LookAtPlayerGoal(unit, Player.class, 8.0f));
 		goals.addGoal(7, new RandomLookAroundGoal(unit));
 		if (kind.attack == UnitKind.Attack.NONE) return;
@@ -186,7 +186,8 @@ public final class UnitGoals {
 		public void tick() {
 			if (target == null) return;
 			dev.starmine.ability.Modes.Weapon weapon = unit.weapon();
-			double reach = unit.distanceTo(target) - target.getBbWidth() / 2;
+			// SC2 ranges are from edge to edge: a thor (10 wide) shoots from its own edge, not its middle
+			double reach = unit.distanceTo(target) - (target.getBbWidth() + unit.getBbWidth()) / 2;
 			boolean sees = unit.getSensing().hasLineOfSight(target);
 			seeTime = sees ? seeTime + 1 : 0;
 			if (reach <= weapon.range() && seeTime >= 5 || !weapon.mobile()) unit.getNavigation().stop();

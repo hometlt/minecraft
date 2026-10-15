@@ -324,7 +324,9 @@ public class ProtossAbilityGameTests implements FabricGameTest {
 			StarUnit mothership = TestArena.member(helper, base, UnitKind.MOTHERSHIP, 8, 8);
 			StarUnit zealot = TestArena.member(helper, base, UnitKind.ZEALOT, 10, 10);
 			helper.assertTrue(Abilities.cast(mothership, level, Ability.MASS_RECALL, null, null), "no recall");
-			helper.assertTrue(zealot.distanceTo(nexus) < 16 && mothership.distanceTo(nexus) < 20, "not recalled: " + zealot.distanceTo(nexus));
+			// the mothership comes back at its hover height (20 blocks up): home is measured on the ground
+			helper.assertTrue(zealot.distanceTo(nexus) < 16 && Abilities.horizontal(mothership.position(), nexus.position()) < 20,
+				"not recalled: zealot " + zealot.distanceTo(nexus) + ", mothership " + Abilities.horizontal(mothership.position(), nexus.position()));
 			helper.succeed();
 		});
 	}

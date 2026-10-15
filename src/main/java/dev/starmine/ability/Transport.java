@@ -55,7 +55,7 @@ public final class Transport {
 
 	/** Takes aboard the units of its side and race around it, nearest first, while there is room. */
 	static void load(StarUnit transport) {
-		List<StarUnit> near = transport.level().getEntitiesOfClass(StarUnit.class, transport.getBoundingBox().inflate(LOAD_RANGE, 8, LOAD_RANGE),
+		List<StarUnit> near = transport.level().getEntitiesOfClass(StarUnit.class, transport.getBoundingBox().inflate(LOAD_RANGE, transport.kind.hoverHeight() + 4, LOAD_RANGE),
 			unit -> unit.isAlive() && !unit.isPassenger() && unit != transport);
 		near.sort(Comparator.comparingDouble(unit -> unit.distanceToSqr(transport)));
 		for (StarUnit unit : near) if (carries(transport, unit)) unit.startRiding(transport, true);
@@ -89,15 +89,18 @@ public final class Transport {
 		return vehicle instanceof StarUnit transport && transport.kind == UnitKind.BUNKER;
 	}
 
-	/** Every passenger to the ground under the transport, a little apart. */
+	/** Every passenger to the ground under the transport, apart by the widest one's width (big bodies do not land in each other). */
 	public static void unloadHere(StarUnit transport) {
 		int i = 0;
+		double widest = transport.getPassengers().stream().mapToDouble(Entity::getBbWidth).max().orElse(1);
 		for (Entity passenger : List.copyOf(transport.getPassengers())) {
 			passenger.stopRiding();
-			double angle = i++ * 2.4, spread = 1 + i * 0.3;
+			double angle = i++ * 2.4, spread = widest * (0.6 + 0.4 * i);
 			if (transport.kind.structure()) spread += transport.getBbWidth() / 2 + 0.5;
 			double x = transport.getX() + Math.cos(angle) * spread, z = transport.getZ() + Math.sin(angle) * spread;
-			passenger.teleportTo(x, transport.groundBelow(x, z), z);
+			Vec3 at = new Vec3(x, transport.groundBelow(x, z), z);
+			if (passenger instanceof StarUnit unit) at = dev.starmine.entity.Spots.near(transport.level(), unit.kind, at);
+			passenger.teleportTo(at.x, at.y, at.z);
 			if (passenger instanceof StarUnit unit) unit.command(StarUnit.Order.NONE, null);
 		}
 	}
