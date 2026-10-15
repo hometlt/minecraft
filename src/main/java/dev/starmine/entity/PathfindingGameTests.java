@@ -246,9 +246,10 @@ public class PathfindingGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "pathMountain", timeoutTicks = 9600)
 	public void workersTunnelThroughAMountain(GameTestHelper helper) {
 		clear(helper);
-		fill(helper, 20, 2, 0, 27, 11, 47, Blocks.STONE.defaultBlockState()); // a ridge up to the arena's top
-		fill(helper, 0, 2, 0, 47, 11, 0, Blocks.STONE.defaultBlockState()); // walls along the sides: no way round it outside the arena
-		fill(helper, 0, 2, 47, 47, 11, 47, Blocks.STONE.defaultBlockState());
+		// a ridge higher than a thor (11 tall, its way 12): a tunnel through it, not a cut over a lower ridge
+		fill(helper, 20, 2, 0, 27, 15, 47, Blocks.STONE.defaultBlockState());
+		fill(helper, 0, 2, 0, 47, 15, 0, Blocks.STONE.defaultBlockState()); // walls along the sides: no way round it outside the arena
+		fill(helper, 0, 2, 47, 47, 15, 47, Blocks.STONE.defaultBlockState());
 		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 8, 40, UUID.randomUUID());
 		TestArena.Timeline timeline = TestArena.Timeline.of(helper);
 		timeline.at(5, () -> {
