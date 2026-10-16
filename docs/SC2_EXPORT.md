@@ -29,7 +29,7 @@ python tools/check_sounds.py sc2-assets
 `--voice-locale=ruRU` (или переменная `MODKIT_VOICE_LOCALE`). Локализованные ассеты SC2 лежат в
 `<locale>.SC2Assets/…`; на установке другого языка CASC называет файлы всех языков, но хранит только
 свои — экспортёр берёт выбранный язык онлайн. Общий код выбора: ModKit-Blizzard,
-`starcraft2/modules/mod/shared/core/voice-locale.ts` (ветка `claude/gallant-ride-em1bhh`):
+`starcraft2/modules/mod/shared/core/voice-locale.ts` (ветка `main`):
 `voiceLocaleFrom(argv, env)`, `localizedAssetPath(path, locale)`, `pickVoiceLocale(wanted, held)`.
 
 ## Почему немецкая речь
