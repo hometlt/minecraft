@@ -26,6 +26,16 @@ import net.minecraft.world.level.block.Blocks;
 public class StructureGameTests implements FabricGameTest {
 	private static final String ARENA = "starmine:arena";
 
+	/** Owner 16.10: every sky ship — the leviathan too — hangs over the clouds (y 192). */
+	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 40)
+	public void skyShipsHangOverTheClouds(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		for (int ground : new int[] {-60, 63, 100, 150})
+			helper.assertTrue(RaceBases.skyHeight(level, ground) > 192 && RaceBases.skyHeight(level, ground) <= level.getMaxBuildHeight() - 40,
+				"a ship over ground at " + ground + " hangs at " + RaceBases.skyHeight(level, ground));
+		helper.succeed();
+	}
+
 	/** Fixed radial layout stays {@link RaceBases#MIN_DISTANCE} from its captured origin, at the requested race angles. */
 	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 40)
 	public void basesUseSixteenChunkRadialLayout(GameTestHelper helper) {

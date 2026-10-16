@@ -71,7 +71,10 @@ public final class Commands {
 			case "build" -> build(level, base, workers, kind(command.arg()), at);
 			case "train" -> train(level, base, units, kind(command.arg()));
 			case "cancel" -> buildings.forEach(StarUnit::cancelLast);
-			case "rally" -> buildings.forEach(building -> building.setRally(at));
+			case "rally" -> { // a right click for buildings: a lifted terran building flies there (owner 16.10: it took the order and stayed)
+				buildings.stream().filter(building -> !dev.starmine.ability.LiftOff.airborne(building)).forEach(building -> building.setRally(at));
+				formation(lifted, StarUnit.Order.MOVE, at);
+			}
 			case "ability" -> { // dev.starmine.ability: toggles and plain ones on all, aimed ones by the nearest able unit
 				dev.starmine.ability.Ability ability = dev.starmine.ability.Ability.byId(command.arg());
 				LivingEntity target = level.getEntity(command.target()) instanceof LivingEntity living && living.isAlive() ? living : null;

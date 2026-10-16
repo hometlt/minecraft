@@ -360,6 +360,35 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 16.10: a lifted building took a right-click order (sent as a rally for buildings) and stayed; it flies there. */
+	@GameTest(template = ARENA, batch = "terranLiftOffOrder", timeoutTicks = 400)
+	public void aLiftedBuildingFliesWhereThePlayerSendsIt(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		player.getInventory().add(new net.minecraft.world.item.ItemStack(dev.starmine.colony.CommandPanel.ITEM));
+		Vec3 stand = point(helper, 20, 20);
+		player.teleportTo(stand.x, stand.y, stand.z);
+		StarUnit cc = unit(helper, UnitKind.COMMAND_CENTER, 34, 34, player.getUUID());
+		StarUnit[] barracks = new StarUnit[1];
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			barracks[0] = TestArena.member(helper, base, UnitKind.BARRACKS, 10, 10);
+			helper.assertTrue(Abilities.cast(barracks[0], level, Ability.LIFT_OFF, null, null), "no lift-off");
+		});
+		helper.runAfterDelay(60, () -> {
+			Vec3 to = point(helper, 30, 10);
+			dev.starmine.colony.Commands.command(player, new dev.starmine.colony.ColonyNetwork.UnitCommand(new int[] {barracks[0].getId()}, "rally", to.x, to.y, to.z, -1, ""));
+		});
+		helper.runAfterDelay(300, () -> {
+			Vec3 at = TestArena.rel(helper, barracks[0]);
+			level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+			helper.assertTrue(Math.abs(at.x - 30.5) < 1 && Math.abs(at.z - 10.5) < 1, "the lifted barracks did not fly there: " + at);
+			helper.succeed();
+		});
+	}
+
 	/**
 	 * A command center lifts off, flies and lands again on rough ground (owner 16.10: it could not land):
 	 * grass and a bump of earth under it are cut away, it stands on the grid.

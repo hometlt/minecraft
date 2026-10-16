@@ -41,10 +41,15 @@ public final class RaceBases {
 	/** How high over the base's ground a sky ship's middle hangs (the ships grew 2-2.5 times: their tails and tentacles hang 45 below it). */
 	public static final int SKY = 80;
 	/**
-	 * The middle height of the Hyperion and the mothership (owner 16.10): just over the clouds (y 192), higher
-	 * than the leviathan, which keeps under {@link #LEVIATHAN_CEILING}.
+	 * The middle height of the sky ships — the Hyperion, the mothership and the leviathan (owner 16.10: the leviathan
+	 * hung too low, now over the clouds like the others): just over the clouds (y 192).
 	 */
-	public static final int OVER_CLOUDS = 212, LEVIATHAN_CEILING = 176;
+	public static final int OVER_CLOUDS = 212;
+
+	/** Where a sky ship's middle hangs over ground at `ground`: {@link #SKY} over it, at least {@link #OVER_CLOUDS}, under the build limit. */
+	public static int skyHeight(ServerLevel level, int ground) {
+		return Math.min(level.getMaxBuildHeight() - 40, Math.max(ground + SKY, OVER_CLOUDS));
+	}
 
 	private RaceBases() {
 	}
@@ -192,7 +197,7 @@ public final class RaceBases {
 		// under the base and over it
 		int depth = 26;
 		int under = Math.max(level.getMinBuildHeight() + 8, centre.getY() - depth);
-		int sky = Math.min(level.getMaxBuildHeight() - 40, Math.max(centre.getY() + SKY, OVER_CLOUDS));
+		int sky = skyHeight(level, centre.getY());
 		Painter above = Painter.deferred(level, random);
 		SkyShips.Ship ship;
 		if (terran) {
@@ -256,7 +261,7 @@ public final class RaceBases {
 		Painter painter = new Painter(level, random);
 		painter.load(lair, 112);
 		int ground = HiveStructure.ground(level, lair.getX(), lair.getZ());
-		BlockPos middle = new BlockPos(lair.getX(), Math.min(Math.min(level.getMaxBuildHeight() - 40, LEVIATHAN_CEILING), ground + SKY), lair.getZ());
+		BlockPos middle = new BlockPos(lair.getX(), skyHeight(level, ground), lair.getZ());
 		Hive hive = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(lair) < 32 * 32)
 			.findFirst().orElse(null);
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
