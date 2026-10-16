@@ -201,6 +201,9 @@ public final class DronePlanner {
 		net.minecraft.world.phys.AABB area = new net.minecraft.world.phys.AABB(start).inflate(reach + 8, 16, reach + 8);
 		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, area, mob -> mob.kind.structure() && mob.isAlive())) {
 			net.minecraft.world.phys.AABB box = building.getBoundingBox();
+			// a worker standing in a building's footprint (just out of it, or put there) walks out: every
+			// cell round it counted as the building, so no way out was ever found
+			if (box.contains(start.getX() + 0.5, start.getY() + 0.5, start.getZ() + 0.5)) continue;
 			for (BlockPos cell : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY, box.minZ), BlockPos.containing(box.maxX - 1e-3, box.maxY - 1e-3, box.maxZ - 1e-3)))
 				cells.add(cell.asLong());
 		}

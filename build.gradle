@@ -63,7 +63,11 @@ dependencies {
 }
 
 def gameTestSelection = providers.gradleProperty('starmineGameTests').getOrElse('all')
-if (!(gameTestSelection in ['all', 'structures'])) throw new GradleException('starmineGameTests must be all or structures')
+// all, structures, or a comma-separated list of game test classes (dev.starmine.entity.VespeneGameTests,...)
+def gameTestClasses = gameTestSelection == 'structures' ? ['dev.starmine.world.StructureGameTests']
+	: gameTestSelection == 'all' ? [] : gameTestSelection.split(',').collect { it.trim() }
+if (!gameTestClasses.every { it ==~ /dev\.starmine\.[a-z.]+\.[A-Z][A-Za-z]*GameTests/ })
+	throw new GradleException('starmineGameTests must be all, structures or game test classes')
 processResources {
 	def version = project.version
 	inputs.property "version", version
@@ -71,8 +75,8 @@ processResources {
 
 	filesMatching("fabric.mod.json") {
 		expand "version": version
-		if (gameTestSelection == 'structures') filter { String line ->
-			line.contains('"fabric-gametest":') ? '\t\t"fabric-gametest": ["dev.starmine.world.StructureGameTests"]' : line
+		if (!gameTestClasses.isEmpty()) filter { String line ->
+			line.contains('"fabric-gametest":') ? '\t\t"fabric-gametest": [' + gameTestClasses.collect { '"' + it + '"' }.join(', ') + ']' : line
 		}
 	}
 }

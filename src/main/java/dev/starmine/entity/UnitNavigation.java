@@ -53,6 +53,11 @@ final class UnitNavigation extends GroundPathNavigation {
 			super.followThePath();
 			return;
 		}
+		if (this.path.getNextNodeIndex() == 0 && this.path.getNodeCount() > 1) {
+			// the first node is the cell the body stands on (see BuildingAware#getStart), up to half a block off its
+			// middle: a thor against a command center was led half a block into the building and stood there
+			this.path.advance();
+		}
 		net.minecraft.world.phys.Vec3 here = this.getTempMobPos(), node = this.path.getEntityPosAtNode(this.mob, this.path.getNextNodeIndex());
 		this.maxDistanceToWaypoint = WAYPOINT;
 		double dx = node.x - this.mob.getX(), dz = node.z - this.mob.getZ();

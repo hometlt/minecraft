@@ -290,6 +290,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		holdPlace();
+		if (this.tickCount % 4 == 0) leaveBuildings(server);
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
@@ -489,6 +490,30 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (anchor == null) anchor = kind.gas() ? this.position() : kind.gridCentre(this.position()); // a gas building stands on its outlet
 		if (this.position().distanceToSqr(anchor) > 1e-6) this.setPos(anchor.x, anchor.y, anchor.z);
 		this.setDeltaMovement(Vec3.ZERO);
+	}
+
+	/**
+	 * A ground unit caught inside a building (a building put down or snapped onto its grid where it stood)
+	 * steps out the shortest way: a building is solid to it, and inside one it could only move one way —
+	 * a thor whose path started into the building stood there for the rest of the game.
+	 */
+	private void leaveBuildings(ServerLevel server) {
+		if (kind.structure() || this.isNoGravity() || this.isPassenger()) return;
+		AABB box = this.getBoundingBox();
+		for (StarUnit building : server.getEntitiesOfClass(StarUnit.class, box.deflate(0.05),
+				mob -> mob != this && mob.kind.structure() && mob.isAlive() && !dev.starmine.ability.LiftOff.airborne(mob))) {
+			AABB wall = building.getBoundingBox();
+			if (wall.minY >= box.maxY - 0.1 || wall.maxY <= box.minY + 0.1) continue; // over or under it
+			double east = wall.maxX - box.minX, west = box.maxX - wall.minX, south = wall.maxZ - box.minZ, north = box.maxZ - wall.minZ;
+			double least = Math.min(Math.min(east, west), Math.min(south, north));
+			Vec3 out = least == east ? new Vec3(east + 0.05, 0, 0) : least == west ? new Vec3(-west - 0.05, 0, 0)
+				: least == south ? new Vec3(0, 0, south + 0.05) : new Vec3(0, 0, -north - 0.05);
+			// a step it can make (no wall of blocks there), not a jump across the building
+			if (least > Math.max(2, this.getBbWidth()) || !server.noBlockCollision(this, box.move(out))) continue;
+			this.setPos(this.getX() + out.x, this.getY(), this.getZ() + out.z);
+			this.getNavigation().stop();
+			return;
+		}
 	}
 
 	@Override

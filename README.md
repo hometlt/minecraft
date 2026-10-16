@@ -430,6 +430,7 @@ gradlew build                      # jar без ассетов SC2 — его м
 gradlew build -PincludeSc2Assets   # личный jar с ассетами из sc2-assets/ — не публиковать
 gradlew runClient                  # клиент для разработки с sc2-assets/
 gradlew runGametest                # игровые тесты (build/gametest/junit.xml)
+gradlew runGametest -PstarmineGameTests=dev.starmine.entity.VespeneGameTests,dev.starmine.race.RaceGameTests  # только эти классы
 ```
 
 ### Исходные и воксельные модели (личная сборка)

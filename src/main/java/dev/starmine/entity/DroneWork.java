@@ -478,7 +478,7 @@ final class DroneWork extends Goal {
 		}
 		// a bare outlet: pumped by hand beside it
 		if (!reach(gasOutlet)) {
-			if (moveTo(level, Vec3.atBottomCenterOf(gasOutlet.above()), 2.2, true) == Move.FAILED) {
+			if (moveTo(level, besideOutlet(level, gasOutlet), 1.5, true) == Move.FAILED) {
 				endGas();
 				to(State.SEEK);
 			}
@@ -499,6 +499,23 @@ final class DroneWork extends Goal {
 		drone.takeVespene(Vespene.PER_TRIP);
 		gasTicks = PUMP;
 		to(State.CARRY);
+	}
+
+	/**
+	 * Where a worker stands to pump a bare outlet: on solid ground beside it, the nearest such spot. The
+	 * outlet is liquid (owner 16.10) — no floor to stand on, so a way onto it was never found.
+	 */
+	private Vec3 besideOutlet(ServerLevel level, BlockPos outlet) {
+		Vec3 best = null;
+		for (Direction side : Direction.Plane.HORIZONTAL)
+			for (int dy = 0; dy <= 1; dy++) {
+				BlockPos floor = outlet.relative(side).above(dy);
+				if (!DronePlanner.solid(level, floor) || DronePlanner.solid(level, floor.above()) || DronePlanner.solid(level, floor.above(2))) continue;
+				Vec3 spot = Vec3.atBottomCenterOf(floor.above());
+				if (best == null || spot.distanceToSqr(drone.position()) < best.distanceToSqr(drone.position())) best = spot;
+				break;
+			}
+		return best != null ? best : Vec3.atBottomCenterOf(outlet.above());
 	}
 
 	// ---- MINE ----

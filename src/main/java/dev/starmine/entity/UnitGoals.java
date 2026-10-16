@@ -288,7 +288,7 @@ public final class UnitGoals {
 				stuck = 0;
 			} else if (moving) {
 				stuck = Math.max(0, stuck - 1);
-			} else if (++stuck > PATIENCE) {
+			} else if ((stuck += crowded() ? (unit.tickCount % 4 == 0 ? 1 : 0) : 1) > PATIENCE) {
 				unit.finishOrder();
 				return;
 			}
@@ -317,6 +317,15 @@ public final class UnitGoals {
 			if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0) && dry(unit, goal)) {
 				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 			}
+		}
+
+		/**
+		 * Held up by other units round it (a crowd at a narrow pass): its patience runs four times slower.
+		 * The last of 24 units queueing through a pass 3 wide waited longer than 12 s and gave its order up.
+		 */
+		private boolean crowded() {
+			return !unit.level().getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(0.6, 0, 0.6),
+				other -> other != unit && other.isAlive() && !other.kind.structure()).isEmpty();
 		}
 
 		/**

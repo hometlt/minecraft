@@ -128,7 +128,7 @@ public final class AiCommander {
 	/** The next building of the race's order it lacks and can afford: a free worker goes to build it. */
 	private static void orderBuilding(StarUnit main, ServerLevel level, Hive base, RaceRules rules) {
 		long now = level.getGameTime();
-		if (base.buildOrder != null && now < base.buildOrderUntil) return;
+		if (base.buildOrder != null && now < base.buildOrderUntil && !orderDone(main, level, base)) return;
 		base.buildOrder = null;
 		if (base.count(rules.worker()) < 4) return;
 		Map<UnitKind, Integer> wanted = new EnumMap<>(UnitKind.class);
@@ -146,9 +146,27 @@ public final class AiCommander {
 		}
 	}
 
+	/**
+	 * Whether the building last ordered stands finished (no worker still going to build it, none of it
+	 * under construction): the next one may be ordered at once. Waiting out the order's whole minute
+	 * left a wild base idle for 40 s after each building.
+	 */
+	private static boolean orderDone(StarUnit main, ServerLevel level, Hive base) {
+		UnitKind kind;
+		try {
+			kind = UnitKind.valueOf(base.buildOrder);
+		} catch (IllegalArgumentException e) {
+			return true;
+		}
+		if (base.pending(kind) > 0) return false;
+		UnitKind worker = base.race.rules().worker();
+		return level.getEntitiesOfClass(StarUnit.class, main.getBoundingBox().inflate(48),
+			mob -> mob.kind == worker && base.id.equals(mob.hiveId()) && mob.isAlive() && (mob.buildKind() == kind || mob.constructing() != null)).isEmpty();
+	}
+
 	/** A free worker of the base goes to build `kind` on a site near the main building (in pylon power for protoss). */
 	private static void orderBuild(StarUnit main, ServerLevel level, Hive base, UnitKind kind) {
-		if (base.buildOrder != null && level.getGameTime() < base.buildOrderUntil) return;
+		if (base.buildOrder != null && level.getGameTime() < base.buildOrderUntil && !orderDone(main, level, base)) return;
 		BlockPos site = findSite(level, main, base, kind);
 		if (site == null) return;
 		StarUnit worker = freeWorker(level, main, base, Vec3.atCenterOf(site));
