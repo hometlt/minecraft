@@ -17,6 +17,9 @@ public class GuideGameTests implements FabricGameTest {
 	/** Goals are granted from what the player holds; the next step is the first goal not done. */
 	@GameTest(template = ARENA, batch = "guide", timeoutTicks = 40)
 	public void goalsFollowThePlayer(GameTestHelper helper) {
+		// every goal of the journal is loaded (an advancement with an unknown icon is dropped with its children)
+		for (Goals.Goal goal : Goals.Goal.values())
+			helper.assertTrue(helper.getLevel().getServer().getAdvancements().get(goal.advancement()) != null, "the goal " + goal.id + " did not load");
 		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
 		try {
 			player.getInventory().clearContent();

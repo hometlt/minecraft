@@ -2,7 +2,7 @@
   "parent": "starmine:goals/command_panel",
   "display": {
     "icon": {
-      "id": "starmine:command_center_spawn_egg"
+      "id": "starmine:commandcenter_spawn_egg"
     },
     "title": {
       "translate": "advancements.starmine.own_base.title"

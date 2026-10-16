@@ -12,7 +12,7 @@ OUT = pathlib.Path(__file__).resolve().parent.parent / "src/main/resources/data/
 # id, icon, parent (None: the root), frame
 GOALS = [
     ("command_panel", "starmine:command_panel", None, "task"),
-    ("own_base", "starmine:command_center_spawn_egg", "command_panel", "goal"),
+    ("own_base", "starmine:commandcenter_spawn_egg", "command_panel", "goal"),
     ("minerals", "starmine:mineral_shard", "own_base", "task"),
     ("vespene", "starmine:vespene_bucket", "minerals", "task"),
     ("possess", "starmine:module_weapon", "own_base", "goal"),
