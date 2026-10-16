@@ -595,9 +595,17 @@ public final class CommandScreen extends Screen {
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 			if (onCard(mouseX, mouseY)) {
+				// the release must not select in the world under the card (owner 16.10: it cleared the selection and
+				// closed the build page the click had just opened)
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
 				for (Button b : buttons()) {
 					int[] at = cell(b.slot);
-					if (mouseX >= at[0] && mouseX < at[0] + CELL && mouseY >= at[1] && mouseY < at[1] + CELL && b.enabled) b.action.run();
+					if (mouseX >= at[0] && mouseX < at[0] + CELL && mouseY >= at[1] && mouseY < at[1] + CELL && b.enabled) {
+						b.action.run();
+						break; // one button a click
+					}
 				}
 				return true;
 			}
