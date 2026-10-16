@@ -28,6 +28,8 @@
 	"extractor": {"minerals": 25},
 	"spinecrawler": {"minerals": 100},
 	"sporecrawler": {"minerals": 75},
+	"nydusnetwork": {"minerals": 150, "vespene": 150},
+	"nyduscanal": {"minerals": 75, "vespene": 75},
 	"scv": {"minerals": 50},
 	"marine": {"minerals": 50},
 	"marauder": {"minerals": 100, "vespene": 25},

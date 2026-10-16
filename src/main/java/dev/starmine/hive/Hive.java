@@ -44,6 +44,12 @@ public final class Hive {
 	 */
 	public final java.util.List<BlockPos> territory = new java.util.ArrayList<>();
 	public long nextClaim, nextDrop;
+	/**
+	 * Its nydus corridors (owner 16.10, {@link dev.starmine.world.Nydus}): pairs of where a network stands and
+	 * where its worm came out, flattened (network, worm, network, worm…); when its next squad goes through.
+	 */
+	public final java.util.List<BlockPos> nydus = new java.util.ArrayList<>();
+	public long nextNydusTransfer;
 	public int dropSize;
 	public BlockPos expedition;
 	public boolean expeditionCave;
@@ -233,6 +239,8 @@ public final class Hive {
 		tag.putLong("nextWave", nextWave);
 		tag.putLongArray("territory", territory.stream().mapToLong(BlockPos::asLong).toArray());
 		tag.putLong("nextClaim", nextClaim);
+		tag.putLongArray("nydus", nydus.stream().mapToLong(BlockPos::asLong).toArray());
+		tag.putLong("nextNydusTransfer", nextNydusTransfer);
 		tag.putLong("nextDrop", nextDrop);
 		tag.putInt("dropSize", dropSize);
 		tag.put("hatchery", NbtUtils.writeBlockPos(hatchery));
@@ -282,6 +290,9 @@ public final class Hive {
 		hive.nextWave = tag.getLong("nextWave");
 		for (long cell : tag.getLongArray("territory")) hive.territory.add(BlockPos.of(cell));
 		hive.nextClaim = tag.getLong("nextClaim");
+		for (long cell : tag.getLongArray("nydus")) hive.nydus.add(BlockPos.of(cell));
+		if (hive.nydus.size() % 2 == 1) hive.nydus.remove(hive.nydus.size() - 1);
+		hive.nextNydusTransfer = tag.getLong("nextNydusTransfer");
 		hive.nextDrop = tag.getLong("nextDrop");
 		hive.dropSize = tag.getInt("dropSize");
 		hive.minerals = tag.getInt("minerals");

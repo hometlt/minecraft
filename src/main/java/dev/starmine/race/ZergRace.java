@@ -52,13 +52,13 @@ public final class ZergRace implements RaceRules {
 	@Override
 	public List<UnitKind> aiBuildOrder() {
 		return List.of(SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, ROACH_WARREN, SPORE_CRAWLER, BANELING_NEST, HYDRALISK_DEN,
-			SPINE_CRAWLER, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
+			SPINE_CRAWLER, NYDUS_NETWORK, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
 	}
 
 	@Override
 	public List<UnitKind> buildings() {
 		return List.of(HATCHERY, EXTRACTOR, SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST,
-			HYDRALISK_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
+			HYDRALISK_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN, NYDUS_NETWORK, NYDUS_CANAL);
 	}
 
 	@Override
@@ -93,6 +93,8 @@ public final class ZergRace implements RaceRules {
 			case EXTRACTOR -> new Economy(25, 0, 0, seconds(21), 0, 0);
 			case SPINE_CRAWLER -> new Economy(100, 0, 0, seconds(36), 0, 0);
 			case SPORE_CRAWLER -> new Economy(75, 0, 0, seconds(21), 0, 0);
+			case NYDUS_NETWORK -> new Economy(150, 150, 0, seconds(36), 0, 0);
+			case NYDUS_CANAL -> new Economy(75, 75, 0, seconds(14), 0, 0);
 			default -> new Economy(0, 0, 0, 0, 0, kind == LARVA || kind == EGG ? 0 : 1); // broodling, locust, changeling, larva, egg
 		};
 	}
@@ -107,6 +109,8 @@ public final class ZergRace implements RaceRules {
 			case MUTALISK, CORRUPTOR, BROOD_LORD -> SPIRE;
 			case INFESTOR, SWARM_HOST, VIPER -> INFESTATION_PIT;
 			case ULTRALISK -> ULTRALISK_CAVERN;
+			case NYDUS_NETWORK -> SPAWNING_POOL;
+			case NYDUS_CANAL -> NYDUS_NETWORK;
 			default -> null;
 		};
 	}
@@ -114,7 +118,7 @@ public final class ZergRace implements RaceRules {
 	@Override
 	public int tier(UnitKind kind) {
 		return switch (kind) {
-			case HYDRALISK_DEN, SPIRE, INFESTATION_PIT, OVERSEER, RAVAGER, LURKER, INFESTOR, SWARM_HOST -> 2;
+			case HYDRALISK_DEN, SPIRE, INFESTATION_PIT, NYDUS_NETWORK, NYDUS_CANAL, OVERSEER, RAVAGER, LURKER, INFESTOR, SWARM_HOST -> 2;
 			case ULTRALISK_CAVERN, VIPER, BROOD_LORD -> 3;
 			default -> 1;
 		};
@@ -166,6 +170,8 @@ public final class ZergRace implements RaceRules {
 			case EXTRACTOR -> 'E';
 			case SPORE_CRAWLER -> 'P';
 			case BANELING_NEST -> 'N';
+			case NYDUS_NETWORK -> 'Y';
+			case NYDUS_CANAL -> 'G';
 			default -> ' ';
 		};
 	}

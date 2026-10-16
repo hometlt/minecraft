@@ -62,6 +62,7 @@ public final class AiCommander {
 		research(level, base);
 		produce(main, level, base, rules);
 		Territory.decide(main, level, base);
+		if (base.race == UnitKind.Race.ZERG) dev.starmine.world.Nydus.decide(main, level, base);
 	}
 
 	// ---- production ----

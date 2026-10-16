@@ -32,7 +32,8 @@ import org.jetbrains.annotations.Nullable;
  * no unit may be made, so a dungeon keeps the list of its guards here. When a player comes within
  * {@link #WAKE} blocks, the guards appear where they were planned, keeping to the dungeon (nest
  * dwellers, {@link StarUnit#makeNest}); eggs lie dormant until disturbed. Then the heart becomes the
- * dungeon's own block ({@link Heart#look}).
+ * dungeon's own block ({@link Heart#look}). Guards of a race never wake near the wild of another race
+ * ({@link RaceSeparation}): then the heart just turns into its block.
  */
 public final class DungeonHeart extends Block implements EntityBlock {
 	public static final DungeonHeart BLOCK = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("dungeon_heart"),
@@ -80,6 +81,9 @@ public final class DungeonHeart extends Block implements EntityBlock {
 		public List<StarUnit> wake(ServerLevel level) {
 			List<StarUnit> made = new ArrayList<>();
 			BlockPos hall = getBlockPos();
+			// owner 16.10: a pack never wakes within reach of another race's wild; the place stays empty
+			UnitKind.Race race = guards.isEmpty() ? null : guards.get(0).kind().race;
+			if (race != null && RaceSeparation.foreignNear(level, race, hall) != null) guards.clear();
 			for (Guard guard : guards) {
 				Vec3 at = Vec3.atBottomCenterOf(hall.offset(guard.offset()));
 				if (!guard.kind().structure()) at = dev.starmine.entity.Spots.near(level, guard.kind(), at);

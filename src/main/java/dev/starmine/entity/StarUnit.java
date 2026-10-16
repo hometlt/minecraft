@@ -305,6 +305,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.race == UnitKind.Race.TERRAN && constructTicks > 0 && this.tickCount % 10 == 0) builderNear = builderNear(server);
 		if (constructTicks > 0 && (kind.race != UnitKind.Race.TERRAN || builderNear) && --constructTicks == 0) finishConstruction(server);
 		if ((kind.defender() || mode() == dev.starmine.ability.Modes.PLANETARY) && constructTicks == 0) crawlerAttack(server);
+		if ((kind == UnitKind.NYDUS_NETWORK || kind == UnitKind.NYDUS_CANAL) && constructTicks == 0 && this.tickCount % 10 == 0)
+			dev.starmine.world.Nydus.tick(this, server);
 		if (this.tickCount % 20 == 3) powered = kind.race.rules().powered(this);
 		if ((kind.building() || kind.main()) && constructTicks == 0 && powered && !lifted()) {
 			produce(server);
@@ -439,6 +441,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
 			&& !dev.starmine.faction.Faction.allied(this, attacker)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
+			if (kind == UnitKind.NYDUS_NETWORK || kind == UnitKind.NYDUS_CANAL) dev.starmine.world.Nydus.underAttack(server, this, attacker);
 			// owner: a drone attacked by someone armed runs to the hatchery or to the hive's warriors
 			if (kind == UnitKind.DRONE && armed(attacker)) {
 				fleeUntil = server.getGameTime() + 200;
@@ -568,6 +571,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			hive.join(kind);
 			HiveSavedData.get(server.getServer()).setDirty();
 		}
+		if (kind == UnitKind.NYDUS_CANAL) dev.starmine.world.Nydus.connect(server, this); // a drone built it: the corridor from the network
 	}
 
 	/**

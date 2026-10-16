@@ -54,6 +54,9 @@ public enum UnitKind {
 	EXTRACTOR(         500,  0, false, Attack.NONE,      0,  0,    0, false, 4.2f, 4.3f, 0x3a5a2a, 0x60e060),
 	SPINE_CRAWLER(     300,  0, false, Attack.NONE,      25, 1.32, 7, true,  2.0f, 2.0f, 0x6a3a3a, 0xe0b0a0),
 	SPORE_CRAWLER(     400,  0, false, Attack.NONE,      15, 0.61, 7, true,  2.0f, 2.4f, 0x3a5a3a, 0xc0e0a0),
+	// owner 16.10: nydus corridors from zerg bases (dev.starmine.world.Nydus) — the network at the base, the worm at the far end
+	NYDUS_NETWORK(     850,  0, false, Attack.NONE,      0,  0,    0, false, 5.0f, 3.6f, 0x4a2a3a, 0x60c0a0),
+	NYDUS_CANAL(       300,  0, false, Attack.NONE,      0,  0,    0, false, 3.5f, 7.8f, 0x4a2a3a, 0xd06080),
 
 	// terran (owner 14.10): an SCV-built base the player commands (see dev.starmine.colony); hitboxes from the model sizes
 	//                          sc2Hp speed  fly    attack         dmg   period range aggressive w/h          egg colours
@@ -201,7 +204,7 @@ public enum UnitKind {
 	private static int footprintOf(String name) {
 		return switch (name) {
 			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
-			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
+			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
 			default -> 3;
 		};
 	}
@@ -306,7 +309,7 @@ public enum UnitKind {
 
 	/** Built buildings: what a drone mutates into, what an SCV builds (the command center too; not the hatchery). */
 	public boolean building() {
-		return race != Race.ZERG ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= SPORE_CRAWLER.ordinal();
+		return race != Race.ZERG ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= NYDUS_CANAL.ordinal();
 	}
 
 	/** The building a hive or base is anchored to: the hatchery, the command center, the nexus. */

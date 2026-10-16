@@ -56,7 +56,7 @@ public final class HiveStructure {
 	/** How far from the hatchery tunnels may reach (owner 14.10: farther and deeper); chunks are loaded so far. */
 	private static final int REACH = 150;
 	private static final UnitKind[] SURFACE = {UnitKind.SPAWNING_POOL, UnitKind.SPINE_CRAWLER, UnitKind.EVOLUTION_CHAMBER,
-		UnitKind.SPORE_CRAWLER, UnitKind.SPIRE, UnitKind.SPINE_CRAWLER, UnitKind.ROACH_WARREN};
+		UnitKind.SPORE_CRAWLER, UnitKind.SPIRE, UnitKind.SPINE_CRAWLER, UnitKind.ROACH_WARREN, UnitKind.NYDUS_NETWORK};
 	private static final UnitKind[] UNDERGROUND = {UnitKind.HYDRALISK_DEN, UnitKind.BANELING_NEST, UnitKind.INFESTATION_PIT,
 		UnitKind.ULTRALISK_CAVERN, UnitKind.EVOLUTION_CHAMBER};
 	private static final UnitKind[] GUARDS = {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.ROACH, UnitKind.HYDRALISK};

@@ -216,8 +216,9 @@ public final class Territory {
 		return null;
 	}
 
-	/** A place no base claimed near, and no base's main stands near. */
+	/** A place no base claimed near, and no base's main stands near; never near another race's wild ({@link dev.starmine.world.RaceSeparation}). */
 	private static boolean free(ServerLevel level, Hive base, BlockPos site) {
+		if (dev.starmine.world.RaceSeparation.foreignNear(level, base.race, site) != null) return false;
 		for (Hive other : HiveSavedData.get(level.getServer()).all()) {
 			if (other != base && other.hatchery.distSqr(site) < 48 * 48) return false;
 			for (BlockPos claim : other.territory) if (claim.distSqr(site) < 24 * 24) return false;
