@@ -47,9 +47,17 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		return entity.kind.structure() ? Math.max(light, BUILDING_GLOW) : light;
 	}
 
+	/**
+	 * Whose model a unit is drawn with: its own when the assets carry it (the heroes since 17.10: Kerrigan,
+	 * Raynor, Artanis from the SC2 campaign), else its stand-in {@link UnitKind#look()}, tinted.
+	 */
+	static UnitKind shown(UnitKind kind) {
+		return kind.look() != kind && StarMineModels.get(kind.id) != null ? kind : kind.look();
+	}
+
 	@Override
 	public ResourceLocation getTextureLocation(StarUnit entity) {
-		return StarMine.id("textures/entity/sc2/" + entity.kind.look().id + ".png");
+		return StarMine.id("textures/entity/sc2/" + shown(entity.kind).id + ".png");
 	}
 
 	@Override
@@ -59,12 +67,12 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		if (entity.kind == UnitKind.CHANGELING && !entity.disguise().isEmpty() && entity.deathTime == 0
 			&& !(net.minecraft.client.Minecraft.getInstance().player != null && dev.starmine.faction.Faction.allied(entity, net.minecraft.client.Minecraft.getInstance().player))
 			&& Disguises.render(entity, partialTick, poseStack, buffers, packedLight)) return;
-		SkinnedModel model = StarMineModels.get(entity.kind.look().id);
+		SkinnedModel model = StarMineModels.get(shown(entity.kind).id);
 		float sink = 0f;
 		boolean visible = model != null;
 		if (model != null && entity.deathTime > 0 && !model.clips.containsKey("death")) {
 			float dying = (entity.deathTime - 1 + partialTick) / 20f;
-			SkinnedModel burst = StarMineModels.get(entity.kind.look().id + "_death");
+			SkinnedModel burst = StarMineModels.get(shown(entity.kind).id + "_death");
 			if (burst != null) {
 				model = burst;
 				SkinnedModel.Clip clip = burst.clips.get("death");
@@ -91,12 +99,12 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
 				boolean ours = player != null && dev.starmine.faction.Faction.allied(entity, player);
 				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, ours ? 0x70FFFFFF : 0x14FFFFFF);
-			} else if (entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
+			} else if (shown(entity.kind) != entity.kind && entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
 			else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
 			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}
-		if (StarMineModels.get(entity.kind.look().id) == null && entity.deathTime == 0) { // no imported model (the protoss gateway): its outline
+		if (StarMineModels.get(shown(entity.kind).id) == null && entity.deathTime == 0) { // no imported model (the protoss gateway): its outline
 			double w = entity.getBbWidth() / 2, h = entity.getBbHeight();
 			net.minecraft.client.renderer.LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(net.minecraft.client.renderer.RenderType.lines()),
 				-w, 0, -w, w, h, w, 0.95f, 0.8f, 0.3f, 1f);

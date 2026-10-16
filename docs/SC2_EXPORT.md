@@ -65,8 +65,20 @@ pnpm --dir starcraft2 exec tsx ../scripts/export-starmine-icons.mjs --starmine <
 Если в игре часть юнитов «не воксельные», значит сборка шла в режиме `original` или каталог
 `starmineAssetsDir` указывал на старый пакет; проверка готового JAR — `tools/check_model_package.ps1`.
 
+## Герои
+
+Kerrigan, Raynor и Artanis рисуются своими моделями из StarCraft II, если они есть в ассетах:
+в мультиплеерных данных (VoidMulti) героев нет, Modkit берёт их из кампании
+`Campaigns/VoidStory.SC2Campaign` — Керриган `KerriganVoid` (`KerriganInfested.m3`), Рейнор
+`RaynorCommando` (`MarineRaynorHEV.m3`), Артанис `ArtanisVoid` (`Artanis.m3`, гибель — `Artanis_Death.m3`).
+Оттуда же их реплики и звуки их способностей. Без этих моделей клиент по-прежнему рисует замену
+(`UnitKind.look()`: королева, морпех, зилот с подкраской).
+
 ## Где экспортёр
 
-Скрипт экспорта StarMine (`kinds.mjs`, упомянут в `docs/ARCHITECTURE.md`) в репозиториях ModKit и
-ModKit-Blizzard на GitHub не найден: правки выбора языка и событий `fire` / `ability.<id>` в нём нужно
-внести там, где он лежит (по этому описанию), или выложить его в ModKit-Blizzard.
+- Звуки: ModKit-Blizzard, `scripts/export-starmine-sounds.mjs`
+  (`starcraft2/modules/mod/shared/export/unit-sounds.ts`):
+  `pnpm --dir starcraft2 exec tsx ../scripts/export-starmine-sounds.mjs --starmine <StarMine> [--out <каталог>] [--voice-locale=ruRU]`.
+- Модели и текстуры: прототип установщика `kinds.mjs` / `survey.mjs` / `fetch-assets.mjs` /
+  `build-assets.mjs` (в рабочем пространстве Modkit, `parked/GAME-MINECRAFT/starmine-export`, вне git);
+  герои — с `MOD=Campaigns/VoidStory.SC2Campaign ONLY=kerrigan,raynor,artanis`.

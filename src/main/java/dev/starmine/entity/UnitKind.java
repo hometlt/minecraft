@@ -280,8 +280,9 @@ public enum UnitKind {
 	}
 
 	/**
-	 * Whose model it is drawn with: a hero has none of its own until the owner imports it (the queen for
-	 * Kerrigan, the marine for Raynor, the zealot for Artanis, larger and tinted: {@link #tint}).
+	 * The stand-in a hero is drawn with when the assets lack its own SC2 model (Modkit exports Kerrigan,
+	 * Raynor and Artanis from the Void campaign since 17.10): the queen for Kerrigan, the marine for Raynor,
+	 * the zealot for Artanis, larger and tinted ({@link #tint}). The client picks the own model first.
 	 */
 	public UnitKind look() {
 		return switch (this) {
