@@ -68,7 +68,9 @@ import dev.starmine.vespene.VespeneBlock;
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
  * gather at a block, return the cargo; build: to the site, then build until the building is done,
  * {@link dev.starmine.colony.BaseLogic#place}); they bring loads to the nearest command center of their
- * base, dig no hive tunnels, go on no raids and, with nothing in reach, wait instead of exploring far.
+ * base, dig no hive tunnels and go on no raids. With nothing in reach every worker explores (owner 16.10: they
+ * stood turning on the spot) — on the land and, finding nothing, down under it; wild zerg drones up to
+ * {@link #ROAM} blocks, the others within {@link #LEASH} of their base.
  */
 final class DroneWork extends Goal {
 	private enum State { SEEK, GAS, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL, ENGINEER }
@@ -369,11 +371,9 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		if (commanded() || drone.kind.race != UnitKind.Race.ZERG) { // only zerg drones roam and dig tunnels; others wait near their base
-			seekCooldown = 100;
-			return;
-		}
-		if (griefing && startTunnel(level)) return;
+		// owner 16.10: a worker with nothing to do does not stand turning on the spot — it looks farther, on the
+		// land and under it; only wild zerg dig the hive's tunnels and roam far, the others keep near their base
+		if (!commanded() && drone.kind.race == UnitKind.Race.ZERG && griefing && startTunnel(level)) return;
 		startExplore(level);
 	}
 
@@ -736,9 +736,13 @@ final class DroneWork extends Goal {
 
 	// ---- EXPLORE ----
 
+	/** How far a worker explores from its base: wild zerg drones far, the others (a player's too) on a leash. */
+	static final int ROAM = 96, LEASH = 48;
+
 	private void startExplore(ServerLevel level) {
-		BlockPos home = drone.home() != null ? drone.home() : drone.blockPosition();
-		double radius = Math.min(96, 16 << Math.min(misses, 3));
+		boolean roams = !commanded() && drone.kind.race == UnitKind.Race.ZERG;
+		BlockPos home = roams ? (drone.home() != null ? drone.home() : drone.blockPosition()) : base(level);
+		double radius = Math.min(roams ? ROAM : LEASH, 16 << Math.min(misses, 3));
 		double angle = drone.getRandom().nextDouble() * Math.PI * 2;
 		exploreTo = surface(level, new Vec3(home.getX() + Math.cos(angle) * radius, 0, home.getZ() + Math.sin(angle) * radius));
 		to(State.EXPLORE);
@@ -761,6 +765,14 @@ final class DroneWork extends Goal {
 			to(State.SEEK);
 			seekCooldown = 0;
 		}
+	}
+
+	/** Where a leashed worker explores round: its base's nearest main building, else its home, else where it is. */
+	private BlockPos base(ServerLevel level) {
+		if (drone.hiveId() != null)
+			for (StarUnit main : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(96),
+				mob -> mob.kind.main() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) return main.blockPosition();
+		return drone.home() != null ? drone.home() : drone.blockPosition();
 	}
 
 	// ---- BUILD ----

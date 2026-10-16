@@ -99,4 +99,38 @@ public class TerritoryGameTests implements FabricGameTest {
 		}
 		helper.succeed();
 	}
+
+	/** Owner 16.10: a worker in danger gets an escort, in the dark it lights the place its race's way. */
+	@GameTest(template = ARENA, batch = "escorts", timeoutTicks = 100)
+	public void workersInDangerAreEscortedAndLight(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		Hive base = wild(helper, UnitKind.Race.TERRAN, helper.absolutePos(new BlockPos(6, 2, 6)));
+		try {
+			StarUnit main = TestArena.member(helper, base, UnitKind.SUPPLY_DEPOT, 6, 6);
+			StarUnit marine = TestArena.member(helper, base, UnitKind.MARINE, 10, 6);
+			StarUnit scv = TestArena.member(helper, base, UnitKind.SCV, 40, 40);
+			Zombie zombie = EntityType.ZOMBIE.create(level);
+			zombie.moveTo(scv.getX() + 6, scv.getY(), scv.getZ());
+			zombie.setNoAi(true);
+			level.addFreshEntity(zombie);
+			Escorts.decide(main, level, base);
+			helper.assertTrue(marine.order() == StarUnit.Order.MOVE && marine.orderPos().distanceTo(scv.position()) < 2,
+				"no escort for the threatened SCV: " + marine.order());
+			zombie.discard();
+			// a dark stone cell by the far wall: a lantern of the terrans, glowing flesh of the zerg, a sea lantern of the protoss
+			BlockPos cell = helper.absolutePos(new BlockPos(40, 2, 10));
+			for (BlockPos pos : BlockPos.betweenClosed(cell.offset(-3, -1, -3), cell.offset(3, 3, 3)))
+				level.setBlock(pos, Math.abs(pos.getX() - cell.getX()) <= 2 && Math.abs(pos.getZ() - cell.getZ()) <= 2 && pos.getY() >= cell.getY()
+					&& pos.getY() <= cell.getY() + 2 ? Blocks.AIR.defaultBlockState() : Blocks.STONE.defaultBlockState(), 2);
+			BlockPos lamp = Escorts.light(level, UnitKind.Race.TERRAN, cell);
+			helper.assertTrue(lamp != null && level.getBlockState(lamp).is(Blocks.LANTERN), "no lantern in the dark");
+			BlockPos flesh = Escorts.light(level, UnitKind.Race.ZERG, cell);
+			helper.assertTrue(flesh != null && level.getBlockState(flesh).is(StarMineBlocks.GLOWING_ZERG_FLESH), "no glowing flesh in the dark");
+			helper.succeed();
+		} finally {
+			level.getEntitiesOfClass(StarUnit.class, new AABB(helper.absolutePos(BlockPos.ZERO)).inflate(64), unit -> base.id.equals(unit.hiveId())).forEach(StarUnit::discard);
+			HiveSavedData.get(level.getServer()).remove(base.id);
+		}
+	}
 }
