@@ -1,0 +1,16 @@
+{
+	"name": "The Wild",
+	"icon": "minecraft:campfire",
+	"category": "starmine:world",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Wild packs roam: zerg in caves, protoss by a lone pylon, terrans at a campfire. They wake when a player comes near. Rare ruined terran outposts, zerg nests and xel'naga temples hide underground."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The races claim land: a wild base sends parties to take caves and fields and dress them its way. Now and then they land a squad by your home; the game rule starmineAiPressure sets how often."
+		}
+	]
+}

@@ -1,0 +1,18 @@
+{
+	"name": "Ability Modules",
+	"icon": "starmine:module_stimpack",
+	"category": "starmine:gear",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A module casts its ability: in the body of a unit you control, or in the full suit of its race. It has 24 uses."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:module_stimpack",
+			"text": "Any module: 3 armor shards of its race, 2 mineral shards and a vespene bucket (the bucket comes back).",
+			"recipe2": "starmine:module_burrow"
+		}
+	]
+}

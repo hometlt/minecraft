@@ -48,6 +48,10 @@ loom {
 	}
 }
 
+configurations {
+	patchouliArtifact
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -60,6 +64,14 @@ dependencies {
 	// Sodium is not needed to run StarMine: with it installed (and Iris, which draws terrain through it, with
 	// shader packs) the fog of blocks hooks Sodium's mesher (dev.starmine.mixin.sodium); compiled against it only
 	modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
+
+	// Patchouli is optional (owner 16.10: the illustrated field guide). StarMine's book is data only
+	// (data/starmine/patchouli_books, assets/starmine/patchouli_books); without Patchouli the written book is given.
+	// In dev runs (runClient, runGametest) it is present so the book can be opened and tested.
+	modLocalRuntime "maven.modrinth:patchouli:${project.patchouli_version}"
+	// its library fiber is nested in Patchouli's jar and published nowhere else; the dev runtime does not unpack it
+	patchouliArtifact("maven.modrinth:patchouli:${project.patchouli_version}") { transitive = false }
+	localRuntime files({ zipTree(configurations.patchouliArtifact.singleFile).matching { include 'META-INF/jars/*.jar' }.files })
 }
 
 def gameTestSelection = providers.gradleProperty('starmineGameTests').getOrElse('all')

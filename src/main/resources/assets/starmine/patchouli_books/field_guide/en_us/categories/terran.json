@@ -1,0 +1,6 @@
+{
+	"name": "Terrans",
+	"description": "SCVs, barracks and the Hyperion.",
+	"icon": "starmine:commandcenter_spawn_egg",
+	"sortnum": 4
+}

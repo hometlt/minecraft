@@ -17,10 +17,17 @@ import net.minecraft.world.item.component.WrittenBookContent;
  * The field guide (owner 16.10, item 8): a written book given to every player on their first join (and
  * by `/starguide` again) on the mod's mechanics, the three races and their creatures, the world and its
  * heroes. Its pages are lang keys (`book.starmine.guide.<n>`), so it reads in the player's language.
+ *
+ * With Patchouli installed (optional, owner 16.10) the guide is the illustrated book instead
+ * ({@link #illustrated}): the same chapters with the units' models, the crafting grids of the gear and
+ * more pages, in English and Russian (`assets/starmine/patchouli_books/field_guide/<lang>`). StarMine
+ * does not depend on Patchouli: the book is data, the item is looked up by id.
  */
 public final class Guide {
 	/** The number of pages: keys book.starmine.guide.1 .. PAGES in every language. */
-	public static final int PAGES = 31;
+	public static final int PAGES = 33;
+	/** The Patchouli book (`data/starmine/patchouli_books/field_guide`). */
+	public static final net.minecraft.resources.ResourceLocation BOOK = dev.starmine.StarMine.id("field_guide");
 	private static final String GIVEN = "starmine_guide_given";
 
 	private Guide() {
@@ -46,8 +53,21 @@ public final class Guide {
 
 	/** Puts a guide in the player's inventory (or at their feet when it is full). */
 	public static void give(ServerPlayer player) {
-		ItemStack book = book();
+		ItemStack illustrated = illustrated();
+		ItemStack book = illustrated != null ? illustrated : book();
 		if (!player.getInventory().add(book)) player.drop(book, false);
+	}
+
+	/** The illustrated guide when Patchouli is installed: its guide book item bound to {@link #BOOK}; else null. */
+	@SuppressWarnings("unchecked")
+	public static @org.jetbrains.annotations.Nullable ItemStack illustrated() {
+		if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("patchouli")) return null;
+		var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("patchouli", "guide_book"));
+		var component = net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("patchouli", "book"));
+		if (item.isEmpty() || component == null) return null;
+		ItemStack stack = new ItemStack(item.get());
+		stack.set((net.minecraft.core.component.DataComponentType<net.minecraft.resources.ResourceLocation>) component, BOOK);
+		return stack;
 	}
 
 	/** The guide: a written book of translated pages. */

@@ -1,0 +1,6 @@
+{
+	"name": "Ваша база",
+	"description": "Основание базы, командный вид, ресурсы.",
+	"icon": "starmine:command_panel",
+	"sortnum": 1
+}

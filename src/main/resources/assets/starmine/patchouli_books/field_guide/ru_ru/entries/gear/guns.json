@@ -1,0 +1,20 @@
+{
+	"name": "Оружие",
+	"icon": "starmine:gauss_rifle",
+	"category": "starmine:gear",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:gauss_rifle",
+			"text": "Гаусс-винтовка: 5 урона, 32 блока, гаусс-патроны. Правый клик — выстрел туда, куда вы целитесь; стены останавливают выстрел.",
+			"recipe2": "starmine:gauss_ammo"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:canister_rifle",
+			"text": "Снайперская винтовка: 16 урона, 64 блока, патроны-канистры.",
+			"recipe2": "starmine:canister_round"
+		}
+	]
+}

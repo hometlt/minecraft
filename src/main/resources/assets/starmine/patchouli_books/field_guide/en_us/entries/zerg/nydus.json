@@ -1,0 +1,24 @@
+{
+	"name": "Nydus Corridors",
+	"icon": "starmine:nydusnetwork_spawn_egg",
+	"category": "starmine:zerg",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nydusnetwork",
+			"text": "The nydus network stands by a zerg base. From it a long winding tunnel of flesh, full of liquid creep, runs 64-112 blocks under the land.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nyduscanal",
+			"text": "At the far end a nydus worm comes out, guarded by a spine crawler. A wild base digs toward its nearest foe and sends warriors through every minute until six stand by the worm; when either end is attacked, help comes through.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Your own: a drone builds the network (a lair is needed) and then the worm where you want it; when the worm is done, the corridor is dug from the nearest network. Order your zerg to move onto the network or the worm: they come out at the other end.$(br2)In liquid creep zerg rush and heal; others are poisoned."
+		}
+	]
+}

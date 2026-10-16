@@ -1,0 +1,6 @@
+{
+	"name": "Your Base",
+	"description": "Founding a base, the command view, resources.",
+	"icon": "starmine:command_panel",
+	"sortnum": 1
+}

@@ -1,0 +1,20 @@
+{
+	"name": "Guns",
+	"icon": "starmine:gauss_rifle",
+	"category": "starmine:gear",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:gauss_rifle",
+			"text": "Gauss rifle: 5 damage, 32 blocks, gauss rounds. Right-click fires where you aim; walls stop the shot.",
+			"recipe2": "starmine:gauss_ammo"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:canister_rifle",
+			"text": "Sniper rifle: 16 damage, 64 blocks, canister rounds.",
+			"recipe2": "starmine:canister_round"
+		}
+	]
+}

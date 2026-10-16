@@ -1,0 +1,22 @@
+{
+	"name": "Minerals and Vespene",
+	"icon": "starmine:mineral_shard",
+	"category": "starmine:base",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:mineral_shard",
+			"text": "Workers mine ores and valuable blocks and carry them home. Blue mineral crystals hold 500 each, 5 a trip; a crystal stands on mineralized earth and cannot be broken — your hand takes a shard."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:vespene_canister",
+			"text": "Vespene is a slow green liquid rising in veins from bedrock. A gas building goes on an outlet; a canister of iron and glass carries it."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Supply comes from overlords, supply depots and pylons. Prices, build times and supply follow StarCraft II. A worker with nothing in reach explores farther, on the land and under it; a worker in danger gets an escort, and a dark place is lit its race's way."
+		}
+	]
+}

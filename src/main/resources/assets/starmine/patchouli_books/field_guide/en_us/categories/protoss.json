@@ -1,0 +1,6 @@
+{
+	"name": "Protoss",
+	"description": "Probes, pylons and the mothership.",
+	"icon": "starmine:nexus_spawn_egg",
+	"sortnum": 5
+}

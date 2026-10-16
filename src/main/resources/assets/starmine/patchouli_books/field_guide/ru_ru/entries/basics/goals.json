@@ -1,0 +1,12 @@
+{
+	"name": "Цели",
+	"icon": "minecraft:knowledge_book",
+	"category": "starmine:basics",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Ваши цели — на экране достижений, вкладка StarMine. $(l)/stargoals$() показывает их и следующий шаг; подсказки приходят время от времени (правило starmineHints).$(br2)Потеряли книгу? $(l)/starguide$()."
+		}
+	]
+}

@@ -1,0 +1,18 @@
+{
+	"name": "Модули способностей",
+	"icon": "starmine:module_stimpack",
+	"category": "starmine:gear",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Модуль применяет свою способность: в теле юнита под вашим управлением или в полном костюме своей расы. У него 24 применения."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:module_stimpack",
+			"text": "Любой модуль: 3 осколка брони его расы, 2 осколка минерала и ведро веспена (ведро возвращается).",
+			"recipe2": "starmine:module_burrow"
+		}
+	]
+}

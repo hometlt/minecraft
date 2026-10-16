@@ -1,0 +1,16 @@
+{
+	"name": "Sides and Races",
+	"icon": "minecraft:shield",
+	"category": "starmine:basics",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The races are always foes of each other: wild zerg, terrans and protoss fight on sight. Your units are your allies, neutral to other players' units until struck.$(br2)Villagers and golems leave your units alone unless they attack the village."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The races keep apart: a pack, a claim or a nydus worm of one race never appears within 96 blocks of the wild of another — their bases, claims, buildings and guards. Waves, raids and drops are attacks and go where they are sent."
+		}
+	]
+}

@@ -1,0 +1,16 @@
+{
+	"name": "Welcome, Commander",
+	"icon": "minecraft:writable_book",
+	"category": "starmine:basics",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Three races of StarCraft II have come to this world: the $(l)Zerg$(), the $(l)Terrans$() and the $(l)Protoss$(). Their main bases lie about 480 blocks from where you first appeared.$(br2)Wild units are foes to every player; units of your own fight for you."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Three ways to play, mixed as you like:$(li)spawn eggs: a unit you place is yours;$(li)a supply platform, in survival;$(li)the command view ($(k:key.starmine.command)) and taking control of one of your units."
+		}
+	]
+}

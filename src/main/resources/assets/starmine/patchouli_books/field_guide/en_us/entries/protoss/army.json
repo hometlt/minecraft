@@ -1,0 +1,30 @@
+{
+	"name": "Protoss Forces",
+	"icon": "starmine:zealot_spawn_egg",
+	"category": "starmine:protoss",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:probe",
+			"text": "Probes warp in buildings, which need a pylon's power field.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zealot",
+			"text": "Zealots guard every lone pylon in the wild.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:stalker",
+			"text": "Stalker: blinks and strikes from range.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Their base is a sandstone plaza with a nexus and pylons; under it, ancient temples with shrines. Above floats the mothership. Dark templars hide in caves. Protoss shields come back after a fight."
+		}
+	]
+}

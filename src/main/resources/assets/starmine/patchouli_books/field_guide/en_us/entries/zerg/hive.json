@@ -1,0 +1,36 @@
+{
+	"name": "The Swarm",
+	"icon": "starmine:hatchery_spawn_egg",
+	"category": "starmine:zerg",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hatchery",
+			"text": "The hatchery: larvae become cocoons, cocoons become units. A drone turns INTO a building.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Creep spreads round hatcheries and tumors; on it zerg run faster and heal. Wild zerg hate every living thing, raid villages and dig tunnels. Glowing flesh and tumors keep monsters from spawning."
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zergling",
+			"text": "Zergling: fast, cheap, in pairs. Becomes a baneling.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hydralisk",
+			"text": "Hydralisk: spines at range. Becomes a lurker.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:ultralisk",
+			"text": "Ultralisk: the heavy blades of the swarm.",
+			"rotate": true
+		}
+	]
+}

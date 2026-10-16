@@ -1,0 +1,12 @@
+{
+	"name": "Goals",
+	"icon": "minecraft:knowledge_book",
+	"category": "starmine:basics",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Your goals are in the Advancements screen, tab StarMine. $(l)/stargoals$() lists them and the next step; hints come now and then (game rule starmineHints).$(br2)Lost this book? $(l)/starguide$()."
+		}
+	]
+}

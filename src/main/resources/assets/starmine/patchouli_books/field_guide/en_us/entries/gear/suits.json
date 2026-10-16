@@ -1,0 +1,30 @@
+{
+	"name": "Race Suits",
+	"icon": "starmine:terran_chestplate",
+	"category": "starmine:gear",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Units killed by you or your army drop armor shards of their race, sometimes an ability module. Shards make a race suit, crafted like vanilla armor.$(br2)Terran: as strong as diamond.$(br)Protoss: shields that come back.$(br)Zerg: regeneration, faster on creep."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_chestplate",
+			"text": "Terran chestplate and helmet.",
+			"recipe2": "starmine:terran_helmet"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:protoss_leggings",
+			"text": "Protoss leggings and boots.",
+			"recipe2": "starmine:protoss_boots"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_helmet",
+			"text": "Zerg helmet and chestplate.",
+			"recipe2": "starmine:zerg_chestplate"
+		}
+	]
+}

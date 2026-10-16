@@ -1,0 +1,18 @@
+{
+	"name": "Founding a Base",
+	"icon": "starmine:commandcenter_spawn_egg",
+	"category": "starmine:base",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A main building — hatchery, command center or nexus — placed from a spawn egg founds your base: 50 minerals and 4 workers. One base per dimension, shared by all three races."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_platform",
+			"text": "A map ringed with 8 armor shards of a race makes its supply platform. Fill it with ores, ingots, gems or vespene worth 500 minerals and use the command panel on it: a transport brings a worker.",
+			"recipe2": "starmine:zerg_platform"
+		}
+	]
+}

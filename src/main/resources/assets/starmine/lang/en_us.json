@@ -956,7 +956,7 @@
 	"book.starmine.guide.16": "A module has 24 uses. Recipe: 3 armor shards of its race, 2 mineral shards and a vespene bucket (the bucket comes back).",
 	"book.starmine.guide.17": "7. Zerg\n\nThe swarm grows from a hatchery: larvae become cocoons, cocoons become units. A drone turns INTO a building. Creep spreads round hatcheries and tumors; on it zerg run faster and heal.",
 	"book.starmine.guide.18": "Zerglings, banelings, roaches, hydralisks, lurkers, mutalisks, infestors, ultralisks... Wild zerg hate every living thing, raid villages and dig tunnels. Glowing flesh and tumors keep monsters from spawning.",
-	"book.starmine.guide.19": "Nydus worms: two worms of flesh joined by a tunnel of liquid creep. In it zerg are fast and heal; others are poisoned. Over the lair floats the leviathan - a beast of flesh.",
+	"book.starmine.guide.19": "Nydus corridors: a nydus network by a zerg base, a winding tunnel of liquid creep 64-112 blocks long, a nydus worm at the far end. Zerg rush through and guard the worm. Over the lair floats the leviathan.",
 	"book.starmine.guide.20": "8. Terrans\n\nAn SCV builds the command center, supply depots, barracks, factory and starport. Marines, marauders, medivacs, siege tanks, thors, vikings, banshees. Terran buildings lift off and land.",
 	"book.starmine.guide.21": "Their base is a concrete square with turrets and bunkers. Under it lies a steel maze with labs and a reactor core. Above the clouds hangs the battlecruiser Hyperion.",
 	"book.starmine.guide.22": "9. Protoss\n\nProbes warp in buildings, which need a pylon's power field. Zealots, stalkers, adepts, templars, immortals, colossi, void rays, carriers. Protoss shields come back after a fight.",
@@ -968,5 +968,9 @@
 	"book.starmine.guide.28": "12. Guns, townsfolk\n\nOne villager in ten has an armed neighbour: a marshal with a gauss rifle or a ghost with a sniper rifle, invisible near foes. They shoot monsters and zerg and trade for emeralds.",
 	"book.starmine.guide.29": "Gauss rifle: 5 damage, 32 blocks, gauss rounds.\nSniper rifle: 16 damage, 64 blocks, canister rounds.\nRight-click fires where you aim; walls stop the shot. Terran chests in dungeons hold guns too.",
 	"book.starmine.guide.30": "13. Goals\n\nYour goals are in the Advancements screen (L), tab StarMine. /stargoals lists them and the next step; hints come now and then (game rule starmineHints).\n\nLost this book? /starguide.",
-	"book.starmine.guide.31": "Sides\n\nWild units are foes to every player. Your units are your allies and neutral to other players' units until struck. Villagers and golems leave your units alone unless they attack the village.\n\nGood luck, commander."
+	"book.starmine.guide.31": "Sides\n\nWild units are foes to every player. Your units are your allies and neutral to other players' units until struck. Villagers and golems leave your units alone unless they attack the village.\n\nGood luck, commander.",
+	"book.starmine.guide.33": "Crafting\n\nCommand panel: map in the middle, repeaters and comparators round it.\nPlatform: map ringed by 8 armor shards.\nModule: 3 shards, 2 mineral shards, a vespene bucket.\nSuits: shards in vanilla armor shapes.",
+	"book.starmine.guide.32": "Races apart\n\nThe races are always foes. A pack, a claim or a nydus worm of one race never appears within 96 blocks of another race's wild. Packs wake for any player but a spectator.",
+	"book.starmine.field_guide.landing": "Three races of StarCraft II have come to this world. This guide tells how to live among them and how to command them: your base, resources, the gear and its crafting, each race, the world and its heroes.",
+	"book.starmine.field_guide.name": "StarMine Field Guide"
 }

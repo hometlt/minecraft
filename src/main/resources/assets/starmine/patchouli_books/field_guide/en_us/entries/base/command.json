@@ -1,0 +1,17 @@
+{
+	"name": "Command View",
+	"icon": "starmine:command_panel",
+	"category": "starmine:base",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:command_panel",
+			"text": "The command panel: a map, 4 repeaters, 4 comparators. Hold it and press the command key: a camera from above."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "WASD moves, the wheel lifts, Q and E turn. Left click selects, right click orders. Ctrl+digit makes a group, F2 selects the army. The card uses SC2 hotkeys: M move, S stop, H hold, P patrol, A attack; workers build with B and V, then a left click puts the building, Esc or a right click cancels."
+		}
+	]
+}

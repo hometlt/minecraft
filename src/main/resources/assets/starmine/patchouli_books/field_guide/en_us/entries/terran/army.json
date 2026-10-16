@@ -1,0 +1,30 @@
+{
+	"name": "Terran Forces",
+	"icon": "starmine:marine_spawn_egg",
+	"category": "starmine:terran",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:scv",
+			"text": "An SCV builds the command center, supply depots, barracks, factory and starport, and stays to build.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:marine",
+			"text": "Marines hold every terran camp: a campfire with a concrete pad, a forge and an antenna mast.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:siegetank",
+			"text": "Siege tank: deploys into siege mode for long range.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Their base is a concrete square with turrets and bunkers. Under it lies a steel maze with labs and a reactor core. Above the clouds hangs the battlecruiser Hyperion. Terran buildings lift off and land."
+		}
+	]
+}

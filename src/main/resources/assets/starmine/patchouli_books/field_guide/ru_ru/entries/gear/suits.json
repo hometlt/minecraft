@@ -1,0 +1,30 @@
+{
+	"name": "Костюмы рас",
+	"icon": "starmine:terran_chestplate",
+	"category": "starmine:gear",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Юниты, убитые вами или вашей армией, роняют осколки брони своей расы, иногда — модуль способности. Из осколков — костюм расы, крафт как у обычной брони.$(br2)Терраны: прочный, как алмаз.$(br)Протоссы: восстанавливающиеся щиты.$(br)Зерги: регенерация, быстрее на слизи."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_chestplate",
+			"text": "Нагрудник и шлем терранов.",
+			"recipe2": "starmine:terran_helmet"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:protoss_leggings",
+			"text": "Поножи и ботинки протоссов.",
+			"recipe2": "starmine:protoss_boots"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_helmet",
+			"text": "Шлем и нагрудник зергов.",
+			"recipe2": "starmine:zerg_chestplate"
+		}
+	]
+}
