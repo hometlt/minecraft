@@ -40,3 +40,23 @@ gradlew compileJava compileClientJava runGametest --offline --no-configuration-c
 | `PlatformGameTests.aCalledTransportFoundsTheBase` | В прогонах этой сессии не падал. | — |
 
 Отдельный класс тестов: `gradlew runGametest -PstarmineGameTests=dev.starmine.entity.VespeneGameTests`.
+
+## Обновление — нидус-коридоры, расы, справочник, замечания владельца (вечер 16.10)
+
+`gradlew build` и полный `runGametest`: **223 теста, 0 упали** (включая тест самого Patchouli, который
+подключён только в dev-рантайме). Новые тесты: `NydusGameTests` (коридор от базы, переброска войск,
+разнесение рас, лагерь просыпается для творческого игрока), `FactionGameTests.wildRacesFightEachOther`,
+`MineralGameTests.crystalsStandOnGround`, `MiningGameTests.anIdleWorkerExplores`,
+`TerritoryGameTests.workersInDangerAreEscortedAndLight`, `GuideGameTests.guideIsInRussianAndEnglish`,
+`TerranAbilityGameTests.aLiftedBuildingFliesWhereThePlayerSendsIt`, `StructureGameTests.skyShipsHangOverTheClouds`,
+`RaceGameTests.eachRaceHasItsOwnSupply`.
+
+Пойманный по ходу регресс: разведка рабочих *игрока* оставляла армию без строителей переправ
+(`PathfindingGameTests.armyCrossesAWideRiver`, стабильно); разведывают только дикие рабочие.
+
+Вылет у базы зергов (crash-report 20:53, `NoSuchFieldError: UnitKind.NYDUS_NETWORK`) — не ошибка кода:
+dev-клиент работал, пока классы в `build/` пересобирались. Сборки агента теперь идут в
+`-PstarmineBuildRoot=C:/MKTEMP/sm-build-root`.
+
+Не проверено в игре глазами: открытие иллюстрированного справочника на ru_ru/en_us (доступ к окну
+игры не был дан; книга загружается Patchouli без ошибок в логе, данные проверяет тест).
