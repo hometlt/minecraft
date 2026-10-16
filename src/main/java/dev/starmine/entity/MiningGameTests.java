@@ -134,14 +134,12 @@ public class MiningGameTests implements FabricGameTest {
 		mining(helper, UnitKind.HATCHERY, false);
 	}
 
-	/** Owner 16.10: a worker with no ore in reach does not stand turning on the spot — it goes exploring (on a leash). */
+	/** Owner 16.10: a wild worker with no ore in reach does not stand turning on the spot — it goes exploring (on a leash). */
 	@GameTest(template = ARENA, batch = "idleWorker", timeoutTicks = 200)
 	public void anIdleWorkerExplores(GameTestHelper helper) {
 		TestArena.clear(helper);
-		java.util.UUID owner = java.util.UUID.randomUUID();
 		dev.starmine.hive.Hive base = new dev.starmine.hive.Hive(java.util.UUID.randomUUID(), helper.getLevel().dimension().location().toString(),
 			helper.absolutePos(new BlockPos(10, 2, 10)));
-		base.owner = owner;
 		base.race = UnitKind.Race.TERRAN;
 		dev.starmine.hive.HiveSavedData.get(helper.getLevel().getServer()).add(base);
 		StarUnit scv = TestArena.member(helper, base, UnitKind.SCV, 24, 24);

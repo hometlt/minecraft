@@ -68,9 +68,10 @@ import dev.starmine.vespene.VespeneBlock;
  * SCVs (owner 14.10) work the same way but take their player's orders first ({@link StarUnit#commandWork}:
  * gather at a block, return the cargo; build: to the site, then build until the building is done,
  * {@link dev.starmine.colony.BaseLogic#place}); they bring loads to the nearest command center of their
- * base, dig no hive tunnels and go on no raids. With nothing in reach every worker explores (owner 16.10: they
- * stood turning on the spot) — on the land and, finding nothing, down under it; wild zerg drones up to
- * {@link #ROAM} blocks, the others within {@link #LEASH} of their base.
+ * base, dig no hive tunnels and go on no raids. With nothing in reach a wild worker of every race explores
+ * (owner 16.10: they stood turning on the spot) and digs down to ore it finds; zerg drones roam up to {@link #ROAM}
+ * blocks and, finding nothing, cut stairs down to look deeper; terran and protoss workers keep within
+ * {@link #LEASH} of their base. A player's worker waits by its base for orders, as in SC2.
  */
 final class DroneWork extends Goal {
 	private enum State { SEEK, GAS, MINE, CARRY, EXPLORE, RAID, BUILD, TUNNEL, ENGINEER }
@@ -371,9 +372,13 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		// owner 16.10: a worker with nothing to do does not stand turning on the spot — it looks farther, on the
-		// land and under it; only wild zerg dig the hive's tunnels and roam far, the others keep near their base
-		if (!commanded() && drone.kind.race == UnitKind.Race.ZERG && griefing && startTunnel(level)) return;
+		// owner 16.10: a wild worker with nothing to do does not stand turning on the spot — it looks farther;
+		// only wild zerg dig the hive's tunnels and roam far, the others keep near their base
+		if (commanded()) { // a player's worker waits by its base for orders (and for an army's way to cut, Engineering)
+			seekCooldown = 100;
+			return;
+		}
+		if (drone.kind.race == UnitKind.Race.ZERG && griefing && startTunnel(level)) return;
 		startExplore(level);
 	}
 
@@ -736,11 +741,11 @@ final class DroneWork extends Goal {
 
 	// ---- EXPLORE ----
 
-	/** How far a worker explores from its base: wild zerg drones far, the others (a player's too) on a leash. */
+	/** How far a wild worker explores from its base: zerg drones far, terran and protoss workers on a leash. */
 	static final int ROAM = 96, LEASH = 48;
 
 	private void startExplore(ServerLevel level) {
-		boolean roams = !commanded() && drone.kind.race == UnitKind.Race.ZERG;
+		boolean roams = drone.kind.race == UnitKind.Race.ZERG;
 		BlockPos home = roams ? (drone.home() != null ? drone.home() : drone.blockPosition()) : base(level);
 		double radius = Math.min(roams ? ROAM : LEASH, 16 << Math.min(misses, 3));
 		double angle = drone.getRandom().nextDouble() * Math.PI * 2;
@@ -755,7 +760,8 @@ final class DroneWork extends Goal {
 		boolean done = exploreTo == null || stateTicks > 1200 || drone.position().distanceTo(exploreTo) < 5 || move == Move.FAILED;
 		if (!done) return;
 		misses++;
-		if (griefing && misses >= 2 && drone.getRandom().nextBoolean()) {
+		// blind stairs down only for wild zerg drones; the others go under the land only to ore they found
+		if (griefing && misses >= 2 && drone.kind.race == UnitKind.Race.ZERG && drone.getRandom().nextBoolean()) {
 			// walks found nothing: stairs down to look deeper
 			double angle = drone.getRandom().nextDouble() * Math.PI * 2;
 			mineTarget = drone.blockPosition().offset((int) (Math.cos(angle) * 14), -6 - drone.getRandom().nextInt(10), (int) (Math.sin(angle) * 14));
