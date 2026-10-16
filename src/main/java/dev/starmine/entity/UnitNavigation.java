@@ -61,10 +61,11 @@ final class UnitNavigation extends GroundPathNavigation {
 		net.minecraft.world.phys.Vec3 here = this.getTempMobPos(), node = this.path.getEntityPosAtNode(this.mob, this.path.getNextNodeIndex());
 		this.maxDistanceToWaypoint = WAYPOINT;
 		double dx = node.x - this.mob.getX(), dz = node.z - this.mob.getZ();
-		// pressed against something (a building's edge half a block inside the way: a thor stood at a command
-		// center for the rest of the test), a node within a block is reached
+		// pressed against a building (its edge half a block inside the way: a thor stood at a command center for
+		// the rest of the test), a node within a block is reached; against blocks it is not (a marauder pressed
+		// to a bridge's edge went on early, cut the corner and walked into the river)
 		boolean near = Math.abs(dx) < WAYPOINT && Math.abs(dz) < WAYPOINT
-			|| this.mob.horizontalCollision && Math.abs(dx) < 1.0 && Math.abs(dz) < 1.0;
+			|| this.mob.horizontalCollision && Math.abs(dx) < 1.0 && Math.abs(dz) < 1.0 && againstBuilding();
 		if (near && Math.abs(this.mob.getY() - node.y) < 1.0) {
 			// on the node: the body is put on the way's axis across its next step (a tank 5.8 wide in a passage 6
 			// wide has a tenth of a block to spare: a little off it, it caught the edge and stood)
@@ -78,6 +79,11 @@ final class UnitNavigation extends GroundPathNavigation {
 			this.path.advance();
 		}
 		this.doStuckDetection(here);
+	}
+
+	private boolean againstBuilding() {
+		return !this.mob.level().getEntitiesOfClass(StarUnit.class, this.mob.getBoundingBox().inflate(0.2, 0, 0.2),
+			unit -> unit != this.mob && unit.isAlive() && unit.kind.structure()).isEmpty();
 	}
 
 	@Override
