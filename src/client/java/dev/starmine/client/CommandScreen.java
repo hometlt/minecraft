@@ -5,6 +5,7 @@ import dev.starmine.colony.ColonyNetwork;
 import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.UnitKind;
 import dev.starmine.race.Research;
+import dev.starmine.race.Sc2Buttons;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +33,8 @@ import org.lwjgl.glfw.GLFW;
  *   advanced (V), which open pages of buildings (each placed as a translucent ghost: left click puts
  *   it, right click or Esc cancels). Buildings: the units they train, research at the engineering
  *   bay, rally (Y), cancel (X). Greyed when the tech or the money is missing; the tooltip tells the cost;
+ * - every action shows its SC2 button icon ({@link Sc2Buttons}, exported by Modkit) when the SC2 assets
+ *   carry it, else its name;
  * - bottom middle: what is selected (name, health, construction or training progress and queue).
  *
  * Mouse: left click selects (shift adds, double click takes all of that kind on screen), dragging
@@ -46,7 +50,22 @@ public final class CommandScreen extends Screen {
 	private static final int CELL = 34, GAP = 2;
 	private enum Page { MAIN, BUILD, ADVANCED }
 
-	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action) {
+	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon) {
+	}
+
+	/** Size of the exported icon PNGs (`export-starmine-icons.mjs --size`). */
+	private static final int ICON = 64;
+	/** Which SC2 button icons the resources carry (asked once per button). */
+	private static final Map<String, ResourceLocation> ICONS = new HashMap<>();
+
+	/** The icon texture of an SC2 button, or null when the SC2 assets do not carry it. */
+	private static ResourceLocation icon(String button) {
+		if (button == null) return null;
+		// ponytail: cached for the session; a resource reload adding icons shows them after a restart
+		return ICONS.computeIfAbsent(button, id -> {
+			ResourceLocation texture = StarMine.id(Sc2Buttons.texture(id));
+			return Minecraft.getInstance().getResourceManager().getResource(texture).isPresent() ? texture : null;
+		});
 	}
 
 	private Page page = Page.MAIN;
@@ -112,8 +131,12 @@ public final class CommandScreen extends Screen {
 			if (over) hover = button;
 			graphics.fill(at[0], at[1], at[0] + CELL, at[1] + CELL, button.enabled ? (over ? 0xE0305080 : 0xD0203048) : 0xC0303030);
 			graphics.renderOutline(at[0], at[1], CELL, CELL, button.enabled ? 0xFF6080B0 : 0xFF505050);
+			ResourceLocation icon = icon(button.icon);
 			if (button.kind != null) graphics.renderItem(new ItemStack(StarMine.egg(button.kind)), at[0] + 9, at[1] + 5);
-			else {
+			else if (icon != null) {
+				graphics.blit(icon, at[0] + 1, at[1] + 1, CELL - 2, CELL - 2, 0, 0, ICON, ICON, ICON, ICON);
+				if (!button.enabled) graphics.fill(at[0] + 1, at[1] + 1, at[0] + CELL - 1, at[1] + CELL - 1, 0xA0000000);
+			} else {
 				String text = button.label.getString();
 				graphics.drawCenteredString(font, text.length() > 6 ? text.substring(0, 6) : text, at[0] + CELL / 2, at[1] + 13, button.enabled ? 0xFFFFFFFF : 0xFF909090);
 			}
@@ -341,6 +364,7 @@ public final class CommandScreen extends Screen {
 		List<Button> buttons = new ArrayList<>();
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
 		if (own.isEmpty()) return buttons;
+		UnitKind.Race race = own.get(0).kind.race;
 		List<StarUnit> mobile = own.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
 		StarUnit worker = mobile.stream().filter(unit -> unit.kind.worker()).findFirst().orElse(null);
 		if (page != Page.MAIN && worker != null) {
@@ -354,21 +378,21 @@ public final class CommandScreen extends Screen {
 				}, false));
 			}
 			buttons.add(new Button(14, Component.translatable("command.starmine.back"), GLFW.GLFW_KEY_ESCAPE, null, true,
-				List.of(Component.translatable("command.starmine.back")), () -> page = Page.MAIN));
+				List.of(Component.translatable("command.starmine.back")), () -> page = Page.MAIN, Sc2Buttons.command("back", race)));
 			return buttons;
 		}
 		page = Page.MAIN;
 		if (!mobile.isEmpty()) {
-			buttons.add(simple(0, "move", 'M', () -> targeting = "move"));
-			buttons.add(simple(1, "stop", 'S', () -> CommandView.send("stop", Vec3.ZERO, -1, null)));
-			buttons.add(simple(2, "hold", 'H', () -> CommandView.send("hold", Vec3.ZERO, -1, null)));
-			buttons.add(simple(3, "patrol", 'P', () -> targeting = "patrol"));
-			buttons.add(simple(4, "attack", 'A', () -> targeting = "attack"));
+			buttons.add(simple(0, "move", race, 'M', () -> targeting = "move"));
+			buttons.add(simple(1, "stop", race, 'S', () -> CommandView.send("stop", Vec3.ZERO, -1, null)));
+			buttons.add(simple(2, "hold", race, 'H', () -> CommandView.send("hold", Vec3.ZERO, -1, null)));
+			buttons.add(simple(3, "patrol", race, 'P', () -> targeting = "patrol"));
+			buttons.add(simple(4, "attack", race, 'A', () -> targeting = "attack"));
 			if (worker != null) {
-				buttons.add(simple(5, "gather", 'G', () -> targeting = "gather"));
-				buttons.add(simple(6, "return", 'C', () -> CommandView.send("return", Vec3.ZERO, -1, null)));
-				buttons.add(simple(10, "build", 'B', () -> page = Page.BUILD));
-				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", 'V', () -> page = Page.ADVANCED));
+				buttons.add(simple(5, "gather", race, 'G', () -> targeting = "gather"));
+				buttons.add(simple(6, "return", race, 'C', () -> CommandView.send("return", Vec3.ZERO, -1, null)));
+				buttons.add(simple(10, "build", race, 'B', () -> page = Page.BUILD));
+				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", race, 'V', () -> page = Page.ADVANCED));
 			}
 			// abilities of the first selected kind (dev.starmine.ability): the bottom row, a worker's beside its gather keys
 			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(mobile.get(0));
@@ -377,7 +401,7 @@ public final class CommandScreen extends Screen {
 			if (own.size() == 1) // owner 14.10: play as this unit (dev.starmine.possess)
 				buttons.add(new Button(14, Component.translatable("command.starmine.possess"), 'U', null, true,
 					List.of(Component.translatable("command.starmine.possess").append(" (U)"), Component.translatable("command.starmine.possess.tip").withColor(0xFFC0C0C0)),
-					() -> CommandView.send("possess", Vec3.ZERO, -1, null)));
+					() -> CommandView.send("possess", Vec3.ZERO, -1, null), null));
 			// morphs of the first selected kind (a zergling into a baneling…): every selected one of that kind morphs
 			List<UnitKind> morphs = worker != null ? List.of() : mobile.get(0).kind.trains();
 			for (int i = 0; i < morphs.size() && i < 3; i++) {
@@ -394,12 +418,12 @@ public final class CommandScreen extends Screen {
 		}
 		List<Research> researches = Research.of(producer);
 		for (int i = 0; i < researches.size(); i++) buttons.add(research(trains.size() + i, researches.get(i), producer));
-		if (!trains.isEmpty() && producer.structure()) buttons.add(simple(10, "rally", 'Y', () -> targeting = "rally"));
+		if (!trains.isEmpty() && producer.structure()) buttons.add(simple(10, "rally", race, 'Y', () -> targeting = "rally"));
 		List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(own.get(0)); // a building's (an orbital, a nexus…), as it is now
 		for (int i = 0; i < abilities.size() && i < 3; i++) buttons.add(abilityButton(11 + i, abilities.get(i), own));
 		if (producer.structure())
 			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
-				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null)));
+				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null), Sc2Buttons.command("cancel", race)));
 		return buttons;
 	}
 
@@ -421,12 +445,12 @@ public final class CommandScreen extends Screen {
 			case NONE, TOGGLE -> () -> CommandView.send("ability", Vec3.ZERO, -1, ability.id);
 			case UNIT, POINT -> () -> targeting = "ability:" + ability.id;
 		};
-		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run);
+		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run, Sc2Buttons.ability(ability));
 	}
 
-	private static Button simple(int slot, String action, char key, Runnable run) {
+	private static Button simple(int slot, String action, UnitKind.Race race, char key, Runnable run) {
 		Component label = Component.translatable("command.starmine." + action);
-		return new Button(slot, label, key, null, true, List.of(label.copy().append(" (" + key + ")")), run);
+		return new Button(slot, label, key, null, true, List.of(label.copy().append(" (" + key + ")")), run, Sc2Buttons.command(action, race));
 	}
 
 	/** A research button: its next level, cost and what it needs (from the base status). */
@@ -461,7 +485,8 @@ public final class CommandScreen extends Screen {
 		tooltip.add(label.copy().append((what == Research.WEAPONS || what == Research.ARMOR ? " " + Math.min(level, 3) : "") + " (" + what.hotkey + ")"));
 		tooltip.add(Component.translatable("command.starmine.cost", cost[0], cost[1]));
 		if (need != null && status.counts().getOrDefault(need.name(), 0) == 0) tooltip.add(Component.translatable("command.starmine.requires", name(need)).withColor(0xFF6060));
-		return new Button(slot, label, what.hotkey, null, enabled, tooltip, () -> CommandView.send("research", Vec3.ZERO, -1, what.id()));
+		return new Button(slot, label, what.hotkey, null, enabled, tooltip, () -> CommandView.send("research", Vec3.ZERO, -1, what.id()),
+			Sc2Buttons.research(what, building.race, level));
 	}
 
 	/** A button for a unit or building: its icon, cost tooltip, greyed when locked or too dear. */
@@ -478,7 +503,7 @@ public final class CommandScreen extends Screen {
 		tooltip.add(Component.translatable("command.starmine.time", Math.round(cost.trainTicks() / 20.0)));
 		if (!unlocked && kind.requires() != null) tooltip.add(Component.translatable("command.starmine.requires", name(kind.requires())).withColor(0xFF6060));
 		if (dev.starmine.race.ProtossRace.needsPower(kind)) tooltip.add(Component.translatable("command.starmine.needs_power").withColor(0x60C0FF));
-		return new Button(slot, name(kind), key, kind, unlocked && affordable, tooltip, run);
+		return new Button(slot, name(kind), key, kind, unlocked && affordable, tooltip, run, null);
 	}
 
 	// ---- input ----

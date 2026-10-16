@@ -23,6 +23,27 @@ python tools/check_sounds.py sc2-assets
 
 Пока события нет в `sounds.json`, Minecraft просто молчит на нём (в логе клиента — предупреждение).
 
+## Значки карточки команд
+
+Каждое действие карточки (`client/CommandScreen`) — движение, стоп, удержание, патруль, атака, сбор,
+возврат груза, строительство и продвинутое строительство, точка сбора, отмена, каждая способность
+`Ability` и каждое исследование `Research` (оружие и броня — по расе и уровню) — показывает значок
+своей кнопки SC2. Какая кнопка у какого действия — одна таблица `race/Sc2Buttons` (id `CButton` в
+Data VoidMulti); проверка — игровой тест `RaceGameTests.everyCommandHasAnSc2Button`.
+
+Экспорт (ModKit-Blizzard, `scripts/export-starmine-icons.mjs`, общий код —
+`starcraft2/modules/mod/shared/export/command-icons.ts`): читает id кнопок из `Sc2Buttons.java`,
+разрешает `Button.Icon` через загрузчик модов, переводит DDS в PNG кодеком изображений Modkit и
+масштабирует до 64 px (ffmpeg):
+
+```text
+pnpm --dir starcraft2 exec tsx ../scripts/export-starmine-icons.mjs --starmine <StarMine> --out <sc2-assets>
+```
+
+Результат: `assets/starmine/textures/gui/sc2/command/<id кнопки в нижнем регистре>.png` и индекс
+`assets/starmine/sc2-command-icons.json` (`{ имя: { button, icon } }`). Нет PNG — карточка рисует подпись.
+Значки юнитов и зданий — прежние `textures/item/sc2/<вид>.png` (яйца призыва).
+
 ## Язык реплик
 
 По умолчанию реплики **английские**; язык — выбор при установке:

@@ -312,4 +312,25 @@ public class RaceGameTests implements FabricGameTest {
 		}
 		helper.succeed();
 	}
+	/**
+	 * Every action of the command card names its SC2 button ({@link Sc2Buttons}): each ability, each
+	 * research at each level for each race, each plain command; an id is a plain SC2 id (the exporter reads
+	 * it from the table) and gives a valid texture path.
+	 */
+	@GameTest(template = ARENA, batch = "sc2Buttons")
+	public void everyCommandHasAnSc2Button(GameTestHelper helper) {
+		java.util.List<String> ids = new java.util.ArrayList<>();
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) ids.add(Sc2Buttons.ability(ability));
+		for (UnitKind.Race race : UnitKind.Race.values()) {
+			for (Research research : Research.values()) for (int level = 1; level <= 3; level++) ids.add(Sc2Buttons.research(research, race, level));
+			for (String action : java.util.List.of("move", "stop", "hold", "patrol", "attack", "gather", "return", "build", "advanced", "rally", "cancel", "back"))
+				ids.add(Sc2Buttons.command(action, race));
+		}
+		for (String id : ids) {
+			helper.assertTrue(id != null && id.matches("[A-Za-z][A-Za-z0-9]*"), "no plain SC2 button id: " + id);
+			helper.assertTrue(net.minecraft.resources.ResourceLocation.tryBuild(StarMine.MOD_ID, Sc2Buttons.texture(id)) != null, "bad texture path for " + id);
+		}
+		helper.assertTrue(Sc2Buttons.command("possess", UnitKind.Race.TERRAN) == null, "possess has no SC2 button");
+		helper.succeed();
+	}
 }
