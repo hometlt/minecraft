@@ -1,0 +1,19 @@
+{
+	"name": "Фотонная пушка",
+	"icon": "starmine:photoncannon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:photoncannon",
+			"name": "Фотонная пушка",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Фотонная пушка",
+			"text": "$(l)Здоровье$(): 150, щиты 150$(br)$(l)Урон$(): 20, раз в 1.25 с, дальность 7$(br)$(l)Цена$(): 150 минералов$(br)$(l)Время$(): 29 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Evolution Chamber",
+	"icon": "starmine:evolutionchamber_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:evolutionchamber",
+			"name": "Evolution Chamber",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Evolution Chamber",
+			"text": "$(l)Health$(): 750$(br)No attack$(br)$(l)Cost$(): 75 minerals$(br)$(l)Build time$(): 25 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

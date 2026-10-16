@@ -1,0 +1,24 @@
+{
+	"name": "Губитель",
+	"icon": "starmine:corruptor_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:corruptor",
+			"name": "Губитель",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Губитель",
+			"text": "$(l)Здоровье$(): 200$(br)$(l)Урон$(): 14, раз в 1.36 с, дальность 6$(br)$(l)Скорость$(): 4.725, летает$(br)$(l)Цена$(): 150 минералов, 100 веспена, 2 снабжения$(br)$(l)Время$(): 29 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Едкий спрей$(): Поливает здание: урон растёт, пока губитель рядом"
+		}
+	]
+}

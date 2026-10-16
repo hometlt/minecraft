@@ -1,0 +1,19 @@
+{
+	"name": "Архивы тамплиеров",
+	"icon": "starmine:templararchives_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:templararchives",
+			"name": "Архивы тамплиеров",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Архивы тамплиеров",
+			"text": "$(l)Здоровье$(): 500, щиты 500$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 200 веспена$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

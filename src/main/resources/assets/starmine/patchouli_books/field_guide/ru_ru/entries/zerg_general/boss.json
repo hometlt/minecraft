@@ -1,0 +1,14 @@
+{
+	"name": "Босс: Керриган",
+	"icon": "starmine:zerg_chestplate",
+	"category": "starmine:zerg_general",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:kerrigan",
+			"text": "Королева Клинков ждёт в сердце левиафана. На 2/3 здоровья она зовёт выводок, на 1/3 впадает в ярость. Награда: полный костюм зергов, 16 осколков, 8 алмазов.",
+			"rotate": true
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Авианосец",
+	"icon": "starmine:carrier_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 17,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:carrier",
+			"name": "Авианосец",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Авианосец",
+			"text": "$(l)Здоровье$(): 300, щиты 150$(br)$(l)Урон$(): 16, раз в 0.5 с, дальность 8$(br)$(l)Скорость$(): 2.62, летает$(br)$(l)Цена$(): 350 минералов, 250 веспена, 6 снабжения$(br)$(l)Время$(): 64 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

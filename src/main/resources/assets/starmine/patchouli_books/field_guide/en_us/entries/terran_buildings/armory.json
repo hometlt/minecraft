@@ -1,0 +1,19 @@
+{
+	"name": "Armory",
+	"icon": "starmine:armory_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:armory",
+			"name": "Armory",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Armory",
+			"text": "$(l)Health$(): 750$(br)No attack$(br)$(l)Cost$(): 150 minerals, 50 vespene$(br)$(l)Build time$(): 46 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

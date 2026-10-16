@@ -1,0 +1,24 @@
+{
+	"name": "Overseer",
+	"icon": "starmine:overseer_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:overseer",
+			"name": "Overseer",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Overseer",
+			"text": "$(l)Health$(): 200$(br)No attack$(br)$(l)Speed$(): 2.62, flying$(br)$(l)Cost$(): 150 minerals, 50 vespene$(br)$(l)Build time$(): 12 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Spawn Changeling$(): Sends out a changeling that the enemy does not attack"
+		}
+	]
+}

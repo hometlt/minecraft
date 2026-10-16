@@ -1,0 +1,7 @@
+{
+	"name": "Troops",
+	"description": "Troops: Protoss.",
+	"icon": "starmine:zealot_spawn_egg",
+	"sortnum": 0,
+	"parent": "starmine:protoss"
+}

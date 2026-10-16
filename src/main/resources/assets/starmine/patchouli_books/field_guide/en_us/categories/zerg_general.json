@@ -1,0 +1,7 @@
+{
+	"name": "General Information",
+	"description": "General Information: Zerg.",
+	"icon": "starmine:hatchery_spawn_egg",
+	"sortnum": 2,
+	"parent": "starmine:zerg"
+}

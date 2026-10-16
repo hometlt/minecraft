@@ -1,0 +1,19 @@
+{
+	"name": "Interceptor",
+	"icon": "starmine:interceptor_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 18,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:interceptor",
+			"name": "Interceptor",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Interceptor",
+			"text": "$(l)Health$(): 40, shields 40$(br)$(l)Damage$(): 16, every 2.14 s, melee$(br)$(l)Speed$(): 7.5, flying$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

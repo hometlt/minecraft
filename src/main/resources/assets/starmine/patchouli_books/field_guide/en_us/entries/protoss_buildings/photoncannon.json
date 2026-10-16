@@ -1,0 +1,19 @@
+{
+	"name": "Photon Cannon",
+	"icon": "starmine:photoncannon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:photoncannon",
+			"name": "Photon Cannon",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Photon Cannon",
+			"text": "$(l)Health$(): 150, shields 150$(br)$(l)Damage$(): 20, every 1.25 s, range 7$(br)$(l)Cost$(): 150 minerals$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

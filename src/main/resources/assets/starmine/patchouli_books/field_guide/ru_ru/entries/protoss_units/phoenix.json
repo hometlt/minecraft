@@ -1,0 +1,24 @@
+{
+	"name": "Феникс",
+	"icon": "starmine:phoenix_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:phoenix",
+			"name": "Феникс",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Феникс",
+			"text": "$(l)Здоровье$(): 120, щиты 60$(br)$(l)Урон$(): 10, раз в 0.79 с, дальность 5$(br)$(l)Скорость$(): 5.95, летает$(br)$(l)Цена$(): 150 минералов, 100 веспена, 2 снабжения$(br)$(l)Время$(): 25 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Гравитонный луч$(): Поднимает наземного юнита в воздух на 7 с"
+		}
+	]
+}

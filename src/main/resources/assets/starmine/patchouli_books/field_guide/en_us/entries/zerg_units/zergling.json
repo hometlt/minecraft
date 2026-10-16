@@ -1,0 +1,24 @@
+{
+	"name": "Zergling",
+	"icon": "starmine:zergling_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zergling",
+			"name": "Zergling",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Zergling",
+			"text": "$(l)Health$(): 35$(br)$(l)Damage$(): 5, every 0.497 s, melee$(br)$(l)Speed$(): 4.13, on the ground$(br)$(l)Cost$(): 25 minerals, 0.5 supply$(br)$(l)Build time$(): 17 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

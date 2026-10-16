@@ -1,0 +1,7 @@
+{
+	"name": "Постройки",
+	"description": "Постройки: Протоссы.",
+	"icon": "starmine:gateway_spawn_egg",
+	"sortnum": 1,
+	"parent": "starmine:protoss"
+}

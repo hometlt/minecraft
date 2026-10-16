@@ -1,0 +1,24 @@
+{
+	"name": "Ghost",
+	"icon": "starmine:ghost_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:ghost",
+			"name": "Ghost",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ghost",
+			"text": "$(l)Health$(): 100$(br)$(l)Damage$(): 10, every 1.07 s, range 6$(br)$(l)Speed$(): 3.94, on the ground$(br)$(l)Cost$(): 150 minerals, 125 vespene, 2 supply$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second$(br2)$(l)EMP Round$(): Removes shields and energy in the area$(br2)$(l)Steady Targeting$(): After aiming 1.4 s: 170 damage to a biological unit$(br2)$(l)Tactical Nuke$(): The ghost guides it 14 s: a huge blast at the point"
+		}
+	]
+}

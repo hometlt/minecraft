@@ -1,0 +1,24 @@
+{
+	"name": "Буря",
+	"icon": "starmine:tempest_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:tempest",
+			"name": "Буря",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Буря",
+			"text": "$(l)Здоровье$(): 200, щиты 100$(br)$(l)Урон$(): 40, раз в 2.36 с, дальность 10$(br)$(l)Скорость$(): 3.15, летает$(br)$(l)Цена$(): 250 минералов, 175 веспена, 5 снабжения$(br)$(l)Время$(): 43 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Разрушитель$(): Через 7 с: 500 урона зданиям в точке"
+		}
+	]
+}

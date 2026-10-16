@@ -1,0 +1,24 @@
+{
+	"name": "Warp Prism",
+	"icon": "starmine:warpprism_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 12,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:warpprism",
+			"name": "Warp Prism",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Warp Prism",
+			"text": "$(l)Health$(): 80, shields 100$(br)No attack$(br)$(l)Speed$(): 4.13, flying$(br)$(l)Cost$(): 250 minerals, 2 supply$(br)$(l)Build time$(): 36 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Phasing Mode$(): Stands still and powers buildings like a pylon$(br2)$(l)Load$(): Takes aboard own ground units of its race nearby (8 slots)$(br2)$(l)Unload$(): Flies there and puts the cargo down"
+		}
+	]
+}

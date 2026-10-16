@@ -1,0 +1,24 @@
+{
+	"name": "Phoenix",
+	"icon": "starmine:phoenix_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:phoenix",
+			"name": "Phoenix",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Phoenix",
+			"text": "$(l)Health$(): 120, shields 60$(br)$(l)Damage$(): 10, every 0.79 s, range 5$(br)$(l)Speed$(): 5.95, flying$(br)$(l)Cost$(): 150 minerals, 100 vespene, 2 supply$(br)$(l)Build time$(): 25 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Graviton Beam$(): Lifts a ground unit into the air for 7 s"
+		}
+	]
+}

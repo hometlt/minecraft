@@ -1,0 +1,19 @@
+{
+	"name": "Кузница",
+	"icon": "starmine:forge_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:forge",
+			"name": "Кузница",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Кузница",
+			"text": "$(l)Здоровье$(): 400, щиты 400$(br)Без атаки$(br)$(l)Цена$(): 150 минералов$(br)$(l)Время$(): 32 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Barracks",
+	"icon": "starmine:barracks_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:barracks",
+			"name": "Barracks",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Barracks",
+			"text": "$(l)Health$(): 1000$(br)No attack$(br)$(l)Cost$(): 150 minerals$(br)$(l)Build time$(): 46 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Lift Off$(): Flies to a new site or lands where it hovers; trains nothing in the air$(br2)$(l)Build Tech Lab$(): Needed for advanced units$(br2)$(l)Build Reactor$(): Trains two units at once"
+		}
+	]
+}

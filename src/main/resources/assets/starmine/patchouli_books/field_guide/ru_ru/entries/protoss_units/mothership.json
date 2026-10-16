@@ -1,0 +1,24 @@
+{
+	"name": "Материнский корабль",
+	"icon": "starmine:mothership_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 19,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:mothership",
+			"name": "Материнский корабль",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Материнский корабль",
+			"text": "$(l)Здоровье$(): 350, щиты 350$(br)$(l)Урон$(): 24, раз в 2.21 с, дальность 7$(br)$(l)Скорость$(): 2.62, летает$(br)$(l)Цена$(): 400 минералов, 400 веспена, 8 снабжения$(br)$(l)Время$(): 89 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Массовый возврат$(): Юниты вокруг телепортируются к нексусу$(br2)$(l)Временная дыра$(): Замедляет врагов в области"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Reaper",
+	"icon": "starmine:reaper_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:reaper",
+			"name": "Reaper",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Reaper",
+			"text": "$(l)Health$(): 60$(br)$(l)Damage$(): 8, every 0.79 s, range 5$(br)$(l)Speed$(): 5.25, on the ground$(br)$(l)Cost$(): 50 minerals, 50 vespene, 1 supply$(br)$(l)Build time$(): 32 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)KD8 Charge$(): A charge that knocks everyone around back after 1.5 s"
+		}
+	]
+}

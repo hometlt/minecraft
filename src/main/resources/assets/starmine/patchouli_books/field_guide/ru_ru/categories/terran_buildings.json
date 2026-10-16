@@ -1,0 +1,7 @@
+{
+	"name": "Постройки",
+	"description": "Постройки: Терраны.",
+	"icon": "starmine:barracks_spawn_egg",
+	"sortnum": 1,
+	"parent": "starmine:terran"
+}

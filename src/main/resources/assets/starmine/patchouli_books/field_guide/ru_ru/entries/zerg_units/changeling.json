@@ -1,0 +1,19 @@
+{
+	"name": "Подменыш",
+	"icon": "starmine:changeling_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 19,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:changeling",
+			"name": "Подменыш",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Подменыш",
+			"text": "$(l)Здоровье$(): 5$(br)Без атаки$(br)$(l)Скорость$(): 3.15, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

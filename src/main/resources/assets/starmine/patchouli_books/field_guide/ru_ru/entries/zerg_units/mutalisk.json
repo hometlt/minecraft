@@ -1,0 +1,19 @@
+{
+	"name": "Муталиск",
+	"icon": "starmine:mutalisk_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:mutalisk",
+			"name": "Муталиск",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Муталиск",
+			"text": "$(l)Здоровье$(): 120$(br)$(l)Урон$(): 9, раз в 1.09 с, дальность 3$(br)$(l)Скорость$(): 5.6, летает$(br)$(l)Цена$(): 100 минералов, 100 веспена, 2 снабжения$(br)$(l)Время$(): 24 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

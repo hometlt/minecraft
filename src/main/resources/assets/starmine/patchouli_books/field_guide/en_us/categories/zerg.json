@@ -1,6 +1,6 @@
 {
 	"name": "Zerg",
-	"description": "The swarm, creep and nydus corridors.",
+	"description": "The swarm: larvae, creep, burrowing and nydus corridors. Hostile to every living thing.",
 	"icon": "starmine:hatchery_spawn_egg",
-	"sortnum": 3
+	"sortnum": 10
 }

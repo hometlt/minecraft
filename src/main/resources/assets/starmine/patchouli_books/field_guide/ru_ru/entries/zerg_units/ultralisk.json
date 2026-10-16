@@ -1,0 +1,19 @@
+{
+	"name": "Ультралиск",
+	"icon": "starmine:ultralisk_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:ultralisk",
+			"name": "Ультралиск",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ультралиск",
+			"text": "$(l)Здоровье$(): 500$(br)$(l)Урон$(): 35, раз в 0.61 с, ближний бой$(br)$(l)Скорость$(): 4.13, по земле$(br)$(l)Цена$(): 275 минералов, 200 веспена, 6 снабжения$(br)$(l)Время$(): 39 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

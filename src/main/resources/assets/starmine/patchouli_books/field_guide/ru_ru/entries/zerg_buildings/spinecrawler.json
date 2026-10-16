@@ -1,0 +1,19 @@
+{
+	"name": "Ползучая колония шипов",
+	"icon": "starmine:spinecrawler_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:spinecrawler",
+			"name": "Ползучая колония шипов",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ползучая колония шипов",
+			"text": "$(l)Здоровье$(): 300$(br)$(l)Урон$(): 25, раз в 1.32 с, дальность 7$(br)$(l)Цена$(): 100 минералов$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

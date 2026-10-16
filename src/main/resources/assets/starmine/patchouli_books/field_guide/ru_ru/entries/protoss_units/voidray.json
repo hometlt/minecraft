@@ -1,0 +1,24 @@
+{
+	"name": "Луч Бездны",
+	"icon": "starmine:voidray_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:voidray",
+			"name": "Луч Бездны",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Луч Бездны",
+			"text": "$(l)Здоровье$(): 150, щиты 100$(br)$(l)Урон$(): 6, раз в 0.36 с, дальность 6$(br)$(l)Скорость$(): 3.85, летает$(br)$(l)Цена$(): 250 минералов, 150 веспена, 4 снабжения$(br)$(l)Время$(): 37 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Призматическое выравнивание$(): Больше урона на 14 с, медленнее"
+		}
+	]
+}

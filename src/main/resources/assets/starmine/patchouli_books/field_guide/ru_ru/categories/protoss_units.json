@@ -1,0 +1,7 @@
+{
+	"name": "Войска",
+	"description": "Войска: Протоссы.",
+	"icon": "starmine:zealot_spawn_egg",
+	"sortnum": 0,
+	"parent": "starmine:protoss"
+}

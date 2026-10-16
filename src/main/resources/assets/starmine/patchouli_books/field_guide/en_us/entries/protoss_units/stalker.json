@@ -1,0 +1,24 @@
+{
+	"name": "Stalker",
+	"icon": "starmine:stalker_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:stalker",
+			"name": "Stalker",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Stalker",
+			"text": "$(l)Health$(): 80, shields 80$(br)$(l)Damage$(): 13, every 1.34 s, range 6$(br)$(l)Speed$(): 4.13, on the ground$(br)$(l)Cost$(): 125 minerals, 50 vespene, 2 supply$(br)$(l)Build time$(): 30 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Blink$(): Teleports a short distance, through walls and up cliffs"
+		}
+	]
+}

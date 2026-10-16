@@ -1,0 +1,19 @@
+{
+	"name": "Ползучая колония спор",
+	"icon": "starmine:sporecrawler_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:sporecrawler",
+			"name": "Ползучая колония спор",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ползучая колония спор",
+			"text": "$(l)Здоровье$(): 400$(br)$(l)Урон$(): 15, раз в 0.61 с, дальность 7$(br)$(l)Цена$(): 75 минералов$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Гнездо гиблингов",
+	"icon": "starmine:banelingnest_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:banelingnest",
+			"name": "Гнездо гиблингов",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Гнездо гиблингов",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 100 минералов, 50 веспена$(br)$(l)Время$(): 43 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

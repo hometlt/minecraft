@@ -1,0 +1,19 @@
+{
+	"name": "Stargate",
+	"icon": "starmine:stargate_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:stargate",
+			"name": "Stargate",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Stargate",
+			"text": "$(l)Health$(): 600, shields 600$(br)No attack$(br)$(l)Cost$(): 150 minerals, 150 vespene$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

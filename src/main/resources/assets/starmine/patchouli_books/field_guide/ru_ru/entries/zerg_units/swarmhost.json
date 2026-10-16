@@ -1,0 +1,24 @@
+{
+	"name": "Хозяин стаи",
+	"icon": "starmine:swarmhost_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:swarmhost",
+			"name": "Хозяин стаи",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Хозяин стаи",
+			"text": "$(l)Здоровье$(): 160$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 100 минералов, 75 веспена, 3 снабжения$(br)$(l)Время$(): 29 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Закопаться$(): Уходит под землю: невидим без детектора; скрытень атакует только закопанным, таракан ползёт и лечится"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Кибернетическое ядро",
+	"icon": "starmine:cyberneticscore_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:cyberneticscore",
+			"name": "Кибернетическое ядро",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Кибернетическое ядро",
+			"text": "$(l)Здоровье$(): 550, щиты 550$(br)Без атаки$(br)$(l)Цена$(): 150 минералов$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

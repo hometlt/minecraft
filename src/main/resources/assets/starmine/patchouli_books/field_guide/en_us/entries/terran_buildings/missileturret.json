@@ -1,0 +1,19 @@
+{
+	"name": "Missile Turret",
+	"icon": "starmine:missileturret_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:missileturret",
+			"name": "Missile Turret",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Missile Turret",
+			"text": "$(l)Health$(): 250$(br)$(l)Damage$(): 24, every 0.61 s, range 7$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 18 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

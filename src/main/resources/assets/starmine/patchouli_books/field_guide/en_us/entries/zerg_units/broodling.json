@@ -1,0 +1,19 @@
+{
+	"name": "Broodling",
+	"icon": "starmine:broodling_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 17,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:broodling",
+			"name": "Broodling",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Broodling",
+			"text": "$(l)Health$(): 20$(br)$(l)Damage$(): 4, every 0.46 s, melee$(br)$(l)Speed$(): 5.37, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

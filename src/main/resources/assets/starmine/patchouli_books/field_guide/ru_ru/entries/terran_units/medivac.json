@@ -1,0 +1,24 @@
+{
+	"name": "Медэвак",
+	"icon": "starmine:medivac_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 9,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:medivac",
+			"name": "Медэвак",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Медэвак",
+			"text": "$(l)Здоровье$(): 150$(br)Без атаки$(br)$(l)Скорость$(): 3.5, летает$(br)$(l)Цена$(): 100 минералов, 100 веспена, 2 снабжения$(br)$(l)Время$(): 30 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Форсаж$(): Двойная скорость на 4 с$(br2)$(l)Загрузить$(): Берёт на борт своих наземных юнитов своей расы рядом (8 мест)$(br2)$(l)Выгрузить$(): Летит туда и высаживает груз"
+		}
+	]
+}

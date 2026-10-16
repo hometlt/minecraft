@@ -1,0 +1,24 @@
+{
+	"name": "Склад снабжения",
+	"icon": "starmine:supplydepot_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:supplydepot",
+			"name": "Склад снабжения",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Склад снабжения",
+			"text": "$(l)Здоровье$(): 400$(br)Без атаки$(br)$(l)Цена$(): 100 минералов$(br)$(l)Время$(): 21 с$(br)$(l)Даёт снабжения$(): 8$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Опустить$(): Опущенный склад пропускает юнитов базы"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Locust",
+	"icon": "starmine:locust_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 18,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:locust",
+			"name": "Locust",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Locust",
+			"text": "$(l)Health$(): 50$(br)$(l)Damage$(): 10, every 0.43 s, melee$(br)$(l)Speed$(): 2.62, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

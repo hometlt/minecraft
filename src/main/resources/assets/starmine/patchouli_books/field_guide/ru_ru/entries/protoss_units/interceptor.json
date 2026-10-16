@@ -1,0 +1,19 @@
+{
+	"name": "Перехватчик",
+	"icon": "starmine:interceptor_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 18,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:interceptor",
+			"name": "Перехватчик",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Перехватчик",
+			"text": "$(l)Здоровье$(): 40, щиты 40$(br)$(l)Урон$(): 16, раз в 2.14 с, ближний бой$(br)$(l)Скорость$(): 7.5, летает$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

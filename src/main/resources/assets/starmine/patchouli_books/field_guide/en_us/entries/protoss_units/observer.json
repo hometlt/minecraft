@@ -1,0 +1,19 @@
+{
+	"name": "Observer",
+	"icon": "starmine:observer_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:observer",
+			"name": "Observer",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Observer",
+			"text": "$(l)Health$(): 40, shields 20$(br)No attack$(br)$(l)Speed$(): 2.63, flying$(br)$(l)Cost$(): 25 minerals, 75 vespene, 1 supply$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

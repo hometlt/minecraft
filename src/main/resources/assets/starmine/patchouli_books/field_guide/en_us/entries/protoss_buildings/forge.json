@@ -1,0 +1,19 @@
+{
+	"name": "Forge",
+	"icon": "starmine:forge_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:forge",
+			"name": "Forge",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Forge",
+			"text": "$(l)Health$(): 400, shields 400$(br)No attack$(br)$(l)Cost$(): 150 minerals$(br)$(l)Build time$(): 32 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

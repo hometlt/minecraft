@@ -1,0 +1,24 @@
+{
+	"name": "Swarm Host",
+	"icon": "starmine:swarmhost_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:swarmhost",
+			"name": "Swarm Host",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Swarm Host",
+			"text": "$(l)Health$(): 160$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 100 minerals, 75 vespene, 3 supply$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

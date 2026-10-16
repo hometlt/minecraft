@@ -1,0 +1,19 @@
+{
+	"name": "Оружейная",
+	"icon": "starmine:armory_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:armory",
+			"name": "Оружейная",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Оружейная",
+			"text": "$(l)Здоровье$(): 750$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 50 веспена$(br)$(l)Время$(): 46 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

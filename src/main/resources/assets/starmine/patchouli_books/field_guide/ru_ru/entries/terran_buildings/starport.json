@@ -1,0 +1,24 @@
+{
+	"name": "Космопорт",
+	"icon": "starmine:starport_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:starport",
+			"name": "Космопорт",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Космопорт",
+			"text": "$(l)Здоровье$(): 1300$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 100 веспена$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Взлёт$(): Летит на новое место или садится там, где висит; в воздухе ничего не обучает$(br2)$(l)Техлаборатория$(): Нужна для продвинутых юнитов$(br2)$(l)Реактор$(): Обучает двух юнитов сразу"
+		}
+	]
+}

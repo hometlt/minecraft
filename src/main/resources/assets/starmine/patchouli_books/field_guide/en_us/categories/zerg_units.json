@@ -1,0 +1,7 @@
+{
+	"name": "Troops",
+	"description": "Troops: Zerg.",
+	"icon": "starmine:zergling_spawn_egg",
+	"sortnum": 0,
+	"parent": "starmine:zerg"
+}

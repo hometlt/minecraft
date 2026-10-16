@@ -1,0 +1,19 @@
+{
+	"name": "Ассимилятор",
+	"icon": "starmine:assimilator_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:assimilator",
+			"name": "Ассимилятор",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ассимилятор",
+			"text": "$(l)Здоровье$(): 300, щиты 300$(br)Без атаки$(br)$(l)Цена$(): 75 минералов$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

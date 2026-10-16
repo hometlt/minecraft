@@ -73,12 +73,22 @@ public class GuideGameTests implements FabricGameTest {
 			helper.assertTrue(lang.getValue().has("book.starmine.field_guide.name") && lang.getValue().has("book.starmine.field_guide.landing"),
 				"the illustrated book has no name in " + lang.getKey());
 		helper.assertTrue(json("/data/starmine/patchouli_books/field_guide/book.json") != null, "no illustrated book");
-		String[] entries = {"basics/welcome", "basics/sides", "basics/goals", "base/founding", "base/command", "base/resources", "gear/suits",
-			"gear/modules", "gear/guns", "zerg/hive", "zerg/nydus", "terran/army", "protoss/army", "world/wild", "world/heroes"};
-		for (String lang : new String[] {"en_us", "ru_ru"})
+		// owner 17.10: every race's troops and buildings, its general information (base, sky ship, boss), every ability
+		java.util.List<String> entries = new java.util.ArrayList<>(java.util.List.of("basics/welcome", "basics/sides", "basics/goals", "base/founding",
+			"base/command", "base/resources", "gear/suits", "gear/modules", "gear/guns", "world/wild"));
+		for (String race : new String[] {"zerg", "terran", "protoss"})
+			for (String general : new String[] {"base", "sky", "boss"}) entries.add(race + "_general/" + general);
+		for (dev.starmine.entity.UnitKind kind : dev.starmine.entity.UnitKind.values()) {
+			if (kind.boss() || kind == dev.starmine.entity.UnitKind.LARVA || kind == dev.starmine.entity.UnitKind.EGG) continue;
+			boolean building = kind.race.rules().buildings().contains(kind) || kind.speed == 0;
+			entries.add(kind.race.name().toLowerCase() + (building ? "_buildings/" : "_units/") + kind.id);
+		}
+		for (String lang : new String[] {"en_us", "ru_ru"}) {
+			StringBuilder all = new StringBuilder();
 			for (String entry : entries) {
 				var page = json("/assets/starmine/patchouli_books/field_guide/" + lang + "/entries/" + entry + ".json");
 				helper.assertTrue(page != null && page.getAsJsonArray("pages").size() > 0, "no " + entry + " in " + lang);
+				all.append(page);
 				for (var element : page.getAsJsonArray("pages")) { // every recipe and creature a page shows exists
 					var p = element.getAsJsonObject();
 					if (p.has("recipe")) helper.assertTrue(helper.getLevel().getRecipeManager().byKey(net.minecraft.resources.ResourceLocation.parse(p.get("recipe").getAsString())).isPresent(),
@@ -87,10 +97,35 @@ public class GuideGameTests implements FabricGameTest {
 						entry + ": no creature " + p.get("entity"));
 				}
 			}
+			for (String race : new String[] {"zerg", "terran", "protoss"})
+				for (String sub : new String[] {"units", "buildings", "general"}) {
+					var category = json("/assets/starmine/patchouli_books/field_guide/" + lang + "/categories/" + race + "_" + sub + ".json");
+					helper.assertTrue(category != null && ("starmine:" + race).equals(category.get("parent").getAsString()), race + "_" + sub + " not under its race in " + lang);
+				}
+			var names = langs.get(lang);
+			for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) {
+				if (ability.users().stream().allMatch(dev.starmine.entity.UnitKind::boss)) continue;
+				String name = names.get("ability.starmine." + ability.id).getAsString();
+				helper.assertTrue(all.indexOf(name) >= 0, "the ability " + ability.id + " is not in the " + lang + " book");
+			}
+		}
 		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("patchouli")) {
 			ItemStack book = Guide.illustrated();
 			helper.assertTrue(book != null && book.getItem().toString().contains("guide_book"), "Patchouli is here but the guide is " + book);
 		}
+		helper.succeed();
+	}
+
+	/** Owner 17.10: the guide has a recipe — a book and a mineral shard. */
+	@GameTest(template = ARENA, batch = "guide", timeoutTicks = 40)
+	public void theGuideIsCrafted(GameTestHelper helper) {
+		var input = net.minecraft.world.item.crafting.CraftingInput.of(2, 1, java.util.List.of(new ItemStack(Items.BOOK),
+			new ItemStack(dev.starmine.mineral.Minerals.SHARD)));
+		var recipe = helper.getLevel().getRecipeManager().getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, input, helper.getLevel());
+		helper.assertTrue(recipe.isPresent(), "no recipe for a book and a mineral shard");
+		ItemStack made = recipe.get().value().assemble(input, helper.getLevel().registryAccess());
+		ItemStack guide = Guide.illustrated() != null ? Guide.illustrated() : Guide.book();
+		helper.assertTrue(ItemStack.isSameItemSameComponents(made, guide), "the recipe makes " + made);
 		helper.succeed();
 	}
 

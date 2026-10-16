@@ -1,0 +1,14 @@
+{
+	"name": "Босс: Артанис",
+	"icon": "starmine:protoss_chestplate",
+	"category": "starmine:protoss_general",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:artanis",
+			"text": "Иерарх Артанис ждёт в материнском корабле. На 2/3 здоровья он зовёт стражу и восстанавливает щиты, на 1/3 впадает в ярость. Награда: полный костюм протоссов, 16 осколков, 8 алмазов.",
+			"rotate": true
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Hatchery",
+	"icon": "starmine:hatchery_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hatchery",
+			"name": "Hatchery",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Hatchery",
+			"text": "$(l)Health$(): 1500$(br)No attack$(br)$(l)Cost$(): 325 minerals$(br)$(l)Build time$(): 51 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

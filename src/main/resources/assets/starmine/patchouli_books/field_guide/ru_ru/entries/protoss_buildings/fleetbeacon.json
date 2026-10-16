@@ -1,0 +1,19 @@
+{
+	"name": "Маяк флота",
+	"icon": "starmine:fleetbeacon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:fleetbeacon",
+			"name": "Маяк флота",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Маяк флота",
+			"text": "$(l)Здоровье$(): 500, щиты 500$(br)Без атаки$(br)$(l)Цена$(): 300 минералов, 200 веспена$(br)$(l)Время$(): 43 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

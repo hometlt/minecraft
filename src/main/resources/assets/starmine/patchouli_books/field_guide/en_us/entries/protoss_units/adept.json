@@ -1,0 +1,24 @@
+{
+	"name": "Adept",
+	"icon": "starmine:adept_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:adept",
+			"name": "Adept",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Adept",
+			"text": "$(l)Health$(): 70, shields 70$(br)$(l)Damage$(): 10, every 1.61 s, range 4$(br)$(l)Speed$(): 3.5, on the ground$(br)$(l)Cost$(): 100 minerals, 25 vespene, 2 supply$(br)$(l)Build time$(): 30 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Psionic Transfer$(): After 7 s teleports to the point"
+		}
+	]
+}

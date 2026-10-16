@@ -1,6 +1,6 @@
 {
 	"name": "Protoss",
-	"description": "Probes, pylons and the mothership.",
+	"description": "An ancient race of psionic warriors: pylons, warp, shields and the mothership.",
 	"icon": "starmine:nexus_spawn_egg",
-	"sortnum": 5
+	"sortnum": 12
 }

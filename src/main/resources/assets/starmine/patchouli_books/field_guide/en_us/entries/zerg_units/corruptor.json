@@ -1,0 +1,24 @@
+{
+	"name": "Corruptor",
+	"icon": "starmine:corruptor_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:corruptor",
+			"name": "Corruptor",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Corruptor",
+			"text": "$(l)Health$(): 200$(br)$(l)Damage$(): 14, every 1.36 s, range 6$(br)$(l)Speed$(): 4.725, flying$(br)$(l)Cost$(): 150 minerals, 100 vespene, 2 supply$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Caustic Spray$(): Sprays a building: damage growing over time while near"
+		}
+	]
+}

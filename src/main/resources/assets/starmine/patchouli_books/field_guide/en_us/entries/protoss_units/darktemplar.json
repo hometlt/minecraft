@@ -1,0 +1,24 @@
+{
+	"name": "Dark Templar",
+	"icon": "starmine:darktemplar_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:darktemplar",
+			"name": "Dark Templar",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Dark Templar",
+			"text": "$(l)Health$(): 40, shields 80$(br)$(l)Damage$(): 45, every 1.21 s, melee$(br)$(l)Speed$(): 3.94, on the ground$(br)$(l)Cost$(): 125 minerals, 125 vespene, 2 supply$(br)$(l)Build time$(): 39 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Archon Warp$(): Two templar merge into an archon$(br2)$(l)Shadow Stride$(): Teleports a short distance"
+		}
+	]
+}

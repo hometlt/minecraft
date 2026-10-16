@@ -1,0 +1,24 @@
+{
+	"name": "Baneling",
+	"icon": "starmine:baneling_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:baneling",
+			"name": "Baneling",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Baneling",
+			"text": "$(l)Health$(): 30$(br)$(l)Damage$(): 35, every 0 s, melee$(br)$(l)Speed$(): 3.5, on the ground$(br)$(l)Cost$(): 50 minerals, 25 vespene, 0.5 supply$(br)$(l)Build time$(): 14 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

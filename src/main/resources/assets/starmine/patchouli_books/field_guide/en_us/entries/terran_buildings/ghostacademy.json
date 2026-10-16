@@ -1,0 +1,19 @@
+{
+	"name": "Ghost Academy",
+	"icon": "starmine:ghostacademy_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:ghostacademy",
+			"name": "Ghost Academy",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ghost Academy",
+			"text": "$(l)Health$(): 1250$(br)No attack$(br)$(l)Cost$(): 150 minerals, 50 vespene$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

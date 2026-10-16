@@ -1,0 +1,24 @@
+{
+	"name": "Supply Depot",
+	"icon": "starmine:supplydepot_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:supplydepot",
+			"name": "Supply Depot",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Supply Depot",
+			"text": "$(l)Health$(): 400$(br)No attack$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 21 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Lower$(): A lowered depot lets the units of its base pass"
+		}
+	]
+}

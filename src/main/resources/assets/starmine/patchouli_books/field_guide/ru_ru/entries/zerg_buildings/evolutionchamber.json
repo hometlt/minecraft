@@ -1,0 +1,19 @@
+{
+	"name": "Эволюционная камера",
+	"icon": "starmine:evolutionchamber_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:evolutionchamber",
+			"name": "Эволюционная камера",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Эволюционная камера",
+			"text": "$(l)Здоровье$(): 750$(br)Без атаки$(br)$(l)Цена$(): 75 минералов$(br)$(l)Время$(): 25 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

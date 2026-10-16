@@ -1,0 +1,19 @@
+{
+	"name": "Нидусов червь",
+	"icon": "starmine:nyduscanal_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nyduscanal",
+			"name": "Нидусов червь",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Нидусов червь",
+			"text": "$(l)Здоровье$(): 300$(br)Без атаки$(br)$(l)Цена$(): 75 минералов, 75 веспена$(br)$(l)Время$(): 14 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

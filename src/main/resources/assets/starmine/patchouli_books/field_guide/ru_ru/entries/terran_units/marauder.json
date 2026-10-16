@@ -1,0 +1,24 @@
+{
+	"name": "Мародёр",
+	"icon": "starmine:marauder_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:marauder",
+			"name": "Мародёр",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Мародёр",
+			"text": "$(l)Здоровье$(): 125$(br)$(l)Урон$(): 15, раз в 1.07 с, дальность 6$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 100 минералов, 25 веспена, 2 снабжения$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Стимулятор$(): +50 % к скорости и скорострельности на 11 с; стоит здоровья"
+		}
+	]
+}

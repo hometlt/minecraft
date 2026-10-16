@@ -1,0 +1,24 @@
+{
+	"name": "Factory",
+	"icon": "starmine:factory_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:factory",
+			"name": "Factory",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Factory",
+			"text": "$(l)Health$(): 1250$(br)No attack$(br)$(l)Cost$(): 150 minerals, 100 vespene$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Lift Off$(): Flies to a new site or lands where it hovers; trains nothing in the air$(br2)$(l)Build Tech Lab$(): Needed for advanced units$(br2)$(l)Build Reactor$(): Trains two units at once"
+		}
+	]
+}

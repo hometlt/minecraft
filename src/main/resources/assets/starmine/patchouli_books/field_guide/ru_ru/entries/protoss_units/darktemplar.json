@@ -1,0 +1,24 @@
+{
+	"name": "Тёмный тамплиер",
+	"icon": "starmine:darktemplar_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:darktemplar",
+			"name": "Тёмный тамплиер",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Тёмный тамплиер",
+			"text": "$(l)Здоровье$(): 40, щиты 80$(br)$(l)Урон$(): 45, раз в 1.21 с, ближний бой$(br)$(l)Скорость$(): 3.94, по земле$(br)$(l)Цена$(): 125 минералов, 125 веспена, 2 снабжения$(br)$(l)Время$(): 39 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Слияние в архонта$(): Двое храмовников сливаются в архонта$(br2)$(l)Мерцание$(): Телепортация недалеко"
+		}
+	]
+}

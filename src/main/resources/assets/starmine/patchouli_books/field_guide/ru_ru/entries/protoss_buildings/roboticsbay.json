@@ -1,0 +1,19 @@
+{
+	"name": "Робототехнический отсек",
+	"icon": "starmine:roboticsbay_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roboticsbay",
+			"name": "Робототехнический отсек",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Робототехнический отсек",
+			"text": "$(l)Здоровье$(): 500, щиты 500$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 150 веспена$(br)$(l)Время$(): 46 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

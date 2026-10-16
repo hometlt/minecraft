@@ -1,0 +1,24 @@
+{
+	"name": "Разрушитель",
+	"icon": "starmine:disruptor_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:disruptor",
+			"name": "Разрушитель",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Разрушитель",
+			"text": "$(l)Здоровье$(): 100, щиты 100$(br)Без атаки$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 150 минералов, 150 веспена, 3 снабжения$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Очищающая нова$(): Шар, взрывающийся через 2 с и ранящий всех вокруг"
+		}
+	]
+}

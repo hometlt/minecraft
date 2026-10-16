@@ -1,0 +1,19 @@
+{
+	"name": "Spawning Pool",
+	"icon": "starmine:spawningpool_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:spawningpool",
+			"name": "Spawning Pool",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Spawning Pool",
+			"text": "$(l)Health$(): 1000$(br)No attack$(br)$(l)Cost$(): 200 minerals$(br)$(l)Build time$(): 46 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

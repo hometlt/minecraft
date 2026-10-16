@@ -1,0 +1,24 @@
+{
+	"name": "Зерглинг",
+	"icon": "starmine:zergling_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zergling",
+			"name": "Зерглинг",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Зерглинг",
+			"text": "$(l)Здоровье$(): 35$(br)$(l)Урон$(): 5, раз в 0.497 с, ближний бой$(br)$(l)Скорость$(): 4.13, по земле$(br)$(l)Цена$(): 25 минералов, 0.5 снабжения$(br)$(l)Время$(): 17 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Закопаться$(): Уходит под землю: невидим без детектора; скрытень атакует только закопанным, таракан ползёт и лечится"
+		}
+	]
+}

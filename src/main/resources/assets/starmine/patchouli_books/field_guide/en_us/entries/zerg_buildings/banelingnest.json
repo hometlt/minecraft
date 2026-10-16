@@ -1,0 +1,19 @@
+{
+	"name": "Baneling Nest",
+	"icon": "starmine:banelingnest_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:banelingnest",
+			"name": "Baneling Nest",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Baneling Nest",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 100 minerals, 50 vespene$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

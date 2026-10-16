@@ -1,0 +1,19 @@
+{
+	"name": "Engineering Bay",
+	"icon": "starmine:engineeringbay_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:engineeringbay",
+			"name": "Engineering Bay",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Engineering Bay",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 125 minerals$(br)$(l)Build time$(): 25 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

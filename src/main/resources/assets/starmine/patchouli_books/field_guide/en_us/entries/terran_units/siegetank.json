@@ -1,0 +1,24 @@
+{
+	"name": "Siege Tank",
+	"icon": "starmine:siegetank_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:siegetank",
+			"name": "Siege Tank",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Siege Tank",
+			"text": "$(l)Health$(): 175$(br)$(l)Damage$(): 15, every 0.74 s, range 7$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 150 minerals, 125 vespene, 3 supply$(br)$(l)Build time$(): 32 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Siege Mode$(): Immobile; range 13, splash, cannot fire up close (3 s to change)"
+		}
+	]
+}

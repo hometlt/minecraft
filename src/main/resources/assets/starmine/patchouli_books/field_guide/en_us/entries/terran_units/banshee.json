@@ -1,0 +1,24 @@
+{
+	"name": "Banshee",
+	"icon": "starmine:banshee_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:banshee",
+			"name": "Banshee",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Banshee",
+			"text": "$(l)Health$(): 140$(br)$(l)Damage$(): 24, every 0.89 s, range 6$(br)$(l)Speed$(): 3.85, flying$(br)$(l)Cost$(): 150 minerals, 100 vespene, 3 supply$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second"
+		}
+	]
+}

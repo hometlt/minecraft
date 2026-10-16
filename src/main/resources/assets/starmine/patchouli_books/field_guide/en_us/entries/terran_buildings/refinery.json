@@ -1,0 +1,19 @@
+{
+	"name": "Refinery",
+	"icon": "starmine:refinery_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:refinery",
+			"name": "Refinery",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Refinery",
+			"text": "$(l)Health$(): 500$(br)No attack$(br)$(l)Cost$(): 75 minerals$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Mothership",
+	"icon": "starmine:mothership_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 19,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:mothership",
+			"name": "Mothership",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Mothership",
+			"text": "$(l)Health$(): 350, shields 350$(br)$(l)Damage$(): 24, every 2.21 s, range 7$(br)$(l)Speed$(): 2.62, flying$(br)$(l)Cost$(): 400 minerals, 400 vespene, 8 supply$(br)$(l)Build time$(): 89 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Mass Recall$(): Units around teleport to a nexus$(br2)$(l)Time Warp$(): Slows foes in the area"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Ultralisk",
+	"icon": "starmine:ultralisk_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:ultralisk",
+			"name": "Ultralisk",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Ultralisk",
+			"text": "$(l)Health$(): 500$(br)$(l)Damage$(): 35, every 0.61 s, melee$(br)$(l)Speed$(): 4.13, on the ground$(br)$(l)Cost$(): 275 minerals, 200 vespene, 6 supply$(br)$(l)Build time$(): 39 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

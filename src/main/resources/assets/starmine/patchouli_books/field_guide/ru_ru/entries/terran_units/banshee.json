@@ -1,0 +1,24 @@
+{
+	"name": "Баньши",
+	"icon": "starmine:banshee_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:banshee",
+			"name": "Баньши",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Баньши",
+			"text": "$(l)Здоровье$(): 140$(br)$(l)Урон$(): 24, раз в 0.89 с, дальность 6$(br)$(l)Скорость$(): 3.85, летает$(br)$(l)Цена$(): 150 минералов, 100 веспена, 3 снабжения$(br)$(l)Время$(): 43 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Маскировка$(): Невидим для врагов без детектора; 25 энергии, затем 0,9 в секунду"
+		}
+	]
+}

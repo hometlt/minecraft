@@ -1,0 +1,19 @@
+{
+	"name": "Mutalisk",
+	"icon": "starmine:mutalisk_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 10,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:mutalisk",
+			"name": "Mutalisk",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Mutalisk",
+			"text": "$(l)Health$(): 120$(br)$(l)Damage$(): 9, every 1.09 s, range 3$(br)$(l)Speed$(): 5.6, flying$(br)$(l)Cost$(): 100 minerals, 100 vespene, 2 supply$(br)$(l)Build time$(): 24 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

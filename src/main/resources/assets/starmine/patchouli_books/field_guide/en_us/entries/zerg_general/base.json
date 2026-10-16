@@ -1,0 +1,18 @@
+{
+	"name": "The Hive",
+	"icon": "starmine:hatchery_spawn_egg",
+	"category": "starmine:zerg_general",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hatchery",
+			"text": "The hatchery is the swarm's heart: larvae become cocoons, cocoons become units; a drone turns INTO a building. The lair stands 480 blocks from where you first appeared, ringed by its buildings, with tunnels and halls of eggs beneath.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Creep spreads round hatcheries and tumors: on it zerg run faster and heal. Wild zerg hate every living thing, raid villages, dig tunnels and claim caves with flesh and tumors. Nydus corridors run from the base: a long tunnel of liquid creep to a nydus worm, through which warriors are sent and guarded."
+		}
+	]
+}

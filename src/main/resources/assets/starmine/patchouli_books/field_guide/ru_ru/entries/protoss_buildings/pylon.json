@@ -1,0 +1,19 @@
+{
+	"name": "Пилон",
+	"icon": "starmine:pylon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:pylon",
+			"name": "Пилон",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Пилон",
+			"text": "$(l)Здоровье$(): 200, щиты 200$(br)Без атаки$(br)$(l)Цена$(): 100 минералов$(br)$(l)Время$(): 18 с$(br)$(l)Даёт снабжения$(): 8$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

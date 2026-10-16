@@ -1,0 +1,19 @@
+{
+	"name": "Очистительный завод",
+	"icon": "starmine:refinery_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:refinery",
+			"name": "Очистительный завод",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Очистительный завод",
+			"text": "$(l)Здоровье$(): 500$(br)Без атаки$(br)$(l)Цена$(): 75 минералов$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

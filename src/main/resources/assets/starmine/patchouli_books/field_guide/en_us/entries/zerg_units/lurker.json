@@ -1,0 +1,24 @@
+{
+	"name": "Lurker",
+	"icon": "starmine:lurker_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 9,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:lurker",
+			"name": "Lurker",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Lurker",
+			"text": "$(l)Health$(): 190$(br)$(l)Damage$(): 20, every 1.43 s, range 8$(br)$(l)Speed$(): 4.13, on the ground$(br)$(l)Cost$(): 150 minerals, 150 vespene, 3 supply$(br)$(l)Build time$(): 18 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

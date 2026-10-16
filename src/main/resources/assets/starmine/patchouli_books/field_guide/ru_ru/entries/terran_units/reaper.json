@@ -1,0 +1,24 @@
+{
+	"name": "Головорез",
+	"icon": "starmine:reaper_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:reaper",
+			"name": "Головорез",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Головорез",
+			"text": "$(l)Здоровье$(): 60$(br)$(l)Урон$(): 8, раз в 0.79 с, дальность 5$(br)$(l)Скорость$(): 5.25, по земле$(br)$(l)Цена$(): 50 минералов, 50 веспена, 1 снабжения$(br)$(l)Время$(): 32 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Мина KD8$(): Заряд, который через 1,5 с отбрасывает всех вокруг"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Zealot",
+	"icon": "starmine:zealot_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zealot",
+			"name": "Zealot",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Zealot",
+			"text": "$(l)Health$(): 100, shields 50$(br)$(l)Damage$(): 16, every 0.86 s, melee$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 100 minerals, 2 supply$(br)$(l)Build time$(): 27 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Charge$(): Dashes at a foe and strikes harder"
+		}
+	]
+}

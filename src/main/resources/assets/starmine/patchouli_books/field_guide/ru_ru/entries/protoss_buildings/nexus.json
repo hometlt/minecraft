@@ -1,0 +1,24 @@
+{
+	"name": "Нексус",
+	"icon": "starmine:nexus_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nexus",
+			"name": "Нексус",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Нексус",
+			"text": "$(l)Здоровье$(): 1000, щиты 1000$(br)Без атаки$(br)$(l)Цена$(): 400 минералов$(br)$(l)Время$(): 71 с$(br)$(l)Даёт снабжения$(): 15$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Ускорение времени$(): Здание работает на 50 % быстрее 20 с$(br2)$(l)Разгон батареи$(): Батарея щитов восстанавливает вдвое быстрее 14 с"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Roach",
+	"icon": "starmine:roach_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roach",
+			"name": "Roach",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Roach",
+			"text": "$(l)Health$(): 145$(br)$(l)Damage$(): 16, every 1.43 s, range 4$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 75 minerals, 25 vespene, 2 supply$(br)$(l)Build time$(): 19 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

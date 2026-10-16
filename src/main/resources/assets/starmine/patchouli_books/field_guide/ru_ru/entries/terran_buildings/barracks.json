@@ -1,0 +1,24 @@
+{
+	"name": "Казарма",
+	"icon": "starmine:barracks_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:barracks",
+			"name": "Казарма",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Казарма",
+			"text": "$(l)Здоровье$(): 1000$(br)Без атаки$(br)$(l)Цена$(): 150 минералов$(br)$(l)Время$(): 46 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Взлёт$(): Летит на новое место или садится там, где висит; в воздухе ничего не обучает$(br2)$(l)Техлаборатория$(): Нужна для продвинутых юнитов$(br2)$(l)Реактор$(): Обучает двух юнитов сразу"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Bunker",
+	"icon": "starmine:bunker_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 9,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:bunker",
+			"name": "Bunker",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Bunker",
+			"text": "$(l)Health$(): 400$(br)$(l)Damage$(): 12, every 0.61 s, range 6$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Load$(): Takes aboard own ground units of its race nearby (8 slots)$(br2)$(l)Unload$(): Flies there and puts the cargo down"
+		}
+	]
+}

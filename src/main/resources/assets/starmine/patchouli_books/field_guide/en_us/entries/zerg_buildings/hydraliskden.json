@@ -1,0 +1,19 @@
+{
+	"name": "Hydralisk Den",
+	"icon": "starmine:hydraliskden_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hydraliskden",
+			"name": "Hydralisk Den",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Hydralisk Den",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 100 minerals, 100 vespene$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

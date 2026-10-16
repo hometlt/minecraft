@@ -1,0 +1,19 @@
+{
+	"name": "Roach Warren",
+	"icon": "starmine:roachwarren_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roachwarren",
+			"name": "Roach Warren",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Roach Warren",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 150 minerals$(br)$(l)Build time$(): 39 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

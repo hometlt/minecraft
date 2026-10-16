@@ -1,0 +1,12 @@
+{
+	"name": "The Mothership",
+	"icon": "minecraft:gold_block",
+	"category": "starmine:protoss_general",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Over the clouds above the base floats the mothership: a disc with a dome, a golden ring and arms, a vortex beneath, a hall of chests. A stair under the base leads to the portal hall."
+		}
+	]
+}

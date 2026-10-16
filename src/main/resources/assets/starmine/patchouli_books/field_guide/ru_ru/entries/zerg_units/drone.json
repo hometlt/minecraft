@@ -1,0 +1,24 @@
+{
+	"name": "Дрон",
+	"icon": "starmine:drone_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:drone",
+			"name": "Дрон",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Дрон",
+			"text": "$(l)Здоровье$(): 40$(br)$(l)Урон$(): 5, раз в 1.07 с, ближний бой$(br)$(l)Скорость$(): 3.94, по земле$(br)$(l)Цена$(): 50 минералов, 1 снабжения$(br)$(l)Время$(): 12 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Закопаться$(): Уходит под землю: невидим без детектора; скрытень атакует только закопанным, таракан ползёт и лечится"
+		}
+	]
+}

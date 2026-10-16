@@ -1,0 +1,19 @@
+{
+	"name": "Шпиль",
+	"icon": "starmine:spire_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:spire",
+			"name": "Шпиль",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Шпиль",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 200 минералов, 200 веспена$(br)$(l)Время$(): 71 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

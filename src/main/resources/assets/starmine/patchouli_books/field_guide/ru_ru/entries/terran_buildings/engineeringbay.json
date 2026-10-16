@@ -1,0 +1,19 @@
+{
+	"name": "Инженерный отсек",
+	"icon": "starmine:engineeringbay_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:engineeringbay",
+			"name": "Инженерный отсек",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Инженерный отсек",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 125 минералов$(br)$(l)Время$(): 25 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

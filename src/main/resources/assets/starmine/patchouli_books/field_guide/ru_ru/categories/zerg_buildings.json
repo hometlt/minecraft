@@ -1,0 +1,7 @@
+{
+	"name": "Постройки",
+	"description": "Постройки: Зерги.",
+	"icon": "starmine:spawningpool_spawn_egg",
+	"sortnum": 1,
+	"parent": "starmine:zerg"
+}

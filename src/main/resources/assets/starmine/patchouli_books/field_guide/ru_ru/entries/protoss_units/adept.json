@@ -1,0 +1,24 @@
+{
+	"name": "Адепт",
+	"icon": "starmine:adept_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:adept",
+			"name": "Адепт",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Адепт",
+			"text": "$(l)Здоровье$(): 70, щиты 70$(br)$(l)Урон$(): 10, раз в 1.61 с, дальность 4$(br)$(l)Скорость$(): 3.5, по земле$(br)$(l)Цена$(): 100 минералов, 25 веспена, 2 снабжения$(br)$(l)Время$(): 30 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Псионический двойник$(): Через 7 с телепортируется в точку"
+		}
+	]
+}

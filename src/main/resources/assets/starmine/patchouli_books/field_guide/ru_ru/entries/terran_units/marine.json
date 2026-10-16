@@ -1,0 +1,24 @@
+{
+	"name": "Пехотинец",
+	"icon": "starmine:marine_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:marine",
+			"name": "Пехотинец",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Пехотинец",
+			"text": "$(l)Здоровье$(): 45$(br)$(l)Урон$(): 6, раз в 0.61 с, дальность 5$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 50 минералов, 1 снабжения$(br)$(l)Время$(): 18 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Стимулятор$(): +50 % к скорости и скорострельности на 11 с; стоит здоровья"
+		}
+	]
+}

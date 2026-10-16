@@ -1,0 +1,24 @@
+{
+	"name": "Sentry",
+	"icon": "starmine:sentry_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:sentry",
+			"name": "Sentry",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Sentry",
+			"text": "$(l)Health$(): 40, shields 40$(br)$(l)Damage$(): 6, every 0.71 s, range 5$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 50 minerals, 100 vespene, 2 supply$(br)$(l)Build time$(): 26 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Force Field$(): A wall of force for 11 s$(br2)$(l)Guardian Shield$(): Allies around take less damage from ranged attacks$(br2)$(l)Hallucination$(): Creates a harmless illusion for 43 s"
+		}
+	]
+}

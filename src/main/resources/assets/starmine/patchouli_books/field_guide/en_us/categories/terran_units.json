@@ -1,0 +1,7 @@
+{
+	"name": "Troops",
+	"description": "Troops: Terrans.",
+	"icon": "starmine:marine_spawn_egg",
+	"sortnum": 0,
+	"parent": "starmine:terran"
+}

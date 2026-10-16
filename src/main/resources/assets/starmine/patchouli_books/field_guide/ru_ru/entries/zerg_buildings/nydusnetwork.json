@@ -1,0 +1,19 @@
+{
+	"name": "Нидусова сеть",
+	"icon": "starmine:nydusnetwork_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 12,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nydusnetwork",
+			"name": "Нидусова сеть",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Нидусова сеть",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 150 веспена$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

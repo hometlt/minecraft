@@ -1,0 +1,12 @@
+{
+	"name": "The Leviathan",
+	"icon": "starmine:glowing_zerg_flesh",
+	"category": "starmine:zerg_general",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Over the clouds above the lair floats the leviathan, a beast of flesh: no stairs, only passages of flesh, pools of liquid creep, eggs and a chest in its belly. Under the lair a stair leads to a portal hall; kill the portal's guards and step in to reach the beast."
+		}
+	]
+}

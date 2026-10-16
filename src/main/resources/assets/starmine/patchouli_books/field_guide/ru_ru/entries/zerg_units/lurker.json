@@ -1,0 +1,24 @@
+{
+	"name": "Скрытень",
+	"icon": "starmine:lurker_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 9,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:lurker",
+			"name": "Скрытень",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Скрытень",
+			"text": "$(l)Здоровье$(): 190$(br)$(l)Урон$(): 20, раз в 1.43 с, дальность 8$(br)$(l)Скорость$(): 4.13, по земле$(br)$(l)Цена$(): 150 минералов, 150 веспена, 3 снабжения$(br)$(l)Время$(): 18 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Закопаться$(): Уходит под землю: невидим без детектора; скрытень атакует только закопанным, таракан ползёт и лечится"
+		}
+	]
+}

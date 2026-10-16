@@ -1,0 +1,24 @@
+{
+	"name": "Tempest",
+	"icon": "starmine:tempest_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:tempest",
+			"name": "Tempest",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Tempest",
+			"text": "$(l)Health$(): 200, shields 100$(br)$(l)Damage$(): 40, every 2.36 s, range 10$(br)$(l)Speed$(): 3.15, flying$(br)$(l)Cost$(): 250 minerals, 175 vespene, 5 supply$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Disintegration$(): After 7 s: 500 damage to buildings at the point"
+		}
+	]
+}

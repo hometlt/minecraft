@@ -1,0 +1,19 @@
+{
+	"name": "Nydus Worm",
+	"icon": "starmine:nyduscanal_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nyduscanal",
+			"name": "Nydus Worm",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Nydus Worm",
+			"text": "$(l)Health$(): 300$(br)No attack$(br)$(l)Cost$(): 75 minerals, 75 vespene$(br)$(l)Build time$(): 14 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

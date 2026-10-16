@@ -1,0 +1,19 @@
+{
+	"name": "Архонт",
+	"icon": "starmine:archon_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:archon",
+			"name": "Архонт",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Архонт",
+			"text": "$(l)Здоровье$(): 10, щиты 350$(br)$(l)Урон$(): 25, раз в 1.25 с, дальность 3$(br)$(l)Скорость$(): 3.94, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

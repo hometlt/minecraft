@@ -11,6 +11,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "The races claim land: a wild base sends parties to take caves and fields and dress them its way. Now and then they land a squad by your home; the game rule starmineAiPressure sets how often."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The races are always foes and keep apart: a pack, a claim or a nydus worm of one race never appears within 96 blocks of another race's wild."
 		}
 	]
 }

@@ -1,0 +1,19 @@
+{
+	"name": "Зонд",
+	"icon": "starmine:probe_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:probe",
+			"name": "Зонд",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Зонд",
+			"text": "$(l)Здоровье$(): 20, щиты 20$(br)$(l)Урон$(): 5, раз в 1.07 с, ближний бой$(br)$(l)Скорость$(): 3.94, по земле$(br)$(l)Цена$(): 50 минералов, 1 снабжения$(br)$(l)Время$(): 12 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

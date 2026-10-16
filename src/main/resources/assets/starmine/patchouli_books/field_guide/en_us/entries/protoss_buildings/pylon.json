@@ -1,0 +1,19 @@
+{
+	"name": "Pylon",
+	"icon": "starmine:pylon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:pylon",
+			"name": "Pylon",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Pylon",
+			"text": "$(l)Health$(): 200, shields 200$(br)No attack$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 18 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

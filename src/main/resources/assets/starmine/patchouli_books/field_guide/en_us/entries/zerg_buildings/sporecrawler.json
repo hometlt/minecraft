@@ -1,0 +1,19 @@
+{
+	"name": "Spore Crawler",
+	"icon": "starmine:sporecrawler_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:sporecrawler",
+			"name": "Spore Crawler",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Spore Crawler",
+			"text": "$(l)Health$(): 400$(br)$(l)Damage$(): 15, every 0.61 s, range 7$(br)$(l)Cost$(): 75 minerals$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

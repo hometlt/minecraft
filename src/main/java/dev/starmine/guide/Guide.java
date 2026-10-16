@@ -29,6 +29,10 @@ public final class Guide {
 	/** The Patchouli book (`data/starmine/patchouli_books/field_guide`). */
 	public static final net.minecraft.resources.ResourceLocation BOOK = dev.starmine.StarMine.id("field_guide");
 	private static final String GIVEN = "starmine_guide_given";
+	/** The guide's recipe (owner 17.10): a book and a mineral shard (`data/starmine/recipe/field_guide.json`). */
+	public static final net.minecraft.world.item.crafting.RecipeSerializer<Recipe> RECIPE = net.minecraft.core.Registry.register(
+		net.minecraft.core.registries.BuiltInRegistries.RECIPE_SERIALIZER, dev.starmine.StarMine.id("field_guide"),
+		new net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer<>(Recipe::new));
 
 	private Guide() {
 	}
@@ -79,5 +83,40 @@ public final class Guide {
 		book.set(DataComponents.CUSTOM_NAME, Component.translatable("item.starmine.guide").setStyle(Style.EMPTY.withItalic(false)
 			.withColor(net.minecraft.ChatFormatting.GOLD)));
 		return book;
+	}
+
+	/** A book and a mineral shard make the guide — the illustrated one when Patchouli is installed, else the written one. */
+	public static final class Recipe extends net.minecraft.world.item.crafting.CustomRecipe {
+		public Recipe(net.minecraft.world.item.crafting.CraftingBookCategory category) {
+			super(category);
+		}
+
+		@Override
+		public boolean matches(net.minecraft.world.item.crafting.CraftingInput input, net.minecraft.world.level.Level level) {
+			int books = 0, shards = 0, other = 0;
+			for (ItemStack stack : input.items()) {
+				if (stack.isEmpty()) continue;
+				if (stack.is(Items.BOOK)) books++;
+				else if (stack.is(dev.starmine.mineral.Minerals.SHARD)) shards++;
+				else other++;
+			}
+			return books == 1 && shards == 1 && other == 0;
+		}
+
+		@Override
+		public ItemStack assemble(net.minecraft.world.item.crafting.CraftingInput input, net.minecraft.core.HolderLookup.Provider registries) {
+			ItemStack illustrated = illustrated();
+			return illustrated != null ? illustrated : book();
+		}
+
+		@Override
+		public boolean canCraftInDimensions(int width, int height) {
+			return width * height >= 2;
+		}
+
+		@Override
+		public net.minecraft.world.item.crafting.RecipeSerializer<?> getSerializer() {
+			return RECIPE;
+		}
 	}
 }

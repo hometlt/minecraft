@@ -1,0 +1,19 @@
+{
+	"name": "Immortal",
+	"icon": "starmine:immortal_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:immortal",
+			"name": "Immortal",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Immortal",
+			"text": "$(l)Health$(): 200, shields 100$(br)$(l)Damage$(): 20, every 1.04 s, range 6$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 275 minerals, 100 vespene, 4 supply$(br)$(l)Build time$(): 39 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

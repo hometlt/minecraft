@@ -1,0 +1,24 @@
+{
+	"name": "Void Ray",
+	"icon": "starmine:voidray_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:voidray",
+			"name": "Void Ray",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Void Ray",
+			"text": "$(l)Health$(): 150, shields 100$(br)$(l)Damage$(): 6, every 0.36 s, range 6$(br)$(l)Speed$(): 3.85, flying$(br)$(l)Cost$(): 250 minerals, 150 vespene, 4 supply$(br)$(l)Build time$(): 37 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Prismatic Alignment$(): More damage for 14 s, slower"
+		}
+	]
+}

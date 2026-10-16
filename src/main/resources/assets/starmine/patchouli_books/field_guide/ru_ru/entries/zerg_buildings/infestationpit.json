@@ -1,0 +1,19 @@
+{
+	"name": "Яма заражения",
+	"icon": "starmine:infestationpit_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:infestationpit",
+			"name": "Яма заражения",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Яма заражения",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 100 минералов, 100 веспена$(br)$(l)Время$(): 36 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

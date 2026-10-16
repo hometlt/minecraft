@@ -1,0 +1,19 @@
+{
+	"name": "Саранча",
+	"icon": "starmine:locust_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 18,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:locust",
+			"name": "Саранча",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Саранча",
+			"text": "$(l)Здоровье$(): 50$(br)$(l)Урон$(): 10, раз в 0.43 с, ближний бой$(br)$(l)Скорость$(): 2.62, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

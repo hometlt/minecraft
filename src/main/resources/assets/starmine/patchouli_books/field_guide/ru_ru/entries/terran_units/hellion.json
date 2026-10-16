@@ -1,0 +1,24 @@
+{
+	"name": "Геллион",
+	"icon": "starmine:hellion_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hellion",
+			"name": "Геллион",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Геллион",
+			"text": "$(l)Здоровье$(): 90$(br)$(l)Урон$(): 8, раз в 1.79 с, дальность 5$(br)$(l)Скорость$(): 5.95, по земле$(br)$(l)Цена$(): 100 минералов, 2 снабжения$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Режим геллбата$(): Становится геллбатом: огнемёт вблизи, больше здоровья"
+		}
+	]
+}

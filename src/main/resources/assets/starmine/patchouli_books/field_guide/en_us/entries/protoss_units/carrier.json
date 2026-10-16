@@ -1,0 +1,19 @@
+{
+	"name": "Carrier",
+	"icon": "starmine:carrier_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 17,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:carrier",
+			"name": "Carrier",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Carrier",
+			"text": "$(l)Health$(): 300, shields 150$(br)$(l)Damage$(): 16, every 0.5 s, range 8$(br)$(l)Speed$(): 2.62, flying$(br)$(l)Cost$(): 350 minerals, 250 vespene, 6 supply$(br)$(l)Build time$(): 64 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

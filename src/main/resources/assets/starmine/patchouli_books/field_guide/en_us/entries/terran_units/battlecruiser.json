@@ -1,0 +1,24 @@
+{
+	"name": "Battlecruiser",
+	"icon": "starmine:battlecruiser_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:battlecruiser",
+			"name": "Battlecruiser",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Battlecruiser",
+			"text": "$(l)Health$(): 550$(br)$(l)Damage$(): 8, every 0.16 s, range 6$(br)$(l)Speed$(): 2.62, flying$(br)$(l)Cost$(): 400 minerals, 300 vespene, 6 supply$(br)$(l)Build time$(): 64 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Yamato Cannon$(): After 2 s: 240 damage to one target$(br2)$(l)Tactical Jump$(): After 4 s: jumps to any point"
+		}
+	]
+}

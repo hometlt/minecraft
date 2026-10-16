@@ -1,0 +1,24 @@
+{
+	"name": "Command Center",
+	"icon": "starmine:commandcenter_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:commandcenter",
+			"name": "Command Center",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Command Center",
+			"text": "$(l)Health$(): 1500$(br)No attack$(br)$(l)Cost$(): 400 minerals$(br)$(l)Build time$(): 71 s$(br)$(l)Gives supply$(): 15$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Lift Off$(): Flies to a new site or lands where it hovers; trains nothing in the air$(br2)$(l)Orbital Command$(): Upgrades to an orbital command: energy, MULE, scans$(br2)$(l)Planetary Fortress$(): Upgrades to a planetary fortress: a cannon and armor$(br2)$(l)Calldown: MULE$(): A robot that mines 4 times faster for 64 s$(br2)$(l)Scanner Sweep$(): Reveals an area and cloaked units there for 12 s"
+		}
+	]
+}

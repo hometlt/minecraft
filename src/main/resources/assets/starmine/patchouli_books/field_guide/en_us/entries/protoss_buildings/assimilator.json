@@ -1,0 +1,19 @@
+{
+	"name": "Assimilator",
+	"icon": "starmine:assimilator_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:assimilator",
+			"name": "Assimilator",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Assimilator",
+			"text": "$(l)Health$(): 300, shields 300$(br)No attack$(br)$(l)Cost$(): 75 minerals$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

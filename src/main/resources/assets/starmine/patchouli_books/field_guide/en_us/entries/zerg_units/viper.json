@@ -1,0 +1,24 @@
+{
+	"name": "Viper",
+	"icon": "starmine:viper_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 15,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:viper",
+			"name": "Viper",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Viper",
+			"text": "$(l)Health$(): 150$(br)$(l)Speed$(): 4.13, flying$(br)$(l)Cost$(): 100 minerals, 200 vespene, 3 supply$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Blinding Cloud$(): Ranged attackers inside shoot only up close (6 s); players are blinded$(br2)$(l)Abduct$(): Pulls a unit to the viper$(br2)$(l)Parasitic Bomb$(): 120 damage over 7 s to flying foes around the target$(br2)$(l)Consume$(): Drains 200 health from an own building over 14 s for 50 energy"
+		}
+	]
+}

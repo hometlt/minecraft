@@ -1,0 +1,24 @@
+{
+	"name": "Викинг",
+	"icon": "starmine:viking_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:viking",
+			"name": "Викинг",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Викинг",
+			"text": "$(l)Здоровье$(): 135$(br)$(l)Урон$(): 20, раз в 1.43 с, дальность 9$(br)$(l)Скорость$(): 3.85, летает$(br)$(l)Цена$(): 150 минералов, 75 веспена, 2 снабжения$(br)$(l)Время$(): 30 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Посадка$(): Садится и сражается на земле или снова взлетает"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Dark Shrine",
+	"icon": "starmine:darkshrine_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 12,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:darkshrine",
+			"name": "Dark Shrine",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Dark Shrine",
+			"text": "$(l)Health$(): 500, shields 500$(br)No attack$(br)$(l)Cost$(): 150 minerals, 150 vespene$(br)$(l)Build time$(): 71 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

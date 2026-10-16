@@ -1,0 +1,19 @@
+{
+	"name": "Бассейн",
+	"icon": "starmine:spawningpool_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:spawningpool",
+			"name": "Бассейн",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Бассейн",
+			"text": "$(l)Здоровье$(): 1000$(br)Без атаки$(br)$(l)Цена$(): 200 минералов$(br)$(l)Время$(): 46 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Осадный танк",
+	"icon": "starmine:siegetank_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:siegetank",
+			"name": "Осадный танк",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Осадный танк",
+			"text": "$(l)Здоровье$(): 175$(br)$(l)Урон$(): 15, раз в 0.74 с, дальность 7$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 150 минералов, 125 веспена, 3 снабжения$(br)$(l)Время$(): 32 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Осадный режим$(): Неподвижен; дальность 13, урон по площади, не стреляет вплотную (смена 3 с)"
+		}
+	]
+}

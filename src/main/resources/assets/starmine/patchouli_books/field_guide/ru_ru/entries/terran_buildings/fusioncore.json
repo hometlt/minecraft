@@ -1,0 +1,19 @@
+{
+	"name": "Термоядерное ядро",
+	"icon": "starmine:fusioncore_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:fusioncore",
+			"name": "Термоядерное ядро",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Термоядерное ядро",
+			"text": "$(l)Здоровье$(): 750$(br)Без атаки$(br)$(l)Цена$(): 150 минералов, 150 веспена$(br)$(l)Время$(): 46 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

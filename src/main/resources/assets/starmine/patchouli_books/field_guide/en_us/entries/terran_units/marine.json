@@ -1,0 +1,24 @@
+{
+	"name": "Marine",
+	"icon": "starmine:marine_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:marine",
+			"name": "Marine",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Marine",
+			"text": "$(l)Health$(): 45$(br)$(l)Damage$(): 6, every 0.61 s, range 5$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 50 minerals, 1 supply$(br)$(l)Build time$(): 18 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Stimpack$(): +50 % speed and attack speed for 11 s; costs health"
+		}
+	]
+}

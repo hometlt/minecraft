@@ -1,0 +1,24 @@
+{
+	"name": "Сталкер",
+	"icon": "starmine:stalker_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:stalker",
+			"name": "Сталкер",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Сталкер",
+			"text": "$(l)Здоровье$(): 80, щиты 80$(br)$(l)Урон$(): 13, раз в 1.34 с, дальность 6$(br)$(l)Скорость$(): 4.13, по земле$(br)$(l)Цена$(): 125 минералов, 50 веспена, 2 снабжения$(br)$(l)Время$(): 30 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Скачок$(): Телепортация недалеко, сквозь стены и на уступы"
+		}
+	]
+}

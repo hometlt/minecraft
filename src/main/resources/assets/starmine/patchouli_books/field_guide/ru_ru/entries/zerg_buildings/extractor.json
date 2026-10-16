@@ -1,0 +1,19 @@
+{
+	"name": "Экстрактор",
+	"icon": "starmine:extractor_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 9,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:extractor",
+			"name": "Экстрактор",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Экстрактор",
+			"text": "$(l)Здоровье$(): 500$(br)Без атаки$(br)$(l)Цена$(): 25 минералов$(br)$(l)Время$(): 21 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

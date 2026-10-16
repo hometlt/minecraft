@@ -1,6 +1,6 @@
 {
 	"name": "Terrans",
-	"description": "SCVs, barracks and the Hyperion.",
+	"description": "Exiles of humanity: SCVs, bunkers, siege tanks and buildings that fly.",
 	"icon": "starmine:commandcenter_spawn_egg",
-	"sortnum": 4
+	"sortnum": 11
 }

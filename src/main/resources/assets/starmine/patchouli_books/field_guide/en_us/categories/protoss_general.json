@@ -1,0 +1,7 @@
+{
+	"name": "General Information",
+	"description": "General Information: Protoss.",
+	"icon": "starmine:nexus_spawn_egg",
+	"sortnum": 2,
+	"parent": "starmine:protoss"
+}

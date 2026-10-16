@@ -1,0 +1,12 @@
+{
+	"name": "The Hyperion",
+	"icon": "minecraft:iron_block",
+	"category": "starmine:terran_general",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Over the clouds above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks and a hold of chests. A stair under the base leads to the portal hall."
+		}
+	]
+}

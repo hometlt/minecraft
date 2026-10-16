@@ -1,0 +1,19 @@
+{
+	"name": "Robotics Bay",
+	"icon": "starmine:roboticsbay_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 13,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roboticsbay",
+			"name": "Robotics Bay",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Robotics Bay",
+			"text": "$(l)Health$(): 500, shields 500$(br)No attack$(br)$(l)Cost$(): 150 minerals, 150 vespene$(br)$(l)Build time$(): 46 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

@@ -1,6 +1,6 @@
 {
 	"name": "Терраны",
-	"description": "КСМ, казармы и «Гиперион».",
+	"description": "Изгнанники человечества: КСМ, бункеры, осадные танки и летающие здания.",
 	"icon": "starmine:commandcenter_spawn_egg",
-	"sortnum": 4
+	"sortnum": 11
 }

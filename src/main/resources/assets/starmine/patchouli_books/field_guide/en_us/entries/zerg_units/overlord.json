@@ -1,0 +1,24 @@
+{
+	"name": "Overlord",
+	"icon": "starmine:overlord_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:overlord",
+			"name": "Overlord",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Overlord",
+			"text": "$(l)Health$(): 200$(br)No attack$(br)$(l)Speed$(): 0.902, flying$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 18 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Load$(): Takes aboard own ground units of its race nearby (8 slots)$(br2)$(l)Unload$(): Flies there and puts the cargo down"
+		}
+	]
+}

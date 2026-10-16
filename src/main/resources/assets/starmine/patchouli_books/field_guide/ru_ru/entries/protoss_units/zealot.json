@@ -1,0 +1,24 @@
+{
+	"name": "Фанатик",
+	"icon": "starmine:zealot_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zealot",
+			"name": "Фанатик",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Фанатик",
+			"text": "$(l)Здоровье$(): 100, щиты 50$(br)$(l)Урон$(): 16, раз в 0.86 с, ближний бой$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 100 минералов, 2 снабжения$(br)$(l)Время$(): 27 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Рывок$(): Рывок к врагу с усиленным ударом"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Marauder",
+	"icon": "starmine:marauder_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:marauder",
+			"name": "Marauder",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Marauder",
+			"text": "$(l)Health$(): 125$(br)$(l)Damage$(): 15, every 1.07 s, range 6$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 100 minerals, 25 vespene, 2 supply$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Stimpack$(): +50 % speed and attack speed for 11 s; costs health"
+		}
+	]
+}

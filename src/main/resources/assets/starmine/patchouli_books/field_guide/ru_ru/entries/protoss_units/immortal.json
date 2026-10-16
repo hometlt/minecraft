@@ -1,0 +1,19 @@
+{
+	"name": "Бессмертный",
+	"icon": "starmine:immortal_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:immortal",
+			"name": "Бессмертный",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Бессмертный",
+			"text": "$(l)Здоровье$(): 200, щиты 100$(br)$(l)Урон$(): 20, раз в 1.04 с, дальность 6$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 275 минералов, 100 веспена, 4 снабжения$(br)$(l)Время$(): 39 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

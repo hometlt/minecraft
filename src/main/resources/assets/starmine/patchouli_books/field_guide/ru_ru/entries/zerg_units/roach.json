@@ -1,0 +1,24 @@
+{
+	"name": "Таракан",
+	"icon": "starmine:roach_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roach",
+			"name": "Таракан",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Таракан",
+			"text": "$(l)Здоровье$(): 145$(br)$(l)Урон$(): 16, раз в 1.43 с, дальность 4$(br)$(l)Скорость$(): 3.15, по земле$(br)$(l)Цена$(): 75 минералов, 25 веспена, 2 снабжения$(br)$(l)Время$(): 19 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Закопаться$(): Уходит под землю: невидим без детектора; скрытень атакует только закопанным, таракан ползёт и лечится"
+		}
+	]
+}

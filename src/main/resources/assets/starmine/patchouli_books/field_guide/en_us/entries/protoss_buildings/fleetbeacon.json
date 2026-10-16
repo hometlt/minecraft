@@ -1,0 +1,19 @@
+{
+	"name": "Fleet Beacon",
+	"icon": "starmine:fleetbeacon_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:fleetbeacon",
+			"name": "Fleet Beacon",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Fleet Beacon",
+			"text": "$(l)Health$(): 500, shields 500$(br)No attack$(br)$(l)Cost$(): 300 minerals, 200 vespene$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

@@ -1,0 +1,24 @@
+{
+	"name": "Nexus",
+	"icon": "starmine:nexus_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:nexus",
+			"name": "Nexus",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Nexus",
+			"text": "$(l)Health$(): 1000, shields 1000$(br)No attack$(br)$(l)Cost$(): 400 minerals$(br)$(l)Build time$(): 71 s$(br)$(l)Gives supply$(): 15$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Chrono Boost$(): A building works 50 % faster for 20 s$(br2)$(l)Battery Overcharge$(): A shield battery restores twice as fast for 14 s"
+		}
+	]
+}

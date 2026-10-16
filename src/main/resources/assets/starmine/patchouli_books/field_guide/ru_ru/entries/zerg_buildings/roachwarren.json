@@ -1,0 +1,19 @@
+{
+	"name": "Логово тараканов",
+	"icon": "starmine:roachwarren_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:roachwarren",
+			"name": "Логово тараканов",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Логово тараканов",
+			"text": "$(l)Здоровье$(): 850$(br)Без атаки$(br)$(l)Цена$(): 150 минералов$(br)$(l)Время$(): 39 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

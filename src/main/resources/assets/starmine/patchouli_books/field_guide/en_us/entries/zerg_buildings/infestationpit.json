@@ -1,0 +1,19 @@
+{
+	"name": "Infestation Pit",
+	"icon": "starmine:infestationpit_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:infestationpit",
+			"name": "Infestation Pit",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Infestation Pit",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 100 minerals, 100 vespene$(br)$(l)Build time$(): 36 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

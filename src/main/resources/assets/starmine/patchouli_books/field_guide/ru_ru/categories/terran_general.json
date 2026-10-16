@@ -1,0 +1,7 @@
+{
+	"name": "Общая информация",
+	"description": "Общая информация: Терраны.",
+	"icon": "starmine:commandcenter_spawn_egg",
+	"sortnum": 2,
+	"parent": "starmine:terran"
+}

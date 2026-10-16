@@ -1,0 +1,19 @@
+{
+	"name": "Shield Battery",
+	"icon": "starmine:shieldbattery_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:shieldbattery",
+			"name": "Shield Battery",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Shield Battery",
+			"text": "$(l)Health$(): 150, shields 150$(br)No attack$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

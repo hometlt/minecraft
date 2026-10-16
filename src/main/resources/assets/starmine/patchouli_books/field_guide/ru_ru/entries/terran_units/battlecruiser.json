@@ -1,0 +1,24 @@
+{
+	"name": "Крейсер",
+	"icon": "starmine:battlecruiser_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:battlecruiser",
+			"name": "Крейсер",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Крейсер",
+			"text": "$(l)Здоровье$(): 550$(br)$(l)Урон$(): 8, раз в 0.16 с, дальность 6$(br)$(l)Скорость$(): 2.62, летает$(br)$(l)Цена$(): 400 минералов, 300 веспена, 6 снабжения$(br)$(l)Время$(): 64 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Орудие Ямато$(): Через 2 с: 240 урона по одной цели$(br2)$(l)Тактический прыжок$(): Через 4 с: прыжок в любую точку"
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+	"name": "Fusion Core",
+	"icon": "starmine:fusioncore_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:fusioncore",
+			"name": "Fusion Core",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Fusion Core",
+			"text": "$(l)Health$(): 750$(br)No attack$(br)$(l)Cost$(): 150 minerals, 150 vespene$(br)$(l)Build time$(): 46 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}
