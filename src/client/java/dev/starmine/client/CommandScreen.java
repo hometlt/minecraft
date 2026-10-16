@@ -1,5 +1,6 @@
 package dev.starmine.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import dev.starmine.StarMine;
 import dev.starmine.colony.ColonyNetwork;
 import dev.starmine.entity.StarUnit;
@@ -134,7 +135,12 @@ public final class CommandScreen extends Screen {
 			ResourceLocation icon = icon(button.icon);
 			if (button.kind != null) graphics.renderItem(new ItemStack(StarMine.egg(button.kind)), at[0] + 9, at[1] + 5);
 			else if (icon != null) {
+				// SC2 icons rely on alpha (command glyphs are white with fully transparent white around them);
+				// GuiGraphics.blit does not blend by itself, which drew them as solid white silhouettes
+				RenderSystem.enableBlend();
+				RenderSystem.defaultBlendFunc();
 				graphics.blit(icon, at[0] + 1, at[1] + 1, CELL - 2, CELL - 2, 0, 0, ICON, ICON, ICON, ICON);
+				RenderSystem.disableBlend();
 				if (!button.enabled) graphics.fill(at[0] + 1, at[1] + 1, at[0] + CELL - 1, at[1] + CELL - 1, 0xA0000000);
 			} else {
 				String text = button.label.getString();
