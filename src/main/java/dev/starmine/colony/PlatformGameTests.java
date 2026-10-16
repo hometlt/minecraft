@@ -67,6 +67,27 @@ public class PlatformGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 17.10: the platform is a chest of its race — what is laid in its 27 slots counts and pays the call. */
+	@GameTest(template = ARENA, batch = "platformChest", timeoutTicks = 40)
+	public void thePlatformIsAChest(GameTestHelper helper) {
+		TestArena.clear(helper);
+		helper.setBlock(AT, PlatformBlock.BLOCKS.get(UnitKind.Race.ZERG));
+		BlockPos pos = helper.absolutePos(AT);
+		PlatformBlockEntity platform = (PlatformBlockEntity) helper.getLevel().getBlockEntity(pos);
+		helper.assertTrue(platform.getContainerSize() == 27, "not a chest: " + platform.getContainerSize() + " slots");
+		helper.assertTrue(platform.createMenu(0, player(helper).getInventory(), player(helper)) instanceof net.minecraft.world.inventory.ChestMenu,
+			"it does not open as a chest");
+		platform.setItem(3, new ItemStack(Items.RAW_IRON, 64));
+		platform.setItem(9, new ItemStack(Items.COAL, 5));
+		helper.assertTrue(platform.minerals() >= 500 && platform.stock().getOrDefault("iron", 0) == 64, "the slots do not count: " + platform.minerals());
+		Player player = player(helper);
+		helper.assertTrue("message.starmine.platform_calling".equals(PlatformBlock.call(helper.getLevel(), pos, player)), "the slots do not pay the call");
+		helper.assertTrue(platform.getItem(3).isEmpty() && platform.stock().getOrDefault("coal", 0) == 5, "the call took the wrong things");
+		helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(48, 40, 48), unit -> unit.owner().map(player.getUUID()::equals).orElse(false))
+			.forEach(StarUnit::discard);
+		helper.succeed();
+	}
+
 	/** 63 raw iron (504 minerals) and the command panel: a medivac brings an SCV, the platform goes, a command center rises there. */
 	@GameTest(template = ARENA, batch = "platformCall", timeoutTicks = 1600)
 	public void aCalledTransportFoundsTheBase(GameTestHelper helper) {

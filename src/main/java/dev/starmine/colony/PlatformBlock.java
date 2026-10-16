@@ -48,8 +48,9 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A supply platform (CLOUD_TASK_2 stage 5): how a survival player gets a main building. Crafted from a
- * map amid 8 armor shards of a race (the race of the platform); the player puts resources in it (right
- * click with them: what workers bring and a main building takes — raw ores, ingots, gems, vespene); once
+ * map amid 8 armor shards of a race (the race of the platform). It is a chest of its race (owner 17.10): opened
+ * like a chest, 27 slots, or a right click with a stack puts it in — what workers bring and a main building takes
+ * (raw ores, ingots, gems, vespene; {@link PlatformBlockEntity}); once
  * it holds a price of `data/starmine/costs/platform.json` (500 minerals, or 500 iron, or 100 diamonds),
  * a right click with the command panel calls a transport of its race (overlord, medivac, warp prism). It
  * flies in with a worker, puts it down on the platform and flies off; the platform is gone. The worker is
@@ -60,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
 public final class PlatformBlock extends Block implements EntityBlock {
 	public static final Map<UnitKind.Race, PlatformBlock> BLOCKS = new EnumMap<>(UnitKind.Race.class);
 	public static final BlockEntityType<PlatformBlockEntity> ENTITY;
-	private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 6, 16);
+	private static final VoxelShape SHAPE = Block.box(1, 0, 1, 15, 14, 15); // a chest (owner 17.10)
 	/** Where the transport comes from: this far aside and up. */
 	static final double FROM = 18, FROM_UP = 14;
 	/** Ticks a transport may take to come; then it is put over the platform. Ticks it flies off before it is gone. */
@@ -112,17 +113,28 @@ public final class PlatformBlock extends Block implements EntityBlock {
 		return ItemInteractionResult.sidedSuccess(level.isClientSide);
 	}
 
+	/** Opened like a chest; what it holds is said over the hotbar. */
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-		if (!level.isClientSide) player.displayClientMessage(Component.translatable("message.starmine.platform_holds", contents(level, pos)), true);
+		if (!level.isClientSide && level.getBlockEntity(pos) instanceof PlatformBlockEntity platform) {
+			player.openMenu(platform);
+			player.displayClientMessage(Component.translatable("message.starmine.platform_holds", contents(level, pos)), true);
+		}
 		return InteractionResult.sidedSuccess(level.isClientSide);
+	}
+
+	/** Broken: what is in its slots falls out, as from a chest. */
+	@Override
+	protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+		net.minecraft.world.Containers.dropContentsOnDestroy(state, newState, level, pos);
+		super.onRemove(state, level, pos, newState, moved);
 	}
 
 	/** "500 minerals, 0 vespene, iron 12, diamond 3". */
 	static String contents(Level level, BlockPos pos) {
 		if (!(level.getBlockEntity(pos) instanceof PlatformBlockEntity platform)) return "";
-		StringBuilder text = new StringBuilder(platform.minerals + " / " + platform.vespene);
-		platform.stock.forEach((label, count) -> text.append(", ").append(label).append(' ').append(count));
+		StringBuilder text = new StringBuilder(platform.minerals() + " / " + platform.vespene());
+		platform.stock().forEach((label, count) -> text.append(", ").append(label).append(' ').append(count));
 		return text.toString();
 	}
 
@@ -133,18 +145,16 @@ public final class PlatformBlock extends Block implements EntityBlock {
 		if (dev.starmine.mineral.Minerals.nearSite(level, pos, UnitKind.COMMAND_CENTER.width / 2.0)) return "message.starmine.near_minerals";
 		HiveResources.Yield yield = HiveResources.yieldOfItem(stack);
 		if (!yield.any()) return null;
-		int count = stack.getCount();
-		platform.minerals += yield.minerals() * count;
-		platform.vespene += yield.vespene() * count;
-		if (yield.label() != null) platform.stock.merge(yield.label(), count, Integer::sum);
-		platform.setChanged();
-		if (!player.getAbilities().instabuild) stack.shrink(count);
+		ItemStack put = player.getAbilities().instabuild ? stack.copy() : stack;
+		platform.insert(put); // into its slots; what does not fit stays in the hand
 		level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 1.0f, 0.8f);
 		return "message.starmine.platform_holds";
 	}
 
 	/** The first price of `costs/platform.json` the platform holds, or null. */
 	static @Nullable Costs.Cost price(PlatformBlockEntity platform) {
+		int held = platform.minerals(), gas = platform.vespene();
+		Map<String, Integer> stock = platform.stock();
 		Map<String, Costs.Cost> prices = Costs.loaded("platform");
 		Costs.Cost minerals = prices.get("minerals");
 		List<Costs.Cost> order = new ArrayList<>();
@@ -153,10 +163,10 @@ public final class PlatformBlock extends Block implements EntityBlock {
 			if (cost != minerals) order.add(cost);
 		});
 		for (Costs.Cost cost : order) {
-			if (platform.minerals < cost.minerals() || platform.vespene < cost.vespene()) continue;
+			if (held < cost.minerals() || gas < cost.vespene()) continue;
 			boolean all = true;
 			for (Map.Entry<String, Integer> material : cost.materials().entrySet())
-				if (platform.stock.getOrDefault(material.getKey(), 0) < material.getValue()) all = false;
+				if (stock.getOrDefault(material.getKey(), 0) < material.getValue()) all = false;
 			if (all) return cost;
 		}
 		return null;
@@ -169,6 +179,7 @@ public final class PlatformBlock extends Block implements EntityBlock {
 		if (platform.called) return "message.starmine.platform_called";
 		Costs.Cost price = price(platform);
 		if (price == null) return "message.starmine.platform_short";
+		platform.absorb(); // its resources become numbers, the call is paid from them
 		platform.minerals -= price.minerals();
 		platform.vespene -= price.vespene();
 		price.materials().forEach((label, count) -> platform.stock.merge(label, -count, Integer::sum));
@@ -278,6 +289,7 @@ public final class PlatformBlock extends Block implements EntityBlock {
 			data.add(base);
 		}
 		if (platform != null) {
+			platform.absorb(); // what was put in after the call too
 			base.minerals += platform.minerals;
 			base.vespene += platform.vespene;
 			for (Map.Entry<String, Integer> held : platform.stock.entrySet()) base.collected.merge(held.getKey(), held.getValue(), Integer::sum);

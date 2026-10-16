@@ -1,81 +1,106 @@
 {
 	"parent": "minecraft:block/block",
 	"textures": {
-		"particle": "minecraft:block/crimson_nylium",
+		"particle": "starmine:block/zerg_flesh",
+		"body": "starmine:block/zerg_flesh",
+		"lid": "starmine:block/glowing_zerg_flesh",
 		"top": "minecraft:block/nether_wart_block",
-		"side": "minecraft:block/crimson_nylium"
+		"latch": "starmine:block/glowing_zerg_flesh"
 	},
 	"elements": [
 		{
 			"from": [
+				1,
 				0,
-				0,
-				0
+				1
 			],
 			"to": [
-				16,
-				6,
+				15,
+				9,
+				15
+			],
+			"faces": {
+				"down": {
+					"texture": "#body"
+				},
+				"up": {
+					"texture": "#body"
+				},
+				"north": {
+					"texture": "#body"
+				},
+				"south": {
+					"texture": "#body"
+				},
+				"west": {
+					"texture": "#body"
+				},
+				"east": {
+					"texture": "#body"
+				}
+			}
+		},
+		{
+			"from": [
+				1,
+				9,
+				1
+			],
+			"to": [
+				15,
+				14,
+				15
+			],
+			"faces": {
+				"down": {
+					"texture": "#lid"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"north": {
+					"texture": "#lid"
+				},
+				"south": {
+					"texture": "#lid"
+				},
+				"west": {
+					"texture": "#lid"
+				},
+				"east": {
+					"texture": "#lid"
+				}
+			}
+		},
+		{
+			"from": [
+				7,
+				7,
+				15
+			],
+			"to": [
+				9,
+				11,
 				16
 			],
 			"faces": {
 				"down": {
-					"uv": [
-						0,
-						0,
-						16,
-						16
-					],
-					"texture": "#side",
-					"cullface": "down"
+					"texture": "#latch"
 				},
 				"up": {
-					"uv": [
-						0,
-						0,
-						16,
-						16
-					],
-					"texture": "#top"
+					"texture": "#latch"
 				},
 				"north": {
-					"uv": [
-						0,
-						10,
-						16,
-						16
-					],
-					"texture": "#side",
-					"cullface": "north"
+					"texture": "#latch"
 				},
 				"south": {
-					"uv": [
-						0,
-						10,
-						16,
-						16
-					],
-					"texture": "#side",
-					"cullface": "south"
+					"texture": "#latch"
 				},
 				"west": {
-					"uv": [
-						0,
-						10,
-						16,
-						16
-					],
-					"texture": "#side",
-					"cullface": "west"
+					"texture": "#latch"
 				},
 				"east": {
-					"uv": [
-						0,
-						10,
-						16,
-						16
-					],
-					"texture": "#side",
-					"cullface": "east"
+					"texture": "#latch"
 				}
 			}
 		}
