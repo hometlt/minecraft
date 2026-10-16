@@ -153,4 +153,21 @@ public class TerranGameTests implements FabricGameTest {
 				"the marine is at " + marine.position() + ", order " + marine.order()));
 		});
 	}
+
+	/** A worker's build order reaches its player's client (the site's ghost) until the building is put down. */
+	@GameTest(template = ARENA, batch = "terranPlan", timeoutTicks = 40)
+	public void workersBuildPlanIsShown(GameTestHelper helper) {
+		StarUnit scv = helper.spawn(StarMine.type(UnitKind.SCV), new BlockPos(10, 2, 10));
+		scv.setNoAi(true);
+		BlockPos site = helper.absolutePos(new BlockPos(24, 2, 24));
+		scv.orderBuild(UnitKind.BARRACKS, site);
+		StarUnit.Plan plan = scv.plannedBuild();
+		helper.assertTrue(plan != null && plan.kind() == UnitKind.BARRACKS && plan.site().equals(site), "no plan: " + plan);
+		scv.setConstructing(java.util.UUID.randomUUID()); // put down: it builds it now
+		helper.assertTrue(scv.plannedBuild() == null, "a building under way still shows as planned");
+		scv.setConstructing(null);
+		scv.cancelBuild();
+		helper.assertTrue(scv.plannedBuild() == null, "a cancelled order still shows as planned");
+		helper.succeed();
+	}
 }

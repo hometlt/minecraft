@@ -41,6 +41,7 @@ public final class StarMineClient implements ClientModInitializer {
 			PilotClient.drawHud(graphics);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::render);
+		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::renderPlans);
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			BaseStatusClient.receive(dev.starmine.colony.ColonyNetwork.BaseStatus.NONE);
 			CommandView.exit(mc);

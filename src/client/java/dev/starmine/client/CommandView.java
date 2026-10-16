@@ -395,7 +395,7 @@ public final class CommandView {
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
 		Orders.render(pose, lines, context.tickCounter().getGameTimeDeltaPartialTick(false));
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
-		if (placing != null && ghostSite != null) drawGhost(pose, buffers);
+		if (placing != null && ghostSite != null) drawGhost(pose, buffers, placing, ghostSite, ghostValid ? GHOST_GOOD : GHOST_BAD);
 		// what detectors sense behind walls: a frame of its body seen through the blocks (as well as the glowing
 		// outline, which shader packs may not draw)
 		VertexConsumer through = buffers.getBuffer(SeeThrough.LINES);
@@ -474,22 +474,72 @@ public final class CommandView {
 		}
 	}
 
-	private static void drawGhost(PoseStack pose, MultiBufferSource buffers) {
-		SkinnedModel model = StarMineModels.get(placing.id);
-		if (model == null) return;
-		if (ghostPalette.length != model.slots * 12) ghostPalette = new float[model.slots * 12];
-		SkinnedModel.Clip stand = model.clips.get("stand");
-		if (stand == null && !model.clips.isEmpty()) stand = model.clips.values().iterator().next();
-		if (stand == null) return;
-		model.pose(stand, 0, ghostPalette);
-		GHOST.skin(model, ghostPalette);
-		pose.pushPose();
-		Vec3 at = placing.gridCentre(Vec3.atBottomCenterOf(ghostSite)); // where it will stand: on the grid
-		pose.translate(at.x, at.y, at.z);
-		float scale = placing.modelScale();
-		pose.scale(scale, scale, scale);
-		GHOST.drawTranslucent(model, pose.last(), buffers, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, ghostValid ? 0x8060FF60 : 0x80FF5050);
-		pose.popPose();
+	/** A ghost's tint: green where the building can stand, red where it cannot; fainter green for a site a worker is on its way to. */
+	static final int GHOST_GOOD = 0x8060FF60, GHOST_BAD = 0x80FF5050, GHOST_PLANNED = 0x5060FF60;
+
+	/**
+	 * A building's ghost where it will stand (on its grid), translucent in `argb`: its model, or — without
+	 * the SC2 models (a jar without them) — a box of its footprint and height with an outline, so the
+	 * place shows either way.
+	 */
+	static void drawGhost(PoseStack pose, MultiBufferSource buffers, UnitKind kind, BlockPos site, int argb) {
+		Vec3 at = kind.gas() ? Vec3.atBottomCenterOf(site) : kind.gridCentre(Vec3.atBottomCenterOf(site)); // where it will stand
+		SkinnedModel model = StarMineModels.get(kind.id);
+		SkinnedModel.Clip stand = model == null ? null : model.clips.get("stand");
+		if (stand == null && model != null && !model.clips.isEmpty()) stand = model.clips.values().iterator().next();
+		if (model != null && stand != null) {
+			if (ghostPalette.length != model.slots * 12) ghostPalette = new float[model.slots * 12];
+			model.pose(stand, 0, ghostPalette);
+			GHOST.skin(model, ghostPalette);
+			pose.pushPose();
+			pose.translate(at.x, at.y, at.z);
+			float scale = kind.modelScale();
+			pose.scale(scale, scale, scale);
+			GHOST.drawTranslucent(model, pose.last(), buffers, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, argb);
+			pose.popPose();
+		}
+		// the footprint: always outlined on the ground (the model alone hides where its edges fall); filled when there is no model
+		double half = kind.width / 2;
+		AABB box = new AABB(at.x - half, at.y, at.z - half, at.x + half, at.y + kind.height, at.z + half);
+		float a = (argb >>> 24) / 255f, r = (argb >> 16 & 255) / 255f, g = (argb >> 8 & 255) / 255f, b = (argb & 255) / 255f;
+		if (model == null || stand == null) fillBox(pose, buffers.getBuffer(RenderType.debugQuads()), box, r, g, b, a * 0.6f);
+		net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, buffers.getBuffer(RenderType.lines()),
+			model == null || stand == null ? box : box.setMaxY(at.y + 0.05), r, g, b, Math.min(1f, a + 0.4f));
+	}
+
+	private static void fillBox(PoseStack pose, VertexConsumer quads, AABB box, float r, float g, float b, float a) {
+		PoseStack.Pose last = pose.last();
+		float x0 = (float) box.minX, y0 = (float) box.minY, z0 = (float) box.minZ, x1 = (float) box.maxX, y1 = (float) box.maxY, z1 = (float) box.maxZ;
+		float[][] faces = {
+			{x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1}, {x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0},
+			{x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0}, {x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1},
+			{x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0}, {x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1}};
+		for (float[] f : faces)
+			for (int v = 0; v < 4; v++) quads.addVertex(last, f[v * 3], f[v * 3 + 1], f[v * 3 + 2]).setColor(r, g, b, a);
+	}
+
+	/**
+	 * The buildings the player's workers are on their way to put down: a faint green ghost on each site
+	 * until the building stands there (in the command view and out of it).
+	 */
+	static void renderPlans(WorldRenderContext context) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null || mc.player == null || context.consumers() == null || context.matrixStack() == null) return;
+		Vec3 cam = context.camera().getPosition();
+		PoseStack pose = context.matrixStack();
+		boolean any = false;
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (!(entity instanceof StarUnit worker) || !worker.kind.worker() || !worker.isAlive() || !own(worker)) continue;
+			StarUnit.Plan plan = worker.plannedBuild();
+			if (plan == null || plan.site().distToCenterSqr(cam) > 160 * 160) continue;
+			if (!any) {
+				pose.pushPose();
+				pose.translate(-cam.x, -cam.y, -cam.z);
+				any = true;
+			}
+			drawGhost(pose, context.consumers(), plan.kind(), plan.site(), GHOST_PLANNED);
+		}
+		if (any) pose.popPose();
 	}
 
 	/** Updates the ghost's site and whether it is good: the ground is levelable and no building is in the way. */

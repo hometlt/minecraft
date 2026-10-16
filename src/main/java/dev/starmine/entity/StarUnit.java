@@ -182,6 +182,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** A changeling's look (dev.starmine.ability.Changeling): "" its own, "villager", or a player's UUID. */
 	private static final EntityDataAccessor<String> DISGUISE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
+	/** A worker's building on its way to the site ("KIND x y z", or empty): its player sees the site's ghost. */
+	private static final EntityDataAccessor<String> BUILD_PLAN = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** Cooldowns, channels, mode changes, unloading (server). */
 	public final dev.starmine.ability.AbilityState abilities = new dev.starmine.ability.AbilityState();
 	/**
@@ -450,6 +452,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void orderBuild(UnitKind building, BlockPos site) {
 		this.buildKind = building;
 		this.buildSite = site.immutable();
+		syncPlan();
 	}
 
 	public UnitKind buildKind() {
@@ -463,6 +466,28 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	public void cancelBuild() {
 		buildKind = null;
 		buildSite = null;
+		syncPlan();
+	}
+
+	/** A building this worker is going to put down, and where (seen by clients: the site's ghost). */
+	public record Plan(UnitKind kind, BlockPos site) {
+	}
+
+	/** The building on its way: ordered, not yet put down (an SCV building it is not on its way any more). */
+	private void syncPlan() {
+		this.entityData.set(BUILD_PLAN, buildKind != null && buildSite != null && constructing == null
+			? buildKind.name() + " " + buildSite.getX() + " " + buildSite.getY() + " " + buildSite.getZ() : "");
+	}
+
+	public @org.jetbrains.annotations.Nullable Plan plannedBuild() {
+		String plan = this.entityData.get(BUILD_PLAN);
+		if (plan.isEmpty()) return null;
+		String[] part = plan.split(" ");
+		try {
+			return new Plan(UnitKind.valueOf(part[0]), new BlockPos(Integer.parseInt(part[1]), Integer.parseInt(part[2]), Integer.parseInt(part[3])));
+		} catch (RuntimeException e) {
+			return null;
+		}
 	}
 
 	/** A new building grows for its SC2 build time before it counts for the hive. */
@@ -528,6 +553,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public void setConstructing(UUID building) {
 		this.constructing = building;
+		syncPlan();
 	}
 
 	public UUID constructing() {
@@ -768,6 +794,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(REVEALED, false);
 		builder.define(MODE, 0);
 		builder.define(DISGUISE, "");
+		builder.define(BUILD_PLAN, "");
 	}
 
 	@Override
@@ -1081,6 +1108,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				buildKind = null;
 			}
 		}
+		syncPlan();
 	}
 
 	@Override
