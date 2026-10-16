@@ -41,7 +41,7 @@ import org.joml.Vector3f;
  *
  * - Camera: a client-only marker entity the game renders from (the player's body stays where it is,
  *   so chunks around it stay loaded); it looks down at {@link #PITCH} from its own height, as in Reign of
- *   Nether (owner 14.10): a fixed isometric view along a diagonal, Q/E turn it by a quarter ({@link #rotate});
+ *   Nether (owner 14.10), facing north — straight up the minimap, as in SC2 (owner 16.10) — Q/E turn it by a quarter ({@link #rotate});
  *   WASD, arrows, the screen edges and the minimap ({@link CommandMinimap}) move it. Its height is the
  *   player's (CLOUD_TASK_2): anywhere from the bottom of the world to its top, the wheel and PageUp/PageDown
  *   change it smoothly ({@link #climb}); nothing picks it by itself. (It used to stand over the client's
@@ -59,8 +59,10 @@ import org.joml.Vector3f;
  */
 public final class CommandView {
 	public static final double PITCH = 60, REACH = 120, PLAYER_SIGHT = 24;
-	/** The isometric yaw the view turns to (45 degrees plus quarters). */
-	static double targetYaw = 45;
+	/** The yaw the view opens with: north, up on the minimap (owner 16.10, as in SC2); Q/E turn it by quarters. */
+	static final double NORTH = 180;
+	/** The yaw the view turns to (north plus quarters). */
+	static double targetYaw = NORTH;
 	static boolean active;
 	private static Marker camera;
 	private static CameraType savedCameraType;
@@ -103,7 +105,7 @@ public final class CommandView {
 		camera = new Marker(EntityType.MARKER, mc.level);
 		targetX = mc.player.getX();
 		targetZ = mc.player.getZ();
-		yaw = targetYaw = 45 + 90 * Math.round((mc.player.getYRot() - 45) / 90.0);
+		yaw = targetYaw = NORTH; // owner 16.10: the view looks straight up the map, as in SC2
 		groundY = ground(mc.level, targetX, targetZ);
 		height = targetHeight = Mth.clamp(Math.max(groundY, mc.player.getEyeY()) + 22, mc.level.getMinBuildHeight(), mc.level.getMaxBuildHeight());
 		placeCamera(true);
