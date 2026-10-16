@@ -30,10 +30,14 @@ public final class ColonyNetwork {
 	}
 
 	/** A player's base: `present` false when the player has none in this dimension. */
-	public record BaseStatus(boolean present, int minerals, int vespene, int diamonds, float supplyUsed, int supplyCap,
+	/** One race's supply in a base (owner 16.10: each race has its own limit): the race's name, used and cap. */
+	public record Supply(String race, float used, int cap) {
+	}
+
+	public record BaseStatus(boolean present, int minerals, int vespene, int diamonds, List<Supply> supplies,
 			int attackLevel, int armorLevel, List<Tally> tallies, Map<String, Integer> counts) implements CustomPacketPayload {
 		public static final Type<BaseStatus> TYPE = new Type<>(StarMine.id("base_status"));
-		public static final BaseStatus NONE = new BaseStatus(false, 0, 0, 0, 0, 0, 0, 0, List.of(), Map.of());
+		public static final BaseStatus NONE = new BaseStatus(false, 0, 0, 0, List.of(), 0, 0, List.of(), Map.of());
 		public static final StreamCodec<RegistryFriendlyByteBuf, BaseStatus> CODEC = StreamCodec.of(BaseStatus::write, BaseStatus::read);
 
 		private static void write(RegistryFriendlyByteBuf buf, BaseStatus status) {
@@ -42,8 +46,12 @@ public final class ColonyNetwork {
 			buf.writeVarInt(status.minerals);
 			buf.writeVarInt(status.vespene);
 			buf.writeVarInt(status.diamonds);
-			buf.writeFloat(status.supplyUsed);
-			buf.writeVarInt(status.supplyCap);
+			buf.writeVarInt(status.supplies.size());
+			for (Supply supply : status.supplies) {
+				buf.writeUtf(supply.race);
+				buf.writeFloat(supply.used);
+				buf.writeVarInt(supply.cap);
+			}
 			buf.writeVarInt(status.attackLevel);
 			buf.writeVarInt(status.armorLevel);
 			buf.writeVarInt(status.tallies.size());
@@ -62,13 +70,14 @@ public final class ColonyNetwork {
 		private static BaseStatus read(RegistryFriendlyByteBuf buf) {
 			if (!buf.readBoolean()) return NONE;
 			int minerals = buf.readVarInt(), vespene = buf.readVarInt(), diamonds = buf.readVarInt();
-			float supplyUsed = buf.readFloat();
-			int supplyCap = buf.readVarInt(), attack = buf.readVarInt(), armor = buf.readVarInt();
+			List<Supply> supplies = new ArrayList<>();
+			for (int i = buf.readVarInt(); i > 0; i--) supplies.add(new Supply(buf.readUtf(), buf.readFloat(), buf.readVarInt()));
+			int attack = buf.readVarInt(), armor = buf.readVarInt();
 			List<Tally> tallies = new ArrayList<>();
 			for (int i = buf.readVarInt(); i > 0; i--) tallies.add(new Tally(buf.readUtf(), buf.readUtf(), buf.readVarInt()));
 			Map<String, Integer> counts = new LinkedHashMap<>();
 			for (int i = buf.readVarInt(); i > 0; i--) counts.put(buf.readUtf(), buf.readVarInt());
-			return new BaseStatus(true, minerals, vespene, diamonds, supplyUsed, supplyCap, attack, armor, tallies, counts);
+			return new BaseStatus(true, minerals, vespene, diamonds, supplies, attack, armor, tallies, counts);
 		}
 
 		@Override
@@ -173,8 +182,12 @@ public final class ColonyNetwork {
 		base.pending.forEach((kind, count) -> counts.merge("pending:" + kind.name(), count, Integer::sum));
 		counts.put("tier", base.tier); // zerg: lair 2, hive 3
 		for (String done : base.researched) counts.put("research:" + done, 1); // unit upgrades done
-		ServerPlayNetworking.send(player, new BaseStatus(true, base.minerals, base.vespene, base.diamonds, (float) base.supplyUsed(),
-			base.supplyCap(), base.attackLevel, base.armorLevel, tallies, counts));
+		List<Supply> supplies = new ArrayList<>(); // the races the player commands: those with supply given or taken
+		for (UnitKind.Race race : UnitKind.Race.values())
+			if (base.supplyCap(race) > 0 || base.supplyUsed(race) > 0)
+				supplies.add(new Supply(race.name(), (float) base.supplyUsed(race), base.supplyCap(race)));
+		ServerPlayNetworking.send(player, new BaseStatus(true, base.minerals, base.vespene, base.diamonds, supplies,
+			base.attackLevel, base.armorLevel, tallies, counts));
 	}
 
 	/** Lets the client check tech: whether a kind's requirement is in the counts and the tier is enough. */

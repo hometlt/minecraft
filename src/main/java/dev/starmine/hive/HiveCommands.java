@@ -89,7 +89,7 @@ public final class HiveCommands {
 		StringBuilder pending = new StringBuilder();
 		for (Map.Entry<UnitKind, Integer> entry : hive.pending.entrySet()) pending.append(' ').append(entry.getKey().id).append('=').append(entry.getValue());
 		String text = "Hive " + hive.hatchery.toShortString() + ": minerals " + hive.minerals + ", vespene " + hive.vespene
-			+ ", diamonds " + hive.diamonds + ", supply " + hive.supplyUsed() + "/" + hive.supplyCap()
+			+ ", diamonds " + hive.diamonds + ", supply " + hive.supplyUsed(hive.race) + "/" + hive.supplyCap(hive.race)
 			+ ", larva in " + (HiveLogic.LARVA_TICKS - hive.larvaTimer) / 20 + " s\n members:" + members + "\n in cocoons:" + pending
 			+ (hive.queenTicks >= 0 ? "\n queen in " + hive.queenTicks / 20 + " s" : "");
 		context.getSource().sendSuccess(() -> Component.literal(text), false);

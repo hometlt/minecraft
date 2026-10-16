@@ -136,13 +136,33 @@ public class RaceGameTests implements FabricGameTest {
 	}
 
 	/** Over its supply cap (an overlord lost) a hive still affords an overlord and buildings, not a zergling. */
+	/** Owner 16.10: each race has its own supply — zerg overlords do not let a player train marines past their depots. */
+	@GameTest(template = ARENA, batch = "costs", timeoutTicks = 20)
+	public void eachRaceHasItsOwnSupply(GameTestHelper helper) {
+		Hive base = new Hive(UUID.randomUUID(), "minecraft:overworld", BlockPos.ZERO);
+		base.owner = UUID.randomUUID();
+		base.minerals = 10000;
+		base.join(UnitKind.HATCHERY);
+		for (int i = 0; i < 3; i++) base.join(UnitKind.OVERLORD);
+		base.join(UnitKind.COMMAND_CENTER);
+		int zerg = UnitKind.HATCHERY.economy().supply() + 3 * UnitKind.OVERLORD.economy().supply(), terran = UnitKind.COMMAND_CENTER.economy().supply();
+		for (int i = 0; i < terran; i++) base.join(UnitKind.MARINE); // the terran cap full
+		helper.assertTrue(base.supplyCap(UnitKind.Race.ZERG) == zerg && base.supplyCap(UnitKind.Race.TERRAN) == terran,
+			"caps zerg " + base.supplyCap(UnitKind.Race.ZERG) + ", terran " + base.supplyCap(UnitKind.Race.TERRAN));
+		helper.assertTrue(base.supplyUsed(UnitKind.Race.TERRAN) == terran && base.supplyUsed(UnitKind.Race.ZERG) == 0, "supply taken across races");
+		helper.assertFalse(base.canAfford(UnitKind.MARINE, 1), "a marine past the terran cap on zerg supply");
+		helper.assertTrue(base.canAfford(UnitKind.ZERGLING, 2), "zerglings refused for the terrans' cap");
+		helper.assertTrue(base.supplyCap(UnitKind.Race.PROTOSS) == 0, "protoss supply from nothing");
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "zergSupply", timeoutTicks = 40)
 	public void overSupplyStillAffordsAnOverlord(GameTestHelper helper) {
 		Hive hive = new Hive(UUID.randomUUID(), helper.getLevel().dimension().location().toString(), helper.absolutePos(new BlockPos(24, 2, 24)));
 		hive.join(UnitKind.HATCHERY);
 		for (int i = 0; i < 10; i++) hive.join(UnitKind.DRONE); // supply 10 of 6 (a hatchery's)
 		hive.minerals = 1000;
-		helper.assertTrue(hive.supplyUsed() > hive.supplyCap(), "not over the cap: " + hive.supplyUsed() + "/" + hive.supplyCap());
+		helper.assertTrue(hive.supplyUsed(UnitKind.Race.ZERG) > hive.supplyCap(UnitKind.Race.ZERG), "not over the cap: " + hive.supplyUsed(UnitKind.Race.ZERG) + "/" + hive.supplyCap(UnitKind.Race.ZERG));
 		helper.assertTrue(hive.canAfford(UnitKind.OVERLORD, 1), "a hive over its cap cannot afford an overlord");
 		helper.assertTrue(hive.canAfford(UnitKind.SPAWNING_POOL, 1), "a hive over its cap cannot afford a building");
 		helper.assertFalse(hive.canAfford(UnitKind.ZERGLING, 2), "a hive over its cap affords zerglings");

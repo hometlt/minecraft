@@ -1,6 +1,7 @@
 package dev.starmine.client;
 
 import dev.starmine.colony.ColonyNetwork;
+import dev.starmine.entity.UnitKind;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -24,7 +25,7 @@ public final class BaseStatusClient {
 	/** The bases on the map (owner 16.10): the races' main bases and the player's own ({@link CommandMinimap}). */
 	static List<ColonyNetwork.Mark> marks = List.of();
 	private static final ItemStack MINERALS = new ItemStack(dev.starmine.mineral.Minerals.SHARD),
-		VESPENE = new ItemStack(dev.starmine.vespene.Vespene.BUCKET), SUPPLY = new ItemStack(Items.IRON_BARS);
+		VESPENE = new ItemStack(dev.starmine.vespene.Vespene.BUCKET);
 
 	private BaseStatusClient() {
 	}
@@ -50,9 +51,13 @@ public final class BaseStatusClient {
 		icons.add(VESPENE);
 		texts.add(String.valueOf(status.vespene()));
 		colors.add(0xFF80FF80);
-		icons.add(SUPPLY);
-		texts.add(supply(status.supplyUsed()) + "/" + status.supplyCap());
-		colors.add(status.supplyUsed() >= status.supplyCap() ? 0xFFFF6060 : 0xFFFFFFFF);
+		int sc2 = 2; // minerals, vespene, then one supply per race the player commands (owner 16.10: its SC2 icon — overlord, depot, pylon)
+		for (ColonyNetwork.Supply supply : status.supplies()) {
+			icons.add(new ItemStack(dev.starmine.StarMine.egg(supplyIcon(supply.race()))));
+			texts.add(supply(supply.used()) + "/" + supply.cap());
+			colors.add(supply.used() >= supply.cap() ? 0xFFFF6060 : 0xFFFFFFFF);
+			sc2++;
+		}
 		for (ColonyNetwork.Tally tally : status.tallies()) {
 			ResourceLocation icon = ResourceLocation.tryParse(tally.icon());
 			icons.add(icon == null ? ItemStack.EMPTY : new ItemStack(BuiltInRegistries.ITEM.get(icon)));
@@ -63,7 +68,7 @@ public final class BaseStatusClient {
 		int[] cells = new int[icons.size()];
 		int rowWidth = 0;
 		for (int i = 0; i < icons.size(); i++) {
-			cells[i] = 18 + Math.max(font.width(texts.get(i)), i < 3 ? 34 : 14) + 8; // the SC2 three wider, the stock narrower
+			cells[i] = 18 + Math.max(font.width(texts.get(i)), i < sc2 ? 34 : 14) + 8; // the SC2 ones wider, the stock narrower
 			rowWidth += cells[i];
 		}
 		int panelWidth = (int) Math.ceil(rowWidth * scale) + 4, panelHeight = (int) Math.ceil(17 * scale) + 4;
@@ -74,6 +79,21 @@ public final class BaseStatusClient {
 		graphics.pose().scale(scale, scale, 1);
 		for (int i = 0, x = 0; i < icons.size(); x += cells[i], i++) item(graphics, font, icons.get(i), x, 0, texts.get(i), colors.get(i));
 		graphics.pose().popPose();
+	}
+
+	/** A race's supply icon, as in SC2: the overlord, the supply depot, the pylon. */
+	static UnitKind supplyIcon(String race) {
+		return switch (race) {
+			case "ZERG" -> UnitKind.OVERLORD;
+			case "PROTOSS" -> UnitKind.PYLON;
+			default -> UnitKind.SUPPLY_DEPOT;
+		};
+	}
+
+	/** A race's supply in the base status (none: nothing given, nothing taken). */
+	static ColonyNetwork.Supply supplyOf(ColonyNetwork.BaseStatus status, UnitKind.Race race) {
+		return status.supplies().stream().filter(supply -> supply.race().equals(race.name())).findFirst()
+			.orElse(new ColonyNetwork.Supply(race.name(), 0, 0));
 	}
 
 	private static String supply(float used) {

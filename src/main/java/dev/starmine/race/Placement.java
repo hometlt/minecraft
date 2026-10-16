@@ -41,7 +41,7 @@ public final class Placement {
 		if (base.minerals < cost.minerals()) return "message.starmine.need_minerals";
 		if (base.vespene < cost.vespene()) return "message.starmine.need_vespene";
 		if (!base.has(dev.starmine.colony.Costs.materials(kind), 1)) return "message.starmine.need_materials";
-		if (cost.food() > 0 && base.supplyUsed() + cost.food() > base.supplyCap()) return "message.starmine.need_supply"; // buildings take none
+		if (cost.food() > 0 && base.supplyUsed(kind.race) + cost.food() > base.supplyCap(kind.race)) return "message.starmine.need_supply"; // buildings take none
 		return null;
 	}
 

@@ -470,7 +470,7 @@ public final class CommandScreen extends Screen {
 		UnitKind.Economy cost = dev.starmine.race.Morph.price(kind); // a morph costs what it adds to its unit
 		boolean unlocked = ColonyNetwork.unlocked(status.counts(), kind);
 		boolean affordable = status.minerals() >= cost.minerals() && status.vespene() >= cost.vespene()
-			&& (!supply || status.supplyUsed() + cost.food() <= status.supplyCap());
+			&& (!supply || BaseStatusClient.supplyOf(status, kind.race).used() + cost.food() <= BaseStatusClient.supplyOf(status, kind.race).cap());
 		List<Component> tooltip = new ArrayList<>();
 		tooltip.add(name(kind).copy().append(" (" + key + ")"));
 		tooltip.add(Component.translatable("command.starmine.cost", cost.minerals(), cost.vespene()));

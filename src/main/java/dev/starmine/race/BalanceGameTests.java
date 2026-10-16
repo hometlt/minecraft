@@ -315,7 +315,7 @@ public class BalanceGameTests implements FabricGameTest {
 			long ticks = now - start[0];
 			if (ticks % 400 == 0) // how the base gets there: what it has, what is coming, what it holds
 				LOG.info("[balance] ai {} at {} s: minerals {}, vespene {}, supply {}/{}, members {}, pending {}", main.race, ticks / 20, base.minerals,
-					base.vespene, base.supplyUsed(), base.supplyCap(), base.members, base.pending);
+					base.vespene, base.supplyUsed(base.race), base.supplyCap(base.race), base.members, base.pending);
 			if (warriors.size() >= AiCommander.waveSize(base) || ticks >= limit) {
 				LOG.info("[balance] ai {}: {} warriors after {} s{}; minerals left {}, vespene {}; buildings {}", main.race, warriors.size(), ticks / 20,
 					ticks >= limit ? " (time)" : "", base.minerals, base.vespene, base.members);

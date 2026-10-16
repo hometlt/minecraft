@@ -76,8 +76,8 @@ public final class AiCommander {
 			train(main, level, base, worker, 1, true);
 			return;
 		}
-		double free = base.supplyCap() + supply.economy().supply() * base.pending(supply) - base.supplyUsed();
-		if (free < 2 && base.pending(supply) == 0 && base.supplyCap() < Hive.MAX_SUPPLY) {
+		double free = base.supplyCap(base.race) + supply.economy().supply() * base.pending(supply) - base.supplyUsed(base.race);
+		if (free < 2 && base.pending(supply) == 0 && base.supplyCap(base.race) < Hive.MAX_SUPPLY) {
 			if (supply.building()) orderBuild(main, level, base, supply);
 			else if (base.canAfford(supply, 1)) train(main, level, base, supply, 1, false);
 			return;

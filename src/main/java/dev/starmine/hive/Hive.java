@@ -140,19 +140,26 @@ public final class Hive {
 		return (need == null || count(need) > 0) && tier >= kind.tier();
 	}
 
-	public double supplyUsed() {
+	/**
+	 * Supply taken by its units of one race (owner 16.10: each race has its own limit, as in SC2 — a player commanding
+	 * zerg and terrans has an overlord count and a depot count).
+	 */
+	public double supplyUsed(UnitKind.Race of) {
 		double used = 0;
-		for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
-		for (Map.Entry<UnitKind, Integer> entry : pending.entrySet()) used += entry.getKey().economy().food() * entry.getValue();
+		for (Map.Entry<UnitKind, Integer> entry : members.entrySet())
+			if (entry.getKey().race == of) used += entry.getKey().economy().food() * entry.getValue();
+		for (Map.Entry<UnitKind, Integer> entry : pending.entrySet())
+			if (entry.getKey().race == of) used += entry.getKey().economy().food() * entry.getValue();
 		return used;
 	}
 
-	/** Supply of all its providers, whatever their race (hatcheries, overlords, command centers, depots, pylons…). */
-	public int supplyCap() {
+	/** Supply of its providers of one race (hatcheries and overlords; command centers and depots; nexuses and pylons), at most {@link #MAX_SUPPLY}. */
+	public int supplyCap(UnitKind.Race of) {
 		int cap = 0;
-		for (Map.Entry<UnitKind, Integer> entry : members.entrySet()) cap += entry.getKey().economy().supply() * entry.getValue();
+		for (Map.Entry<UnitKind, Integer> entry : members.entrySet())
+			if (entry.getKey().race == of) cap += entry.getKey().economy().supply() * entry.getValue();
 		// hives saved before their hatchery was counted as a member
-		if (race == UnitKind.Race.ZERG && count(UnitKind.HATCHERY) == 0) cap += UnitKind.HATCHERY.economy().supply();
+		if (of == UnitKind.Race.ZERG && race == UnitKind.Race.ZERG && count(UnitKind.HATCHERY) == 0) cap += UnitKind.HATCHERY.economy().supply();
 		return Math.min(MAX_SUPPLY, cap);
 	}
 
@@ -161,7 +168,7 @@ public final class Hive {
 		// supply only for what takes it: over its cap (an overlord lost) a hive still builds and morphs an
 		// overlord (SC2); it used to afford nothing at all and stood so for ever
 		return minerals >= cost.minerals() * count && vespene >= cost.vespene() * count && has(dev.starmine.colony.Costs.materials(kind), count)
-			&& (cost.food() <= 0 || supplyUsed() + cost.food() * count <= supplyCap());
+			&& (cost.food() <= 0 || supplyUsed(kind.race) + cost.food() * count <= supplyCap(kind.race));
 	}
 
 	/** Resources brought in: stores, and the panel's tally by resource label. */
