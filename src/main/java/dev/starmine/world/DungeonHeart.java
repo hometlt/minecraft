@@ -28,8 +28,9 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The heart of a small dungeon ({@link SmallDungeons}): the world is generated on other threads, where
- * no unit may be made, so a dungeon keeps the list of its guards here. When a player comes within
+ * The heart of a small dungeon ({@link SmallDungeons}) or a wild pack ({@link WildPacks}): the world is generated on
+ * other threads, where no unit may be made, so a dungeon keeps the list of its guards here. When a player (not a
+ * spectator; a creative player too, owner 16.10: a camp stood empty — the guards do not attack them) comes within
  * {@link #WAKE} blocks, the guards appear where they were planned, keeping to the dungeon (nest
  * dwellers, {@link StarUnit#makeNest}); eggs lie dormant until disturbed. Then the heart becomes the
  * dungeon's own block ({@link Heart#look}). Guards of a race never wake near the wild of another race
@@ -143,7 +144,7 @@ public final class DungeonHeart extends Block implements EntityBlock {
 		if (level.isClientSide || type != ENTITY) return null;
 		return (world, pos, blockState, entity) -> {
 			if (world.getGameTime() % 20 != 0 || !(world instanceof ServerLevel server) || !(entity instanceof Heart heart)) return;
-			if (server.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, WAKE, near -> near instanceof net.minecraft.world.entity.player.Player player && !player.isSpectator() && !player.isCreative()) != null)
+			if (server.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, WAKE, near -> near instanceof net.minecraft.world.entity.player.Player player && !player.isSpectator()) != null)
 				heart.wake(server);
 		};
 	}

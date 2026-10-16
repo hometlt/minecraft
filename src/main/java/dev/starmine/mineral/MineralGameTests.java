@@ -46,6 +46,21 @@ public class MineralGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
+	/** Owner 16.10: a crystal never hangs in the air — a small gap under it fills with mineralized earth, a deep one refuses it. */
+	@GameTest(template = ARENA, batch = "minerals", timeoutTicks = 100)
+	public void crystalsStandOnGround(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos low = helper.absolutePos(new BlockPos(10, 4, 10)); // two air cells over the floor at y 1
+		helper.assertTrue(Minerals.place(level, low, (pos, state) -> level.setBlock(pos, state, 2)), "a crystal 2 over the floor did not fit");
+		for (BlockPos pos : BlockPos.betweenClosed(low.offset(0, -2, 0), low.offset(1, -1, 1)))
+			helper.assertTrue(level.getBlockState(pos).is(Minerals.EARTH), "a gap under the crystal at " + pos);
+		BlockPos high = helper.absolutePos(new BlockPos(30, 10, 30));
+		helper.assertFalse(Minerals.place(level, high, (pos, state) -> level.setBlock(pos, state, 2)), "a crystal hangs 8 over the floor");
+		helper.assertFalse(level.getBlockState(high).is(Minerals.CRYSTAL), "the refused crystal was put");
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "minerals", timeoutTicks = 100)
 	public void noMainBuildingNearMinerals(GameTestHelper helper) {
 		TestArena.clear(helper);

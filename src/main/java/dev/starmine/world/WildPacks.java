@@ -36,8 +36,10 @@ import org.jetbrains.annotations.Nullable;
  *   eggs and dormant creep tumors (lumps of flesh: they spread no creep);
  * - protoss, on the surface: a few zealots, a stalker, an adept or a sentry by a lone pylon of stone and light;
  * - dark templar, in a cave: one or two, by a crystal of amethyst;
- * - terrans, on the surface: marines, a marauder, a ghost or a hellbat (the firebat's heir), round a
- *   campfire with logs to sit on.
+ * - terrans, on the surface: two or three marines, a marauder or a hellbat (the firebat's heir), sometimes a
+ *   ghost, round a campfire with logs to sit on, by their machines (a concrete pad, a forge, an antenna mast).
+ * Every pack has at least one of its line infantry (a marine, a zealot); they wake for any player that is not
+ * a spectator, and not near another race's wild ({@link RaceSeparation}).
  */
 public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 	public static final Feature<NoneFeatureConfiguration> FEATURE = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("wild_pack"),
@@ -196,6 +198,19 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 			set(level, fire.offset(-3, 0, k), alongZ);
 		}
 		set(level, fire.offset(3, 0, 2), Blocks.BARREL.defaultBlockState());
+		// owner 16.10: a terran camp shows its machines — a concrete pad, a blast furnace forge, a crate of
+		// iron, an antenna mast with a lamp, a lever box
+		for (int dx = 3; dx <= 5; dx++)
+			for (int dz = -2; dz <= 0; dz++) set(level, fire.offset(dx, -1, dz), Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState());
+		set(level, fire.offset(4, 0, -1), Blocks.BLAST_FURNACE.defaultBlockState());
+		set(level, fire.offset(5, 0, -2), Blocks.SMOOTH_STONE.defaultBlockState());
+		set(level, fire.offset(5, 1, -2), Blocks.IRON_TRAPDOOR.defaultBlockState());
+		set(level, fire.offset(3, 0, 0), Blocks.POLISHED_ANDESITE.defaultBlockState());
+		set(level, fire.offset(3, 1, 0), Blocks.LEVER.defaultBlockState());
+		for (int y = 0; y <= 4; y++) set(level, fire.offset(-4, y, -3), Blocks.IRON_BARS.defaultBlockState());
+		set(level, fire.offset(-4, 5, -3), Blocks.LIGHTNING_ROD.defaultBlockState());
+		set(level, fire.offset(-4, 3, -2), Blocks.LANTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LanternBlock.HANGING, true));
+		set(level, fire.offset(-4, 4, -2), Blocks.IRON_BARS.defaultBlockState());
 		List<UnitKind> pack = new ArrayList<>(List.of(UnitKind.MARINE, UnitKind.MARINE));
 		if (random.nextBoolean()) pack.add(UnitKind.MARINE);
 		pack.add(random.nextBoolean() ? UnitKind.MARAUDER : UnitKind.HELLION); // a hellion comes out a hellbat ({@link DungeonHeart})

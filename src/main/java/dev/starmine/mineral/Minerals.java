@@ -6,6 +6,8 @@ import dev.starmine.StarMine;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -62,6 +64,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class Minerals {
 	public static final int AMOUNT = 500, PER_TRIP = 5, KEEP_OFF = 16;
+	/** The deepest gap under a crystal filled with mineralized earth; deeper, the crystal does not go there. */
+	static final int MAX_FILL = 3;
 	/** Ticks a worker spends on a trip's minerals (SC2: 2.786 s). */
 	public static final int MINE_TICKS = 56;
 
@@ -244,6 +248,22 @@ public final class Minerals {
 			BlockState there = level.getBlockState(pos);
 			if (!there.isAir() && !there.canBeReplaced() || !there.getFluidState().isEmpty()) return false;
 		}
+		// it stands on ground (owner 16.10: crystals hung over cliffs and caves): a gap of up to MAX_FILL
+		// under it is filled with mineralized earth, a deeper one refuses the place
+		List<BlockPos> fill = new ArrayList<>();
+		for (int dx = 0; dx <= 1; dx++)
+			for (int dz = 0; dz <= 1; dz++) {
+				int depth = 0;
+				BlockPos at = core.offset(dx, -1, dz);
+				for (; depth <= MAX_FILL; depth++, at = at.below()) {
+					BlockState there = level.getBlockState(at);
+					if (!there.getFluidState().isEmpty()) return false;
+					if (there.isFaceSturdy(level, at, net.minecraft.core.Direction.UP)) break;
+					fill.add(at.immutable());
+				}
+				if (depth > MAX_FILL) return false;
+			}
+		for (BlockPos at : fill) set.set(at, EARTH.defaultBlockState());
 		for (int dx = -2; dx <= 3; dx++)
 			for (int dz = -2; dz <= 3; dz++) {
 				if ((dx == -2 || dx == 3) && (dz == -2 || dz == 3)) continue; // round corners

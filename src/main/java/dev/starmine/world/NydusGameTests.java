@@ -140,4 +140,23 @@ public class NydusGameTests implements FabricGameTest {
 		heart.add(UnitKind.ZERGLING, at.offset(-2, 1, 0), null, 0);
 		return heart.wake(level);
 	}
+
+	/** Owner 16.10: a camp stood empty — its guards wake for a creative player too (they do not attack them). */
+	@GameTest(template = ARENA, batch = "campWakes", timeoutTicks = 200)
+	public void aCampWakesForACreativePlayer(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos ground = helper.absolutePos(new BlockPos(24, 2, 24));
+		BlockPos heart = WildPacks.build(level, RandomSource.create(4), WildPacks.Kind.TERRAN, ground);
+		helper.assertTrue(heart != null, "no camp");
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+		player.teleportTo(ground.getX() + 10.5, ground.getY(), ground.getZ() + 0.5);
+		helper.succeedWhen(() -> {
+			List<StarUnit> marines = level.getEntitiesOfClass(StarUnit.class, new AABB(ground).inflate(16), unit -> unit.kind == UnitKind.MARINE);
+			helper.assertTrue(!marines.isEmpty(), "no marine came out");
+			level.getEntitiesOfClass(StarUnit.class, new AABB(ground).inflate(16), unit -> true).forEach(StarUnit::discard);
+			level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+		});
+	}
 }
