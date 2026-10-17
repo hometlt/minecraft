@@ -6,7 +6,7 @@
 	"pages": [
 		{
 			"type": "patchouli:text",
-			"text": "Amun waits a month. If he still lives after 30 days (game rule starmineAmunDays), he invades the overworld and the Nether: $(l)void shards$() fall near you, darkening the land round them and making his troops fierce, and $(l)rifts$() open by them, sending out his troops of all three races. They fight only you and your units — the races leave them be — and every few minutes march on your bases."
+			"text": "Amun waits a month. If he still lives after 30 days (game rule starmineAmunDays), he invades the overworld and the Nether: by night $(l)void shards$() fall near you, darkening the land round them and making his troops fierce, and $(l)rifts$() open by them, sending out his troops of all three races; the shard itself sends out troops now and then until you break it. The invasion grows day by day: at first a small unit or two, seldom; later more of them, stronger, more often. Shards and rifts work only within 16 chunks of a player and show on the minimap. They fight only you and your units — the races leave them be — and every few minutes march on your bases."
 		},
 		{
 			"type": "patchouli:text",

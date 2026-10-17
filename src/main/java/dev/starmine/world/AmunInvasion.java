@@ -19,6 +19,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -32,11 +33,16 @@ import org.joml.Vector3f;
 /**
  * Amun's invasion (owner 17.10): a world that plays a month (game rule `starmineAmunDays`, 30 Minecraft days) and has
  * not ended Amun is invaded — in the overworld and the Nether:
- * - void shards fall near the players ({@link #SHARDS_PER_WORLD} at most in a world, one near each player at a time):
- *   round a shard the light dies (darkness) and Amun's troops grow fierce ({@link #shardTick}); broken, a shard leaves
- *   void shards to make a void gate of ({@link VoidGate});
+ * - void shards fall near the players by night ({@link #SHARDS_PER_WORLD} at most in a world, one near each player at a
+ *   time): round a shard the light dies (darkness) and Amun's troops grow fierce, and the shard itself sends out his
+ *   troops now and then until it is broken ({@link #shardTick}); broken, a shard leaves void shards to make a void gate
+ *   of ({@link VoidGate});
  * - void rifts open round each shard and send out Amun's troops of all three races ({@link VoidRift}) — Amun's, who
  *   fight only the players and their units, while the races leave them be ({@link dev.starmine.faction.Faction});
+ * - the invasion grows with the nights it goes on ({@link #power}): at first few troops and small ones (zerglings,
+ *   marines, zealots), seldom; later more, stronger and more often ({@link #troops}, {@link #every});
+ * - shards and rifts work only within {@link #PLAYER_REACH} of a player (16 chunks), and show on the command view's
+ *   minimap ({@link #marks});
  *   every few minutes they march on the players' bases ({@link #raid});
  * - Amun's workers go with them and make the way to the player wherever they are: they tunnel, bridge and build steps
  *   ({@link #sap}); where there is no way by land, transports come and carry the troops over ({@link #ferry});
@@ -48,6 +54,17 @@ public final class AmunInvasion {
 	public static final int SHARDS_PER_WORLD = 6, SHARD_EVERY = 600, RAID_EVERY = 6000, FERRY_EVERY = 200;
 	/** Round a shard: darkness to players, fury to Amun's troops. */
 	public static final double SHARD_REACH = 24;
+	/** Shards and rifts work only this near a player (16 chunks); their marks show this far. */
+	public static final int PLAYER_REACH = 256;
+	/** Amun's troops round a shard or a rift at most. */
+	public static final int CAP = 8;
+	/** His troops by strength: the invasion's power from which each comes in. */
+	private static final int[] TIER_POWER = {0, 2, 5, 9};
+	private static final List<List<UnitKind>> TIERS = List.of(
+		List.of(UnitKind.ZERGLING, UnitKind.MARINE, UnitKind.ZEALOT),
+		List.of(UnitKind.ROACH, UnitKind.BANELING, UnitKind.MARAUDER, UnitKind.STALKER, UnitKind.ADEPT),
+		List.of(UnitKind.HYDRALISK, UnitKind.MUTALISK, UnitKind.SIEGE_TANK, UnitKind.IMMORTAL),
+		List.of(UnitKind.ULTRALISK, UnitKind.THOR, UnitKind.ARCHON, UnitKind.VOID_RAY));
 	private static final DustParticleOptions BLACK = new DustParticleOptions(new Vector3f(0.05f, 0.02f, 0.05f), 1.1f);
 	private static final DustParticleOptions RED = new DustParticleOptions(new Vector3f(0.85f, 0.05f, 0.08f), 0.9f);
 
@@ -90,10 +107,89 @@ public final class AmunInvasion {
 		int t = server.getTickCount();
 		for (ServerLevel level : new ServerLevel[] {overworld, server.getLevel(Level.NETHER)}) {
 			if (level == null || level.players().isEmpty()) continue;
-			if (t % SHARD_EVERY < 20) shards(level);
+			if (t % SHARD_EVERY < 20 && night(overworld.getDayTime())) shards(level); // owner 17.10: they fall by night
 			if (t % RAID_EVERY < 20) raid(level);
 			if (t % FERRY_EVERY < 20) ferry(level);
 		}
+	}
+
+	// ---- the invasion's strength ----
+
+	/** How strong the invasion has grown: the days it has gone on (0 the first). */
+	public static int power(MinecraftServer server) {
+		long days = server.overworld().getDayTime() / 24000L;
+		return (int) Math.max(0, days - server.overworld().getGameRules().getInt(StarMine.AMUN_DAYS));
+	}
+
+	/** Whether it is night at this time of the overworld's day (the Nether keeps the overworld's clock). */
+	public static boolean night(long dayTime) {
+		long t = Math.floorMod(dayTime, 24000L);
+		return t >= 13000 && t < 23000;
+	}
+
+	/** Ticks between the waves of a shard or a rift at this power: seldom at first, more often later. */
+	public static int every(int power) {
+		return Math.max(200, 900 - power * 60);
+	}
+
+	/** A wave of Amun's troops at this power: one or two small ones at first; more of them, and stronger, later. */
+	public static List<UnitKind> troops(int power, net.minecraft.util.RandomSource random) {
+		List<UnitKind> pool = new java.util.ArrayList<>();
+		for (int i = 0; i < TIERS.size(); i++) if (power >= TIER_POWER[i]) pool.addAll(TIERS.get(i));
+		int count = Math.min(5, 1 + random.nextInt(2 + Math.min(power, 12) / 3));
+		List<UnitKind> wave = new java.util.ArrayList<>();
+		for (int i = 0; i < count; i++) wave.add(pool.get(random.nextInt(pool.size())));
+		return wave;
+	}
+
+	/** Whether a player (not a spectator) is within {@link #PLAYER_REACH} of `at` (flat). */
+	public static boolean nearPlayer(ServerLevel level, Vec3 at) {
+		for (ServerPlayer player : level.players())
+			if (!player.isSpectator() && Mth.square(player.getX() - at.x) + Mth.square(player.getZ() - at.z) < (double) PLAYER_REACH * PLAYER_REACH) return true;
+		return false;
+	}
+
+	/**
+	 * A wave of Amun's troops out of `source` (a shard or a rift of his invasion), unless {@link #CAP} of them are round it
+	 * already; a worker of his goes with every other wave to make the way ({@link #sap}). How many came out.
+	 */
+	static int wave(ServerLevel level, net.minecraft.world.entity.Mob source, boolean worker) {
+		AABB area = source.getBoundingBox().inflate(VoidRift.AREA, 8, VoidRift.AREA);
+		int near = level.getEntitiesOfClass(StarUnit.class, area, unit -> unit.isAlive() && unit.getTags().contains(VoidForces.TAG)).size();
+		if (near >= CAP) return 0;
+		List<UnitKind> wave = troops(power(level.getServer()), level.random);
+		BlockPos ground = BlockPos.containing(source.getX(), groundOf(level, source.blockPosition()), source.getZ());
+		LivingEntity foe = foe(level, source, 64);
+		int made = 0;
+		for (int i = 0; i < wave.size() && near + made < CAP; i++) {
+			double a = level.random.nextDouble() * Math.PI * 2;
+			Vec3 at = dev.starmine.entity.Spots.near(level, wave.get(i), Vec3.atBottomCenterOf(ground).add(Math.cos(a) * 3, 0, Math.sin(a) * 3));
+			StarUnit unit = dev.starmine.hive.HiveLogic.spawnNest(level, null, wave.get(i), at, ground);
+			if (unit == null) continue;
+			unit.addTag(VoidForces.TAG);
+			if (foe != null) unit.setTarget(foe);
+			made++;
+		}
+		if (worker && near + made < CAP) {
+			UnitKind kind = List.of(UnitKind.SCV, UnitKind.DRONE, UnitKind.PROBE).get(level.random.nextInt(3));
+			StarUnit sapper = dev.starmine.hive.HiveLogic.spawnNest(level, null, kind, dev.starmine.entity.Spots.near(level, kind, Vec3.atBottomCenterOf(ground)), ground);
+			if (sapper != null) {
+				sapper.addTag(VoidForces.TAG);
+				sapper.addTag(SAPPER);
+			}
+		}
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, source.getX(), source.getY() + 1, source.getZ(), 50, 1.2, 1.5, 1.2, 0.2);
+		return made;
+	}
+
+	/** The shards and rifts of the invasion a player sees on the minimap: within {@link #PLAYER_REACH} in their world (`true`: a shard). */
+	public static List<java.util.Map.Entry<Boolean, BlockPos>> marks(ServerPlayer player) {
+		List<java.util.Map.Entry<Boolean, BlockPos>> marks = new java.util.ArrayList<>();
+		if (!(player.level() instanceof ServerLevel level) || VoidWorld.is(level) || !invading(level.getServer())) return marks;
+		AABB area = player.getBoundingBox().inflate(PLAYER_REACH, 384, PLAYER_REACH);
+		for (VoidShard shard : level.getEntitiesOfClass(VoidShard.class, area, VoidShard::isAlive)) marks.add(java.util.Map.entry(true, shard.blockPosition()));
+		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, area, VoidRift::isAlive)) marks.add(java.util.Map.entry(false, rift.blockPosition()));
+		return marks;
 	}
 
 	// ---- shards and rifts ----
@@ -144,8 +240,17 @@ public final class AmunInvasion {
 			: level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
 	}
 
-	/** Each second of a shard outside the Void: darkness on the players round it, fury on Amun's troops. */
+	/**
+	 * Each second of a shard outside the Void, near a player: darkness on the players round it, fury on Amun's troops;
+	 * now and then a wave of his troops out of it ({@link #every}).
+	 */
 	public static void shardTick(VoidShard shard, ServerLevel level) {
+		if (!nearPlayer(level, shard.position())) return; // owner 17.10: only near the players
+		shard.waveIn -= 20;
+		if (shard.waveIn <= 0) {
+			shard.waveIn = every(power(level.getServer()));
+			wave(level, shard, false);
+		}
 		AABB area = shard.getBoundingBox().inflate(SHARD_REACH);
 		for (Player player : level.getEntitiesOfClass(Player.class, area, p -> p.distanceTo(shard) <= SHARD_REACH && !p.isSpectator()))
 			player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 0, true, false));
@@ -175,7 +280,7 @@ public final class AmunInvasion {
 	}
 
 	/** The foe Amun's troops go for: the nearest player or player's unit within `range`. */
-	static LivingEntity foe(ServerLevel level, StarUnit unit, double range) {
+	static LivingEntity foe(ServerLevel level, net.minecraft.world.entity.Entity unit, double range) {
 		return level.getEntitiesOfClass(LivingEntity.class, unit.getBoundingBox().inflate(range, 32, range), Amun::foe).stream()
 			.min(java.util.Comparator.comparingDouble(unit::distanceToSqr)).orElse(null);
 	}

@@ -127,4 +127,55 @@ public class AmunInvasionGameTests implements FabricGameTest {
 		}
 		helper.succeed();
 	}
+
+	/** Owner 17.10: shards fall by night; the invasion grows with the nights — small troops seldom first, then more and stronger. */
+	@GameTest(template = ARENA, batch = "amunGrows", timeoutTicks = 20)
+	public void theInvasionGrowsWithTheNights(GameTestHelper helper) {
+		helper.assertTrue(AmunInvasion.night(14000) && AmunInvasion.night(31L * 24000 + 20000), "no night at night");
+		helper.assertFalse(AmunInvasion.night(6000) || AmunInvasion.night(31L * 24000 + 1000), "night by day");
+		helper.assertTrue(AmunInvasion.every(0) > AmunInvasion.every(10), "waves no more often later");
+		net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create(7);
+		java.util.Set<UnitKind> small = java.util.Set.of(UnitKind.ZERGLING, UnitKind.MARINE, UnitKind.ZEALOT);
+		int first = 0, later = 0;
+		boolean strong = false;
+		for (int i = 0; i < 200; i++) {
+			List<UnitKind> early = AmunInvasion.troops(0, random), late = AmunInvasion.troops(12, random);
+			helper.assertTrue(small.containsAll(early), "big troops on the first night: " + early);
+			helper.assertTrue(early.size() <= 2, "many troops on the first night: " + early);
+			first += early.size();
+			later += late.size();
+			strong |= late.contains(UnitKind.ULTRALISK) || late.contains(UnitKind.THOR) || late.contains(UnitKind.ARCHON) || late.contains(UnitKind.VOID_RAY);
+		}
+		helper.assertTrue(later > first * 1.5, "no more troops later: " + first + " then " + later);
+		helper.assertTrue(strong, "no strong troops later");
+		helper.assertFalse(AmunInvasion.nearPlayer(helper.getLevel(), new Vec3(5_000_000, 70, 5_000_000)), "a player near the world's edge");
+		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "amunShardWaves", timeoutTicks = 120)
+	public void aShardSendsTroopsAndShowsOnTheMap(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		VoidShard shard = AmunInvasion.fall(level, BlockPos.containing(point(helper, 24, 24)), 0);
+		helper.assertTrue(shard != null, "no shard fell");
+		AABB round = shard.getBoundingBox().inflate(24);
+		level.getEntitiesOfClass(VoidRift.class, round).forEach(Entity::discard); // the shard's own troops only
+		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
+		player.teleportTo(shard.getX() + 40, shard.getY(), shard.getZ());
+		shard.waveIn = 1;
+		helper.runAfterDelay(45, () -> {
+			List<StarUnit> troops = level.getEntitiesOfClass(StarUnit.class, round, unit -> unit.getTags().contains(VoidForces.TAG));
+			VoidWorld.State state = VoidWorld.State.get(level.getServer());
+			boolean was = state.invading;
+			state.invading = true;
+			boolean marked = AmunInvasion.marks(player).stream().anyMatch(mark -> mark.getKey() && mark.getValue().closerThan(shard.blockPosition(), 2));
+			state.invading = was;
+			troops.forEach(Entity::discard);
+			shard.discard();
+			level.removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);
+			helper.assertTrue(!troops.isEmpty(), "the shard sent no troops");
+			helper.assertTrue(marked, "the shard is not on the map");
+			helper.succeed();
+		});
+	}
 }

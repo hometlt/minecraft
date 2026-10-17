@@ -26,6 +26,8 @@ public class VoidShard extends Mob implements Enemy, VoidForces.Member {
 	public static final float HEALTH = 60;
 	/** How far a shard's beam reaches Amun. */
 	public static final double REACH = 192;
+	/** Ticks until an invasion's shard sends out its next wave ({@link AmunInvasion#shardTick}). */
+	int waveIn = 100;
 	private static final EntityDataAccessor<Integer> AMUN = SynchedEntityData.defineId(VoidShard.class, EntityDataSerializers.INT);
 
 	public VoidShard(EntityType<? extends VoidShard> type, Level level) {

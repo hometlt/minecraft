@@ -117,7 +117,7 @@ public final class ColonyNetwork {
 		}
 	}
 
-	/** A base on the map: a race's main base (`race` its name) or the player's own (`race` "PLAYER"). */
+	/** A base on the map: a race's main base (`race` its name), the player's own ("PLAYER"), the heroic transport ("TRANSPORT"), Amun's shard or rift ("SHARD", "RIFT"). */
 	public record Mark(String race, int x, int z) {
 	}
 
@@ -161,6 +161,8 @@ public final class ColonyNetwork {
 				marks.add(new Mark("TRANSPORT", at.getX(), at.getZ()));
 		}
 		if (base != null) marks.add(new Mark("PLAYER", base.hatchery.getX(), base.hatchery.getZ()));
+		for (var mark : dev.starmine.world.AmunInvasion.marks(player)) // owner 17.10: Amun's shards and rifts near
+			marks.add(new Mark(mark.getKey() ? "SHARD" : "RIFT", mark.getValue().getX(), mark.getValue().getZ()));
 		ServerPlayNetworking.send(player, new BaseMarks(marks));
 	}
 
