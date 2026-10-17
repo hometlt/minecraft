@@ -37,6 +37,10 @@ public final class TestArena {
 		for (BlockPos rel : BlockPos.betweenClosed(0, 0, 0, 47, 23, 47))
 			level.setBlock(helper.absolutePos(rel), rel.getY() == 1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
 		if (forget) HiveSavedData.get(level.getServer()).clear();
+		// the test world is reused between runs: tumors of earlier runs (not loaded) or whose blocks are gone are forgotten
+		var tumors = dev.starmine.creep.CreepSources.tumors(level);
+		for (BlockPos tumor : java.util.List.copyOf(tumors.all()))
+			if (!level.isLoaded(tumor) || !level.getBlockState(tumor).is(dev.starmine.block.StarMineBlocks.CREEP_TUMOR)) tumors.remove(tumor);
 	}
 
 	/** A unit standing at (x, z) on the floor (a flyer 3 blocks up), of a player (`owner`) or wild (null). */

@@ -9,14 +9,14 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.phys.AABB;
 
 /**
- * Where monsters do not spawn (owner 16.10): near creep tumors and near any building of any race
- * (hatcheries and eggs too). Lit places — the bases' lamps, the glowing flesh of the leviathan, the
+ * Where monsters do not spawn (owner 16.10): near creep tumors; owner 17.10: within {@link #BUILDING_RADIUS}
+ * of any unit or building of any race, wild or a player's (hatcheries and eggs too). Lit places — the bases' lamps, the glowing flesh of the leviathan, the
  * buildings' own glow — are kept clear by the game's light rule already. Checked by
  * {@link dev.starmine.mixin.SpawnGuardMixin} on every natural spawn.
  */
 public final class SpawnGuard {
-	/** Blocks round a building and round a creep tumor where no monster spawns. */
-	public static final int BUILDING_RADIUS = 24, TUMOR_RADIUS = 16;
+	/** Blocks round a unit or building and round a creep tumor where no monster spawns. */
+	public static final int BUILDING_RADIUS = 30, TUMOR_RADIUS = 16;
 
 	private SpawnGuard() {
 	}
@@ -28,6 +28,6 @@ public final class SpawnGuard {
 			if (tumor.distSqr(pos) <= (double) TUMOR_RADIUS * TUMOR_RADIUS) return true;
 		if (dev.starmine.ai.Territory.claimed(level, pos)) return true; // a race's territory
 		return !level.getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(BUILDING_RADIUS),
-			unit -> unit.isAlive() && unit.kind.structure()).isEmpty();
+			StarUnit::isAlive).isEmpty();
 	}
 }

@@ -82,6 +82,7 @@ public final class RaceBases {
 				return;
 			}
 		}
+		if (farBases(level, data)) return;
 		if (!data.structuresDone.contains(LEVIATHAN) && data.spawnHiveDone) {
 			if (data.spawnHiveSite == null) {
 				data.structuresDone.add(LEVIATHAN);
@@ -92,6 +93,59 @@ public final class RaceBases {
 				leviathan(level, data.spawnHiveSite, RandomSource.create(level.getSeed() ^ 0x1E7A7A4L));
 			}
 		}
+	}
+
+	/** Owner 17.10: a region of the world (blocks a side) holds at most one far base, by this chance. */
+	public static final int REGION = 1536, REGION_MARGIN = 256, FAR_FROM_SPAWN = 1000;
+	public static final double FAR_CHANCE = 0.55;
+
+	/** A far base: its race and its column (the ground is found when it is built). */
+	public record Far(String key, UnitKind.Race race, int x, int z) {
+	}
+
+	/**
+	 * The far base of a region, or null (owner 17.10: the races' bases are rare dungeons all over the world — the
+	 * first three near the spawn, the rest far apart): one region in {@link #REGION} a side holds one by
+	 * {@link #FAR_CHANCE}, somewhere inside its margins, never within {@link #FAR_FROM_SPAWN} of the first player's place.
+	 */
+	public static @Nullable Far far(long seed, @Nullable BlockPos origin, int rx, int rz) {
+		RandomSource random = RandomSource.create(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ 0xFA5BA5EL);
+		if (random.nextDouble() >= FAR_CHANCE) return null;
+		int x = rx * REGION + REGION_MARGIN + random.nextInt(REGION - 2 * REGION_MARGIN);
+		int z = rz * REGION + REGION_MARGIN + random.nextInt(REGION - 2 * REGION_MARGIN);
+		BlockPos home = origin != null ? origin : BlockPos.ZERO;
+		if (Mth.square(x - home.getX()) + Mth.square(z - home.getZ()) < (double) FAR_FROM_SPAWN * FAR_FROM_SPAWN) return null;
+		UnitKind.Race race = UnitKind.Race.values()[random.nextInt(3)];
+		return new Far("FAR:" + rx + ":" + rz, race, x, z);
+	}
+
+	/** The far bases near players: the first one a player comes within {@link #TRIGGER} of is built (true then). */
+	static boolean farBases(ServerLevel level, HiveSavedData data) {
+		if (data.baseOrigin == null) return false; // the first three are placed first
+		for (var player : level.players()) {
+			if (player.isSpectator()) continue;
+			int prx = Math.floorDiv(player.getBlockX(), REGION), prz = Math.floorDiv(player.getBlockZ(), REGION);
+			for (int rx = prx - 1; rx <= prx + 1; rx++)
+				for (int rz = prz - 1; rz <= prz + 1; rz++) {
+					Far far = far(level.getSeed(), data.baseOrigin, rx, rz);
+					if (far == null || data.structuresDone.contains(far.key())) continue;
+					if (Mth.square(player.getX() - far.x()) + Mth.square(player.getZ() - far.z()) >= TRIGGER * TRIGGER) continue;
+					data.structuresDone.add(far.key());
+					data.setDirty();
+					buildFar(level, far);
+					return true;
+				}
+		}
+		return false;
+	}
+
+	/** A far base: a race's base and its dungeon (a lair with its tunnels for the zerg), with no sky ship. */
+	public static void buildFar(ServerLevel level, Far far) {
+		int y = HiveStructure.ground(level, far.x(), far.z());
+		BlockPos site = new BlockPos(far.x(), y, far.z());
+		RandomSource random = RandomSource.create(level.getSeed() ^ site.asLong());
+		if (far.race() == UnitKind.Race.ZERG) HiveStructure.build(level, site, random);
+		else build(level, far.race(), site, random, false);
 	}
 
 	private static boolean playerNear(ServerLevel level, BlockPos site) {
@@ -142,6 +196,11 @@ public final class RaceBases {
 
 	/** Builds a wild base of `race` at `site` (the main building's ground cell), its dungeon and its sky ship. */
 	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random) {
+		return build(level, race, site, random, true);
+	}
+
+	/** {@link #build}; a far base (`ship` false) has no sky ship and no portal hall. */
+	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random, boolean withShip) {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		Painter painter = new Painter(level, random);
 		painter.load(site, 160);
@@ -205,10 +264,15 @@ public final class RaceBases {
 		if (terran) {
 			int span = Dungeons.MAZE_CELLS * Dungeons.PITCH;
 			spawns.addAll(Dungeons.techLabyrinth(painter, new BlockPos(centre.getX() + PLAZA + depth + 4, under, centre.getZ() - span / 2)));
-			ship = SkyShips.hyperion(above, new BlockPos(centre.getX(), sky, centre.getZ()), random.nextInt(4));
+			ship = withShip ? SkyShips.hyperion(above, new BlockPos(centre.getX(), sky, centre.getZ()), random.nextInt(4)) : null;
 		} else {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
-			ship = SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ()));
+			ship = withShip ? SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ())) : null;
+		}
+		if (ship == null) { // a far base: the base and its dungeon only
+			for (Spawn spawn : spawns) wait(data, base.id, spawn);
+			data.setDirty();
+			return new Report(base.id, painter.placed(), spawns.size());
 		}
 		spawns.addAll(portalHall(level, painter, race, centre, Direction.EAST, ship, above, base.id)); // under the main building, the stair up in the ring's gap
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
