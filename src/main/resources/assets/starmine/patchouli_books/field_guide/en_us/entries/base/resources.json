@@ -16,6 +16,10 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "Mineral fields stand by most vespene geysers, and underground lie $(l)mineral halls$(): big caves with a flat floor and glowing lichen, a geyser in the middle and 4 to 7 crystals round it.$(br2)A vespene outlet open to the sky slowly grows up into a $(l)volcano$() — a block every 3 minutes, a cobblestone cone round it. A gas building put on a volcano breaks it: the cone and the column go and the building stands at the ground."
+		},
+		{
+			"type": "patchouli:text",
 			"text": "Supply comes from overlords, supply depots and pylons. Prices, build times and supply follow StarCraft II. A worker with nothing in reach explores farther, on the land and under it; a worker in danger gets an escort, and a dark place is lit its race's way."
 		}
 	]

@@ -1,0 +1,20 @@
+{
+	"name": "Models",
+	"icon": "minecraft:armor_stand",
+	"category": "starmine:basics",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "StarMine carries no Blizzard assets: Modkit takes the models, textures and sounds from your own copy of StarCraft II. Without them every unit and building is drawn by StarMine's own stand-in, built of coloured blocks in its race's colours — soldiers, beasts, vehicles, ships, walkers and buildings — with glowing eyes, crystals and engines."
+		},
+		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/stand_ins.png"
+			],
+			"border": true,
+			"text": "Stand-ins: marines, a hellion, a siege tank, a thor, an overlord."
+		}
+	]
+}

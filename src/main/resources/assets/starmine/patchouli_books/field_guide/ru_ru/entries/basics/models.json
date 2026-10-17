@@ -1,0 +1,20 @@
+{
+	"name": "Модели",
+	"icon": "minecraft:armor_stand",
+	"category": "starmine:basics",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "В StarMine нет ассетов Blizzard: модели, текстуры и звуки Modkit берёт из вашей копии StarCraft II. Без них каждый юнит и здание рисуется собственной запасной моделью StarMine из цветных блоков в цветах расы — солдаты, звери, машины, корабли, шагоходы и здания — со светящимися глазами, кристаллами и двигателями."
+		},
+		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/stand_ins.png"
+			],
+			"border": true,
+			"text": "Запасные модели: пехотинцы, геллион, осадный танк, тор, повелитель."
+		}
+	]
+}

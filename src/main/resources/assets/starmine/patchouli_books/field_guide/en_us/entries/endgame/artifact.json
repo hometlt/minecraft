@@ -5,6 +5,14 @@
 	"sortnum": 4,
 	"pages": [
 		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/artifact.png"
+			],
+			"border": true,
+			"text": "The whole artifact and its beam."
+		},
+		{
 			"type": "patchouli:text",
 			"text": "Each hero carries a $(l)part of the artifact's key$(). Put a xel'naga pedestal down and stack the three parts on it, one on another, like a beacon's crystal on its base — zerg, terran and protoss, in any order. The pedestal lights, a violet beam rises, and $(l)high in the sky over it$() (at least 48 blocks up, at height 200 or more) a portal to the Void opens."
 		},

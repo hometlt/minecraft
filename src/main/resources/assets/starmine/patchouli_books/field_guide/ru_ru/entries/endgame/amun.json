@@ -5,6 +5,14 @@
 	"sortnum": 7,
 	"pages": [
 		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/amun.png"
+			],
+			"border": true,
+			"text": "Остров Амуна: шпили с осколками и их лучи к Амуну."
+		},
+		{
 			"type": "patchouli:entity",
 			"entity": "starmine:amun",
 			"scale": 0.25,

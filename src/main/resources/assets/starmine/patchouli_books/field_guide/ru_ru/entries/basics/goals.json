@@ -2,7 +2,7 @@
 	"name": "Цели",
 	"icon": "minecraft:knowledge_book",
 	"category": "starmine:basics",
-	"sortnum": 2,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:text",
