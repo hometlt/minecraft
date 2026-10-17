@@ -147,8 +147,8 @@ GENERAL = {
                  'Слизь растёт вокруг инкубаторов и опухолей: на ней зерги быстрее и лечатся. Дикие зерги ненавидят всё живое, нападают на деревни, роют туннели и захватывают пещеры плотью и опухолями. От базы идут нидус-коридоры: длинный туннель жидкой слизи к нидусову червю, через который перебрасывают и охраняют воинов.'),
         ]),
         ('sky', t('The Leviathan', 'Левиафан'), 'starmine:glowing_zerg_flesh', [
-            text('Over the clouds above the lair floats the leviathan, a beast of flesh: passages of flesh, pools of liquid creep, eggs and a chest in its belly. Under the lair a stair leads to a portal hall; kill the portal\'s guards and step in to reach the beast.',
-                 'Над облаками над логовом парит левиафан — чудовище из плоти: ходы в плоти, лужи жидкой слизи, яйца и сундук в чреве. Под логовом лестница ведёт в зал порталов: убейте стражей портала и войдите, чтобы попасть внутрь.'),
+            text('Over the clouds above the lair floats the leviathan, a beast of flesh: passages of flesh, pools of liquid creep, eggs and a chest in its belly. Destroy the lair\'s hatchery: a portal to the beast opens where it stood (the portal hall under the lair wakes too); kill the guards round it and step in.',
+                 'Над облаками над логовом парит левиафан — чудовище из плоти: ходы в плоти, лужи жидкой слизи, яйца и сундук в чреве. Уничтожьте инкубатор логова: на его месте откроется портал внутрь чудовища (проснётся и зал порталов под логовом); убейте стражей рядом и войдите.'),
         ]),
         ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:evolutionchamber_spawn_egg', [
             text('Evolution chamber: $(l)melee attacks$() (zerglings, banelings, ultralisks), $(l)missile attacks$() (roaches, hydralisks, queens…) and $(l)ground carapace$(). Spire: $(l)flyer attacks$() and $(l)flyer carapace$(). Three levels each: level 2 needs a lair, level 3 a hive.',
@@ -169,8 +169,8 @@ GENERAL = {
                  'Под базой — стальной лабиринт с лабораториями и реакторным ядром. Терраны захватывают земли бетоном, фонарями и кабелями; в их лагерях костёр, кузня и антенна под охраной пехотинцев.'),
         ]),
         ('sky', t('The Hyperion', '«Гиперион»'), 'minecraft:iron_block', [
-            text('Over the clouds above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks and a hold of chests. A stair under the base leads to the portal hall.',
-                 'Над облаками над базой висит линкор «Гиперион»: корпус с носом-«молотом», мостик, турели и двигатели, две палубы и трюм с сундуками. Лестница под базой ведёт в зал порталов.'),
+            text('Over the clouds above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks and a hold of chests. Destroy the base\'s main building: a portal to the ship opens where it stood (the portal hall under the base wakes too); kill the guards round it and step in.',
+                 'Над облаками над базой висит линкор «Гиперион»: корпус с носом-«молотом», мостик, турели и двигатели, две палубы и трюм с сундуками. Уничтожьте главное здание базы: на его месте откроется портал на корабль (проснётся и зал порталов под базой); убейте стражей рядом и войдите.'),
         ]),
         ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:engineeringbay_spawn_egg', [
             text('Engineering bay: $(l)infantry weapons$() and $(l)infantry armor$(). Armory: $(l)vehicle weapons$(), $(l)ship weapons$() and $(l)vehicle and ship plating$(). Three levels each; levels 2 and 3 of the infantry upgrades need an armory.',
@@ -191,8 +191,8 @@ GENERAL = {
                  'Под базой — древние храмы со святилищами. Зилоты охраняют каждый одинокий пилон, тёмные тамплиеры прячутся в пещерах.'),
         ]),
         ('sky', t('The Mothership', 'Материнский корабль'), 'minecraft:gold_block', [
-            text('Over the clouds above the base floats the mothership: a disc with a dome, a golden ring and arms, a vortex beneath, a hall of chests. A stair under the base leads to the portal hall.',
-                 'Над облаками над базой парит материнский корабль: диск с куполом, золотое кольцо и рукава, воронка снизу, зал с сундуками. Лестница под базой ведёт в зал порталов.'),
+            text('Over the clouds above the base floats the mothership: a disc with a dome, a golden ring and arms, a vortex beneath, a hall of chests. Destroy the base\'s main building: a portal to the ship opens where it stood (the portal hall under the base wakes too); kill the guards round it and step in.',
+                 'Над облаками над базой парит материнский корабль: диск с куполом, золотое кольцо и рукава, воронка снизу, зал с сундуками. Уничтожьте главное здание базы: на его месте откроется портал на корабль (проснётся и зал порталов под базой); убейте стражей рядом и войдите.'),
         ]),
         ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:forge_spawn_egg', [
             text('Forge: $(l)ground weapons$(), $(l)ground armor$() and $(l)shields$() (every unit and building with shields). Cybernetics core: $(l)air weapons$() and $(l)air armor$(). Three levels each: forge levels 2-3 need a twilight council, air levels 2-3 a fleet beacon.',

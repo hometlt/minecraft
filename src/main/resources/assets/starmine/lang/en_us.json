@@ -829,6 +829,8 @@
 	"race.starmine.zerg": "Zerg",
 	"race.starmine.terran": "Terran",
 	"race.starmine.protoss": "Protoss",
+	"message.starmine.portal_opened": "The main base of the %s has fallen: a portal to their sky ship has opened where it stood.",
+	"message.starmine.portal_locked": "The portal sleeps while the race's main base stands",
 	"message.starmine.wave_attack": "%s are attacking your base!",
 	"block.starmine.force_field": "Force Field",
 	"gamerule.starmineNukeGriefing": "StarMine: a ghost's nuke breaks blocks",

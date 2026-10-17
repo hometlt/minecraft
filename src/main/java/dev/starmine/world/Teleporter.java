@@ -94,7 +94,7 @@ public final class Teleporter extends Block implements EntityBlock {
 			BlockEntityType<T> type) {
 		return level.isClientSide || type != ENTITY ? null : (world, pos, at, entity) -> {
 			if ((world.getGameTime() + pos.hashCode()) % 20 != 0 || !(world instanceof ServerLevel server)) return;
-			boolean on = ((Pad) entity).pair != null && guards(server, pos) == 0;
+			boolean on = ((Pad) entity).pair != null && guards(server, pos) == 0 && !locked(server, (Pad) entity);
 			if (at.getValue(ACTIVE) != on) world.setBlock(pos, at.setValue(ACTIVE, on), Block.UPDATE_CLIENTS);
 		};
 	}
@@ -105,6 +105,8 @@ public final class Teleporter extends Block implements EntityBlock {
 	/** Where a pad leads. */
 	public static class Pad extends BlockEntity {
 		@Nullable BlockPos pair;
+		/** A portal under a race base wakes only once that base's main building has fallen (owner 17.10), null for none. */
+		@Nullable UUID lock;
 
 		public Pad(BlockPos pos, BlockState state) {
 			super(ENTITY, pos, state);
@@ -118,12 +120,14 @@ public final class Teleporter extends Block implements EntityBlock {
 		protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.saveAdditional(tag, registries);
 			if (pair != null) tag.put("pair", NbtUtils.writeBlockPos(pair));
+			if (lock != null) tag.putUUID("lock", lock);
 		}
 
 		@Override
 		protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.loadAdditional(tag, registries);
 			pair = NbtUtils.readBlockPos(tag, "pair").orElse(null);
+			lock = tag.hasUUID("lock") ? tag.getUUID("lock") : null;
 		}
 	}
 
@@ -173,6 +177,30 @@ public final class Teleporter extends Block implements EntityBlock {
 			}
 	}
 
+	/** Locks the portal blocks to a base: they wake only once its main building has fallen. */
+	public static void lock(ServerLevel level, java.util.List<BlockPos> portal, UUID base) {
+		for (BlockPos pos : portal)
+			if (level.getBlockEntity(pos) instanceof Pad pad) {
+				pad.lock = base;
+				pad.setChanged();
+			}
+	}
+
+	/** Whether a pad's base still has its main building (it is gone, or has none of its race's left). */
+	public static boolean locked(ServerLevel level, Pad pad) {
+		if (pad.lock == null) return false;
+		dev.starmine.hive.Hive base = HiveSavedData.get(level.getServer()).get(pad.lock);
+		return base != null && base.race != null && base.count(base.race.rules().main()) > 0;
+	}
+
+	/** Points a pad at another (the ship's pad at a newly opened portal). */
+	public static void point(ServerLevel level, BlockPos pad, BlockPos to) {
+		if (level.getBlockEntity(pad) instanceof Pad from) {
+			from.pair = to.immutable();
+			from.setChanged();
+		}
+	}
+
 	/** Pairs two pads (both must stand already). */
 	public static void link(ServerLevel level, BlockPos a, BlockPos b) {
 		if (level.getBlockEntity(a) instanceof Pad one && level.getBlockEntity(b) instanceof Pad two) {
@@ -198,6 +226,11 @@ public final class Teleporter extends Block implements EntityBlock {
 		Long resting = RESTING.get(entity.getUUID());
 		if (resting != null && now < resting) return false;
 		if (!(level.getBlockEntity(pos) instanceof Pad pad) || pad.pair == null) return false;
+		if (locked(level, pad)) {
+			RESTING.put(entity.getUUID(), now + 40);
+			if (entity instanceof Player player) player.displayClientMessage(Component.translatable("message.starmine.portal_locked"), true);
+			return false;
+		}
 		int guards = guards(level, pos);
 		if (guards > 0) {
 			RESTING.put(entity.getUUID(), now + 40); // told once in a while, not every step

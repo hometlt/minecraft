@@ -829,6 +829,8 @@
 	"race.starmine.zerg": "Зерги",
 	"race.starmine.terran": "Терраны",
 	"race.starmine.protoss": "Протоссы",
+	"message.starmine.portal_opened": "Главная база расы «%s» пала: на её месте открылся портал на её небесный корабль.",
+	"message.starmine.portal_locked": "Портал спит, пока стоит главная база расы",
 	"message.starmine.wave_attack": "%s атакуют вашу базу!",
 	"block.starmine.force_field": "Силовое поле",
 	"gamerule.starmineNukeGriefing": "StarMine: ядерный удар призрака разрушает блоки",

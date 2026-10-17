@@ -1020,6 +1020,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (reason.shouldDestroy() && this.level() instanceof ServerLevel server && hiveId != null) {
 			HiveSavedData data = HiveSavedData.get(server.getServer());
 			Hive hive = data.get(hiveId);
+			// owner 17.10: a race base's main building fallen — a portal to its sky ship opens where it stood (after its ruin below)
+			Hive fallen = reason == Entity.RemovalReason.KILLED && kind.main() && owner().isEmpty() && hive != null && hive.shipPad != null ? hive : null;
 			if (kind == UnitKind.HATCHERY) {
 				if (hiveId.equals(this.getUUID()) && hive != null) {
 					if (hive.foundation) HiveTerrain.ruin(server, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
@@ -1037,6 +1039,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				if (kind == UnitKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
 				data.setDirty();
 			}
+			if (fallen != null) dev.starmine.world.RacePortal.open(server, fallen, this.blockPosition());
 		}
 		super.remove(reason);
 	}

@@ -208,7 +208,7 @@ public final class RaceBases {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
 			ship = SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ()));
 		}
-		spawns.addAll(portalHall(level, painter, race, centre, Direction.EAST, ship, above)); // under the main building, the stair up in the ring's gap
+		spawns.addAll(portalHall(level, painter, race, centre, Direction.EAST, ship, above, base.id)); // under the main building, the stair up in the ring's gap
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
 		finish(level, data, base.id, ship, above);
 		data.setDirty();
@@ -239,10 +239,19 @@ public final class RaceBases {
 	 * live; {@link PortalHall}); it leads to the ship once the ship is built ({@link #finish}).
 	 */
 	private static List<Spawn> portalHall(ServerLevel level, Painter painter, UnitKind.Race race, BlockPos surface, Direction out,
-			SkyShips.Ship ship, Painter above) {
+			SkyShips.Ship ship, Painter above, @Nullable UUID base) {
 		BlockPos centre = new BlockPos(surface.getX(), Math.max(level.getMinBuildHeight() + 8, surface.getY() - PortalHall.DEPTH), surface.getZ());
 		PortalHall.Hall hall = PortalHall.build(painter, race, centre, out);
-		above.then(() -> Teleporter.linkPortal(level, hall.portal(), hall.centre(), ship.pad()));
+		above.then(() -> {
+			Teleporter.linkPortal(level, hall.portal(), hall.centre(), ship.pad());
+			// owner 17.10: the way to the ship opens when the base's main building falls — this hall's portal wakes then,
+			// and a portal opens where the building stood (RacePortal)
+			if (base != null) {
+				Teleporter.lock(level, hall.portal(), base);
+				Hive owner = HiveSavedData.get(level.getServer()).get(base);
+				if (owner != null) owner.shipPad = ship.pad().immutable();
+			}
+		});
 		return hall.guards();
 	}
 
@@ -267,7 +276,7 @@ public final class RaceBases {
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
 		Painter above = Painter.deferred(level, random);
 		SkyShips.Ship ship = SkyShips.leviathan(above, middle, random.nextInt(4));
-		List<Spawn> spawns = portalHall(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 30), Direction.WEST, ship, above);
+		List<Spawn> spawns = portalHall(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 30), Direction.WEST, ship, above, hive == null ? null : hive.id);
 		for (Spawn spawn : spawns) wait(data, id, spawn);
 		finish(level, data, id, ship, above);
 		data.setDirty();
