@@ -1,0 +1,1033 @@
+{
+	"schemaVersion": 1,
+	"models": [
+		{
+			"model": "zergling",
+			"kind": "ZERGLING",
+			"unit": "Zergling",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "drone",
+			"kind": "DRONE",
+			"unit": "Drone",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "overlord",
+			"kind": "OVERLORD",
+			"unit": "Overlord",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "overseer",
+			"kind": "OVERSEER",
+			"unit": "Overseer",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "queen",
+			"kind": "QUEEN",
+			"unit": "Queen",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "roach",
+			"kind": "ROACH",
+			"unit": "Roach",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "ravager",
+			"kind": "RAVAGER",
+			"unit": "Ravager",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "baneling",
+			"kind": "BANELING",
+			"unit": "Baneling",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hydralisk",
+			"kind": "HYDRALISK",
+			"unit": "Hydralisk",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "lurker",
+			"kind": "LURKER",
+			"unit": "LurkerMP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "mutalisk",
+			"kind": "MUTALISK",
+			"unit": "Mutalisk",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "corruptor",
+			"kind": "CORRUPTOR",
+			"unit": "Corruptor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "broodlord",
+			"kind": "BROOD_LORD",
+			"unit": "BroodLord",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "infestor",
+			"kind": "INFESTOR",
+			"unit": "Infestor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "swarmhost",
+			"kind": "SWARM_HOST",
+			"unit": "SwarmHostMP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "viper",
+			"kind": "VIPER",
+			"unit": "Viper",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "ultralisk",
+			"kind": "ULTRALISK",
+			"unit": "Ultralisk",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "broodling",
+			"kind": "BROODLING",
+			"unit": "Broodling",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "locust",
+			"kind": "LOCUST",
+			"unit": "LocustMP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "changeling",
+			"kind": "CHANGELING",
+			"unit": "Changeling",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "larva",
+			"kind": "LARVA",
+			"unit": "Larva",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "egg",
+			"kind": "EGG",
+			"unit": "Egg",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hatchery",
+			"kind": "HATCHERY",
+			"unit": "Hatchery",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "spawningpool",
+			"kind": "SPAWNING_POOL",
+			"unit": "SpawningPool",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "evolutionchamber",
+			"kind": "EVOLUTION_CHAMBER",
+			"unit": "EvolutionChamber",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "roachwarren",
+			"kind": "ROACH_WARREN",
+			"unit": "RoachWarren",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "banelingnest",
+			"kind": "BANELING_NEST",
+			"unit": "BanelingNest",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hydraliskden",
+			"kind": "HYDRALISK_DEN",
+			"unit": "HydraliskDen",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "lurkerden",
+			"kind": "LURKER_DEN",
+			"unit": "LurkerDenMP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "spire",
+			"kind": "SPIRE",
+			"unit": "Spire",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "infestationpit",
+			"kind": "INFESTATION_PIT",
+			"unit": "InfestationPit",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "ultraliskcavern",
+			"kind": "ULTRALISK_CAVERN",
+			"unit": "UltraliskCavern",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "extractor",
+			"kind": "EXTRACTOR",
+			"unit": "Extractor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "spinecrawler",
+			"kind": "SPINE_CRAWLER",
+			"unit": "SpineCrawler",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "sporecrawler",
+			"kind": "SPORE_CRAWLER",
+			"unit": "SporeCrawler",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "nydusnetwork",
+			"kind": "NYDUS_NETWORK",
+			"unit": "NydusNetwork",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "nyduscanal",
+			"kind": "NYDUS_CANAL",
+			"unit": "NydusCanal",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "scv",
+			"kind": "SCV",
+			"unit": "Scv",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "marine",
+			"kind": "MARINE",
+			"unit": "Marine",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "marauder",
+			"kind": "MARAUDER",
+			"unit": "Marauder",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "reaper",
+			"kind": "REAPER",
+			"unit": "Reaper",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "ghost",
+			"kind": "GHOST",
+			"unit": "Ghost",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hellion",
+			"kind": "HELLION",
+			"unit": "Hellion",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hellbat",
+			"kind": "HELLBAT",
+			"unit": "HellionTank",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "cyclone",
+			"kind": "CYCLONE",
+			"unit": "Cyclone",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "raven",
+			"kind": "RAVEN",
+			"unit": "Raven",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "widowmine",
+			"kind": "WIDOW_MINE",
+			"unit": "WidowMine",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "siegetank",
+			"kind": "SIEGE_TANK",
+			"unit": "SiegeTank",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "thor",
+			"kind": "THOR",
+			"unit": "Thor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "viking",
+			"kind": "VIKING",
+			"unit": "VikingFighter",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "vikingassault",
+			"kind": "VIKING_ASSAULT",
+			"unit": "VikingAssault",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "medivac",
+			"kind": "MEDIVAC",
+			"unit": "Medivac",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "banshee",
+			"kind": "BANSHEE",
+			"unit": "Banshee",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "liberator",
+			"kind": "LIBERATOR",
+			"unit": "Liberator",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "battlecruiser",
+			"kind": "BATTLECRUISER",
+			"unit": "Battlecruiser",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "commandcenter",
+			"kind": "COMMAND_CENTER",
+			"unit": "CommandCenter",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "supplydepot",
+			"kind": "SUPPLY_DEPOT",
+			"unit": "SupplyDepot",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "barracks",
+			"kind": "BARRACKS",
+			"unit": "Barracks",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "factory",
+			"kind": "FACTORY",
+			"unit": "Factory",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "starport",
+			"kind": "STARPORT",
+			"unit": "Starport",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "engineeringbay",
+			"kind": "ENGINEERING_BAY",
+			"unit": "EngineeringBay",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "armory",
+			"kind": "ARMORY",
+			"unit": "Armory",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "ghostacademy",
+			"kind": "GHOST_ACADEMY",
+			"unit": "GhostAcademy",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "fusioncore",
+			"kind": "FUSION_CORE",
+			"unit": "FusionCore",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "bunker",
+			"kind": "BUNKER",
+			"unit": "Bunker",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "missileturret",
+			"kind": "MISSILE_TURRET",
+			"unit": "MissileTurret",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "autoturret",
+			"kind": "AUTO_TURRET",
+			"unit": "AutoTurret",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "sensortower",
+			"kind": "SENSOR_TOWER",
+			"unit": "SensorTower",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "refinery",
+			"kind": "REFINERY",
+			"unit": "Refinery",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "probe",
+			"kind": "PROBE",
+			"unit": "Probe",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "zealot",
+			"kind": "ZEALOT",
+			"unit": "Zealot",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "stalker",
+			"kind": "STALKER",
+			"unit": "Stalker",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "sentry",
+			"kind": "SENTRY",
+			"unit": "Sentry",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "adept",
+			"kind": "ADEPT",
+			"unit": "Adept",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "hightemplar",
+			"kind": "HIGH_TEMPLAR",
+			"unit": "HighTemplar",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "darktemplar",
+			"kind": "DARK_TEMPLAR",
+			"unit": "DarkTemplar",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "archon",
+			"kind": "ARCHON",
+			"unit": "Archon",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "immortal",
+			"kind": "IMMORTAL",
+			"unit": "Immortal",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "colossus",
+			"kind": "COLOSSUS",
+			"unit": "Colossus",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "disruptor",
+			"kind": "DISRUPTOR",
+			"unit": "Disruptor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "observer",
+			"kind": "OBSERVER",
+			"unit": "Observer",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "warpprism",
+			"kind": "WARP_PRISM",
+			"unit": "WarpPrism",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "phoenix",
+			"kind": "PHOENIX",
+			"unit": "Phoenix",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "voidray",
+			"kind": "VOID_RAY",
+			"unit": "VoidRay",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "oracle",
+			"kind": "ORACLE",
+			"unit": "Oracle",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "tempest",
+			"kind": "TEMPEST",
+			"unit": "Tempest",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "carrier",
+			"kind": "CARRIER",
+			"unit": "Carrier",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "interceptor",
+			"kind": "INTERCEPTOR",
+			"unit": "Interceptor",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "mothership",
+			"kind": "MOTHERSHIP",
+			"unit": "Mothership",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "nexus",
+			"kind": "NEXUS",
+			"unit": "Nexus",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "pylon",
+			"kind": "PYLON",
+			"unit": "Pylon",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "assimilator",
+			"kind": "ASSIMILATOR",
+			"unit": "Assimilator",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "gateway",
+			"kind": "GATEWAY",
+			"unit": "Gateway",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "forge",
+			"kind": "FORGE",
+			"unit": "Forge",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "cyberneticscore",
+			"kind": "CYBERNETICS_CORE",
+			"unit": "CyberneticsCore",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "photoncannon",
+			"kind": "PHOTON_CANNON",
+			"unit": "PhotonCannon",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "shieldbattery",
+			"kind": "SHIELD_BATTERY",
+			"unit": "ShieldBattery",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "twilightcouncil",
+			"kind": "TWILIGHT_COUNCIL",
+			"unit": "TwilightCouncil",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "roboticsfacility",
+			"kind": "ROBOTICS_FACILITY",
+			"unit": "RoboticsFacility",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "stargate",
+			"kind": "STARGATE",
+			"unit": "Stargate",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "templararchives",
+			"kind": "TEMPLAR_ARCHIVES",
+			"unit": "TemplarArchives",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "darkshrine",
+			"kind": "DARK_SHRINE",
+			"unit": "DarkShrine",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "roboticsbay",
+			"kind": "ROBOTICS_BAY",
+			"unit": "RoboticsBay",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "fleetbeacon",
+			"kind": "FLEET_BEACON",
+			"unit": "FleetBeacon",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": true
+		},
+		{
+			"model": "kerrigan",
+			"kind": "KERRIGAN",
+			"unit": "KerriganVoid",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true
+		},
+		{
+			"model": "raynor",
+			"kind": "RAYNOR",
+			"unit": "RaynorCommando",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true
+		},
+		{
+			"model": "artanis",
+			"kind": "ARTANIS",
+			"unit": "ArtanisVoid",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true
+		},
+		{
+			"model": "abathur",
+			"kind": "ABATHUR",
+			"unit": "Abathur",
+			"mod": "Campaigns/SwarmStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "swann",
+			"kind": "SWANN",
+			"unit": "Swann",
+			"mod": "Campaigns/LibertyStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "karax",
+			"kind": "KARAX",
+			"unit": "KaraxVoid",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "tosh",
+			"kind": "TOSH",
+			"unit": "Tosh",
+			"mod": "Campaigns/LibertyStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "zeratul",
+			"kind": "ZERATUL",
+			"unit": "ZeratulVoid",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "zagara",
+			"kind": "ZAGARA",
+			"unit": "Zagara",
+			"mod": "Campaigns/SwarmStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "horner",
+			"kind": "HORNER",
+			"unit": "HornerBattlecruiser",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "stukov",
+			"kind": "STUKOV",
+			"unit": "InfestedStukov",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "selendis",
+			"kind": "SELENDIS",
+			"unit": "SelendisCarrier",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": true,
+			"verify": true
+		},
+		{
+			"model": "spire_greater",
+			"kind": "SPIRE",
+			"form": "greater",
+			"unit": "GreaterSpire",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "commandcenter_orbital",
+			"kind": "COMMAND_CENTER",
+			"form": "orbital",
+			"unit": "OrbitalCommand",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "commandcenter_planetary",
+			"kind": "COMMAND_CENTER",
+			"form": "planetary",
+			"unit": "PlanetaryFortress",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "commandcenter_airborne",
+			"kind": "COMMAND_CENTER",
+			"form": "airborne",
+			"unit": "CommandCenterFlying",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "barracks_airborne",
+			"kind": "BARRACKS",
+			"form": "airborne",
+			"unit": "BarracksFlying",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "factory_airborne",
+			"kind": "FACTORY",
+			"form": "airborne",
+			"unit": "FactoryFlying",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "starport_airborne",
+			"kind": "STARPORT",
+			"form": "airborne",
+			"unit": "StarportFlying",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "supplydepot_lowered",
+			"kind": "SUPPLY_DEPOT",
+			"form": "lowered",
+			"unit": "SupplyDepotLowered",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "gateway_warpgate",
+			"kind": "GATEWAY",
+			"form": "warpgate",
+			"unit": "WarpGate",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "siegetank_sieged",
+			"kind": "SIEGE_TANK",
+			"form": "sieged",
+			"unit": "SiegeTankSieged",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "liberator_defender",
+			"kind": "LIBERATOR",
+			"form": "defender",
+			"unit": "LiberatorAG",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "warpprism_phasing",
+			"kind": "WARP_PRISM",
+			"form": "phasing",
+			"unit": "WarpPrismPhasing",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "thor_high_impact",
+			"kind": "THOR",
+			"form": "high_impact",
+			"unit": "ThorAP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "drone_burrowed",
+			"kind": "DRONE",
+			"form": "burrowed",
+			"unit": "DroneBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "zergling_burrowed",
+			"kind": "ZERGLING",
+			"form": "burrowed",
+			"unit": "ZerglingBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "baneling_burrowed",
+			"kind": "BANELING",
+			"form": "burrowed",
+			"unit": "BanelingBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "roach_burrowed",
+			"kind": "ROACH",
+			"form": "burrowed",
+			"unit": "RoachBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "ravager_burrowed",
+			"kind": "RAVAGER",
+			"form": "burrowed",
+			"unit": "RavagerBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "hydralisk_burrowed",
+			"kind": "HYDRALISK",
+			"form": "burrowed",
+			"unit": "HydraliskBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "lurker_burrowed",
+			"kind": "LURKER",
+			"form": "burrowed",
+			"unit": "LurkerMPBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "queen_burrowed",
+			"kind": "QUEEN",
+			"form": "burrowed",
+			"unit": "QueenBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "infestor_burrowed",
+			"kind": "INFESTOR",
+			"form": "burrowed",
+			"unit": "InfestorBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "swarmhost_burrowed",
+			"kind": "SWARM_HOST",
+			"form": "burrowed",
+			"unit": "SwarmHostBurrowedMP",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "widowmine_burrowed",
+			"kind": "WIDOW_MINE",
+			"form": "burrowed",
+			"unit": "WidowMineBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "ultralisk_burrowed",
+			"kind": "ULTRALISK",
+			"form": "burrowed",
+			"unit": "UltraliskBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "creeptumor",
+			"kind": null,
+			"unit": "CreepTumorBurrowed",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		}
+	]
+}

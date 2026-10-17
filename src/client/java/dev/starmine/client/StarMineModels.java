@@ -60,6 +60,10 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 			if (manager.getResource(StarMine.id("textures/item/sc2/" + kind.id + ".png")).isPresent()) ICONS.add(kind);
 			if (!load(manager, kind.id)) missing++;
 			load(manager, kind.id + "_death");
+			for (int mode = 1; mode <= dev.starmine.ability.Modes.GREATER; mode++) { // its forms' own models, where the assets have them (ModeLook)
+				String form = ModeLook.name(mode);
+				if (form != null) load(manager, kind.id + "_" + form);
+			}
 		}
 		load(manager, "creeptumor");
 		if (missing > 0) LOG.warn("StarMine: {} zerg models are missing; import StarCraft II assets with Modkit", missing);
