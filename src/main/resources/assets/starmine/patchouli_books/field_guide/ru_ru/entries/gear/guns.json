@@ -2,7 +2,7 @@
 	"name": "Оружие",
 	"icon": "starmine:gauss_rifle",
 	"category": "starmine:gear",
-	"sortnum": 2,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:crafting",
@@ -13,8 +13,29 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:canister_rifle",
-			"text": "Снайперская винтовка: 16 урона, 64 блока, патроны-канистры.",
+			"text": "Снайперская винтовка (призрака): 16 урона (+5 по лёгким), 64 блока, патроны-канистры.",
 			"recipe2": "starmine:canister_round"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:grenade_launcher",
+			"text": "Гранатомёт «Каратель» (мародёра): гранаты на 8 урона (+8 по бронированным), замедляют цель. Гранаты: 8 штук из пороха, железа и осколка минерала.",
+			"recipe2": "starmine:punisher_grenade"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:reaper_pistols",
+			"text": "Пистолеты P-38 «Коса» (головореза): два выстрела по 3 сразу, 18 блоков, гаусс-патроны. Заряд KD8: бросок, взрыв на 4 урона отбрасывает всех вокруг; блоки целы.",
+			"recipe2": "starmine:kd8_charge"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:psi_blade",
+			"text": "Пси-клинок (фанатика): протосский клинок острее алмазного, чинится осколками брони протоссов."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Маршалы в деревнях продают патроны, гранаты, заряды KD8 и само оружие за изумруды."
 		}
 	]
 }

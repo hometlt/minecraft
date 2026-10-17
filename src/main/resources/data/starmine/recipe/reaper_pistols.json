@@ -1,0 +1,26 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		"SI",
+		"MW"
+	],
+	"key": {
+		"S": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"I": {
+			"item": "minecraft:iron_ingot"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"W": {
+			"tag": "minecraft:planks"
+		}
+	},
+	"result": {
+		"id": "starmine:reaper_pistols",
+		"count": 1
+	}
+}

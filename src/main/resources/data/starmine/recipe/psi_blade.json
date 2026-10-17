@@ -1,0 +1,24 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" A ",
+		"PAP",
+		" M "
+	],
+	"key": {
+		"A": {
+			"item": "minecraft:amethyst_shard"
+		},
+		"P": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:psi_blade",
+		"count": 1
+	}
+}

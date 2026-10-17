@@ -16,7 +16,7 @@ MODELS = os.path.join(ROOT, 'models', 'item')
 TEXTURES = os.path.join(ROOT, 'textures', 'item', 'weapon')
 
 # in the order of dev.starmine.possess.WeaponLook
-FAMILIES = ['gauss_rifle', 'launcher', 'sniper', 'flamer', 'cannon', 'tool', 'psi_blade', 'disruptor', 'claws', 'spitter']
+FAMILIES = ['gauss_rifle', 'launcher', 'sniper', 'flamer', 'cannon', 'tool', 'psi_blade', 'disruptor', 'claws', 'spitter', 'pistol']
 
 PALETTE = {
     'steel': ((120, 126, 134), (170, 176, 184)),
@@ -141,6 +141,16 @@ def spitter():
          box([7, 12, 7], [9, 17, 9], 'bone'),
          box([7.4, 17, 7.4], [8.6, 18, 8.6], 'green')]
     return e, ['flesh', 'bone', 'green']
+
+
+def pistol():
+    # owner 17.10: the reaper's P-38 Scythe — a short heavy pistol
+    e = [box([7, 0, 6.5], [9, 6, 8.5], 'dark'),
+         box([6.5, 6, 5.5], [9.5, 9, 10.5], 'steel'),
+         box([7.25, 9, 7.25], [8.75, 13, 8.75], 'dark'),
+         box([7, 13, 7], [9, 14, 9], 'brass'),
+         box([6.75, 4, 8.5], [9.25, 6, 10], 'steel')]
+    return e, ['dark', 'steel', 'brass']
 
 
 DISPLAY = {

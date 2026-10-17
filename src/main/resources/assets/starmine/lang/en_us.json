@@ -978,5 +978,12 @@
 	"container.starmine.bank": "%s — %s minerals, %s vespene",
 	"entity.starmine.zergplatform": "Zerg Supply Platform",
 	"entity.starmine.terranplatform": "Terran Supply Platform",
-	"entity.starmine.protossplatform": "Protoss Supply Platform"
+	"entity.starmine.protossplatform": "Protoss Supply Platform",
+	"item.starmine.grenade_launcher": "Punisher Grenade Launcher",
+	"item.starmine.punisher_grenade": "Punisher Grenade",
+	"item.starmine.reaper_pistols": "P-38 Scythe Pistols",
+	"item.starmine.kd8_charge": "KD8 Charge",
+	"item.starmine.psi_blade": "Psi Blade",
+	"item.starmine.launcher.tip": "Damage %s (+%s against armored), slows; ammunition: %s",
+	"item.starmine.charge.tip": "Thrown: a blast of %s that throws back what is round it"
 }

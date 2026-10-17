@@ -37,4 +37,60 @@ public class GearGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 17.10: every weapon of the light infantry is crafted. */
+	@GameTest(template = ARENA, batch = "gearRecipes", timeoutTicks = 20)
+	public void infantryWeaponsAreCrafted(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		for (net.minecraft.world.item.Item made : java.util.List.of(Guns.GAUSS_RIFLE, Guns.CANISTER_RIFLE, Guns.GRENADE_LAUNCHER, Guns.PUNISHER_GRENADE,
+				Guns.REAPER_PISTOLS, Guns.KD8_CHARGE, Guns.PSI_BLADE)) {
+			var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(made);
+			var recipe = level.getRecipeManager().byKey(id);
+			helper.assertTrue(recipe.isPresent(), "no recipe for " + id);
+			helper.assertTrue(recipe.get().value().getResultItem(level.registryAccess()).is(made), "the recipe " + id + " makes something else");
+		}
+		helper.succeed();
+	}
+
+	/** A Punisher grenade hurts an armored stalker by its bonus too and slows it; the pistols fire twice. */
+	@GameTest(template = ARENA, batch = "gearGrenade", timeoutTicks = 100)
+	public void grenadesHitArmoredHarderAndSlow(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		dev.starmine.entity.StarUnit stalker = TestArena.unit(helper, dev.starmine.entity.UnitKind.STALKER, 24, 24, java.util.UUID.randomUUID());
+		stalker.setNoAi(true);
+		Zombie shooter = helper.spawn(EntityType.ZOMBIE, new BlockPos(14, 2, 24));
+		shooter.setNoAi(true);
+		float full = stalker.getHealth() + stalker.shield();
+		var grenade = dev.starmine.entity.ZergSpit.fromPlayer(level, shooter, dev.starmine.entity.UnitKind.MARAUDER,
+			new net.minecraft.world.item.ItemStack(Guns.PUNISHER_GRENADE), 8f, 8f, true, false);
+		Vec3 to = stalker.position().add(0, 1, 0).subtract(grenade.position());
+		grenade.shoot(to.x, to.y, to.z, 1.6f, 0f);
+		level.addFreshEntity(grenade);
+		helper.succeedWhen(() -> {
+			float lost = full - stalker.getHealth() - stalker.shield();
+			helper.assertTrue(lost >= 15, "the stalker lost " + lost + ", not 8 + 8");
+			helper.assertTrue(dev.starmine.ability.Status.has(stalker, dev.starmine.ability.Status.SLOW), "the stalker is not slowed");
+		});
+	}
+
+	/** A KD8 charge hurts what is round it and throws it back. */
+	@GameTest(template = ARENA, batch = "gearKd8", timeoutTicks = 100)
+	public void aKd8ChargeThrowsBack(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		var target = helper.spawn(EntityType.SHEEP, new BlockPos(24, 2, 24)); // with its AI: a mob without one is not moved by a push
+		Zombie thrower = helper.spawn(EntityType.ZOMBIE, new BlockPos(14, 2, 24));
+		thrower.setNoAi(true);
+		Vec3 start = target.position();
+		var charge = dev.starmine.entity.ZergSpit.fromPlayer(level, thrower, dev.starmine.entity.UnitKind.REAPER,
+			new net.minecraft.world.item.ItemStack(Guns.KD8_CHARGE), 4f, 0f, false, true);
+		charge.setPos(target.getX() - 1.5, target.getY() + 0.5, target.getZ());
+		charge.shoot(1, -0.2, 0, 0.8f, 0f);
+		level.addFreshEntity(charge);
+		helper.succeedWhen(() -> {
+			helper.assertTrue(target.getHealth() < target.getMaxHealth(), "the charge did not hurt");
+			helper.assertTrue(target.position().distanceTo(start) > 0.5, "the charge did not throw it back");
+		});
+	}
 }

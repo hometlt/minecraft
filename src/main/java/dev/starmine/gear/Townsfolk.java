@@ -66,6 +66,10 @@ public class Townsfolk extends WanderingTrader {
 			offers.add(offer(10, new ItemStack(dev.starmine.possess.ModuleItem.of(dev.starmine.ability.Ability.CLOAK))));
 		} else {
 			offers.add(offer(14, new ItemStack(Items.IRON_CHESTPLATE)));
+			offers.add(offer(2, new ItemStack(Guns.PUNISHER_GRENADE, 8)));
+			offers.add(offer(14, new ItemStack(Guns.GRENADE_LAUNCHER)));
+			offers.add(offer(10, new ItemStack(Guns.REAPER_PISTOLS)));
+			offers.add(offer(3, new ItemStack(Guns.KD8_CHARGE, 4)));
 		}
 	}
 

@@ -2,7 +2,7 @@
 	"name": "Ability Modules",
 	"icon": "starmine:module_stimpack",
 	"category": "starmine:gear",
-	"sortnum": 1,
+	"sortnum": 4,
 	"pages": [
 		{
 			"type": "patchouli:text",

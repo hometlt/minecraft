@@ -33,13 +33,22 @@ public final class GunItem extends Item {
 	public final float damage;
 	public final double range;
 	public final int cooldown;
+	/** Shots a use fires (the reaper's pistols: two) and SC2 bonus damage against light targets (the ghost's rifle). */
+	public final int shots;
+	public final float lightBonus;
 
 	public GunItem(Properties properties, Supplier<Item> ammo, float damage, double range, int cooldown) {
+		this(properties, ammo, damage, range, cooldown, 1, 0);
+	}
+
+	public GunItem(Properties properties, Supplier<Item> ammo, float damage, double range, int cooldown, int shots, float lightBonus) {
 		super(properties);
 		this.ammo = ammo;
 		this.damage = damage;
 		this.range = range;
 		this.cooldown = cooldown;
+		this.shots = shots;
+		this.lightBonus = lightBonus;
 	}
 
 	@Override
@@ -51,7 +60,11 @@ public final class GunItem extends Item {
 			level.playSound(null, player.blockPosition(), SoundEvents.DISPENSER_FAIL, SoundSource.PLAYERS, 0.6f, 1.4f);
 			return InteractionResultHolder.fail(gun);
 		}
-		shoot((ServerLevel) level, player, player.getEyePosition(), player.getLookAngle(), damage, range);
+		for (int i = 0; i < shots; i++) { // the pistols: a shot from each hand, a little apart
+			net.minecraft.world.phys.Vec3 eye = player.getEyePosition();
+			if (shots > 1) eye = eye.add(player.getLookAngle().cross(new net.minecraft.world.phys.Vec3(0, 1, 0)).normalize().scale(i == 0 ? -0.3 : 0.3));
+			shoot((ServerLevel) level, player, eye, player.getLookAngle(), damage, range, lightBonus);
+		}
 		player.getCooldowns().addCooldown(this, cooldown);
 		gun.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? net.minecraft.world.entity.EquipmentSlot.MAINHAND
 			: net.minecraft.world.entity.EquipmentSlot.OFFHAND);
@@ -71,6 +84,11 @@ public final class GunItem extends Item {
 
 	/** A shot from `eye` along `look`: the first creature on the line within `range` (not behind a block) is hurt. */
 	public static void shoot(ServerLevel level, LivingEntity shooter, Vec3 eye, Vec3 look, float damage, double range) {
+		shoot(level, shooter, eye, look, damage, range, 0);
+	}
+
+	/** {@link #shoot}, with SC2 bonus damage against light targets. */
+	public static void shoot(ServerLevel level, LivingEntity shooter, Vec3 eye, Vec3 look, float damage, double range, float lightBonus) {
 		Vec3 end = eye.add(look.scale(range));
 		HitResult block = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, shooter));
 		Vec3 stop = block.getType() == HitResult.Type.MISS ? end : block.getLocation();
@@ -79,7 +97,8 @@ public final class GunItem extends Item {
 		if (hit != null) {
 			stop = hit.getLocation();
 			Entity target = hit.getEntity();
-			target.hurt(shooter instanceof Player player ? level.damageSources().playerAttack(player) : level.damageSources().mobAttack(shooter), damage);
+			float bonus = target instanceof dev.starmine.entity.StarUnit unit && unit.kind.light() ? lightBonus : 0;
+			target.hurt(shooter instanceof Player player ? level.damageSources().playerAttack(player) : level.damageSources().mobAttack(shooter), damage + bonus);
 		}
 		int steps = (int) Math.min(40, eye.distanceTo(stop) * 2);
 		for (int i = 2; i <= steps; i++) {

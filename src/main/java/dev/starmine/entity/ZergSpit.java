@@ -30,6 +30,28 @@ public class ZergSpit extends ThrowableItemProjectile {
 	private static final net.minecraft.network.syncher.EntityDataAccessor<Integer> SHOT =
 		net.minecraft.network.syncher.SynchedEntityData.defineId(ZergSpit.class, net.minecraft.network.syncher.EntityDataSerializers.INT);
 	private UnitKind kind = UnitKind.ROACH;
+	/**
+	 * A player's shot (owner 17.10: the infantry's weapons, dev.starmine.gear): its damage instead of a unit's, a bonus
+	 * against armored targets, a slow (the marauder's concussive grenades) or a blast (the reaper's KD8 charge). Not
+	 * saved: a shot in flight over a reload hits as a unit's would.
+	 */
+	private float playerDamage = -1, armoredBonus;
+	private boolean slows, blast;
+
+	/** A player's shot looking like `look`'s, showing `shown`, with its own damage and effect. */
+	public static ZergSpit fromPlayer(Level level, LivingEntity shooter, UnitKind look, ItemStack shown, float damage, float armoredBonus,
+			boolean slows, boolean blast) {
+		ZergSpit spit = new ZergSpit(level, shooter, look);
+		spit.setItem(shown.copyWithCount(1));
+		spit.entityData.set(SHOT, UnitKind.Shot.GRENADE.ordinal());
+		spit.setPos(shooter.getX(), shooter.getEyeY() - 0.2, shooter.getZ());
+		spit.playerDamage = damage;
+		spit.armoredBonus = armoredBonus;
+		spit.slows = slows;
+		spit.blast = blast;
+		return spit;
+	}
+
 	/** What it flies at (server side, not saved: after a reload it flies on straight). */
 	private @org.jetbrains.annotations.Nullable LivingEntity target;
 
@@ -96,7 +118,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 
 	@Override
 	protected double getDefaultGravity() {
-		return kind == UnitKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
+		return blast ? 0.05 : kind == UnitKind.BROOD_LORD ? 0.03 : 0.01; // kind may still be null during construction
 	}
 
 	/**
@@ -109,6 +131,14 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super.onHitEntity(hit);
 		if (!(hit.getEntity() instanceof LivingEntity target)) return;
 		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
+		if (playerDamage >= 0) { // a player's weapon
+			if (blast || owner != null && dev.starmine.faction.Faction.allied(owner, target)) return; // a charge hurts by its blast
+			float bonus = target instanceof StarUnit unit && unit.kind.armored() ? armoredBonus : 0;
+			target.hurt(owner instanceof net.minecraft.world.entity.player.Player player ? this.damageSources().playerAttack(player)
+				: this.damageSources().mobProjectile(this, owner), playerDamage + bonus);
+			if (slows) dev.starmine.ability.Status.apply(target, dev.starmine.ability.Status.SLOW, 30); // SC2 concussive shells: 1.07 s
+			return;
+		}
 		StarUnit zerg = owner instanceof StarUnit unit ? unit : null;
 		if (owner != null && dev.starmine.faction.Faction.allied(owner, target)) return;
 		double bonus = zerg != null ? zerg.attackBonus() + dev.starmine.ability.Passives.bonus(zerg, target) : 0;
@@ -118,10 +148,29 @@ public class ZergSpit extends ThrowableItemProjectile {
 		if (kind.attack == UnitKind.Attack.SLOW) dev.starmine.ability.Status.apply(target, dev.starmine.ability.Status.SLOW, 60);
 	}
 
+	/** SC2's KD8 charge: a blast that hurts and throws back what is round it (not its thrower's side); blocks stay. */
+	private void kd8(ServerLevel level) {
+		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
+		net.minecraft.world.phys.Vec3 at = this.position();
+		for (LivingEntity near : level.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(KD8_RADIUS),
+				other -> other.isAlive() && other != owner && !(owner != null && dev.starmine.faction.Faction.allied(owner, other)))) {
+			near.hurt(owner instanceof net.minecraft.world.entity.player.Player player ? this.damageSources().playerAttack(player)
+				: this.damageSources().explosion(this, owner), playerDamage);
+			net.minecraft.world.phys.Vec3 push = near.position().subtract(at).multiply(1, 0, 1);
+			if (push.lengthSqr() > 1e-4) near.push(push.normalize().x * 1.2, 0.35, push.normalize().z * 1.2);
+		}
+		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		level.playSound(null, at.x, at.y, at.z, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.3f);
+	}
+
+	/** How far a KD8 charge's blast reaches (SC2: 1.5 units). */
+	public static final double KD8_RADIUS = 1.5 * UnitKind.BLOCKS_PER_UNIT;
+
 	@Override
 	protected void onHit(HitResult hit) {
 		super.onHit(hit);
 		if (this.level().isClientSide) return;
+		if (blast && this.level() instanceof ServerLevel server) kd8(server);
 		if (kind == UnitKind.BROOD_LORD && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
 			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
 		if (this.level() instanceof ServerLevel server) switch (shot()) {

@@ -1,0 +1,24 @@
+{
+	"name": "Zerg Suit",
+	"icon": "starmine:zerg_helmet",
+	"category": "starmine:gear",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Zerg chitin shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As iron; the full suit regenerates a heart every 4 seconds, four times faster on creep."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_helmet",
+			"text": "Helmet and chestplate.",
+			"recipe2": "starmine:zerg_chestplate"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_leggings",
+			"text": "Leggings and boots.",
+			"recipe2": "starmine:zerg_boots"
+		}
+	]
+}

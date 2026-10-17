@@ -978,5 +978,12 @@
 	"container.starmine.bank": "%s — %s минералов, %s веспена",
 	"entity.starmine.zergplatform": "Склад-платформа зергов",
 	"entity.starmine.terranplatform": "Склад-платформа терранов",
-	"entity.starmine.protossplatform": "Склад-платформа протоссов"
+	"entity.starmine.protossplatform": "Склад-платформа протоссов",
+	"item.starmine.grenade_launcher": "Гранатомёт «Каратель»",
+	"item.starmine.punisher_grenade": "Граната «Каратель»",
+	"item.starmine.reaper_pistols": "Пистолеты P-38 «Коса»",
+	"item.starmine.kd8_charge": "Заряд KD8",
+	"item.starmine.psi_blade": "Пси-клинок",
+	"item.starmine.launcher.tip": "Урон %s (+%s по бронированным), замедляет; боеприпас: %s",
+	"item.starmine.charge.tip": "Бросок: взрыв на %s, отбрасывает всех вокруг"
 }

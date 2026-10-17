@@ -1,0 +1,30 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		"SIS",
+		"ITM",
+		"SW "
+	],
+	"key": {
+		"S": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"I": {
+			"item": "minecraft:iron_ingot"
+		},
+		"T": {
+			"item": "minecraft:tnt"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"W": {
+			"tag": "minecraft:planks"
+		}
+	},
+	"result": {
+		"id": "starmine:grenade_launcher",
+		"count": 1
+	}
+}

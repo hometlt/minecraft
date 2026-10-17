@@ -1,0 +1,22 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		},
+		{
+			"item": "starmine:mineral_shard"
+		}
+	],
+	"result": {
+		"id": "starmine:punisher_grenade",
+		"count": 8
+	}
+}

@@ -63,6 +63,12 @@
 				"starmine:weapon": 0.5625
 			},
 			"model": "starmine:item/weapon_spitter"
+		},
+		{
+			"predicate": {
+				"starmine:weapon": 0.625
+			},
+			"model": "starmine:item/weapon_pistol"
 		}
 	]
 }

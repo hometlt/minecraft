@@ -1,0 +1,25 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "minecraft:iron_nugget"
+		},
+		{
+			"item": "minecraft:redstone"
+		},
+		{
+			"item": "starmine:terran_armor_shard"
+		}
+	],
+	"result": {
+		"id": "starmine:kd8_charge",
+		"count": 4
+	}
+}

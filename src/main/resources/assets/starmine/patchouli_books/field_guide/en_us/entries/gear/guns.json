@@ -2,7 +2,7 @@
 	"name": "Guns",
 	"icon": "starmine:gauss_rifle",
 	"category": "starmine:gear",
-	"sortnum": 2,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:crafting",
@@ -13,8 +13,29 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:canister_rifle",
-			"text": "Sniper rifle: 16 damage, 64 blocks, canister rounds.",
+			"text": "Sniper rifle (the ghost's): 16 damage (+5 against light), 64 blocks, canister rounds.",
 			"recipe2": "starmine:canister_round"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:grenade_launcher",
+			"text": "Punisher grenade launcher (the marauder's): grenades of 8 (+8 against armored) that slow what they hit. Punisher grenades: 8 from gunpowder, iron and a mineral shard.",
+			"recipe2": "starmine:punisher_grenade"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:reaper_pistols",
+			"text": "P-38 Scythe pistols (the reaper's): two shots of 3 at once, 18 blocks, gauss rounds. KD8 charge: thrown, a blast of 4 that throws back everything round it; blocks stay.",
+			"recipe2": "starmine:kd8_charge"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:psi_blade",
+			"text": "Psi blade (the zealot's): a protoss blade sharper than diamond, mended with protoss armor shards."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Marshals in villages sell rounds, grenades, KD8 charges and the guns themselves for emeralds."
 		}
 	]
 }

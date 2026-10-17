@@ -80,9 +80,24 @@ CATEGORIES = [
         ('suits', t('Race Suits', 'Костюмы рас'), 'starmine:terran_chestplate', [
             text('Units killed by you or your army drop armor shards of their race, sometimes an ability module. Shards make a race suit, crafted like vanilla armor.$(br2)Terran: as strong as diamond.$(br)Protoss: shields that come back.$(br)Zerg: regeneration, faster on creep.',
                  'Юниты, убитые вами или вашей армией, роняют осколки брони своей расы, иногда — модуль способности. Из осколков — костюм расы, крафт как у обычной брони.$(br2)Терраны: прочный, как алмаз.$(br)Протоссы: восстанавливающиеся щиты.$(br)Зерги: регенерация, быстрее на слизи.'),
-            craft('terran_chestplate', 'Terran chestplate and helmet.', 'Нагрудник и шлем терранов.', 'terran_helmet'),
-            craft('protoss_leggings', 'Protoss leggings and boots.', 'Поножи и ботинки протоссов.', 'protoss_boots'),
-            craft('zerg_helmet', 'Zerg helmet and chestplate.', 'Шлем и нагрудник зергов.', 'zerg_chestplate'),
+        ]),
+        ('suit_terran', t('Terran Suit', 'Костюм терранов'), 'starmine:terran_helmet', [
+            text('Terran armor shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As strong as diamond, hard to knock back; its modules work in the full suit.',
+                 'Осколки брони терранов в формах обычной брони: шлем — 5, нагрудник — 8, поножи — 7, ботинки — 4. Прочен, как алмаз, держит удар; модули терранов работают в полном костюме.'),
+            craft('terran_helmet', 'Helmet and chestplate.', 'Шлем и нагрудник.', 'terran_chestplate'),
+            craft('terran_leggings', 'Leggings and boots.', 'Поножи и ботинки.', 'terran_boots'),
+        ]),
+        ('suit_protoss', t('Protoss Suit', 'Костюм протоссов'), 'starmine:protoss_helmet', [
+            text('Protoss armor shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As iron; the full suit gives shields of 4 hearts that come back 7 seconds after the last hit.',
+                 'Осколки брони протоссов в формах обычной брони: шлем — 5, нагрудник — 8, поножи — 7, ботинки — 4. Как железо; полный костюм даёт щиты на 4 сердца, они возвращаются через 7 секунд после последнего удара.'),
+            craft('protoss_helmet', 'Helmet and chestplate.', 'Шлем и нагрудник.', 'protoss_chestplate'),
+            craft('protoss_leggings', 'Leggings and boots.', 'Поножи и ботинки.', 'protoss_boots'),
+        ]),
+        ('suit_zerg', t('Zerg Suit', 'Костюм зергов'), 'starmine:zerg_helmet', [
+            text('Zerg chitin shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As iron; the full suit regenerates a heart every 4 seconds, four times faster on creep.',
+                 'Осколки хитина зергов в формах обычной брони: шлем — 5, нагрудник — 8, поножи — 7, ботинки — 4. Как железо; полный костюм восстанавливает сердце за 4 секунды, на слизи вчетверо быстрее.'),
+            craft('zerg_helmet', 'Helmet and chestplate.', 'Шлем и нагрудник.', 'zerg_chestplate'),
+            craft('zerg_leggings', 'Leggings and boots.', 'Поножи и ботинки.', 'zerg_boots'),
         ]),
         ('modules', t('Ability Modules', 'Модули способностей'), 'starmine:module_stimpack', [
             text('A module casts its ability: in the body of a unit you control, or in the full suit of its race. It has 24 uses.',
@@ -93,8 +108,16 @@ CATEGORIES = [
         ('guns', t('Guns', 'Оружие'), 'starmine:gauss_rifle', [
             craft('gauss_rifle', 'Gauss rifle: 5 damage, 32 blocks, gauss rounds. Right-click fires where you aim; walls stop the shot.',
                   'Гаусс-винтовка: 5 урона, 32 блока, гаусс-патроны. Правый клик — выстрел туда, куда вы целитесь; стены останавливают выстрел.', 'gauss_ammo'),
-            craft('canister_rifle', 'Sniper rifle: 16 damage, 64 blocks, canister rounds.',
-                  'Снайперская винтовка: 16 урона, 64 блока, патроны-канистры.', 'canister_round'),
+            craft('canister_rifle', 'Sniper rifle (the ghost\'s): 16 damage (+5 against light), 64 blocks, canister rounds.',
+                  'Снайперская винтовка (призрака): 16 урона (+5 по лёгким), 64 блока, патроны-канистры.', 'canister_round'),
+            craft('grenade_launcher', 'Punisher grenade launcher (the marauder\'s): grenades of 8 (+8 against armored) that slow what they hit. Punisher grenades: 8 from gunpowder, iron and a mineral shard.',
+                  'Гранатомёт «Каратель» (мародёра): гранаты на 8 урона (+8 по бронированным), замедляют цель. Гранаты: 8 штук из пороха, железа и осколка минерала.', 'punisher_grenade'),
+            craft('reaper_pistols', 'P-38 Scythe pistols (the reaper\'s): two shots of 3 at once, 18 blocks, gauss rounds. KD8 charge: thrown, a blast of 4 that throws back everything round it; blocks stay.',
+                  'Пистолеты P-38 «Коса» (головореза): два выстрела по 3 сразу, 18 блоков, гаусс-патроны. Заряд KD8: бросок, взрыв на 4 урона отбрасывает всех вокруг; блоки целы.', 'kd8_charge'),
+            craft('psi_blade', 'Psi blade (the zealot\'s): a protoss blade sharper than diamond, mended with protoss armor shards.',
+                  'Пси-клинок (фанатика): протосский клинок острее алмазного, чинится осколками брони протоссов.'),
+            text('Marshals in villages sell rounds, grenades, KD8 charges and the guns themselves for emeralds.',
+                 'Маршалы в деревнях продают патроны, гранаты, заряды KD8 и само оружие за изумруды.'),
         ]),
     ]),
     ('world', t('The World', 'Мир'), t('Packs, dungeons, sky ships and heroes.', 'Отряды, подземелья, корабли и герои.'), 'minecraft:filled_map', [
