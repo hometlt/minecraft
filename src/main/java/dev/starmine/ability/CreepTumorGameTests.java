@@ -76,4 +76,39 @@ public class CreepTumorGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 17.10: a wild tumor does not spread; a base's spreads round it, to what it mines and toward its foes over its land only. */
+	@GameTest(template = ARENA, batch = "tumorAims", timeoutTicks = 120)
+	public void onlyABasesTumorsSpreadAndWithAPurpose(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		UUID player = UUID.randomUUID();
+		BlockPos wild = tumor(helper, player); // a player's tumor with no base of theirs: wild
+		UUID other = UUID.randomUUID();
+		StarUnit hatchery = unit(helper, UnitKind.HATCHERY, 36, 36, other); // another's base: not the tumor's
+		helper.runAfterDelay(40, () -> {
+			helper.assertTrue(dev.starmine.creep.TumorSpread.base(level, wild, player) == null, "a lone tumor has a base");
+			helper.assertFalse(CreepGrowth.spawnTumor(level, wild, dev.starmine.creep.CreepSources.TUMOR_SPACING, dev.starmine.creep.CreepSources.TUMOR_RADIUS, player),
+				"a wild tumor spread");
+			{
+				dev.starmine.hive.Hive base = TestArena.base(helper, hatchery);
+				helper.assertTrue(base != null, "no base: " + hatchery.isAlive() + " " + hatchery.hiveId() + " " + hatchery.owner());
+				helper.assertTrue(dev.starmine.creep.TumorSpread.base(level, wild, other) == base, "a tumor of its side is not its base's");
+				BlockPos home = base.hatchery, from = home.offset(20, 0, 0);
+				base.expedition = home.offset(90, -20, 0); // a place it wants, deep under the ground
+				java.util.List<dev.starmine.creep.TumorSpread.Goal> goals = dev.starmine.creep.TumorSpread.goals(level, base, from);
+				base.expedition = null;
+				dev.starmine.creep.TumorSpread.Goal want = goals.stream().filter(g -> !g.territory()).findFirst().orElse(null);
+				helper.assertTrue(want != null, "the base wants nothing: " + goals);
+				dev.starmine.creep.TumorSpread.Goal foe = new dev.starmine.creep.TumorSpread.Goal(home.offset(0, 0, 300), true);
+				helper.assertTrue(!Double.isNaN(dev.starmine.creep.TumorSpread.score(base, from, home.offset(10, 0, 4), null)), "no creep round the base");
+				helper.assertTrue(Double.isNaN(dev.starmine.creep.TumorSpread.score(base, from, home.offset(30, 0, 0), null)), "creep far off with no purpose");
+				helper.assertTrue(!Double.isNaN(dev.starmine.creep.TumorSpread.score(base, from, home.offset(28, -3, 0), want)), "no creep toward what it wants, down too");
+				helper.assertTrue(Double.isNaN(dev.starmine.creep.TumorSpread.score(base, home.offset(40, 0, 0), home.offset(33, 0, 0), want)), "creep away from what it wants");
+				helper.assertTrue(!Double.isNaN(dev.starmine.creep.TumorSpread.score(base, home.offset(0, 0, 50), home.offset(0, 0, 58), foe)), "no creep toward its foe");
+				helper.assertTrue(Double.isNaN(dev.starmine.creep.TumorSpread.score(base, home.offset(0, 0, 62), home.offset(0, 0, 70), foe)), "creep toward its foe beyond its land");
+				helper.succeed();
+			}
+		});
+	}
 }

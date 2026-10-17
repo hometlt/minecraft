@@ -238,7 +238,8 @@ public final class CreepGrowth {
 
 	/**
 	 * A new tumor on the creep of `from`: a creep cell between `min` and `max` blocks away and at least
-	 * `min` from every other source, standing on the face its creep lies on.
+	 * `min` from every other source, standing on the face its creep lies on — only for a base, where its creep is
+	 * wanted ({@link TumorSpread}: round it, toward its resources, toward its foes over its land).
 	 */
 	public static boolean spawnTumor(ServerLevel level, BlockPos from, int min, int max) {
 		return spawnTumor(level, from, min, max, null);
@@ -249,10 +250,26 @@ public final class CreepGrowth {
 		if (CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
 		Source s = SOURCES.get(new Key(level.dimension(), from.asLong()));
 		if (s == null || s.cells.isEmpty()) return false;
-		for (int attempt = 0; attempt < 48; attempt++) {
-			BlockPos cell = s.cells.get(level.random.nextInt(s.cells.size()));
+		dev.starmine.hive.Hive base = TumorSpread.base(level, from, owner);
+		if (base == null) return false; // owner 17.10: a wild tumor does not spread
+		java.util.List<TumorSpread.Goal> goals = TumorSpread.goals(level, base, from);
+		TumorSpread.Goal goal = goals.isEmpty() ? null : goals.get(level.random.nextInt(goals.size()));
+		java.util.List<BlockPos> cells = new java.util.ArrayList<>();
+		java.util.Map<BlockPos, Double> scores = new java.util.HashMap<>();
+		for (BlockPos cell : s.cells) {
 			double distance = Math.sqrt(cell.distSqr(from));
-			if (distance < min || distance > max || !atEdge(level, cell)) continue;
+			if (distance < min || distance > max) continue;
+			double score = TumorSpread.score(base, from, cell, goal);
+			if (Double.isNaN(score)) continue;
+			cells.add(cell);
+			scores.put(cell, score + level.random.nextDouble() * 2);
+		}
+		cells.sort(java.util.Comparator.comparingDouble(scores::get));
+		int tried = 0;
+		for (BlockPos cell : cells) {
+			if (tried >= 48) break;
+			if (!atEdge(level, cell)) continue;
+			tried++;
 			if (placeTumor(level, cell, min, owner)) {
 				slimeTrail(level, from, cell);
 				return true;
