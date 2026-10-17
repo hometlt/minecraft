@@ -47,22 +47,28 @@ public class DimensionHeroGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "heroTosh", timeoutTicks = 400)
-	public void toshCloaksInTurns(GameTestHelper helper) {
+	@GameTest(template = ARENA, batch = "heroTosh", timeoutTicks = 700)
+	public void toshHidesAWhileZeratulShowsAWhile(GameTestHelper helper) {
 		clear(helper);
-		StarUnit tosh = unit(helper, UnitKind.TOSH, 10, 24, null);
+		StarUnit tosh = unit(helper, UnitKind.TOSH, 10, 20, null);
+		StarUnit zeratul = unit(helper, UnitKind.ZERATUL, 10, 30, null);
 		StarUnit marine = unit(helper, UnitKind.MARINE, 20, 24, UUID.randomUUID());
 		marine.setNoAi(true);
 		marine.setInvulnerable(true);
 		tosh.addTag(HeroLiberation.FREED);
-		java.util.Set<Boolean> seen = new java.util.HashSet<>();
-		helper.runAfterDelay(2, () -> tosh.setTarget(marine));
+		zeratul.addTag(HeroLiberation.FREED);
+		int[] toshHidden = {0}, zeratulHidden = {0}, ticks = {0};
 		helper.onEachTick(() -> {
 			if (tosh.getTarget() == null) tosh.setTarget(marine);
-			seen.add(tosh.cloaked());
+			if (zeratul.getTarget() == null) zeratul.setTarget(marine);
+			ticks[0]++;
+			if (tosh.cloaked()) toshHidden[0]++;
+			if (zeratul.cloaked()) zeratulHidden[0]++;
 		});
-		helper.runAfterDelay(380, () -> {
-			helper.assertTrue(seen.contains(true) && seen.contains(false), "Tosh does not cloak in turns: " + seen);
+		helper.runAfterDelay(650, () -> {
+			double toshShare = toshHidden[0] / (double) ticks[0], zer = zeratulHidden[0] / (double) ticks[0];
+			helper.assertTrue(toshShare > 0.1 && toshShare < 0.5, "Tosh is hidden " + Math.round(toshShare * 100) + "% of the time, not a while");
+			helper.assertTrue(zer > 0.6 && zer < 0.98, "Zeratul is hidden " + Math.round(zer * 100) + "% of the time, not nearly always");
 			helper.succeed();
 		});
 	}

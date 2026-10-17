@@ -15,7 +15,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The heroes of the other worlds (owner 17.10), what they do beyond their weapons and abilities:
- * - Tosh and Zeratul cloak: hidden for {@link #CLOAK_TICKS}, seen for as long, in turns — a detector sees them always;
+ * - Tosh cloaks for a while in a fight ({@link #TOSH_HIDDEN} of every {@link #TOSH_CYCLE} ticks); Zeratul is cloaked and shows
+ *   only now and then ({@link #ZERATUL_SHOWN} of every {@link #ZERATUL_CYCLE}); a detector sees them always;
  * - Zagara throws banelings at her foe, calls hydralisks, and digs: she burrows, runs under the ground and comes up
  *   behind her foe ({@link #dig}), only where the ground carries her there;
  * - Horner, Stukov and Selendis are heroic ships: Horner fires the Yamato cannon, Stukov drops broodling eggs, Selendis
@@ -25,7 +26,7 @@ import net.minecraft.world.phys.Vec3;
 public final class DimensionHeroes {
 	/** A tag: cloaked now (Cloak.forced). */
 	public static final String CLOAKED = "starmine_hero_cloak";
-	public static final int CLOAK_TICKS = 160;
+	public static final int TOSH_CYCLE = 320, TOSH_HIDDEN = 100, ZERATUL_CYCLE = 300, ZERATUL_SHOWN = 60;
 	/** Zagara: banelings every 6 s, hydralisks every 15 s (at most 8 of hers about), a dig every 12 s. */
 	static final int BANELINGS_EVERY = 120, HYDRAS_EVERY = 300, DIG_EVERY = 240, DIG_TICKS = 30, MAX_BROOD = 8;
 
@@ -37,8 +38,11 @@ public final class DimensionHeroes {
 		if (hero.deathTime > 0 || hero.pilot() != null) return;
 		switch (hero.kind) {
 			case TOSH, ZERATUL -> {
-				if (hero.tickCount % CLOAK_TICKS == 0) {
-					boolean hide = !hero.getTags().contains(CLOAKED) && hero.getTarget() != null;
+				// Tosh hides a while in a fight (5 s of every 16); Zeratul stays hidden and shows only now and then (3 s of every 15)
+				int cycle = hero.kind == UnitKind.TOSH ? TOSH_CYCLE : ZERATUL_CYCLE, shown = hero.kind == UnitKind.TOSH ? TOSH_CYCLE - TOSH_HIDDEN : ZERATUL_SHOWN;
+				boolean fighting = hero.getTarget() != null;
+				boolean hide = hero.kind == UnitKind.ZERATUL ? hero.tickCount % cycle >= shown : fighting && hero.tickCount % cycle >= shown;
+				if (hide != hero.getTags().contains(CLOAKED)) {
 					if (hide) hero.addTag(CLOAKED);
 					else hero.removeTag(CLOAKED);
 					level.sendParticles(ParticleTypes.REVERSE_PORTAL, hero.getX(), hero.getY() + 1, hero.getZ(), 25, 0.4, 0.8, 0.4, 0.05);

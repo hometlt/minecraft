@@ -6,7 +6,7 @@
 	"pages": [
 		{
 			"type": "patchouli:text",
-			"text": "The Nether has its races too: three bases carved into its caves near the place under your spawn — $(l)Zagara$()'s lair, $(l)Tosh$()'s base and $(l)Zeratul$()'s — and, far rarer than above, mineral halls with their geysers. Tosh and Zeratul cloak in turns (a detector sees them always); Zagara throws banelings, calls hydralisks and digs under the ground to come up behind you."
+			"text": "The Nether has its races too: three bases carved into its caves near the place under your spawn — $(l)Zagara$()'s lair, $(l)Tosh$()'s base and $(l)Zeratul$()'s — and, far rarer than above, mineral halls with their geysers. Tosh cloaks a while in a fight, Zeratul is cloaked and shows only now and then (a detector sees them always); Zagara throws banelings, calls hydralisks and digs under the ground to come up behind you."
 		},
 		{
 			"type": "patchouli:text",
