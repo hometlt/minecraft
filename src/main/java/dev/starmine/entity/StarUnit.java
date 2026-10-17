@@ -1368,7 +1368,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.swing(InteractionHand.MAIN_HAND);
 		shotSounds();
 		if (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.HALLUCINATION)) return; // an illusion shoots for show
-		if (kind == UnitKind.CARRIER) { // its interceptors are its weapon
+		if (kind == UnitKind.CARRIER || kind == UnitKind.SELENDIS) { // its interceptors are its weapon (Selendis's flagship too)
 			dev.starmine.ability.ProtossAbilities.launchInterceptors(this, target);
 			return;
 		}

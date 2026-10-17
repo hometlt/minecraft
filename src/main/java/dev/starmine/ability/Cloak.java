@@ -53,7 +53,8 @@ public final class Cloak {
 
 	/** Cloaked for free by its kind or its state: the dark templar and observer, a burrowed unit, a unit in a cloaking field. */
 	public static boolean forced(StarUnit unit) {
-		return unit.kind.permanentlyCloaked() || unit.mode() == Modes.BURROWED || Status.has(unit, Status.CLOAK_FIELD);
+		return unit.kind.permanentlyCloaked() || unit.mode() == Modes.BURROWED || Status.has(unit, Status.CLOAK_FIELD)
+			|| unit.getTags().contains(dev.starmine.world.DimensionHeroes.CLOAKED); // Tosh's and Zeratul's cloak (owner 17.10)
 	}
 
 	/** The side of `caster` sees cloaked units within `radius` of a point for `ticks` (a scanner sweep). */

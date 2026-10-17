@@ -95,6 +95,9 @@ public final class Minerals {
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("mineral_field")));
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES,
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("mineral_hall")));
+		// owner 17.10: the Nether has mineral halls too (each with its geyser and crystals), far rarer
+		BiomeModifications.addFeature(BiomeSelectors.foundInTheNether(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES,
+			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("nether_mineral_hall")));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(SHARD));
 	}
 

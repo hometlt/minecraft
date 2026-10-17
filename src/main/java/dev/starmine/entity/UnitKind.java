@@ -147,7 +147,15 @@ public enum UnitKind {
 	// ---- owner 17.10: the heroes guarding the three main bases in the overworld ----
 	ABATHUR(          Race.ZERG,    750, 0,    2.6,   false, Attack.RANGED, 18,  1.2,   6,    true,  1.6f, 2.0f,  0x4a5a2a, 0xc0ff60),
 	SWANN(            Race.TERRAN,  650, 0,    2.8,   false, Attack.RANGED, 24,  1.0,   6,    true,  1.3f, 2.2f,  0x6a4a2a, 0xffa040),
-	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0);
+	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0),
+	// ---- owner 17.10: the Nether's heroes (Tosh and Zeratul cloak, Zagara throws banelings and digs) ----
+	TOSH(             Race.TERRAN,  900, 0,    3.94,  false, Attack.RANGED, 32,  1.0,   7,    true,  1.0f, 2.1f,  0x2a2a3a, 0xc02020),
+	ZERATUL(          Race.PROTOSS, 700, 700,  3.94,  false, Attack.MELEE,  50,  1.0,   1,    true,  1.1f, 2.4f,  0x3a2a5a, 0x40ff80),
+	ZAGARA(           Race.ZERG,    1100, 0,   3.5,   false, Attack.RANGED, 26,  0.9,   6,    true,  1.4f, 2.6f,  0x6a2a2a, 0xffa040),
+	// ---- owner 17.10: the End's heroes, heroic ships over their bases ----
+	HORNER(           Race.TERRAN,  2000, 0,   2.62,  true,  Attack.RANGED, 12,  0.2,   8,    true,  4.3f, 2.2f,  0x3a5a8a, 0xf0d060),
+	STUKOV(           Race.ZERG,    1800, 0,   2.62,  true,  Attack.SPAWN_BROODLINGS, 30, 1.6, 9, true, 4.0f, 1.8f,  0x3a5a3a, 0x90ff60),
+	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  4.0f, 2.2f,  0xc8a030, 0xff80c0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -268,7 +276,7 @@ public enum UnitKind {
 		return switch (this) {
 			case HYDRALISK, MUTALISK -> Shot.NEEDLE;
 			case CORRUPTOR -> Shot.CORROSIVE;
-			case BROOD_LORD -> Shot.EGG;
+			case BROOD_LORD, STUKOV -> Shot.EGG;
 			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR, CYCLONE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
 			case MARAUDER -> Shot.GRENADE;
 			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
@@ -311,7 +319,7 @@ public enum UnitKind {
 			case RAVAGER -> Items.MAGMA_CREAM;
 			case MUTALISK, HYDRALISK -> Items.PRISMARINE_SHARD;
 			case CORRUPTOR -> Items.FERMENTED_SPIDER_EYE;
-			case BROOD_LORD -> Items.EGG;
+			case BROOD_LORD, STUKOV -> Items.EGG;
 			default -> Items.PRISMARINE_CRYSTALS;
 		};
 	}
@@ -331,7 +339,24 @@ public enum UnitKind {
 
 	/** The heroes of the sky ships' boss rooms: Kerrigan, Raynor, Artanis (dev.starmine.boss). */
 	public boolean boss() {
-		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian();
+		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian() || dimensionHero();
+	}
+
+	/** Owner 17.10: the heroes of the other worlds: the Nether's (Tosh, Zeratul, Zagara) and the End's (Horner, Stukov, Selendis). */
+	public boolean dimensionHero() {
+		return switch (this) {
+			case TOSH, ZERATUL, ZAGARA, HORNER, STUKOV, SELENDIS -> true;
+			default -> false;
+		};
+	}
+
+	/** The hero of a race's base in the Nether (`end` false) or the End. */
+	public static UnitKind heroOf(Race race, boolean end) {
+		return switch (race) {
+			case ZERG -> end ? STUKOV : ZAGARA;
+			case TERRAN -> end ? HORNER : TOSH;
+			case PROTOSS -> end ? SELENDIS : ZERATUL;
+		};
 	}
 
 	/** SC2 psionic: the templar, the archon, the sentry, the ghost, the queen, the infestor, the viper, the oracle, the mothership, the heroes. */
@@ -374,6 +399,12 @@ public enum UnitKind {
 			case ABATHUR -> INFESTOR;
 			case SWANN -> MARAUDER;
 			case KARAX -> HIGH_TEMPLAR;
+			case TOSH -> GHOST;
+			case ZERATUL -> DARK_TEMPLAR;
+			case ZAGARA -> QUEEN;
+			case HORNER -> BATTLECRUISER;
+			case STUKOV -> BROOD_LORD;
+			case SELENDIS -> CARRIER;
 			case HELLBAT -> HELLION; // until the assets carry their own SC2 models
 			case VIKING_ASSAULT -> VIKING;
 			case LIBERATOR -> BANSHEE;
@@ -390,6 +421,12 @@ public enum UnitKind {
 			case ABATHUR -> 0xFFB0E070;
 			case SWANN -> 0xFFE0A070;
 			case KARAX -> 0xFF80FFE0;
+			case TOSH -> 0xFFFF9090;
+			case ZERATUL -> 0xFFA0FFB0;
+			case ZAGARA -> 0xFFFFB080;
+			case HORNER -> 0xFFFFE8A0;
+			case STUKOV -> 0xFFB0FF90;
+			case SELENDIS -> 0xFFFFB0E0;
 			case HELLBAT -> 0xFFFFA070;
 			case VIKING_ASSAULT -> 0xFFB0B0C0;
 			case LIBERATOR -> 0xFFB0E0FF;
@@ -514,7 +551,10 @@ public enum UnitKind {
 		return UNIT_SIZE * switch (this) {
 			case KERRIGAN -> 1.0f; // the queen's model (4 wide at this size) stands in for her
 			case RAYNOR -> 1.15f;
-			case ARTANIS -> 1.2f;
+			case ARTANIS, ZERATUL, TOSH -> 1.2f;
+			case ZAGARA -> 1.1f;
+			case HORNER, SELENDIS -> 1.15f;
+			case STUKOV -> 1.2f;
 			case LURKER -> 1.1f;
 			case OVERLORD -> 1.6f;
 			case OVERSEER -> 1.44f;
@@ -535,7 +575,7 @@ public enum UnitKind {
 			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE, RAVEN -> 5;
 			case OBSERVER -> 6;
 			case INTERCEPTOR -> 4;
-			case BATTLECRUISER, TEMPEST, CARRIER -> 8;
+			case BATTLECRUISER, TEMPEST, CARRIER, HORNER, STUKOV, SELENDIS -> 8;
 			case MOTHERSHIP -> 10;
 			default -> 0;
 		};
@@ -628,6 +668,7 @@ public enum UnitKind {
 	/** SC2 massive units: a graviton beam cannot lift them, force fields do not stop them. */
 	public boolean massive() {
 		return this == ULTRALISK || this == BROOD_LORD || this == THOR || this == BATTLECRUISER || this == COLOSSUS || this == ARCHON
+			|| this == HORNER || this == STUKOV || this == SELENDIS
 			|| this == TEMPEST || this == CARRIER || this == MOTHERSHIP;
 	}
 

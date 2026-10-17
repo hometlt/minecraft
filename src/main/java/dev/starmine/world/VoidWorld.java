@@ -200,6 +200,15 @@ public final class VoidWorld {
 		public final java.util.Map<String, BlockPos> parts = new java.util.LinkedHashMap<>();
 		/** Players whose army waits in the Void already (it is sent once). */
 		public final java.util.Set<UUID> armies = new java.util.LinkedHashSet<>();
+		/** Owner 17.10: freed heroes who fell, back at their base when their time comes ({@link HeroLiberation#respawn}). */
+		public final List<Fallen> fallen = new ArrayList<>();
+		/** When the world's month of Amun's patience began (game time; -1: not yet), and whether his invasion has begun. */
+		public long amunClock = -1;
+		public boolean invading;
+
+		/** A freed hero who fell: whose, where it comes back, and when. */
+		public record Fallen(String kind, UUID owner, String dimension, BlockPos home, long due) {
+		}
 
 		private static final SavedData.Factory<State> FACTORY = new SavedData.Factory<>(State::new, State::load, null);
 
@@ -243,6 +252,19 @@ public final class VoidWorld {
 			ListTag armyList = new ListTag();
 			for (UUID id : armies) armyList.add(NbtUtils.createUUID(id));
 			tag.put("armies", armyList);
+			ListTag fallenList = new ListTag();
+			for (Fallen f : fallen) {
+				CompoundTag entry = new CompoundTag();
+				entry.putString("kind", f.kind());
+				entry.putUUID("owner", f.owner());
+				entry.putString("dim", f.dimension());
+				entry.putLong("home", f.home().asLong());
+				entry.putLong("due", f.due());
+				fallenList.add(entry);
+			}
+			tag.put("fallen", fallenList);
+			tag.putLong("amunClock", amunClock);
+			tag.putBoolean("invading", invading);
 			return tag;
 		}
 
@@ -260,6 +282,13 @@ public final class VoidWorld {
 			CompoundTag partTag = tag.getCompound("parts");
 			for (String race : partTag.getAllKeys()) state.parts.put(race, BlockPos.of(partTag.getLong(race)));
 			for (Tag t : tag.getList("armies", Tag.TAG_INT_ARRAY)) state.armies.add(NbtUtils.loadUUID(t));
+			for (Tag t : tag.getList("fallen", Tag.TAG_COMPOUND)) {
+				CompoundTag entry = (CompoundTag) t;
+				state.fallen.add(new Fallen(entry.getString("kind"), entry.getUUID("owner"), entry.getString("dim"), BlockPos.of(entry.getLong("home")),
+					entry.getLong("due")));
+			}
+			state.amunClock = tag.contains("amunClock") ? tag.getLong("amunClock") : -1;
+			state.invading = tag.getBoolean("invading");
 			return state;
 		}
 	}

@@ -171,7 +171,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super.onHit(hit);
 		if (this.level().isClientSide) return;
 		if (blast && this.level() instanceof ServerLevel server) kd8(server);
-		if (kind == UnitKind.BROOD_LORD && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
+		if ((kind == UnitKind.BROOD_LORD || kind == UnitKind.STUKOV) && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
 			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
 		if (this.level() instanceof ServerLevel server) switch (shot()) {
 			case ROCKET, GRENADE -> {

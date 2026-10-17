@@ -139,7 +139,7 @@ public final class ZergAbilities {
 	}
 
 	/** A summon joins its summoner's side and base without counting in it. */
-	static void summon(StarUnit summoner, StarUnit summon, ServerLevel level) {
+	public static void summon(StarUnit summoner, StarUnit summon, ServerLevel level) {
 		Hive hive = summoner.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(summoner.hiveId());
 		if (hive != null) summon.joinAsSummon(hive, summoner.getUUID());
 		else summon.summonedBy(summoner);

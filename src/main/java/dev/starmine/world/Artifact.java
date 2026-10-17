@@ -129,10 +129,7 @@ public final class Artifact {
 		boolean whole = !pedestalGone && whole(level, pedestal);
 		BlockState state = level.getBlockState(pedestal);
 		boolean active = !pedestalGone && state.is(PEDESTAL) && state.getValue(ACTIVE);
-		if (whole && !active && level.dimension() != Level.OVERWORLD) { // owner 17.10: only in the overworld
-			for (ServerPlayer player : level.players())
-				if (player.blockPosition().closerThan(pedestal, 32)) player.displayClientMessage(Component.translatable("message.starmine.artifact_overworld"), true);
-		} else if (whole && !active) open(level, pedestal);
+		if (whole && !active) open(level, pedestal); // owner 17.10: in any world (the parts of the overworld's, the Nether's or the End's heroes)
 		else if (!whole && (active || pedestalGone)) close(level, pedestal);
 	}
 

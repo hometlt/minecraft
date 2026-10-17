@@ -157,7 +157,8 @@ public enum Ability {
 			case STIMPACK -> List.of(MARINE, MARAUDER);
 			case KD8_CHARGE -> List.of(REAPER, RAYNOR); // Raynor's grenade
 			case CLOAK -> List.of(GHOST, BANSHEE);
-			case EMP, STEADY_TARGETING, NUKE -> List.of(GHOST);
+			case EMP, NUKE -> List.of(GHOST);
+			case STEADY_TARGETING -> List.of(GHOST, TOSH);
 			case HELLBAT -> List.of(HELLION, UnitKind.HELLBAT); // the two kinds turn into each other (Morphs)
 			case SIEGE_MODE -> List.of(SIEGE_TANK);
 			case HIGH_IMPACT -> List.of(THOR);
@@ -167,7 +168,8 @@ public enum Ability {
 			case AFTERBURNERS -> List.of(MEDIVAC);
 			case LOCK_ON -> List.of(CYCLONE);
 			case AUTO_TURRET, INTERFERENCE_MATRIX, ANTI_ARMOR_MISSILE -> List.of(RAVEN);
-			case YAMATO, TACTICAL_JUMP -> List.of(BATTLECRUISER);
+			case YAMATO -> List.of(BATTLECRUISER, HORNER);
+			case TACTICAL_JUMP -> List.of(BATTLECRUISER);
 			case REPAIR -> List.of(SCV);
 			case ORBITAL_COMMAND, PLANETARY_FORTRESS, MULE, SCANNER_SWEEP -> List.of(COMMAND_CENTER);
 			case LOWER_DEPOT -> List.of(SUPPLY_DEPOT);
@@ -182,14 +184,14 @@ public enum Ability {
 			case HYPERION_STRIKE -> List.of(RAYNOR);
 			case LIGHTNING_DASH -> List.of(ARTANIS);
 			case ARCHON_WARP -> List.of(HIGH_TEMPLAR, DARK_TEMPLAR);
-			case SHADOW_STRIDE -> List.of(DARK_TEMPLAR);
+			case SHADOW_STRIDE -> List.of(DARK_TEMPLAR, ZERATUL);
 			case PURIFICATION_NOVA -> List.of(DISRUPTOR);
 			case PHASING_MODE -> List.of(WARP_PRISM);
 			case GRAVITON_BEAM -> List.of(PHOENIX);
 			case PRISMATIC_ALIGNMENT -> List.of(VOID_RAY);
 			case PULSAR_BEAM, REVELATION, STASIS_WARD -> List.of(ORACLE);
 			case DISINTEGRATION -> List.of(TEMPEST);
-			case TIME_WARP -> List.of(MOTHERSHIP);
+			case TIME_WARP -> List.of(MOTHERSHIP, SELENDIS);
 			case MASS_RECALL -> List.of(MOTHERSHIP, NEXUS); // SC2 strategic recall, both
 			case CHRONO_BOOST, BATTERY_OVERCHARGE -> List.of(NEXUS);
 			case WARP_GATE -> List.of(GATEWAY);

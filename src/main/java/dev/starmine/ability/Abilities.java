@@ -411,6 +411,15 @@ public final class Abilities {
 			&& (!foesOnly || other != caster.body() && Faction.hostile(caster, other)));
 	}
 
+	/** A line of particles between two points. */
+	public static void beamOf(ServerLevel level, Vec3 from, Vec3 to, ParticleOptions particle) {
+		int steps = (int) Math.min(32, Math.max(3, from.distanceTo(to) * 2));
+		for (int i = 0; i <= steps; i++) {
+			Vec3 at = from.lerp(to, i / (double) steps);
+			level.sendParticles(particle, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		}
+	}
+
 	/** A ring of particles on the ground (an area spell's edge). */
 	static void ring(ServerLevel level, Vec3 centre, double radius, ParticleOptions particle) {
 		int points = (int) Math.max(8, radius * 8);
@@ -424,7 +433,7 @@ public final class Abilities {
 	 * Where a unit of its size may stand at or next to a point (feet position): on solid ground with room
 	 * for its body, searched a few blocks around and up and down; null when there is none.
 	 */
-	static @Nullable Vec3 standable(StarUnit unit, Level level, Vec3 point) {
+	public static @Nullable Vec3 standable(StarUnit unit, Level level, Vec3 point) {
 		Entity body = unit.body();
 		BlockPos start = BlockPos.containing(point);
 		// a big body needs a wider search to find room for itself (a stalker is 4.4 wide, a colossus 7)
@@ -444,7 +453,7 @@ public final class Abilities {
 	}
 
 	/** Moves the unit (or its pilot's body) to a point at once. */
-	static void teleport(StarUnit unit, Vec3 at) {
+	public static void teleport(StarUnit unit, Vec3 at) {
 		Entity body = unit.body();
 		body.teleportTo(at.x, at.y, at.z);
 		body.setDeltaMovement(Vec3.ZERO);

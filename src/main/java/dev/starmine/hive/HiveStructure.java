@@ -177,6 +177,7 @@ public final class HiveStructure {
 	 */
 	public static int ground(ServerLevel level, int x, int z) {
 		level.getChunk(x >> 4, z >> 4);
+		if (level.dimensionType().hasCeiling()) return caveFloor(level, x, z); // owner 17.10: the Nether: under its roof
 		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
 		while (y > level.getMinBuildHeight() + 1) {
 			BlockState below = level.getBlockState(new BlockPos(x, y - 1, z));
@@ -184,6 +185,27 @@ public final class HiveStructure {
 			else break;
 		}
 		return y;
+	}
+
+	/**
+	 * A dimension with a roof (the Nether): the highest floor under it with room over it — a free cell with 4 free ones
+	 * above, over a solid block that is not lava — searched down from the middle of its height; its sea level if none.
+	 */
+	public static int caveFloor(ServerLevel level, int x, int z) {
+		int top = Math.min(level.getMinBuildHeight() + level.dimensionType().logicalHeight() - 8, 110);
+		BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos(x, top, z);
+		int free = 0;
+		for (int y = top; y > level.getMinBuildHeight() + 4; y--) {
+			at.setY(y);
+			BlockState state = level.getBlockState(at);
+			if (state.isAir()) {
+				free++;
+				continue;
+			}
+			if (free >= 5 && state.getFluidState().isEmpty() && state.isCollisionShapeFullBlock(level, at)) return y + 1;
+			free = 0;
+		}
+		return level.getSeaLevel() + 1;
 	}
 
 	/** Builds a hive at `site` (its hatchery's ground cell). The hive is added to the world's hives. */
@@ -301,7 +323,8 @@ public final class HiveStructure {
 		}
 
 		private void wait(UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount) {
-			data.pending.add(new Pending(hive.id, kind, pos.immutable(), hall == null ? null : hall.immutable(), brood, broodCount));
+			data.pending.add(new Pending(hive.id, kind, pos.immutable(), hall == null ? null : hall.immutable(), brood, broodCount,
+				level.dimension() == net.minecraft.world.level.Level.OVERWORLD ? null : level.dimension().location().toString())); // a nether or End lair's own
 		}
 
 		private void flatten(BlockPos feet, int half, int height) {

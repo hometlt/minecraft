@@ -1,0 +1,16 @@
+{
+	"name": "Heroes of the Nether",
+	"icon": "starmine:zagara_spawn_egg",
+	"category": "starmine:endgame",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The Nether has its races too: three bases carved into its caves near the place under your spawn — $(l)Zagara$()'s lair, $(l)Tosh$()'s base and $(l)Zeratul$()'s — and, far rarer than above, mineral halls with their geysers. Tosh and Zeratul cloak in turns (a detector sees them always); Zagara throws banelings, calls hydralisks and digs under the ground to come up behind you."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Beaten, each is freed with its base, like the overworld's heroes, and gives the Nether's part of the artifact's key of its race. In the fight against Amun they bring more troops: ghosts, dark templar, banelings and hydralisks."
+		}
+	]
+}
