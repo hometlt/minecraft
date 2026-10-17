@@ -25,7 +25,7 @@ import net.minecraft.world.phys.Vec3;
  * ({@link dev.starmine.race.Research}). Only with a command panel ({@link CommandPanel}).
  */
 public final class Commands {
-	/** How far from its player a unit takes orders (the command view sees as far as the chunks around the player). */
+	/** How far from its player, or from where its command view looks ({@link CommanderEye}), a unit takes orders. */
 	public static final double COMMAND_RANGE = 192;
 
 	private Commands() {
@@ -39,7 +39,7 @@ public final class Commands {
 		List<StarUnit> units = new ArrayList<>();
 		for (int id : command.ids())
 			if (level.getEntity(id) instanceof StarUnit unit && base.id.equals(unit.hiveId()) && unit.isAlive()
-				&& unit.distanceTo(player) < COMMAND_RANGE) units.add(unit);
+				&& CommanderEye.near(player, unit.position(), COMMAND_RANGE)) units.add(unit);
 		Vec3 at = new Vec3(command.x(), command.y(), command.z());
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
 		List<StarUnit> buildings = units.stream().filter(unit -> unit.kind.structure()).toList();

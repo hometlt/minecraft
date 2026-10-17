@@ -12,6 +12,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "WASD moves, the wheel lifts, Q and E turn. Left click selects, right click orders. Ctrl+digit makes a group, F2 selects the army. The card uses SC2 hotkeys: M move, S stop, H hold, P patrol, A attack; workers build with B and V, then a left click puts the building, Esc or a right click cancels."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The camera goes anywhere — keys, screen edges, a click on the minimap — however far you stand: the world round it is loaded for you. A cyan arrow on the minimap is you, pointing where you look.$(br2)$(l)F4$() or the ☺ button selects YOU as a hero: you carry out move, stop, hold, patrol and attack orders yourself, striking with what is in your right hand. The card then shows your hotbar: click an item to take it in hand, again to use it. The command panel used on one of your units takes control of it."
 		}
 	]
 }

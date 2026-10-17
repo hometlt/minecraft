@@ -27,6 +27,6 @@ abstract class ParticleReachMixin {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;sendParticles(Lnet/minecraft/server/level/ServerPlayer;ZDDDLnet/minecraft/network/protocol/Packet;)Z"),
 		index = 1)
 	private boolean starmine$sentFarther(ServerPlayer player, boolean longDistance, double x, double y, double z, Packet<?> packet) {
-		return longDistance || player.distanceToSqr(x, y, z) < REACH * REACH;
+		return longDistance || dev.starmine.colony.CommanderEye.near(player, new net.minecraft.world.phys.Vec3(x, y, z), REACH);
 	}
 }

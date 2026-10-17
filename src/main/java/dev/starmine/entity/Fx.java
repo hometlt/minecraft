@@ -64,7 +64,7 @@ public final class Fx {
 		Beam beam = new Beam(style.ordinal(), from, to, color, ticks, width);
 		Vec3 middle = from.lerp(to, 0.5);
 		for (ServerPlayer player : level.players())
-			if (player.distanceToSqr(middle) < REACH * REACH && ServerPlayNetworking.canSend(player, Beam.TYPE)) ServerPlayNetworking.send(player, beam);
+			if (dev.starmine.colony.CommanderEye.near(player, middle, REACH) && ServerPlayNetworking.canSend(player, Beam.TYPE)) ServerPlayNetworking.send(player, beam);
 	}
 
 	/** The beam a hitscan weapon of this kind fires (its style, colour, ticks, width). */

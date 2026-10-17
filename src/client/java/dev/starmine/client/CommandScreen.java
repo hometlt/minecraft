@@ -51,7 +51,11 @@ public final class CommandScreen extends Screen {
 	private static final int CELL = 34, GAP = 2;
 	private enum Page { MAIN, BUILD, ADVANCED }
 
-	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon) {
+	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon,
+			ItemStack item) {
+		Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon) {
+			this(slot, label, key, kind, enabled, tooltip, action, icon, ItemStack.EMPTY);
+		}
 	}
 
 	/** Size of the exported icon PNGs (`export-starmine-icons.mjs --size`). */
@@ -133,7 +137,10 @@ public final class CommandScreen extends Screen {
 			graphics.fill(at[0], at[1], at[0] + CELL, at[1] + CELL, button.enabled ? (over ? 0xE0305080 : 0xD0203048) : 0xC0303030);
 			graphics.renderOutline(at[0], at[1], CELL, CELL, button.enabled ? 0xFF6080B0 : 0xFF505050);
 			ResourceLocation icon = icon(button.icon);
-			if (button.kind != null) graphics.renderItem(new ItemStack(StarMine.egg(button.kind)), at[0] + 9, at[1] + 5);
+			if (!button.item.isEmpty()) { // the hero's hotbar: the item, its count, its slot number
+				graphics.renderItem(button.item, at[0] + 9, at[1] + 5);
+				graphics.renderItemDecorations(font, button.item, at[0] + 9, at[1] + 5);
+			} else if (button.kind != null) graphics.renderItem(new ItemStack(StarMine.egg(button.kind)), at[0] + 9, at[1] + 5);
 			else if (icon != null) {
 				// SC2 icons rely on alpha (command glyphs are white with fully transparent white around them);
 				// GuiGraphics.blit does not blend by itself, which drew them as solid white silhouettes
@@ -147,6 +154,9 @@ public final class CommandScreen extends Screen {
 				graphics.drawCenteredString(font, text.length() > 6 ? text.substring(0, 6) : text, at[0] + CELL / 2, at[1] + 13, button.enabled ? 0xFFFFFFFF : 0xFF909090);
 			}
 			if (button.key > 0) graphics.drawString(font, keyName(button.key), at[0] + 2, at[1] + CELL - 9, 0xFFFFD040);
+			if (button.item != ItemStack.EMPTY && Minecraft.getInstance().player != null
+				&& Minecraft.getInstance().player.getInventory().selected == button.slot - 5) // the right hand
+				graphics.renderOutline(at[0] + 1, at[1] + 1, CELL - 2, CELL - 2, 0xFFFFFFFF);
 		}
 		for (int slot = 0; slot < 15; slot++) {
 			final int s = slot;
@@ -190,11 +200,12 @@ public final class CommandScreen extends Screen {
 
 	// ---- army: hidden units, groups, the whole army ----
 
-	private static final int GROUP_SIZE = 28, ARMY_GROUP = -1;
+	private static final int GROUP_SIZE = 28, ARMY_GROUP = -1, HERO_GROUP = -2;
 
 	/** Top left of a group's box (1..9) on the bottom left, or of the army button (ARMY_GROUP) above them. */
 	private int[] groupBox(int group) {
 		if (group == ARMY_GROUP) return new int[] {CommandMinimap.left(), CommandMinimap.top(height) - GROUP_SIZE};
+		if (group == HERO_GROUP) return new int[] {CommandMinimap.left() + 3 * GROUP_SIZE + 4, CommandMinimap.top(height) - GROUP_SIZE};
 		int panelTop = height - 3 * (CELL + GAP) - 4;
 		return new int[] {width / 2 - 140 + (group - 1) * (GROUP_SIZE + 2), panelTop - GROUP_SIZE - 2};
 	}
@@ -203,6 +214,8 @@ public final class CommandScreen extends Screen {
 	private int groupAt(double x, double y) {
 		int[] army = groupBox(ARMY_GROUP);
 		if (x >= army[0] && x < army[0] + 3 * GROUP_SIZE && y >= army[1] && y < army[1] + GROUP_SIZE - 4) return ARMY_GROUP;
+		int[] hero = groupBox(HERO_GROUP);
+		if (x >= hero[0] && x < hero[0] + 3 * GROUP_SIZE && y >= hero[1] && y < hero[1] + GROUP_SIZE - 4) return HERO_GROUP;
 		for (int group = 1; group <= 9; group++) {
 			if (!GROUPS.containsKey(group)) continue;
 			int[] at = groupBox(group);
@@ -222,6 +235,7 @@ public final class CommandScreen extends Screen {
 	}
 
 	private void selectArmy() {
+		CommandView.hero = false;
 		CommandView.selection.clear();
 		for (StarUnit unit : army()) CommandView.selection.add(unit.getId());
 		page = Page.MAIN;
@@ -246,6 +260,14 @@ public final class CommandScreen extends Screen {
 		graphics.renderOutline(army[0], army[1], 3 * GROUP_SIZE, GROUP_SIZE - 4, 0xFF6080B0);
 		graphics.drawString(font, Component.translatable("command.starmine.army", armySize), army[0] + 4, army[1] + 4, 0xFFFFFFFF);
 		graphics.drawString(font, "F2", army[0] + 3 * GROUP_SIZE - 14, army[1] + 14, 0xFFFFD040);
+		// owner 17.10: the player as a hero (HeroPilot)
+		int[] hero = groupBox(HERO_GROUP);
+		boolean overHero = groupAt(mouseX, mouseY) == HERO_GROUP;
+		graphics.fill(hero[0], hero[1], hero[0] + 3 * GROUP_SIZE, hero[1] + GROUP_SIZE - 4,
+			CommandView.heroSelected() ? 0xE0206060 : overHero ? 0xE0305080 : 0xC0203048);
+		graphics.renderOutline(hero[0], hero[1], 3 * GROUP_SIZE, GROUP_SIZE - 4, CommandView.heroSelected() ? 0xFF40E0FF : 0xFF6080B0);
+		graphics.drawString(font, Component.translatable("command.starmine.hero"), hero[0] + 4, hero[1] + 4, 0xFF80F0FF);
+		graphics.drawString(font, "F4", hero[0] + 3 * GROUP_SIZE - 14, hero[1] + 14, 0xFFFFD040);
 		for (int group = 1; group <= 9; group++) {
 			if (!GROUPS.containsKey(group)) continue;
 			List<StarUnit> units = members(group);
@@ -373,6 +395,7 @@ public final class CommandScreen extends Screen {
 	 */
 	private List<Button> buttons() {
 		List<Button> buttons = new ArrayList<>();
+		if (CommandView.heroSelected()) return heroButtons();
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
 		if (own.isEmpty()) return buttons;
 		UnitKind.Race race = own.get(0).kind.race;
@@ -435,6 +458,33 @@ public final class CommandScreen extends Screen {
 		if (producer.structure())
 			buttons.add(new Button(14, Component.translatable("command.starmine.cancel"), 'X', null, true,
 				List.of(Component.translatable("command.starmine.cancel")), () -> CommandView.send("cancel", Vec3.ZERO, -1, null), Sc2Buttons.command("cancel", race)));
+		return buttons;
+	}
+
+	/**
+	 * The hero's card (owner 17.10): the five commands of every unit on the top row, then the player's hotbar instead
+	 * of abilities — a click puts the item in the right hand (the hero's weapon), a second click uses it.
+	 */
+	private List<Button> heroButtons() {
+		List<Button> buttons = new ArrayList<>();
+		UnitKind.Race race = UnitKind.Race.TERRAN;
+		buttons.add(simple(0, "move", race, 'M', () -> targeting = "move"));
+		buttons.add(simple(1, "stop", race, 'S', HeroPilot::stop));
+		buttons.add(simple(2, "hold", race, 'H', HeroPilot::hold));
+		buttons.add(simple(3, "patrol", race, 'P', () -> targeting = "patrol"));
+		buttons.add(simple(4, "attack", race, 'A', () -> targeting = "attack"));
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null) return buttons;
+		for (int i = 0; i < 9; i++) {
+			int slot = i;
+			ItemStack stack = mc.player.getInventory().getItem(i);
+			List<Component> tooltip = new ArrayList<>();
+			tooltip.add(stack.isEmpty() ? Component.translatable("command.starmine.empty_hand") : stack.getHoverName());
+			tooltip.add(Component.translatable(mc.player.getInventory().selected == i ? "command.starmine.hand_use" : "command.starmine.hand_take")
+				.withColor(0xFFC0C0C0));
+			buttons.add(new Button(5 + i, stack.isEmpty() ? Component.literal(String.valueOf(i + 1)) : stack.getHoverName(), 0, null, true, tooltip, () -> HeroPilot.hand(slot), null,
+				stack.isEmpty() ? new ItemStack(net.minecraft.world.item.Items.AIR) : stack));
+		}
 		return buttons;
 	}
 
@@ -547,8 +597,9 @@ public final class CommandScreen extends Screen {
 					targeting = null;
 				} else if (page != Page.MAIN) {
 					page = Page.MAIN;
-				} else if (!CommandView.selection.isEmpty()) {
+				} else if (!CommandView.selection.isEmpty() || CommandView.hero) {
 					CommandView.selection.clear();
+					CommandView.hero = false;
 				} else {
 					onClose();
 				}
@@ -559,6 +610,12 @@ public final class CommandScreen extends Screen {
 		}
 		if (key == GLFW.GLFW_KEY_F2) {
 			selectArmy();
+			return true;
+		}
+		if (key == GLFW.GLFW_KEY_F4) {
+			if (CommandView.heroSelected() && Minecraft.getInstance().player != null)
+				CommandView.lookAt(Minecraft.getInstance().player.getX(), Minecraft.getInstance().player.getZ());
+			CommandView.selectHero();
 			return true;
 		}
 		if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_9) {
@@ -662,7 +719,14 @@ public final class CommandScreen extends Screen {
 				selectArmy();
 				return true;
 			}
+			if (group == HERO_GROUP) {
+				if (CommandView.heroSelected() && Minecraft.getInstance().player != null) // twice: the view goes to them
+					CommandView.lookAt(Minecraft.getInstance().player.getX(), Minecraft.getInstance().player.getZ());
+				CommandView.selectHero();
+				return true;
+			}
 			if (group > 0) {
+				CommandView.hero = false;
 				CommandView.selection.clear();
 				for (StarUnit unit : members(group)) CommandView.selection.add(unit.getId());
 				page = Page.MAIN;
@@ -702,7 +766,8 @@ public final class CommandScreen extends Screen {
 				if (mc.level != null) {
 					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
 					boolean buildings = CommandView.selected().stream().filter(CommandView::own).allMatch(u -> u.kind.structure());
-					CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
+					if (CommandView.heroSelected()) HeroPilot.move(new Vec3(at.x, y, at.z));
+					else CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
 				}
 				return true;
 			}
@@ -730,9 +795,17 @@ public final class CommandScreen extends Screen {
 		boolean twice = now - lastClick < 300;
 		lastClick = now;
 		if (unit == null) {
-			if (!hasShiftDown()) CommandView.selection.clear();
+			if (CommandView.heroAt(mouseX, mouseY, width, height)) { // the player's own body: the hero
+				CommandView.selectHero();
+				return;
+			}
+			if (!hasShiftDown()) {
+				CommandView.selection.clear();
+				CommandView.hero = false;
+			}
 			return;
 		}
+		CommandView.hero = false;
 		if (twice && CommandView.own(unit)) { // every own unit of that kind on the screen
 			if (!hasShiftDown()) CommandView.selection.clear();
 			for (StarUnit other : onScreen(0, 0, width, height)) if (other.kind == unit.kind) CommandView.selection.add(other.getId());
@@ -753,6 +826,7 @@ public final class CommandScreen extends Screen {
 		if (units.isEmpty()) units = inside;
 		if (!hasShiftDown()) CommandView.selection.clear();
 		for (StarUnit unit : units) CommandView.selection.add(unit.getId());
+		if (!units.isEmpty()) CommandView.hero = false;
 		page = Page.MAIN;
 	}
 
@@ -771,6 +845,10 @@ public final class CommandScreen extends Screen {
 
 	/** A targeted command at the clicked point or unit. */
 	private void target(String action, double mouseX, double mouseY) {
+		if (CommandView.heroSelected()) {
+			heroTarget(action, mouseX, mouseY, false);
+			return;
+		}
 		StarUnit unit = CommandView.unit(mouseX, mouseY, width, height);
 		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
 		Vec3 at = unit != null ? unit.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;
@@ -793,6 +871,10 @@ public final class CommandScreen extends Screen {
 	 * outlet or at an own refinery, return cargo at an own command center, otherwise move there.
 	 */
 	private void smart(double mouseX, double mouseY) {
+		if (CommandView.heroSelected()) {
+			heroTarget("move", mouseX, mouseY, true);
+			return;
+		}
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
 		if (own.isEmpty()) return;
 		StarUnit unit = CommandView.unit(mouseX, mouseY, width, height);
@@ -814,6 +896,29 @@ public final class CommandScreen extends Screen {
 			CommandView.send("gather", Vec3.atCenterOf(block.getBlockPos()), -1, null);
 		} else {
 			CommandView.send("move", at, -1, null);
+		}
+	}
+
+	/**
+	 * An order to the hero: at a creature (not one of the player's own units) an attack — any creature with the
+	 * attack command, a foe with a right click —, else a move, attack-move or patrol to the point.
+	 */
+	private void heroTarget(String action, double mouseX, double mouseY, boolean smart) {
+		net.minecraft.world.entity.LivingEntity creature = CommandView.creature(mouseX, mouseY, width, height);
+		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
+		boolean own = creature instanceof StarUnit unit && CommandView.own(unit);
+		boolean foe = creature != null && !own && (creature instanceof net.minecraft.world.entity.monster.Enemy
+			|| creature instanceof StarUnit unit && Minecraft.getInstance().player != null && dev.starmine.faction.Faction.hostile(unit, Minecraft.getInstance().player));
+		if (creature != null && !own && (action.equals("attack") || smart && foe)) {
+			HeroPilot.attack(creature);
+			return;
+		}
+		Vec3 at = creature != null ? creature.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;
+		if (at == null) return;
+		switch (action) {
+			case "attack" -> HeroPilot.attackMove(at);
+			case "patrol" -> HeroPilot.patrol(at);
+			default -> HeroPilot.move(at);
 		}
 	}
 

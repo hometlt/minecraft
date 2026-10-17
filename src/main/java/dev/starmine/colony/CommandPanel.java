@@ -39,6 +39,18 @@ public final class CommandPanel extends Item {
 		return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
 	}
 
+	/**
+	 * Owner 17.10: the command panel used on one of the player's own units puts them in control of it, as the
+	 * command view's take-control button does ({@link dev.starmine.possess.Possession}).
+	 */
+	@Override
+	public net.minecraft.world.InteractionResult interactLivingEntity(ItemStack stack, Player player, net.minecraft.world.entity.LivingEntity target,
+			InteractionHand hand) {
+		if (!(target instanceof dev.starmine.entity.StarUnit unit) || !player.getUUID().equals(unit.owner().orElse(null))) return net.minecraft.world.InteractionResult.PASS;
+		if (player instanceof net.minecraft.server.level.ServerPlayer server) dev.starmine.possess.Possession.start(server, unit);
+		return net.minecraft.world.InteractionResult.sidedSuccess(player.level().isClientSide);
+	}
+
 	@Override
 	public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
 		lines.add(Component.translatable("item.starmine.command_panel.tooltip"));

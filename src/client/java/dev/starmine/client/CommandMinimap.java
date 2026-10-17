@@ -81,6 +81,7 @@ final class CommandMinimap {
 			graphics.fill(at[0] - r, at[1] - r, at[0] + r + 1, at[1] + r + 1, colour);
 		}
 		Orders.minimap(graphics, (x, z) -> screen(x, z, height));
+		player(graphics, mc, height);
 		marks(graphics, height);
 		// the camera's view: the screen corners on the ground
 		int[][] corners = new int[4][];
@@ -95,6 +96,31 @@ final class CommandMinimap {
 		for (int i = 0; i < 4; i++) line(graphics, corners[i], corners[(i + 1) % 4], 0xFFFFFFFF);
 		graphics.disableScissor();
 		graphics.renderOutline(x0 - 2, y0 - 2, SIZE + 4, SIZE + 4, 0xFF6080B0);
+	}
+
+	/**
+	 * The player (owner 17.10): a cyan arrow where their body stands, pointing where they look; on the edge, toward
+	 * them, when the view is far away.
+	 */
+	private static void player(GuiGraphics graphics, Minecraft mc, int height) {
+		if (mc.player == null) return;
+		int x0 = left(), y0 = top(height);
+		int[] at = screen(mc.player.getX(), mc.player.getZ(), height);
+		boolean inside = at[0] >= x0 + 3 && at[1] >= y0 + 3 && at[0] < x0 + SIZE - 3 && at[1] < y0 + SIZE - 3;
+		if (!inside) { // on the edge toward them
+			double angle = Math.atan2(at[1] - (y0 + SIZE / 2.0), at[0] - (x0 + SIZE / 2.0)), r = SIZE / 2.0 - 4;
+			at = new int[] {(int) (x0 + SIZE / 2.0 + Math.cos(angle) * r), (int) (y0 + SIZE / 2.0 + Math.sin(angle) * r)};
+		}
+		double yaw = Math.toRadians(mc.player.getYRot()), fx = -Math.sin(yaw), fz = Math.cos(yaw); // where they look, on the map
+		int colour = CommandView.heroSelected() ? 0xFFFFFFFF : 0xFF40E0FF;
+		for (int k = 0; k <= 6; k++) { // an arrowhead: rows across the look, narrowing to the tip
+			double back = k - 3, half = k * 0.55;
+			double cx = at[0] - fx * back, cy = at[1] - fz * back;
+			line(graphics, new int[] {(int) Math.round(cx - fz * half), (int) Math.round(cy + fx * half)},
+				new int[] {(int) Math.round(cx + fz * half), (int) Math.round(cy - fx * half)}, colour);
+		}
+		graphics.fill(at[0], at[1], at[0] + 1, at[1] + 1, 0xFF000000);
+		if (!inside) graphics.drawString(mc.font, "☺", at[0] + 3, at[1] - 4, colour);
 	}
 
 	/** A thin line of dots (GUI fills) between two points. */

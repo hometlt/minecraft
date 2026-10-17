@@ -38,6 +38,8 @@ import org.joml.Vector3f;
 /**
  * The terran command view (owner 14.10): the player looks down on their base like a spectator and
  * commands it as in StarCraft II — {@link CommandScreen} is the interface, this class the view.
+ * Owner 17.10: the camera goes anywhere — the minimap, the keys and the edges move it however far from the player;
+ * the server then loads and sends the world round the camera ({@link dev.starmine.colony.CommanderEye}).
  *
  * - Camera: a client-only marker entity the game renders from (the player's body stays where it is,
  *   so chunks around it stay loaded); it looks down at {@link #PITCH} from its own height, as in Reign of
@@ -46,7 +48,7 @@ import org.joml.Vector3f;
  *   player's (CLOUD_TASK_2): anywhere from the bottom of the world to its top, the wheel and PageUp/PageDown
  *   change it smoothly ({@link #climb}); nothing picks it by itself. (It used to stand over the client's
  *   MOTION_BLOCKING_NO_LEAVES height, which the server does not send: the client read the bottom of the
- *   world, and the view went down into the caves.) It stays within {@link #REACH} of the player.
+ *   world, and the view went down into the caves.)
  * - Fog of war: only what the base's units and buildings and the player's body see is shown
  *   ({@link #visible}: within sight and not behind blocks); other entities are not drawn
  *   ({@link dev.starmine.mixin.client.HideInFogMixin}), blocks never seen are not drawn ({@link BlockFog}),
@@ -58,7 +60,7 @@ import org.joml.Vector3f;
  *   good ({@link HiveTerrain#prepare} check, no building in the way), red when not.
  */
 public final class CommandView {
-	public static final double PITCH = 60, REACH = 120, PLAYER_SIGHT = 24;
+	public static final double PITCH = 60, PLAYER_SIGHT = 24;
 	/** The yaw the view opens with: north, up on the minimap (owner 16.10, as in SC2); Q/E turn it by quarters. */
 	static final double NORTH = 180;
 	/** The yaw the view turns to (north plus quarters). */
@@ -72,6 +74,8 @@ public final class CommandView {
 	static double height, targetHeight;
 	static double panX, panZ, turn, climbing;
 	static final Set<Integer> selection = new LinkedHashSet<>();
+	/** The player's own body is selected as a hero (owner 17.10; {@link HeroPilot}); then no unit is. */
+	static boolean hero;
 	/** A building being placed (its ghost follows the cursor), and the ghost's current site. */
 	static UnitKind placing;
 	static BlockPos ghostSite;
@@ -85,6 +89,46 @@ public final class CommandView {
 
 	public static boolean active() {
 		return active;
+	}
+
+	static boolean heroSelected() {
+		return hero && selection.isEmpty();
+	}
+
+	/** Selects the player as the hero (the hero button, F4, a click on their body). */
+	static void selectHero() {
+		selection.clear();
+		hero = true;
+	}
+
+	/** Whether the player's body is under a screen point. */
+	static boolean heroAt(double mouseX, double mouseY, int width, int height) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player == null) return false;
+		Vec3[] ray = ray(mouseX, mouseY, width, height);
+		return mc.player.getBoundingBox().inflate(0.4).clip(ray[0], ray[0].add(ray[1].scale(300))).isPresent();
+	}
+
+	/** Any living creature under a screen point (a hero attacks any of them), the player's body aside. */
+	static @org.jetbrains.annotations.Nullable net.minecraft.world.entity.LivingEntity creature(double mouseX, double mouseY, int width, int height) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return null;
+		Vec3[] ray = ray(mouseX, mouseY, width, height);
+		Vec3 end = ray[0].add(ray[1].scale(300));
+		net.minecraft.world.entity.LivingEntity best = null;
+		double bestDistance = Double.MAX_VALUE;
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (!(entity instanceof net.minecraft.world.entity.LivingEntity living) || entity == mc.player || !living.isAlive()
+				|| entity instanceof StarUnit unit && !visible(unit)) continue;
+			var clip = living.getBoundingBox().inflate(0.3).clip(ray[0], end);
+			if (clip.isEmpty()) continue;
+			double d = clip.get().distanceToSqr(ray[0]);
+			if (d < bestDistance) {
+				bestDistance = d;
+				best = living;
+			}
+		}
+		return best;
 	}
 
 	/** The command key: the view opens only while the player carries a command panel (owner 14.10). */
@@ -118,6 +162,7 @@ public final class CommandView {
 		active = true;
 		BlockFog.start(mc);
 		mc.setScreen(new CommandScreen());
+		tellEye(true);
 	}
 
 	static void exit(Minecraft mc) {
@@ -127,6 +172,9 @@ public final class CommandView {
 		ghostSite = null;
 		BlockFog.stop(mc);
 		LOOKS.clear();
+		eyeX = Double.NaN;
+		if (ClientPlayNetworking.canSend(dev.starmine.colony.CommanderEye.Look.TYPE))
+			ClientPlayNetworking.send(new dev.starmine.colony.CommanderEye.Look(false, 0, 0, 0));
 		if (mc.player != null) mc.setCameraEntity(mc.player);
 		if (savedCameraType != null) mc.options.setCameraType(savedCameraType);
 		mc.options.hideGui = savedHideGui;
@@ -151,15 +199,29 @@ public final class CommandView {
 		targetX += (-sin * forward - cos * right) * step;
 		targetZ += (cos * forward - sin * right) * step;
 		yaw += Mth.clamp(targetYaw - yaw, -6, 6); // eases to the next quarter
-		double dx = targetX - mc.player.getX(), dz = targetZ - mc.player.getZ(), far = Math.sqrt(dx * dx + dz * dz);
-		if (far > REACH) {
-			targetX = mc.player.getX() + dx / far * REACH;
-			targetZ = mc.player.getZ() + dz / far * REACH;
-		}
+		// owner 17.10: anywhere on the map, wherever the player stands — the server loads and sends the world round the eye
+		var border = mc.level.getWorldBorder();
+		targetX = Mth.clamp(targetX, border.getMinX(), border.getMaxX());
+		targetZ = Mth.clamp(targetZ, border.getMinZ(), border.getMaxZ());
+		tellEye(false);
 		groundY = Mth.lerp(0.25, groundY, ground(mc.level, targetX, targetZ));
 		placeCamera(false);
 		updateSights(mc);
 		BlockFog.tick(mc);
+	}
+
+	private static double eyeX = Double.NaN, eyeZ;
+	private static int eyeAge;
+
+	/** Tells the server where the view looks ({@link dev.starmine.colony.CommanderEye}) when it has moved a few blocks, or now. */
+	private static void tellEye(boolean now) {
+		if (!ClientPlayNetworking.canSend(dev.starmine.colony.CommanderEye.Look.TYPE)) return;
+		eyeAge++;
+		if (!now && !Double.isNaN(eyeX) && Math.abs(targetX - eyeX) + Math.abs(targetZ - eyeZ) < 6 && eyeAge < 100) return;
+		eyeX = targetX;
+		eyeZ = targetZ;
+		eyeAge = 0;
+		ClientPlayNetworking.send(new dev.starmine.colony.CommanderEye.Look(true, targetX, groundY, targetZ));
 	}
 
 	/** Raises (or with a negative number lowers) the camera, between the bottom and the top of the world. */
@@ -395,6 +457,7 @@ public final class CommandView {
 		drawFog(mc.level, pose, buffers.getBuffer(RenderType.debugQuads()));
 		VertexConsumer lines = buffers.getBuffer(RenderType.lines());
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
+		if (heroSelected() && mc.player != null) ring(pose, lines, mc.player, 0xFF40E0FF);
 		Orders.render(pose, lines, context.tickCounter().getGameTimeDeltaPartialTick(false));
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
 		if (placing != null && ghostSite != null) drawGhost(pose, buffers, placing, ghostSite, ghostValid ? GHOST_GOOD : GHOST_BAD);
@@ -461,8 +524,8 @@ public final class CommandView {
 			}
 	}
 
-	private static void ring(PoseStack pose, VertexConsumer lines, StarUnit unit, int color) {
-		double r = unit.kind.width / 2 + 0.3;
+	private static void ring(PoseStack pose, VertexConsumer lines, Entity unit, int color) {
+		double r = unit.getBbWidth() / 2 + 0.3;
 		double y = unit.getY() + 0.06;
 		PoseStack.Pose last = pose.last();
 		int segments = 24;

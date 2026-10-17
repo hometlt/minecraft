@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "dev.starmine.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": ["MobAccessor", "OverseerSightMixin", "VillagerZergFearMixin", "GolemTerranPeaceMixin", "PilotDimensionsMixin", "SpawnGuardMixin", "ParticleReachMixin"],
+	"mixins": ["MobAccessor", "OverseerSightMixin", "VillagerZergFearMixin", "GolemTerranPeaceMixin", "PilotDimensionsMixin", "SpawnGuardMixin", "ParticleReachMixin", "CommanderEyeMixin", "CommanderEyeTrackingMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	}

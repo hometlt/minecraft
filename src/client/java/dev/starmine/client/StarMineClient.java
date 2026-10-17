@@ -36,6 +36,7 @@ public final class StarMineClient implements ClientModInitializer {
 			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enterWithPanel(mc);
 			PilotClient.tick(mc);
 			CommandView.tick(mc);
+			HeroPilot.tick(mc);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, delta) -> {
 			PilotClient.drawHud(graphics);

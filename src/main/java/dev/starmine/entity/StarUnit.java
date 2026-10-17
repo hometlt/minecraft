@@ -267,6 +267,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Its player (a spawn egg's user, or its base's owner); none for a wild unit. */
 	public void setOwner(@org.jetbrains.annotations.Nullable UUID owner) {
 		this.entityData.set(OWNER, java.util.Optional.ofNullable(owner));
+		if (owner != null) this.setPersistenceRequired(); // a player's unit never despawns, however far the player goes
 	}
 
 	/** A unit from a player's spawn egg belongs to that player ({@link dev.starmine.StarSpawnEggItem}). */
