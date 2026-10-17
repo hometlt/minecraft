@@ -9,14 +9,14 @@ ModKit — `docs/SC2_EXPORT.md`. Прочитать до первой правк
 
 ## 1. Подхватить изменения и смержить
 
-- `main` мода — **4bf2d81** (в нём ветка `claude/gallant-ride-em1bhh` и наложение карт SC2 из `main`). Если у тебя
+- `main` мода — свежий, не раньше **4bf2d81** (в нём ветка `claude/gallant-ride-em1bhh` и наложение карт SC2 из `main`). Если у тебя
   своя ветка, влей в неё `main` merge-коммитом (без rebase и force-push); конфликты разрешать, сохраняя обе стороны.
   - `src/main/resources/fabric.mod.json`, список `fabric-gametest`: объединение классов обеих сторон.
   - Документация: оба раздела.
 - После слияния, по порядку:
   1. `gradlew compileJava compileClientJava`;
   2. `python3 tools/gen_sc2_models.py` (список моделей не должен измениться — иначе закоммитить новый);
-  3. `tools/run_gametests.sh` — light, затем heavy; на момент 4bf2d81 все 300 тестов зелёные.
+  3. `tools/run_gametests.sh` — light, затем heavy; на 4bf2d81 все 300 тестов были зелёные.
 - Что пришло в 17.10 (подробности — README, справочник `tools/gen_guide_book.py`, история коммитов):
   - Большой шпиль — превращение самого шпиля: `Modes.GREATER`, способность `GREATER_SPIRE`, вид выше. Без него нет
     владык стай.
