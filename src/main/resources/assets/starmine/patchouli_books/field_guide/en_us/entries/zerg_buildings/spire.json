@@ -14,6 +14,11 @@
 			"type": "patchouli:text",
 			"title": "Spire",
 			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 200 minerals, 200 vespene$(br)$(l)Build time$(): 71 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Greater Spire$(): The spire grows into a greater spire: corruptors may become brood lords (needs a hive)"
 		}
 	]
 }

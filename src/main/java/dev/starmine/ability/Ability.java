@@ -26,6 +26,7 @@ public enum Ability {
 	//                  id                     key  target          energy cooldown range channel delay
 	// ---- zerg ----
 	BURROW(             "burrow",              'R', Target.TOGGLE,  0,     0,       0,    0,      0),
+	GREATER_SPIRE(      "greater_spire",       'G', Target.NONE,    0,     0,       0,    0,      71), // owner 17.10: the spire grows into one
 	CORROSIVE_BILE(     "corrosive_bile",      'B', Target.POINT,   0,     7,       9,    0,      2.5),
 	CREEP_TUMOR(        "creep_tumor",         'C', Target.POINT,   25,    0,       3,    0,      0),
 	INJECT_LARVA(       "inject_larva",        'V', Target.UNIT,    25,    0,       1,    0,      0),
@@ -122,6 +123,8 @@ public enum Ability {
 		ORBITAL_COMMAND.minerals = 150;
 		PLANETARY_FORTRESS.minerals = 150;
 		PLANETARY_FORTRESS.vespene = 150;
+		GREATER_SPIRE.minerals = 100;
+		GREATER_SPIRE.vespene = 150;
 		BUILD_TECHLAB.minerals = 50;
 		BUILD_TECHLAB.vespene = 25;
 		BUILD_REACTOR.minerals = 50;
@@ -147,6 +150,7 @@ public enum Ability {
 	/** The kinds that have it. */
 	public List<UnitKind> users() {
 		return switch (this) {
+			case GREATER_SPIRE -> List.of(SPIRE);
 			case BURROW -> List.of(DRONE, ZERGLING, BANELING, ROACH, RAVAGER, HYDRALISK, LURKER, QUEEN, INFESTOR, SWARM_HOST, WIDOW_MINE);
 			case CORROSIVE_BILE -> List.of(RAVAGER);
 			case CREEP_TUMOR, INJECT_LARVA, TRANSFUSION -> List.of(QUEEN);

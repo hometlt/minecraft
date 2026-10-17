@@ -130,6 +130,10 @@ final class AbilityAi {
 				boolean fortress = unit.getUUID().getLeastSignificantBits() % 3 == 0; // one command center in three digs in
 				yield base != null && base.minerals >= 400 && fortress == (ability == Ability.PLANETARY_FORTRESS) && cast(unit, level, ability);
 			}
+			case GREATER_SPIRE -> { // the AI grows it once it has a hive and the resources
+				Hive base = Abilities.base(unit);
+				yield base != null && base.tier >= 3 && base.minerals >= 250 && base.vespene >= 250 && cast(unit, level, ability);
+			}
 			case MULE -> cast(unit, level, ability, unit.position().add(level.random.nextGaussian() * 6, 0, level.random.nextGaussian() * 6));
 			case SCANNER_SWEEP -> {
 				StarUnit hidden = cloakedFoe(unit, 32);

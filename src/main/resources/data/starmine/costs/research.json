@@ -75,6 +75,5 @@
 	"flux_vanes": {"minerals": 150, "vespene": 150},
 	"anion_pulse_crystals": {"minerals": 150, "vespene": 150},
 	"tectonic_destabilizers": {"minerals": 150, "vespene": 150},
-	"weapon_refit": {"minerals": 150, "vespene": 150},
-	"greater_spire": {"minerals": 150, "vespene": 150}
+	"weapon_refit": {"minerals": 150, "vespene": 150}
 }

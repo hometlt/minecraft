@@ -1,6 +1,7 @@
 {
 	"orbital_command": {"minerals": 150},
 	"planetary_fortress": {"minerals": 150, "vespene": 150},
+	"greater_spire": {"minerals": 100, "vespene": 150},
 	"techlab": {"minerals": 50, "vespene": 25},
 	"reactor": {"minerals": 50, "vespene": 50}
 }

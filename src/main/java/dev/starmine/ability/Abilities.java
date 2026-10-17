@@ -75,6 +75,7 @@ public final class Abilities {
 			case BLINK, SHADOW_STRIDE, CHARGE -> Status.has(unit, Status.ROOTED) ? "message.starmine.rooted" : null;
 			case ARCHON_WARP -> ProtossAbilities.partner(unit) == null ? "message.starmine.no_partner" : null;
 			case REPAIR, MULE -> base(unit) == null ? "message.starmine.no_base" : null;
+			case GREATER_SPIRE -> base(unit) != null && base(unit).tier < 3 ? "message.starmine.need_tech" : null; // SC2: a hive first
 			default -> null;
 		};
 	}
