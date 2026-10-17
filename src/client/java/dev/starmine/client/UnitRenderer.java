@@ -70,9 +70,10 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		SkinnedModel model = StarMineModels.get(shown(entity.kind).id);
 		float sink = 0f, fall = 0f, shake = 0f;
 		boolean visible = model != null;
-		if (model != null && entity.deathTime > 0 && !model.clips.containsKey("death")) {
+		boolean imported = model != null;
+		if (entity.deathTime > 0 && (model == null || !model.clips.containsKey("death"))) {
 			float dying = (entity.deathTime - 1 + partialTick) / 20f;
-			SkinnedModel burst = StarMineModels.get(shown(entity.kind).id + "_death");
+			SkinnedModel burst = model == null ? null : StarMineModels.get(shown(entity.kind).id + "_death");
 			if (burst != null) {
 				model = burst;
 				SkinnedModel.Clip clip = burst.clips.get("death");
@@ -121,10 +122,28 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
 			poseStack.popPose();
 		}
-		if (StarMineModels.get(shown(entity.kind).id) == null && entity.deathTime == 0) { // no imported model (the protoss gateway): its outline
-			double w = entity.getBbWidth() / 2, h = entity.getBbHeight();
-			net.minecraft.client.renderer.LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(net.minecraft.client.renderer.RenderType.lines()),
-				-w, 0, -w, w, h, w, 0.95f, 0.8f, 0.3f, 1f);
+		if (!imported) { // owner 17.10: no imported SC2 model — StarMine's own stand-in (FallbackModels), not an outline
+			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
+			poseStack.pushPose();
+			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
+			poseStack.mulPose(Axis.YP.rotationDegrees(-Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot)));
+			if (shake > 0f) poseStack.translate((Math.random() - 0.5) * shake, 0, (Math.random() - 0.5) * shake);
+			if (fall > 0f) {
+				float half = entity.kind.flying ? 0 : entity.kind.width / 2;
+				if (entity.kind.flying) poseStack.mulPose(Axis.XP.rotationDegrees(35f * fall));
+				else {
+					poseStack.translate(half, 0, 0);
+					poseStack.mulPose(Axis.ZP.rotationDegrees(-85f * fall * fall));
+					poseStack.translate(-half, 0, 0);
+				}
+			}
+			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
+			var player = net.minecraft.client.Minecraft.getInstance().player;
+			int alpha = 255;
+			if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed())
+				alpha = player != null && dev.starmine.faction.Faction.allied(entity, player) ? 0x70 : 0x14;
+			FallbackModels.draw(entity, partialTick, poseStack, buffers, packedLight, overlay, alpha);
+			poseStack.popPose();
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
 	}
