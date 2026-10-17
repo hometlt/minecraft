@@ -61,6 +61,7 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 		WorldGenLevel level = context.level();
 		RandomSource random = context.random();
 		int x = (context.origin().getX() & ~15) + 8, z = (context.origin().getZ() & ~15) + 8;
+		if (MapOverlay.covers(x, z)) return false; // a laid-over map has its own land
 		Kind kind = Kind.values()[random.nextInt(Kind.values().length)];
 		return build(level, random, kind, x, z) != null;
 	}

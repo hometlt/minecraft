@@ -61,6 +61,8 @@ import org.jetbrains.annotations.Nullable;
  * main building). Emptied, the crystal is gone. Under it and round it for 2 blocks lies mineralized earth
  * ({@link #EARTH}) that cannot be broken while the crystal stands; it turns to dirt when the crystal is gone.
  * No main building may stand within {@link #KEEP_OFF} blocks of a crystal (SC2: they stand off the field).
+ * A laid-over map's crystals are 3 x 3 x 3 (owner 17.10: one SC2 mineral field, one crystal; the
+ * core keeps its size), and the block over them is {@link #WARD}: nothing climbs over them.
  */
 public final class Minerals {
 	public static final int AMOUNT = 500, PER_TRIP = 5, KEEP_OFF = 16;
@@ -74,6 +76,14 @@ public final class Minerals {
 		new Crystal(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_BLUE).strength(-1f, 3_600_000f).noLootTable()
 			.sound(SoundType.AMETHYST).lightLevel(state -> 6).noOcclusion().pushReaction(PushReaction.BLOCK)
 			.isValidSpawn((state, level, pos, type) -> false)));
+	/**
+	 * The block over a map's crystal (owner 17.10: SC2's mineral walls hold units back, none climbs over
+	 * a crystal): unseen, a fence's height to walk into, a fence to a path finder. It goes with the
+	 * crystal ({@link #deplete}).
+	 */
+	public static final Block WARD = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("mineral_ward"),
+		new Ward(BlockBehaviour.Properties.of().mapColor(MapColor.NONE).strength(-1f, 3_600_000f).noLootTable().noOcclusion()
+			.pushReaction(PushReaction.BLOCK).isValidSpawn((state, level, pos, type) -> false)));
 	public static final Block EARTH = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("mineralized_earth"),
 		new Block(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(-1f, 3_600_000f).noLootTable().sound(SoundType.ROOTED_DIRT)
 			.pushReaction(PushReaction.BLOCK)));
@@ -145,11 +155,44 @@ public final class Minerals {
 		}
 	}
 
-	/** What is left in a crystal (synced to clients: the crystal shrinks as it empties). */
+	/** {@link #WARD}: collides as a fence, shows nothing, rays and the cursor pass through it. */
+	static final class Ward extends Block {
+		private static final net.minecraft.world.phys.shapes.VoxelShape FENCE = Block.box(0, 0, 0, 16, 24, 16);
+
+		Ward(Properties properties) {
+			super(properties);
+		}
+
+		@Override
+		protected RenderShape getRenderShape(BlockState state) {
+			return RenderShape.INVISIBLE;
+		}
+
+		@Override
+		protected net.minecraft.world.phys.shapes.VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos,
+			net.minecraft.world.phys.shapes.CollisionContext context) {
+			return net.minecraft.world.phys.shapes.Shapes.empty();
+		}
+
+		@Override
+		protected net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
+			net.minecraft.world.phys.shapes.CollisionContext context) {
+			return FENCE;
+		}
+
+		@Override
+		protected net.minecraft.world.phys.shapes.VoxelShape getVisualShape(BlockState state, BlockGetter level, BlockPos pos,
+			net.minecraft.world.phys.shapes.CollisionContext context) {
+			return net.minecraft.world.phys.shapes.Shapes.empty();
+		}
+	}
+
+	/** What is left in a crystal (synced to clients: the crystal shrinks as it empties), and its size (blocks across). */
 	public static final class Core extends BlockEntity {
 		int amount = AMOUNT;
 		/** Owner 17.10: a gold crystal of the Void — each trip's minerals are worth twice. */
 		boolean rich;
+		int size = 2;
 
 		public Core(BlockPos pos, BlockState state) {
 			super(CORE_ENTITY, pos, state);
@@ -169,6 +212,16 @@ public final class Minerals {
 			if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
 		}
 
+		public int size() {
+			return size;
+		}
+
+		public void setSize(int size) {
+			this.size = Math.clamp(size, 2, 3);
+			setChanged();
+			if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+		}
+
 		public void setAmount(int amount) {
 			this.amount = amount;
 			setChanged();
@@ -180,6 +233,7 @@ public final class Minerals {
 			super.saveAdditional(tag, registries);
 			tag.putInt("Amount", amount);
 			tag.putBoolean("Rich", rich);
+			tag.putInt("Size", size);
 		}
 
 		@Override
@@ -187,6 +241,7 @@ public final class Minerals {
 			super.loadAdditional(tag, registries);
 			amount = tag.contains("Amount") ? tag.getInt("Amount") : AMOUNT;
 			rich = tag.getBoolean("Rich");
+			size = tag.contains("Size") ? Math.clamp(tag.getInt("Size"), 2, 3) : 2;
 		}
 
 		@Override
@@ -221,11 +276,11 @@ public final class Minerals {
 		return state.is(CRYSTAL);
 	}
 
-	/** The core of the crystal a block belongs to (it is within one block below, west or north), or null. */
+	/** The core of the crystal a block belongs to (it is within two blocks below, west or north), or null. */
 	public static @Nullable BlockPos core(BlockGetter level, BlockPos pos) {
-		for (int dx = -1; dx <= 0; dx++)
-			for (int dy = -1; dy <= 0; dy++)
-				for (int dz = -1; dz <= 0; dz++) {
+		for (int dx = -2; dx <= 0; dx++)
+			for (int dy = -2; dy <= 0; dy++)
+				for (int dz = -2; dz <= 0; dz++) {
 					BlockPos at = pos.offset(dx, dy, dz);
 					BlockState state = level.getBlockState(at);
 					if (state.is(CRYSTAL) && state.getValue(CORE)) return at;
@@ -247,8 +302,11 @@ public final class Minerals {
 
 	/** An emptied crystal goes; the mineralized earth round it that no other crystal holds turns to dirt. */
 	static void deplete(ServerLevel level, BlockPos core) {
-		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(1, 1, 1)))
+		int last = level.getBlockEntity(core) instanceof Core entity ? entity.size - 1 : 1;
+		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(last, last, last)))
 			if (level.getBlockState(pos).is(CRYSTAL)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+		for (BlockPos pos : BlockPos.betweenClosed(core.offset(-5, -1, -5), core.offset(last + 5, 1, last + 5)))
+			if (level.getBlockState(pos).is(WARD) && !crystalWithin(level, pos, 4)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 		level.playSound(null, core, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.BLOCKS, 1.0f, 0.8f);
 		for (BlockPos pos : BlockPos.betweenClosed(core.offset(-3, -3, -3), core.offset(4, 2, 4))) {
 			if (!level.getBlockState(pos).is(EARTH) || crystalWithin(level, pos, 3)) continue;
@@ -284,15 +342,21 @@ public final class Minerals {
 	 * mineralized earth: under it and round it for 2 blocks, the top of the ground. `set` writes a block.
 	 */
 	public static boolean place(WorldGenLevel level, BlockPos core, Setter set) {
-		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(1, 1, 1))) {
+		return place(level, core, 2, set);
+	}
+
+	/** {@link #place(WorldGenLevel, BlockPos, Setter)} of a crystal `size` blocks across (2 or 3); its core's size is the caller's to set. */
+	public static boolean place(WorldGenLevel level, BlockPos core, int size, Setter set) {
+		int last = size - 1;
+		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(last, last, last))) {
 			BlockState there = level.getBlockState(pos);
 			if (!there.isAir() && !there.canBeReplaced() || !there.getFluidState().isEmpty()) return false;
 		}
 		// it stands on ground (owner 16.10: crystals hung over cliffs and caves): a gap of up to MAX_FILL
 		// under it is filled with mineralized earth, a deeper one refuses the place
 		List<BlockPos> fill = new ArrayList<>();
-		for (int dx = 0; dx <= 1; dx++)
-			for (int dz = 0; dz <= 1; dz++) {
+		for (int dx = 0; dx <= last; dx++)
+			for (int dz = 0; dz <= last; dz++) {
 				int depth = 0;
 				BlockPos at = core.offset(dx, -1, dz);
 				for (; depth <= MAX_FILL; depth++, at = at.below()) {
@@ -304,18 +368,18 @@ public final class Minerals {
 				if (depth > MAX_FILL) return false;
 			}
 		for (BlockPos at : fill) set.set(at, EARTH.defaultBlockState());
-		for (int dx = -2; dx <= 3; dx++)
-			for (int dz = -2; dz <= 3; dz++) {
-				if ((dx == -2 || dx == 3) && (dz == -2 || dz == 3)) continue; // round corners
+		for (int dx = -2; dx <= last + 2; dx++)
+			for (int dz = -2; dz <= last + 2; dz++) {
+				if ((dx == -2 || dx == last + 2) && (dz == -2 || dz == last + 2)) continue; // round corners
 				for (int dy = -1; dy >= -2; dy--) {
 					BlockPos at = core.offset(dx, dy, dz);
 					BlockState there = level.getBlockState(at);
-					boolean under = dx >= 0 && dx <= 1 && dz >= 0 && dz <= 1;
+					boolean under = dx >= 0 && dx <= last && dz >= 0 && dz <= last;
 					if (there.isAir() && dy == -1 || !there.getFluidState().isEmpty() || there.is(Blocks.BEDROCK)) continue;
 					if (dy == -1 || under) set.set(at, EARTH.defaultBlockState());
 				}
 			}
-		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(1, 1, 1))) set.set(pos.immutable(), CRYSTAL.defaultBlockState().setValue(CORE, pos.equals(core)));
+		for (BlockPos pos : BlockPos.betweenClosed(core, core.offset(last, last, last))) set.set(pos.immutable(), CRYSTAL.defaultBlockState().setValue(CORE, pos.equals(core)));
 		return true;
 	}
 
@@ -353,6 +417,7 @@ public final class Minerals {
 		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
 			WorldGenLevel level = context.level();
 			int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
+			if (dev.starmine.world.MapOverlay.covers(cx, cz)) return false; // a laid-over map has its own minerals
 			return field(level, context.random(), cx, cz, 22, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS)) > 0;
 		}
 	}

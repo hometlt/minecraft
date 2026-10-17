@@ -401,6 +401,7 @@ public final class CommandView {
 				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
 					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight(), unit.kind.detector()));
 		sights = list;
+		if (mc.level != null) VisionBlockers.refresh(mc.level);
 	}
 
 	/** How an entity was last found: seen, sensed by a detector only, or neither; and when (ticks). */
@@ -452,6 +453,7 @@ public final class CommandView {
 	private static boolean clear(Minecraft mc, Vec3 eye, Entity entity, Vec3 centre) {
 		Entity viewer = camera != null ? camera : mc.player;
 		for (Vec3 to : new Vec3[] {centre, entity.position().add(0, entity.getBbHeight() * 0.9, 0)}) {
+			if (VisionBlockers.hides(eye, to)) continue; // in or behind a sight blocker
 			BlockHitResult hit = mc.level.clip(new ClipContext(eye, to, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, viewer));
 			if (hit.getType() == HitResult.Type.MISS) return true;
 		}
@@ -461,7 +463,7 @@ public final class CommandView {
 	static boolean seen(double x, double z, double margin) {
 		for (Sight sight : sights) {
 			double dx = x - sight.x, dz = z - sight.z, r = sight.radius + margin;
-			if (dx * dx + dz * dz <= r * r) return true;
+			if (dx * dx + dz * dz <= r * r && !VisionBlockers.hides(sight.x, sight.z, x, z)) return true;
 		}
 		return false;
 	}
@@ -542,6 +544,7 @@ public final class CommandView {
 				for (int k = Math.max(0, sk - r - 1); k <= Math.min(n - 1, sk + r + 1); k++) {
 					double dx = x0 + i * cell - sight.x, dz = z0 + k * cell - sight.z;
 					if (dx * dx + dz * dz > sight.radius * sight.radius) continue;
+					if (VisionBlockers.hides(sight.x, sight.z, x0 + i * cell, z0 + k * cell)) continue;
 					lit[i * n + k] = true;
 					if (remember) explored.add(net.minecraft.world.level.ChunkPos.asLong((x0 + i * cell) >> 1, (z0 + k * cell) >> 1));
 				}

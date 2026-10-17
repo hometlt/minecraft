@@ -53,6 +53,18 @@ public final class StarMineBlocks {
 		.mapColor(MapColor.COLOR_PINK).strength(1.2f, 3f).sound(SoundType.WART_BLOCK).lightLevel(state -> 9)
 		.isValidSpawn((state, level, pos, type) -> false)));
 
+	/**
+	 * A laid-over map's lamp (owner 17.10, {@link dev.starmine.world.MapOverlay}: in the walked ground,
+	 * on the rocks, beside the ramps): as bright as the game allows, no monster spawns on it, and none
+	 * within {@link dev.starmine.world.SpawnGuard#LAMP_RADIUS} blocks of it (its point of interest,
+	 * {@link #MAP_LAMP_POI}). Players may place it too.
+	 */
+	public static final Block MAP_LAMP = register("map_lamp", new Block(BlockBehaviour.Properties.of()
+		.mapColor(MapColor.QUARTZ).strength(0.3f).sound(SoundType.GLASS).lightLevel(state -> 15)
+		.isValidSpawn((state, level, pos, type) -> false)));
+	public static final net.minecraft.resources.ResourceKey<net.minecraft.world.entity.ai.village.poi.PoiType> MAP_LAMP_POI =
+		net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.POINT_OF_INTEREST_TYPE, StarMine.id("map_lamp"));
+
 	/** Liquid creep (owner 16.10): fills the nydus tunnels; zerg rush through it and heal, others are poisoned ({@link LiquidCreepBlock}). */
 	public static final StarFluid.Kind LIQUID_CREEP_KIND = new StarFluid.Kind(() -> StarMineBlocks.LIQUID_CREEP_SOURCE,
 		() -> StarMineBlocks.LIQUID_CREEP_FLOWING, () -> StarMineBlocks.LIQUID_CREEP_BUCKET, () -> StarMineBlocks.LIQUID_CREEP, 15, 2, 2);
@@ -90,7 +102,8 @@ public final class StarMineBlocks {
 	}
 
 	public static void load() {
-		for (Block block : new Block[] {ZERG_FLESH, GLOWING_ZERG_FLESH})
+		net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper.register(MAP_LAMP_POI.location(), 0, 1, MAP_LAMP);
+		for (Block block : new Block[] {ZERG_FLESH, GLOWING_ZERG_FLESH, MAP_LAMP})
 			Registry.register(BuiltInRegistries.ITEM, BuiltInRegistries.BLOCK.getKey(block), new net.minecraft.world.item.BlockItem(block,
 				new net.minecraft.world.item.Item.Properties()));
 		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.NATURAL_BLOCKS)
@@ -98,6 +111,8 @@ public final class StarMineBlocks {
 				entries.accept(ZERG_FLESH);
 				entries.accept(GLOWING_ZERG_FLESH);
 			});
+		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS)
+			.register(entries -> entries.accept(MAP_LAMP));
 		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(entries -> entries.accept(LIQUID_CREEP_BUCKET));
 	}

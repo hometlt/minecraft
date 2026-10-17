@@ -57,6 +57,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		WorldGenLevel level = context.level();
 		RandomSource random = context.random();
 		int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
+		if (MapOverlay.covers(cx, cz)) return false; // a laid-over map has its own land
 		// owner 16.10: terran outposts are rare (one dungeon in seven), the others share the rest
 		int roll = random.nextInt(7);
 		Kind kind = roll == 0 ? Kind.TERRAN_OUTPOST : roll <= 3 ? Kind.ZERG_NEST : Kind.XELNAGA_TEMPLE;

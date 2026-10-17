@@ -167,6 +167,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.world.SmallDungeons.load();
 		dev.starmine.world.Nydus.load();
 		dev.starmine.mineral.Minerals.load();
+		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();
 		dev.starmine.guide.Goals.load();
