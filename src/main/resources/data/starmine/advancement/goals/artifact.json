@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/all_heroes",
+  "display": {
+    "icon": {
+      "id": "starmine:artifact_pedestal"
+    },
+    "title": {
+      "translate": "advancements.starmine.artifact.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.artifact.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

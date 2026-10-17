@@ -3,7 +3,9 @@
 - the Void portal (animated violet swirl with red sparks) and its frame;
 - the artifact's pedestal (dark stone with gold trim; its top lit when the artifact is whole);
 - the three parts of the artifact's key (zerg carapace, terran steel, protoss gold, each with a glowing core);
-- the heroes' helmets (the race helmet recoloured, with gold).
+- the heroes' helmets (the race helmet recoloured, with gold);
+- the Void's blocks (void stone, void stone bricks, void crystal);
+- Amun (hide and glowing eyes), the void shard and the void rift.
 
 Deterministic (fixed seed). Needs Pillow:  python tools/gen_artifact_textures.py
 """
@@ -16,6 +18,7 @@ from PIL import Image
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'src', 'main', 'resources', 'assets', 'starmine', 'textures')
 BLOCK = os.path.join(ROOT, 'block')
 ITEM = os.path.join(ROOT, 'item')
+ENTITY = os.path.join(ROOT, 'entity')
 
 
 def clamp(v):
@@ -178,7 +181,93 @@ def helmets():
         save(out, name, folder=ITEM)
 
 
+def void_blocks():
+    rnd = random.Random(1713)
+    stone_img = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            v = rnd.random()
+            c = mix((18, 12, 26), (52, 36, 70), v * 0.6 + (0.3 if (x * 5 + y * 3) % 11 == 0 else 0))
+            if rnd.random() < 0.03:
+                c = (120, 30, 60)  # a fleck of red
+            stone_img.putpixel((x, y), c + (255,))
+    save(stone_img, 'void_stone')
+    bricks = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            row = y // 4
+            mortar = y % 4 == 3 or (x + (row % 2) * 4) % 8 == 7
+            c = (10, 6, 14) if mortar else mix((30, 22, 42), (64, 46, 84), rnd.random() * 0.5)
+            bricks.putpixel((x, y), c + (255,))
+    save(bricks, 'void_stone_bricks')
+    crystal = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            d = abs((x - 7.5) + (y - 7.5) * 0.4)
+            c = mix((255, 120, 200), (110, 30, 160), min(1, d / 8) + rnd.random() * 0.2)
+            if (x + y) % 6 == 0:
+                c = mix(c, (255, 230, 255), 0.5)
+            crystal.putpixel((x, y), c + (255,))
+    save(crystal, 'void_crystal')
+
+
+def amun():
+    rnd = random.Random(1714)
+    hide = Image.new('RGBA', (128, 128))
+    for y in range(128):
+        for x in range(128):
+            v = 0.5 + 0.25 * math.sin(x * 0.31 + y * 0.17) + 0.25 * math.sin(x * 0.07 - y * 0.23)
+            c = mix((14, 8, 22), (58, 30, 76), v * 0.7 + rnd.random() * 0.3)
+            vein = abs(math.sin(x * 0.11 + math.sin(y * 0.09) * 3)) < 0.06 or abs(math.sin(y * 0.13 + math.sin(x * 0.05) * 4)) < 0.05
+            if vein:
+                c = mix(c, (200, 30, 50), 0.7)
+            hide.putpixel((x, y), c + (255,))
+    eyes = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+    for y in range(116, 128):
+        for x in range(116, 128):
+            hide.putpixel((x, y), (255, 60, 40, 255))
+            eyes.putpixel((x, y), (255, 80, 50, 255))
+    save(hide, 'amun', folder=ENTITY)
+    save(eyes, 'amun_eyes', folder=ENTITY)
+
+
+def void_shard():
+    rnd = random.Random(1715)
+    image = Image.new('RGBA', (64, 32), (0, 0, 0, 0))
+    for y in range(32):
+        for x in range(64):
+            if x < 32 and y < 16:  # the glass: a cage of red bars
+                local_x, local_y = x % 8, y % 8
+                if local_x in (0, 7) or local_y in (0, 7):
+                    image.putpixel((x, y), mix((120, 10, 40), (255, 70, 90), rnd.random()) + (255,))
+            elif y < 16:  # the core: black with red glow
+                v = rnd.random()
+                image.putpixel((x, y), mix((20, 0, 10), (230, 40, 60), v * v) + (255,))
+    save(image, 'void_shard', folder=ENTITY)
+
+
+def void_rift():
+    image = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+    for y in range(64):
+        for x in range(64):
+            dx, dy = (x - 31.5) / 31.5, (y - 31.5) / 31.5
+            r, a = math.hypot(dx, dy), math.atan2(dy, dx)
+            if r > 1:
+                continue
+            swirl = 0.5 + 0.5 * math.sin(a * 3 + r * 9)
+            c = mix((6, 0, 14), (110, 30, 170), swirl * (1 - r) * 1.2)
+            if r > 0.82:
+                c = mix(c, (255, 60, 80), (r - 0.82) / 0.18)
+            alpha = 255 if r < 0.9 else clamp(255 * (1 - r) / 0.1)
+            image.putpixel((x, y), c + (alpha,))
+    save(image, 'void_rift', folder=ENTITY)
+
+
 if __name__ == '__main__':
+    void_blocks()
+    amun()
+    void_shard()
+    void_rift()
     void_portal()
     void_frame()
     pedestal()

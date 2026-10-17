@@ -55,6 +55,7 @@ public final class StarMineClient implements ClientModInitializer {
 		PilotClient.register();
 		StratosphereSky.register();
 		VoidSky.register();
+		VoidRenderers.register();
 		// modules (dev.starmine.possess): tinted by the race of their unit
 		java.util.List<net.minecraft.world.item.Item> modules = new java.util.ArrayList<>(java.util.List.of(dev.starmine.possess.ModuleItem.WEAPON,
 			dev.starmine.possess.ModuleItem.WEAPON_UPGRADE, dev.starmine.possess.ModuleItem.ARMOR_UPGRADE));

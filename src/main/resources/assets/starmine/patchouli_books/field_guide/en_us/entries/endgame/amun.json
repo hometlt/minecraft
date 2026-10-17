@@ -1,0 +1,36 @@
+{
+	"name": "Amun",
+	"icon": "minecraft:dragon_egg",
+	"category": "starmine:endgame",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:amun",
+			"scale": 0.25,
+			"offset": 0.4,
+			"rotate": true,
+			"text": "Amun, the fallen xel'naga: a great winged beast circling his island, the farthest of the Void."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "He flies over his foes and $(l)breaks every block in his way$(): the islands crumble where he passes. From afar he hurls void bolts (wither skulls, some of which break blocks) and dragon's breath; up close a pulse hurts and throws back all round him. 1000 health, heavy armor."
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:void_shard",
+			"rotate": true,
+			"text": "$(l)Void shards$() float on obsidian spires — six round Amun's island, four on others. While any stands, Amun cannot be hurt, and the shards near him heal him by their beams. Break them all first: by hand, with arrows, or with your army."
+		},
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:void_rift",
+			"rotate": false,
+			"text": "Every 45 seconds Amun opens a $(l)void rift$() near a foe (up to four). Out of it come troops of $(l)all three races$() — his, not their race's — every 15 seconds, stronger and stronger: zerglings and marines first, ultralisks, thors and archons at last. Break the rifts; all close when Amun dies."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)When Amun dies$(), his rifts close, he leaves a dragon egg, nether stars and diamonds, and $(l)the game is complete$(): everyone in the Void sees the end and the credits, and wakes at home."
+		}
+	]
+}

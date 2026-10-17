@@ -35,7 +35,11 @@ public final class HiveCommands {
 			.then(Commands.literal("structure")
 				.then(Commands.argument("what", com.mojang.brigadier.arguments.StringArgumentType.word())
 					.suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(STRUCTURES, builder))
-					.executes(HiveCommands::structure))));
+					.executes(HiveCommands::structure)))
+			.then(Commands.literal("void") // owner 17.10: into the Void at its first island, or over Amun's
+				.executes(context -> dev.starmine.world.VoidWorld.visit(context.getSource().getPlayerOrException(), false) ? 1 : 0)
+				.then(Commands.literal("amun")
+					.executes(context -> dev.starmine.world.VoidWorld.visit(context.getSource().getPlayerOrException(), true) ? 1 : 0))));
 	}
 
 	private static final java.util.List<String> STRUCTURES = java.util.List.of("terran", "protoss", "hyperion", "mothership", "leviathan");

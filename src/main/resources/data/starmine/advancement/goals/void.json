@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/artifact",
+  "display": {
+    "icon": {
+      "id": "starmine:void_portal_frame"
+    },
+    "title": {
+      "translate": "advancements.starmine.void.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.void.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

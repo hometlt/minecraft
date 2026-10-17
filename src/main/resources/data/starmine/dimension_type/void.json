@@ -9,7 +9,7 @@
 	"has_ceiling": false,
 	"fixed_time": 18000,
 	"coordinate_scale": 1.0,
-	"ambient_light": 0.08,
+	"ambient_light": 0.12,
 	"logical_height": 384,
 	"effects": "starmine:void",
 	"infiniburn": "#minecraft:infiniburn_end",

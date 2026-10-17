@@ -8,6 +8,9 @@
 		"starmine:protoss_teleporter",
 		"starmine:artifact_pedestal",
 		"starmine:terran_key_part",
-		"starmine:protoss_key_part"
+		"starmine:protoss_key_part",
+		"starmine:void_stone",
+		"starmine:void_stone_bricks",
+		"starmine:void_crystal"
 	]
 }

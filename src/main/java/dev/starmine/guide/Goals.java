@@ -38,7 +38,7 @@ public final class Goals {
 	/** The goals in the order the journal suggests them. */
 	public enum Goal {
 		COMMAND_PANEL, OWN_BASE, MINERALS, VESPENE, POSSESS, FIND_ZERG, FIND_TERRAN, FIND_PROTOSS, SUIT, MODULE, GAUSS_RIFLE, SKY_SHIP,
-		KERRIGAN, RAYNOR, ARTANIS, ALL_HEROES;
+		KERRIGAN, RAYNOR, ARTANIS, ALL_HEROES, ARTIFACT, VOID, AMUN;
 
 		public final String id = name().toLowerCase();
 
@@ -118,6 +118,11 @@ public final class Goals {
 			}
 		}
 		if (done(player, Goal.KERRIGAN) && done(player, Goal.RAYNOR) && done(player, Goal.ARTANIS)) award(player, Goal.ALL_HEROES);
+		if (dev.starmine.world.Stratosphere.is(player.level())) award(player, Goal.SKY_SHIP); // owner 17.10: the ships hang in the stratosphere
+		if (dev.starmine.world.VoidWorld.is(player.level())) award(player, Goal.VOID);
+		if (player.level() instanceof ServerLevel level) // a whole artifact near the player
+			for (dev.starmine.world.VoidWorld.State.Open open : dev.starmine.world.VoidWorld.State.get(player.getServer()).open())
+				if (open.dimension() == level.dimension() && open.pos().closerToCenterThan(player.position(), FOUND)) award(player, Goal.ARTIFACT);
 	}
 
 	/** The three races' main bases of the world (sites chosen so far). */

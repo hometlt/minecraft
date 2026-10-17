@@ -27,6 +27,9 @@ GOALS = [
     ("raynor", "starmine:terran_helmet", "sky_ship", "challenge"),
     ("artanis", "starmine:protoss_chestplate", "sky_ship", "challenge"),
     ("all_heroes", "minecraft:nether_star", "artanis", "challenge"),
+    ("artifact", "starmine:artifact_pedestal", "all_heroes", "goal"),
+    ("void", "starmine:void_portal_frame", "artifact", "goal"),
+    ("amun", "minecraft:dragon_egg", "void", "challenge"),
 ]
 
 

@@ -37,9 +37,15 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 		return owner == null;
 	}
 
-	/** Never fight each other: one owner, or wild units of one race. */
+	/** Amun's side (owner 17.10): Amun, the void shards and rifts, and the troops the rifts bring, of every race. */
+	public static boolean amun(Entity entity) {
+		return entity instanceof dev.starmine.world.VoidForces.Member || entity.getTags().contains(dev.starmine.world.VoidForces.TAG);
+	}
+
+	/** Never fight each other: one owner, or wild units of one race, or Amun's side. */
 	public static boolean allied(Entity a, Entity b) {
 		if (a == b) return true;
+		if (amun(a) || amun(b)) return amun(a) && amun(b);
 		Faction fa = of(a), fb = of(b);
 		if (fa == null || fb == null) return false;
 		if (!fa.wild() || !fb.wild()) return fa.owner != null && fa.owner.equals(fb.owner);

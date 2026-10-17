@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/void",
+  "display": {
+    "icon": {
+      "id": "minecraft:dragon_egg"
+    },
+    "title": {
+      "translate": "advancements.starmine.amun.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.amun.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

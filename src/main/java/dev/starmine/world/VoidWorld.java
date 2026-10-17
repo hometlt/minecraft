@@ -72,6 +72,23 @@ public final class VoidWorld {
 		});
 	}
 
+	/** `/starmine void [amun]`: a player into the Void, at its first island or over Amun's (false when there is no Void). */
+	public static boolean visit(ServerPlayer player, boolean amun) {
+		ServerLevel there = level(player.getServer());
+		if (there == null) return false;
+		Vec3 at = arrival(there);
+		if (amun) {
+			List<VoidIslands.Island> islands = VoidIslands.layout(there.getSeed());
+			BlockPos centre = islands.get(islands.size() - 1).centre();
+			at = new Vec3(centre.getX() + 0.5, centre.getY() + 40, centre.getZ() + VoidIslands.AMUN_RADIUS + 20.5);
+			BlockPos under = BlockPos.containing(at).below();
+			for (BlockPos pos : BlockPos.betweenClosed(under.offset(-1, 0, -1), under.offset(1, 0, 1))) // a ledge to watch from
+				if (there.getBlockState(pos).isAir()) there.setBlock(pos, VoidIslands.BRICKS.defaultBlockState(), Block.UPDATE_ALL);
+		}
+		player.teleportTo(there, at.x, at.y, at.z, java.util.Set.of(), amun ? 180 : player.getYRot(), amun ? 30 : player.getXRot());
+		return true;
+	}
+
 	/** An entity in a portal's pool in `level`: into the Void, or out of it. */
 	static void pass(ServerLevel level, Entity entity) {
 		ServerLevel to = is(level) ? back(level.getServer()) : level(level.getServer());
@@ -122,6 +139,12 @@ public final class VoidWorld {
 	static Vec3 arrival(ServerLevel level) {
 		level.getChunk(RETURN.getX() >> 4, RETURN.getZ() >> 4);
 		if (!level.getBlockState(RETURN.below()).is(Artifact.FRAME)) firstIsland(level);
+		State state = State.get(level.getServer());
+		if (!state.islands) { // the rest of the Void: its islands, paths, shards and Amun, over the next ticks
+			state.islands = true;
+			state.setDirty();
+			VoidIslands.build(level);
+		}
 		return new Vec3(RETURN.getX() + 0.5, RETURN.getY() + 1, RETURN.getZ() + Artifact.PORTAL_RADIUS + 4.5);
 	}
 
@@ -134,7 +157,7 @@ public final class VoidWorld {
 				if (d > 13.5) continue;
 				int depth = (int) Math.round(6 * (1 - d / 14) + 1 + ((dx * 31 + dz * 17) & 1));
 				for (int down = 1; down <= depth; down++)
-					level.setBlock(RETURN.offset(dx, -down, dz), (down == 1 ? Blocks.POLISHED_BLACKSTONE : down < 3 ? Blocks.BLACKSTONE : Blocks.OBSIDIAN)
+					level.setBlock(RETURN.offset(dx, -down, dz), (down == 1 ? VoidIslands.BRICKS : down < 4 ? VoidIslands.STONE : Blocks.OBSIDIAN)
 						.defaultBlockState(), Block.UPDATE_CLIENTS);
 				for (int up = 0; up <= 4; up++) level.setBlock(RETURN.offset(dx, up, dz), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
 			}
@@ -154,6 +177,10 @@ public final class VoidWorld {
 		}
 
 		final List<Open> open = new ArrayList<>();
+		/** Whether the islands are made, and whether Amun is dead (he does not come back). */
+		public boolean islands, amunDead;
+		/** Void shards still standing, loaded or not (Amun cannot be hurt while there are any). */
+		public int shards;
 
 		private static final SavedData.Factory<State> FACTORY = new SavedData.Factory<>(State::new, State::load, null);
 
@@ -185,6 +212,9 @@ public final class VoidWorld {
 				list.add(entry);
 			}
 			tag.put("open", list);
+			tag.putBoolean("islands", islands);
+			tag.putBoolean("amunDead", amunDead);
+			tag.putInt("shards", shards);
 			return tag;
 		}
 
@@ -195,6 +225,9 @@ public final class VoidWorld {
 				NbtUtils.readBlockPos(entry, "pos").ifPresent(pos -> state.open.add(new Open(
 					ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(entry.getString("dim"))), pos)));
 			}
+			state.islands = tag.getBoolean("islands");
+			state.amunDead = tag.getBoolean("amunDead");
+			state.shards = tag.getInt("shards");
 			return state;
 		}
 	}
