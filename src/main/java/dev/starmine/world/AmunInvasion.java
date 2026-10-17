@@ -162,7 +162,15 @@ public final class AmunInvasion {
 			level.sendParticles(BLACK, unit.getX(), unit.getY() + h * 0.5, unit.getZ(), 2, w, h * 0.3, w, 0.01);
 			level.sendParticles(RED, unit.getX(), unit.getY() + h * 0.5, unit.getZ(), 1, w, h * 0.3, w, 0.01);
 		}
-		if (unit.getTags().contains(SAPPER) && unit.tickCount % 10 == 0) sap(unit, level);
+		if (unit.getTags().contains(SAPPER)) {
+			if (unit.tickCount % 10 == 0) sap(unit, level);
+			Vec3 step = unit.abilities.digTo;
+			if (step != null) { // it walks onto its step itself, each tick (its work goals would lead it elsewhere)
+				unit.getNavigation().stop();
+				unit.getMoveControl().setWantedPosition(step.x, step.y, step.z, 1.0);
+				if (step.y > unit.getY() + 0.5 && unit.onGround() && unit.horizontalCollision) unit.getJumpControl().jump();
+			}
+		}
 		if (unit.getTags().contains(FERRY) && unit.tickCount % 10 == 0) unload(unit, level);
 	}
 
@@ -180,9 +188,15 @@ public final class AmunInvasion {
 	static void sap(StarUnit worker, ServerLevel level) {
 		LivingEntity foe = foe(level, worker, 96);
 		if (foe == null) return;
+		Vec3 step = worker.abilities.digTo;
+		if (step != null) { // walking onto the step it made: the next one when it is there
+			double dx = worker.getX() - step.x, dz = worker.getZ() - step.z;
+			if (dx * dx + dz * dz > 0.3 && ++worker.abilities.digTicks < 6) return;
+			worker.abilities.digTo = null;
+		}
 		Path path = worker.getNavigation().createPath(foe, 1);
 		if (path != null && path.canReach()) {
-			worker.getNavigation().moveTo(path, 1.0);
+			worker.command(StarUnit.Order.MOVE, foe.position());
 			return;
 		}
 		Vec3 to = foe.position().subtract(worker.position());
@@ -191,12 +205,19 @@ public final class AmunInvasion {
 		boolean up = foe.getY() > worker.getY() + 1.5, down = foe.getY() < worker.getY() - 1.5;
 		if (up) next = next.above();
 		else if (down && level.getBlockState(next.below()).isAir()) next = next.below();
-		for (int dy = 0; dy <= 2; dy++) dig(level, next.above(dy));
-		BlockState floor = level.getBlockState(next.below());
-		if (floor.isAir() || !floor.getFluidState().isEmpty() || floor.canBeReplaced())
-			level.setBlock(next.below(), (level.dimension() == Level.NETHER ? Blocks.BLACKSTONE : Blocks.COBBLESTONE).defaultBlockState(), Block.UPDATE_ALL);
-		worker.getNavigation().stop(); // a step onto what it has made (its own work goals would lead it elsewhere)
-		worker.teleportTo(next.getX() + 0.5, next.getY(), next.getZ() + 0.5);
+		int wide = Math.max(1, (int) Math.ceil(worker.getBbWidth())), high = Math.max(3, (int) Math.ceil(worker.getBbHeight()) + 1);
+		Direction side = dir.getClockWise();
+		for (int w = 0; w < wide; w++) { // a way as wide and tall as the worker (and so as its army's small units)
+			BlockPos cell = next.relative(side, w);
+			for (int dy = 0; dy < high; dy++) dig(level, cell.above(dy));
+			if (up) dig(level, feet.relative(side, w).above(high - 1)); // room over its head to step up
+			BlockState floor = level.getBlockState(cell.below());
+			if (floor.isAir() || !floor.getFluidState().isEmpty() || floor.canBeReplaced())
+				level.setBlock(cell.below(), (level.dimension() == Level.NETHER ? Blocks.BLACKSTONE : Blocks.COBBLESTONE).defaultBlockState(), Block.UPDATE_ALL);
+		}
+		Vec3 onto = Vec3.atBottomCenterOf(next).add(Vec3.atLowerCornerOf(side.getNormal()).scale((wide - 1) / 2.0));
+		worker.abilities.digTo = onto;
+		worker.abilities.digTicks = 0;
 		worker.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 	}
 
