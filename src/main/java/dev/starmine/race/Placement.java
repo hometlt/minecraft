@@ -67,6 +67,7 @@ public final class Placement {
 			dev.starmine.colony.BaseLogic.tell(level, base, refusal);
 			return null;
 		}
+		if (kind.gas()) site = dev.starmine.vespene.Vespene.collapseUnder(level, site); // owner 17.10: a gas building put on a volcano destroys it
 		base.pay(kind, 1);
 		base.expect(kind, 1);
 		StarUnit building = HiveLogic.spawn(level, base, kind, kind.gas() ? Vec3.atBottomCenterOf(site) : kind.gridCentre(Vec3.atBottomCenterOf(site)), null);

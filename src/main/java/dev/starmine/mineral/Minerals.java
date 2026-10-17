@@ -82,6 +82,9 @@ public final class Minerals {
 	public static final Item SHARD = Registry.register(BuiltInRegistries.ITEM, StarMine.id("mineral_shard"), new Item(new Item.Properties()));
 	public static final Feature<NoneFeatureConfiguration> FIELD = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("mineral_field"),
 		new FieldFeature(NoneFeatureConfiguration.CODEC));
+	/** Owner 17.10: minerals underground at any depth, in a hall with a geyser ({@link MineralHallFeature}). */
+	public static final Feature<NoneFeatureConfiguration> HALL = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("mineral_hall"),
+		new MineralHallFeature(NoneFeatureConfiguration.CODEC));
 
 	private Minerals() {
 	}
@@ -90,6 +93,8 @@ public final class Minerals {
 		Registry.register(BuiltInRegistries.ITEM, StarMine.id("mineralized_earth"), new net.minecraft.world.item.BlockItem(EARTH, new Item.Properties()));
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.SURFACE_STRUCTURES,
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("mineral_field")));
+		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES,
+			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("mineral_hall")));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(SHARD));
 	}
 
@@ -233,7 +238,7 @@ public final class Minerals {
 		}
 	}
 
-	private static boolean crystalWithin(LevelAccessor level, BlockPos pos, int radius) {
+	static boolean crystalWithin(LevelAccessor level, BlockPos pos, int radius) {
 		for (BlockPos at : BlockPos.betweenClosed(pos.offset(-radius, -radius, -radius), pos.offset(radius, radius, radius)))
 			if (level.getBlockState(at).is(CRYSTAL)) return true;
 		return false;

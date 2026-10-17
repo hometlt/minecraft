@@ -42,6 +42,8 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		channel = channelCells.stream().mapToLong(BlockPos::asLong).toArray();
 		outlets = outletCells.stream().mapToLong(BlockPos::asLong).toArray();
 		emptySince = new long[outlets.length];
+		risen = new int[outlets.length];
+		nextRise = new long[outlets.length];
 		setChanged();
 	}
 
@@ -162,6 +164,11 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		}
 	}
 
+	/** Tests: the outlet `i` rises a block now, as a volcano does in time. */
+	void riseNow(Level level, int i) {
+		rise(level, i);
+	}
+
 	/** An outlet one block up: the old one joins the channel, cobblestone grows round the new one in a cone. */
 	private void rise(Level level, int i) {
 		BlockPos old = BlockPos.of(outlets[i]), top = old.above();
@@ -186,6 +193,51 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		fill(level, old, false);
 		fill(level, top, true);
 		level.playSound(null, top, net.minecraft.sounds.SoundEvents.LAVA_POP, net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 0.6f);
+	}
+
+	/** The vein an outlet belongs to (its root is at the bedrock within a chunk of it), or null. */
+	public static @org.jetbrains.annotations.Nullable VespeneRootBlockEntity veinOf(Level level, BlockPos outlet) {
+		long key = outlet.asLong();
+		for (int cx = (outlet.getX() >> 4) - 1; cx <= (outlet.getX() >> 4) + 1; cx++)
+			for (int cz = (outlet.getZ() >> 4) - 1; cz <= (outlet.getZ() >> 4) + 1; cz++) {
+				if (!level.hasChunk(cx, cz)) continue;
+				for (BlockEntity entity : level.getChunk(cx, cz).getBlockEntities().values())
+					if (entity instanceof VespeneRootBlockEntity vein)
+						for (long cell : vein.outlets) if (cell == key) return vein;
+			}
+		return null;
+	}
+
+	/**
+	 * Owner 17.10: a gas building put on a volcano destroys it — the cobblestone cone and the risen column go, the
+	 * outlet is back at the ground where it rose from, and the building stands there. The outlet's position now.
+	 */
+	public BlockPos collapse(Level level, BlockPos outlet) {
+		int i = -1;
+		for (int k = 0; k < outlets.length; k++) if (outlets[k] == outlet.asLong()) i = k;
+		if (i < 0 || risen[i] == 0) return outlet;
+		int r = risen[i];
+		BlockPos ground = outlet.below(r);
+		java.util.Set<Long> column = new java.util.HashSet<>();
+		for (int k = 1; k <= r; k++) column.add(ground.above(k).asLong());
+		channel = java.util.Arrays.stream(channel).filter(cell -> !column.contains(cell)).toArray();
+		// the cone: cobblestone round the column above the ground (the column's vespene too)
+		int reach = (int) Math.ceil(1 + (r + 2) * 0.75);
+		for (int y = ground.getY() + 1; y <= outlet.getY() + 1; y++)
+			for (int dx = -reach; dx <= reach; dx++)
+				for (int dz = -reach; dz <= reach; dz++) {
+					BlockPos at = new BlockPos(ground.getX() + dx, y, ground.getZ() + dz);
+					if (!level.isLoaded(at)) continue;
+					BlockState there = level.getBlockState(at);
+					if (there.is(net.minecraft.world.level.block.Blocks.COBBLESTONE) || there.is(Vespene.VESPENE) || there.is(Vespene.VENT))
+						level.setBlock(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+				}
+		outlets[i] = ground.asLong();
+		risen[i] = 0;
+		nextRise[i] = 0;
+		fill(level, ground, true);
+		level.playSound(null, ground, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.2f);
+		return ground;
 	}
 
 	/** The highest vespene block of the channel (taken first: the vein empties from the top). */

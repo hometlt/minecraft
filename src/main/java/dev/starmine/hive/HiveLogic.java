@@ -128,6 +128,7 @@ public final class HiveLogic {
 			if (outlet == null) return null;
 			site = outlet.above();
 			if (!level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.gas() && mob.isAlive()).isEmpty()) return null;
+			site = dev.starmine.vespene.Vespene.collapseUnder(level, site); // owner 17.10: on a volcano it destroys it
 		} else {
 			site = BlockPos.containing(kind.gridCentre(Vec3.atBottomCenterOf(site))); // on the grid (owner 15.10)
 			if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) return null;

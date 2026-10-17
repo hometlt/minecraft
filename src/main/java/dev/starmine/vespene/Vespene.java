@@ -97,6 +97,17 @@ public final class Vespene {
 		return null;
 	}
 
+	/**
+	 * Owner 17.10: a gas building's site over a volcano (an outlet risen from the ground) — the volcano is destroyed,
+	 * the outlet is back at the ground; the site over it now (the same site when it was no volcano).
+	 */
+	public static BlockPos collapseUnder(net.minecraft.world.level.Level level, BlockPos site) {
+		BlockPos outlet = outletUnder(level, site);
+		if (outlet == null) return site;
+		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
+		return vein == null ? site : vein.collapse(level, outlet).above();
+	}
+
 	/** The outlets within `radius` of a point (nearest first). */
 	public static List<BlockPos> outletsNear(BlockGetter level, BlockPos centre, int radius, int height) {
 		List<BlockPos> found = new java.util.ArrayList<>();
