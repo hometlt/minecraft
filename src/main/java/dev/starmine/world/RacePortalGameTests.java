@@ -47,4 +47,5 @@ public class RacePortalGameTests implements FabricGameTest {
 			HiveSavedData.get(level.getServer()).remove(base.id);
 		});
 	}
+
 }

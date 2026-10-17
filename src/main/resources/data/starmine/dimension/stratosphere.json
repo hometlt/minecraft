@@ -1,0 +1,13 @@
+{
+	"type": "starmine:stratosphere",
+	"generator": {
+		"type": "minecraft:flat",
+		"settings": {
+			"biome": "starmine:stratosphere",
+			"layers": [],
+			"features": false,
+			"lakes": false,
+			"structure_overrides": []
+		}
+	}
+}

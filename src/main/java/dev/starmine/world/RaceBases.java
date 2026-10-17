@@ -197,8 +197,10 @@ public final class RaceBases {
 		// under the base and over it
 		int depth = 26;
 		int under = Math.max(level.getMinBuildHeight() + 8, centre.getY() - depth);
-		int sky = skyHeight(level, centre.getY());
-		Painter above = Painter.deferred(level, random);
+		// owner 17.10: the ship hangs in the stratosphere over the base (Stratosphere)
+		ServerLevel skyLevel = skyLevel(level);
+		int sky = skyLevel == level ? skyHeight(level, centre.getY()) : Stratosphere.SHIP_Y;
+		Painter above = Painter.deferred(skyLevel, random);
 		SkyShips.Ship ship;
 		if (terran) {
 			int span = Dungeons.MAZE_CELLS * Dungeons.PITCH;
@@ -210,9 +212,15 @@ public final class RaceBases {
 		}
 		spawns.addAll(portalHall(level, painter, race, centre, Direction.EAST, ship, above, base.id)); // under the main building, the stair up in the ring's gap
 		for (Spawn spawn : spawns) wait(data, base.id, spawn);
-		finish(level, data, base.id, ship, above);
+		finish(skyLevel, data, base.id, ship, above);
 		data.setDirty();
 		return new Report(base.id, painter.placed() + above.placed(), spawns.size() + ship.spawns().size());
+	}
+
+	/** Where the races' ships hang: the stratosphere (the overworld itself if it is missing). */
+	public static ServerLevel skyLevel(ServerLevel level) {
+		ServerLevel sky = Stratosphere.level(level.getServer());
+		return sky != null ? sky : level;
 	}
 
 	/**
@@ -243,13 +251,16 @@ public final class RaceBases {
 		BlockPos centre = new BlockPos(surface.getX(), Math.max(level.getMinBuildHeight() + 8, surface.getY() - PortalHall.DEPTH), surface.getZ());
 		PortalHall.Hall hall = PortalHall.build(painter, race, centre, out);
 		above.then(() -> {
-			Teleporter.linkPortal(level, hall.portal(), hall.centre(), ship.pad());
+			Teleporter.linkPortal(level, hall.portal(), hall.centre(), above.level(), ship.pad());
 			// owner 17.10: the way to the ship opens when the base's main building falls — this hall's portal wakes then,
 			// and a portal opens where the building stood (RacePortal)
 			if (base != null) {
 				Teleporter.lock(level, hall.portal(), base);
 				Hive owner = HiveSavedData.get(level.getServer()).get(base);
-				if (owner != null) owner.shipPad = ship.pad().immutable();
+				if (owner != null) {
+					owner.shipPad = ship.pad().immutable();
+					owner.shipDim = above.level() == level ? null : above.level().dimension().location().toString();
+				}
 			}
 		});
 		return hall.guards();
@@ -258,7 +269,7 @@ public final class RaceBases {
 	/** Once a ship is built, its guards wait for their chunks to tick (they would have fallen through it before). */
 	private static void finish(ServerLevel level, HiveSavedData data, UUID base, SkyShips.Ship ship, Painter above) {
 		above.then(() -> {
-			for (Spawn spawn : ship.spawns()) wait(data, base, spawn);
+			for (Spawn spawn : ship.spawns()) wait(data, base, spawn, level);
 			data.setDirty();
 		});
 		above.start();
@@ -270,15 +281,16 @@ public final class RaceBases {
 		Painter painter = new Painter(level, random);
 		painter.load(lair, 112);
 		int ground = HiveStructure.ground(level, lair.getX(), lair.getZ());
-		BlockPos middle = new BlockPos(lair.getX(), skyHeight(level, ground), lair.getZ());
+		ServerLevel skyLevel = skyLevel(level);
+		BlockPos middle = new BlockPos(lair.getX(), skyLevel == level ? skyHeight(level, ground) : Stratosphere.SHIP_Y, lair.getZ());
 		Hive hive = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(lair) < 32 * 32)
 			.findFirst().orElse(null);
 		UUID id = hive != null ? hive.id : UUID.randomUUID();
-		Painter above = Painter.deferred(level, random);
+		Painter above = Painter.deferred(skyLevel, random);
 		SkyShips.Ship ship = SkyShips.leviathan(above, middle, random.nextInt(4));
 		List<Spawn> spawns = portalHall(level, painter, UnitKind.Race.ZERG, groundAt(level, lair, Math.PI, 30), Direction.WEST, ship, above, hive == null ? null : hive.id);
 		for (Spawn spawn : spawns) wait(data, id, spawn);
-		finish(level, data, id, ship, above);
+		finish(skyLevel, data, id, ship, above);
 		data.setDirty();
 		return new Report(hive == null ? null : hive.id, painter.placed() + above.placed(), spawns.size() + ship.spawns().size());
 	}
@@ -304,5 +316,11 @@ public final class RaceBases {
 
 	private static void wait(HiveSavedData data, UUID base, Spawn spawn) {
 		data.pending.add(new HiveStructure.Pending(base, spawn.kind(), spawn.pos(), spawn.hall(), spawn.brood(), spawn.broodCount()));
+	}
+
+	/** A spawn waiting in a given level (a ship's guard in the stratosphere). */
+	private static void wait(HiveSavedData data, UUID base, Spawn spawn, ServerLevel level) {
+		data.pending.add(new HiveStructure.Pending(base, spawn.kind(), spawn.pos(), spawn.hall(), spawn.brood(), spawn.broodCount(),
+			level.dimension() == net.minecraft.world.level.Level.OVERWORLD ? null : level.dimension().location().toString()));
 	}
 }

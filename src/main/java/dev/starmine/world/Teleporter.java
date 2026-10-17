@@ -105,6 +105,8 @@ public final class Teleporter extends Block implements EntityBlock {
 	/** Where a pad leads. */
 	public static class Pad extends BlockEntity {
 		@Nullable BlockPos pair;
+		/** The dimension its pair is in (owner 17.10: the ships are in the stratosphere), null for its own. */
+		@Nullable String pairDim;
 		/** A portal under a race base wakes only once that base's main building has fallen (owner 17.10), null for none. */
 		@Nullable UUID lock;
 
@@ -120,6 +122,7 @@ public final class Teleporter extends Block implements EntityBlock {
 		protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.saveAdditional(tag, registries);
 			if (pair != null) tag.put("pair", NbtUtils.writeBlockPos(pair));
+			if (pairDim != null) tag.putString("pairDim", pairDim);
 			if (lock != null) tag.putUUID("lock", lock);
 		}
 
@@ -127,6 +130,7 @@ public final class Teleporter extends Block implements EntityBlock {
 		protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.loadAdditional(tag, registries);
 			pair = NbtUtils.readBlockPos(tag, "pair").orElse(null);
+			pairDim = tag.contains("pairDim") ? tag.getString("pairDim") : null;
 			lock = tag.hasUUID("lock") ? tag.getUUID("lock") : null;
 		}
 	}
@@ -167,12 +171,19 @@ public final class Teleporter extends Block implements EntityBlock {
 
 	/** Carries each portal block of `portal` to the ship's `pad`, and the pad back to the portal's middle `centre`. */
 	public static void linkPortal(ServerLevel level, java.util.List<BlockPos> portal, BlockPos centre, BlockPos pad) {
-		if (!(level.getBlockEntity(pad) instanceof Pad top)) return;
+		linkPortal(level, portal, centre, level, pad);
+	}
+
+	/** {@link #linkPortal}, the ship's pad in another level (the stratosphere). */
+	public static void linkPortal(ServerLevel level, java.util.List<BlockPos> portal, BlockPos centre, ServerLevel padLevel, BlockPos pad) {
+		if (!(padLevel.getBlockEntity(pad) instanceof Pad top)) return;
 		top.pair = centre.immutable();
+		top.pairDim = padLevel == level ? null : level.dimension().location().toString();
 		top.setChanged();
 		for (BlockPos pos : portal)
 			if (level.getBlockEntity(pos) instanceof Pad below) {
 				below.pair = pad.immutable();
+				below.pairDim = padLevel == level ? null : padLevel.dimension().location().toString();
 				below.setChanged();
 			}
 	}
@@ -193,14 +204,6 @@ public final class Teleporter extends Block implements EntityBlock {
 		return base != null && base.race != null && base.count(base.race.rules().main()) > 0;
 	}
 
-	/** Points a pad at another (the ship's pad at a newly opened portal). */
-	public static void point(ServerLevel level, BlockPos pad, BlockPos to) {
-		if (level.getBlockEntity(pad) instanceof Pad from) {
-			from.pair = to.immutable();
-			from.setChanged();
-		}
-	}
-
 	/** Pairs two pads (both must stand already). */
 	public static void link(ServerLevel level, BlockPos a, BlockPos b) {
 		if (level.getBlockEntity(a) instanceof Pad one && level.getBlockEntity(b) instanceof Pad two) {
@@ -216,7 +219,7 @@ public final class Teleporter extends Block implements EntityBlock {
 		AABB area = new AABB(pos).inflate(GUARD_RADIUS, GUARD_HEIGHT, GUARD_RADIUS);
 		int alive = level.getEntitiesOfClass(StarUnit.class, area, unit -> unit.isAlive() && unit.owner().isEmpty() && !unit.kind.flying
 			&& !unit.kind.structure()).size();
-		int waiting = (int) HiveSavedData.get(level.getServer()).pending.stream().filter(p -> !p.kind().flying && area.contains(p.pos().getCenter())).count();
+		int waiting = (int) HiveSavedData.get(level.getServer()).pending.stream().filter(p -> p.in(level) && !p.kind().flying && area.contains(p.pos().getCenter())).count();
 		return alive + waiting;
 	}
 
@@ -239,9 +242,13 @@ public final class Teleporter extends Block implements EntityBlock {
 			return false;
 		}
 		BlockPos to = pad.pair;
-		level.getChunk(to.getX() >> 4, to.getZ() >> 4);
+		ServerLevel there = pad.pairDim == null ? level : level.getServer().getLevel(net.minecraft.resources.ResourceKey.create(
+			net.minecraft.core.registries.Registries.DIMENSION, net.minecraft.resources.ResourceLocation.parse(pad.pairDim)));
+		if (there == null) return false;
+		there.getChunk(to.getX() >> 4, to.getZ() >> 4);
 		RESTING.put(entity.getUUID(), now + REST);
-		entity.teleportTo(to.getX() + 0.5, to.getY() + 0.3, to.getZ() + 0.5);
+		entity.teleportTo(there, to.getX() + 0.5, to.getY() + 0.3, to.getZ() + 0.5, java.util.Set.of(), entity.getYRot(), entity.getXRot());
+		if (there != level) there.playSound(null, to, SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0f, 1.0f);
 		level.playSound(null, to, SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0f, 1.0f);
 		level.playSound(null, pos, SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0f, 1.0f);
 		if (RESTING.size() > 256) RESTING.values().removeIf(until -> until < now);

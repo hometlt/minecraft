@@ -257,6 +257,37 @@ public final class SkyShips {
 		int bridgeTop = hull.top(-24, 0) + 1;
 		frame.box(-24, bridgeTop, 0, -24, bridgeTop + 4, 0, Blocks.END_ROD.defaultBlockState());
 		frame.box(-28, bridgeTop, 2, -28, bridgeTop + 2, 2, Blocks.END_ROD.defaultBlockState());
+		// owner 17.10, more inside: the engine room aft on the upper deck — the reactor core in a cage of pipes, consoles
+		// round it, ducts along the ceiling; and pipes and cable runs along both decks' passages
+		frame.box(-66, deck + 1, -6, -48, top - 1, 6, air);
+		for (int y = deck + 1; y <= top - 1; y++) {
+			frame.box(-58, y, -1, -56, y, 1, y % 3 == 0 ? light : Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState()); // the core
+			for (int[] post : new int[][] {{-59, -2}, {-55, -2}, {-59, 2}, {-55, 2}}) frame.put(post[0], y, post[1], Blocks.IRON_BARS.defaultBlockState());
+		}
+		frame.box(-60, deck + 1, -3, -54, deck + 1, 3, Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState());
+		frame.box(-58, deck + 1, -1, -56, deck + 1, 1, light);
+		for (int x = -65; x <= -49; x += 4) { // consoles along the walls
+			frame.put(x, deck + 1, -6, Blocks.OBSERVER.defaultBlockState());
+			frame.put(x, deck + 2, -6, Blocks.CYAN_STAINED_GLASS_PANE.defaultBlockState());
+			frame.put(x, deck + 1, 6, Blocks.TARGET.defaultBlockState());
+			frame.put(x, deck + 2, 6, Blocks.REDSTONE_LAMP.defaultBlockState().setValue(net.minecraft.world.level.block.RedstoneLampBlock.LIT, true));
+		}
+		for (int x = -66; x <= -48; x++) { // ducts
+			frame.put(x, top - 1, -4, Blocks.WAXED_CUT_COPPER.defaultBlockState());
+			frame.put(x, top - 1, 4, Blocks.WAXED_CUT_COPPER.defaultBlockState());
+		}
+		for (int floorY : new int[] {lowerFloor, deck}) { // pipes and cables along the passages' ceilings
+			int ceilingY = floorY == lowerFloor ? deck - 1 : top - 1;
+			for (int x = -46; x <= 29; x++) {
+				frame.put(x, ceilingY, 1, Blocks.LIGHTNING_ROD.defaultBlockState().setValue(net.minecraft.world.level.block.LightningRodBlock.FACING, frame.facing(Direction.EAST)));
+				if (Math.floorMod(x, 6) == 0) frame.put(x, ceilingY, -1, light);
+			}
+		}
+		// the hangar's craft: a viking and a medivac parked on the deck (spawns below), crates and fuel along its walls
+		for (int x = -6; x <= 24; x += 5) {
+			frame.put(x, lowerFloor + 1, -10, Blocks.BARREL.defaultBlockState());
+			frame.put(x + 1, lowerFloor + 1, 10, Blocks.CYAN_TERRACOTTA.defaultBlockState());
+		}
 		// the cargo bay's chests, the bridge's (the boss's reward is its own drop)
 		painter.chest(frame.at(-64, lowerFloor + 1, 8), BuiltInLootTables.STRONGHOLD_CORRIDOR);
 		painter.chest(frame.at(-64, lowerFloor + 1, -8), FactionLoot.TERRAN);
@@ -282,6 +313,10 @@ public final class SkyShips {
 		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, 4), boss));
 		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, -4), boss));
 		int above = (int) (14 * s);
+		BlockPos hangar = frame.at(9, lowerFloor + 1, 0);
+		spawns.add(Spawn.guard(UnitKind.VIKING_ASSAULT, frame.at(4, lowerFloor + 1, -5), hangar)); // parked craft keeping the hangar
+		spawns.add(Spawn.guard(UnitKind.SCV, frame.at(16, lowerFloor + 1, 5), hangar));
+		spawns.add(Spawn.guard(UnitKind.SCV, frame.at(-57, deck + 1, 4), frame.at(-57, deck + 1, 0))); // the engine room's crew
 		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(20, above, 30), pad));
 		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(-40, above, -30), pad));
 		spawns.add(Spawn.guard(UnitKind.BANSHEE, frame.at(-10, above, 34), pad));
@@ -380,6 +415,27 @@ public final class SkyShips {
 			double rad = Math.toRadians(spire * 60);
 			int x = (int) Math.round(Math.cos(rad) * 13), z = (int) Math.round(Math.sin(rad) * 13), from = disc.bottom(x, z) - 1;
 			for (int d = 0; d < 10 + spire % 3 * 3; d++) frame.put(x, from - d, z, d % 4 == 3 ? light : Blocks.PURPUR_PILLAR.defaultBlockState());
+		}
+		// owner 17.10, more inside: the lower level split into six technical rooms by walls with doors, each with a
+		// khaydarin power crystal on a golden plinth, consoles of light along its wall
+		for (int wall = 0; wall < 6; wall++) {
+			double rad = Math.toRadians(wall * 60 + 30);
+			for (double r = 10; r <= rx - 2; r += 0.5) {
+				int x = (int) Math.round(Math.cos(rad) * r), z = (int) Math.round(Math.sin(rad) * r);
+				for (int y = lower; y < mid; y++) {
+					if (!disc.in(x, y, z) || disc.shell(x, y, z)) continue;
+					boolean door = Math.abs(r - 18) < 1.6 && y - lower <= 3;
+					frame.put(x, y, z, door ? air : smooth);
+				}
+			}
+			double centre = Math.toRadians(wall * 60);
+			int cx = (int) Math.round(Math.cos(centre) * 24), cz = (int) Math.round(Math.sin(centre) * 24);
+			if (!disc.in(cx, lower, cz)) continue;
+			frame.put(cx, lower, cz, gold);
+			frame.put(cx, lower + 1, cz, Blocks.AMETHYST_BLOCK.defaultBlockState());
+			frame.put(cx, lower + 2, cz, Blocks.AMETHYST_CLUSTER.defaultBlockState());
+			int wx = (int) Math.round(Math.cos(centre) * (rx - 3)), wz = (int) Math.round(Math.sin(centre) * (rx - 3));
+			if (disc.in(wx, lower + 1, wz) && !disc.shell(wx, lower + 1, wz)) frame.put(wx, lower + 1, wz, light);
 		}
 		painter.chest(frame.at(16, lower, 6), BuiltInLootTables.END_CITY_TREASURE);
 		painter.chest(frame.at(-16, lower, 6), FactionLoot.PROTOSS);

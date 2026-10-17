@@ -64,7 +64,17 @@ public final class HiveStructure {
 		UnitKind.BANELING, UnitKind.ROACH, UnitKind.ULTRALISK};
 
 	/** A zerg of a generated hive waiting to be put in the world (see the class comment). */
-	public record Pending(UUID hive, UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount) {
+	public record Pending(UUID hive, UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount, @org.jetbrains.annotations.Nullable String dimension) {
+		/** In the overworld. */
+		public Pending(UUID hive, UnitKind kind, BlockPos pos, BlockPos hall, UnitKind brood, int broodCount) {
+			this(hive, kind, pos, hall, brood, broodCount, null);
+		}
+
+		/** Whether it waits in this level (the overworld unless it says otherwise: the stratosphere's ship guards). */
+		public boolean in(net.minecraft.world.level.Level level) {
+			return dimension == null ? level.dimension() == net.minecraft.world.level.Level.OVERWORLD : level.dimension().location().toString().equals(dimension);
+		}
+
 		CompoundTag save() {
 			CompoundTag tag = new CompoundTag();
 			tag.putUUID("hive", hive);
@@ -75,6 +85,7 @@ public final class HiveStructure {
 				tag.putString("brood", brood.name());
 				tag.putInt("broodCount", broodCount);
 			}
+			if (dimension != null) tag.putString("dimension", dimension);
 			return tag;
 		}
 
@@ -82,7 +93,8 @@ public final class HiveStructure {
 			try {
 				return new Pending(tag.getUUID("hive"), UnitKind.valueOf(tag.getString("kind")), BlockPos.of(tag.getLong("pos")),
 					tag.contains("hall") ? BlockPos.of(tag.getLong("hall")) : null,
-					tag.contains("brood") ? UnitKind.valueOf(tag.getString("brood")) : null, tag.getInt("broodCount"));
+					tag.contains("brood") ? UnitKind.valueOf(tag.getString("brood")) : null, tag.getInt("broodCount"),
+					tag.contains("dimension") ? tag.getString("dimension") : null);
 			} catch (IllegalArgumentException e) {
 				return null;
 			}
@@ -101,7 +113,7 @@ public final class HiveStructure {
 		if (server.getTickCount() % 20 != 0) return;
 		ServerLevel level = server.overworld();
 		HiveSavedData data = HiveSavedData.get(server);
-		if (!data.pending.isEmpty()) spawnPending(level, data);
+		if (!data.pending.isEmpty()) for (ServerLevel each : server.getAllLevels()) spawnPending(each, data); // the ships' guards wait in the stratosphere
 		if (data.spawnHiveDone || !level.getGameRules().getBoolean(StarMine.SPAWN_HIVE) || level.players().isEmpty()) return;
 		if (data.spawnHiveSite == null) {
 			data.spawnHiveSite = dev.starmine.world.RaceBases.spawnSite(level, data, UnitKind.Race.ZERG);
@@ -174,7 +186,7 @@ public final class HiveStructure {
 		int added = 0;
 		for (Iterator<Pending> it = data.pending.iterator(); it.hasNext() && added < 32; ) {
 			Pending p = it.next();
-			if (!level.isPositionEntityTicking(p.pos())) continue;
+			if (!p.in(level) || !level.isPositionEntityTicking(p.pos())) continue;
 			it.remove();
 			added++;
 			spawn(level, data, p);

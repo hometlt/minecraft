@@ -46,7 +46,9 @@ public final class RacePortal {
 				level.setBlock(at, Teleporter.BLOCKS.get(race).defaultBlockState(), Block.UPDATE_ALL);
 				portal.add(at.immutable());
 			}
-		Teleporter.linkPortal(level, portal, centre, base.shipPad);
+		ServerLevel padLevel = base.shipDim == null ? level : level.getServer().getLevel(net.minecraft.resources.ResourceKey.create(
+			net.minecraft.core.registries.Registries.DIMENSION, net.minecraft.resources.ResourceLocation.parse(base.shipDim)));
+		if (padLevel != null) Teleporter.linkPortal(level, portal, centre, padLevel, base.shipPad);
 		level.playSound(null, centre, SoundEvents.END_PORTAL_SPAWN, SoundSource.BLOCKS, 1.5f, 1.0f);
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, centre.getX() + 0.5, centre.getY() + 1, centre.getZ() + 0.5, 120, 1.5, 1.5, 1.5, 0.1);
 		for (ServerPlayer player : level.players())

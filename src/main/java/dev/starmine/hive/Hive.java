@@ -61,6 +61,8 @@ public final class Hive {
 	public BlockPos hatchery;
 	/** A race base's sky ship's pad (owner 17.10): when its main building falls a portal there opens to it ({@link dev.starmine.world.RacePortal}). */
 	public @org.jetbrains.annotations.Nullable BlockPos shipPad;
+	/** The dimension of {@link #shipPad} (the stratosphere), null for the base's own. */
+	public @org.jetbrains.annotations.Nullable String shipDim;
 	public int minerals = 50, vespene, diamonds;
 	/** Game time until which villages count this base as dangerous (its terrans hurt a villager or a golem). */
 	public long villageHostileUntil;
@@ -241,6 +243,7 @@ public final class Hive {
 		CompoundTag tag = new CompoundTag();
 		tag.putUUID("id", id);
 		if (shipPad != null) tag.put("shipPad", NbtUtils.writeBlockPos(shipPad));
+		if (shipDim != null) tag.putString("shipDim", shipDim);
 		tag.putString("dimension", dimension);
 		tag.putString("race", race.name());
 		if (owner != null) tag.putUUID("owner", owner);
@@ -319,6 +322,7 @@ public final class Hive {
 		hive.queenTicks = tag.getInt("queenTicks");
 		hive.foundation = tag.getBoolean("foundation");
 		hive.shipPad = NbtUtils.readBlockPos(tag, "shipPad").orElse(null);
+		hive.shipDim = tag.contains("shipDim") ? tag.getString("shipDim") : null;
 		hive.nextRaid = tag.getLong("nextRaid");
 		hive.scouted = NbtUtils.readBlockPos(tag, "scouted").orElse(null);
 		hive.scoutedUntil = tag.getLong("scoutedUntil");
