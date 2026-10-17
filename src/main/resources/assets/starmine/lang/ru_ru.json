@@ -521,7 +521,7 @@
 	"ability.starmine.scanner_sweep": "Сканирование",
 	"ability.starmine.scanner_sweep.tip": "Открывает область и невидимых в ней на 12 с",
 	"ability.starmine.lower_depot": "Опустить",
-	"ability.starmine.lower_depot.tip": "Опущенный склад пропускает юнитов базы",
+	"ability.starmine.lower_depot.tip": "Уходит в землю: по нему проходят все (поднимите, чтобы снова перекрыть проход)",
 	"ability.starmine.techlab": "Техлаборатория",
 	"ability.starmine.techlab.tip": "Нужна для продвинутых юнитов",
 	"ability.starmine.reactor": "Реактор",

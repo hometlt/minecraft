@@ -260,6 +260,35 @@ public enum UnitKind {
 		};
 	}
 
+	/**
+	 * Where its weapon fires from (owner 17.10: shots leave the weapons, not the middle of the body): right, up and
+	 * forward from its feet, as parts of its half width, height and half width. Twin weapons (a thor's cannons, a
+	 * viking's launchers) take turns: `shot` counts its shots. Until the SC2 models carry their attachment points.
+	 */
+	public float[] muzzle(int shot) {
+		float side = shot % 2 == 0 ? 1 : -1;
+		return switch (this) {
+			case MARINE, GHOST, RAYNOR, HIGH_TEMPLAR, ADEPT -> new float[] {0.35f, 0.6f, 1.0f};
+			case MARAUDER -> new float[] {0.5f * side, 0.5f, 0.9f};
+			case REAPER -> new float[] {0.45f * side, 0.6f, 0.8f};
+			case HELLION -> new float[] {0, 0.35f, 1.0f};
+			case HELLBAT -> new float[] {0.35f, 0.45f, 1.0f};
+			case SIEGE_TANK -> new float[] {0, 0.85f, 1.15f};
+			case THOR -> new float[] {0.8f * side, 0.75f, 0.6f};
+			case VIKING, LIBERATOR, PHOENIX -> new float[] {0.6f * side, 0.4f, 0.6f};
+			case VIKING_ASSAULT -> new float[] {0.5f * side, 0.6f, 0.7f};
+			case BANSHEE, BATTLECRUISER, IMMORTAL -> new float[] {0.5f * side, 0.6f, 0.9f};
+			case COLOSSUS -> new float[] {0.35f * side, 0.92f, 0.5f};
+			case MISSILE_TURRET, PHOTON_CANNON, COMMAND_CENTER -> new float[] {0, 0.9f, 0.3f};
+			case BUNKER -> new float[] {0, 0.7f, 0.8f};
+			case STALKER -> new float[] {0, 0.72f, 0.8f};
+			case ARCHON, MOTHERSHIP, BROOD_LORD -> new float[] {0, 0.4f, 0.5f};
+			case VOID_RAY, ORACLE, TEMPEST, MUTALISK, CORRUPTOR, ROACH -> new float[] {0, 0.45f, 1.0f};
+			case HYDRALISK, QUEEN -> new float[] {0, 0.8f, 0.8f};
+			default -> new float[] {0, 0.6f, 0.9f};
+		};
+	}
+
 	public Item missile() {
 		return switch (this) {
 			case ROACH, INFESTOR -> Items.SLIME_BALL;

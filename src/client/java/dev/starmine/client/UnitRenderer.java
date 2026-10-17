@@ -68,7 +68,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			&& !(net.minecraft.client.Minecraft.getInstance().player != null && dev.starmine.faction.Faction.allied(entity, net.minecraft.client.Minecraft.getInstance().player))
 			&& Disguises.render(entity, partialTick, poseStack, buffers, packedLight)) return;
 		SkinnedModel model = StarMineModels.get(shown(entity.kind).id);
-		float sink = 0f;
+		float sink = 0f, fall = 0f, shake = 0f;
 		boolean visible = model != null;
 		if (model != null && entity.deathTime > 0 && !model.clips.containsKey("death")) {
 			float dying = (entity.deathTime - 1 + partialTick) / 20f;
@@ -77,10 +77,17 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				model = burst;
 				SkinnedModel.Clip clip = burst.clips.get("death");
 				visible = clip != null && (clip.loop || dying <= clip.seconds(burst.fps));
-			} else {
-				sink = dying / (entity.kind.deathTicks() / 20f) * entity.kind.height;
+			} else if (entity.kind.structure()) { // a building without its SC2 death: it shakes and sinks into its ruin
+				sink = dying / (entity.kind.deathTicks() / 20f) * entity.kind.height * 0.8f;
+				shake = 0.08f * entity.kind.width / 3;
+			} else { // a unit without its SC2 death: it falls over, then sinks
+				fall = Math.min(1f, dying / 0.45f);
+				sink = Math.max(0f, dying - 0.8f) / Math.max(0.1f, entity.kind.deathTicks() / 20f - 0.8f) * entity.kind.height * 0.6f;
 			}
 		}
+		float drop = groundGap(entity, partialTick); // a wide body resting on a ledge: its feet drawn on the ground under it
+		if (drop > 0f) sink += drop;
+		if (entity.lowered() && entity.deathTime == 0) sink = entity.kind.height * 0.85f; // a lowered depot: its roof level with the ground
 		if (entity.mode() == dev.starmine.ability.Modes.BURROWED && entity.deathTime == 0)
 			sink = entity.kind.height * 0.8f; // burrowed (dev.starmine.ability.Modes): only the back shows above the ground
 		if (visible) {
@@ -91,6 +98,16 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+			if (shake > 0f) poseStack.translate((Math.random() - 0.5) * shake, 0, (Math.random() - 0.5) * shake);
+			if (fall > 0f) { // over onto its side (a flyer nose first), round its feet
+				float half = entity.kind.flying ? 0 : entity.kind.width / 2;
+				if (entity.kind.flying) poseStack.mulPose(Axis.XP.rotationDegrees(35f * fall));
+				else {
+					poseStack.translate(half, 0, 0);
+					poseStack.mulPose(Axis.ZP.rotationDegrees(-85f * fall * fall));
+					poseStack.translate(-half, 0, 0);
+				}
+			}
 			float scale = entity.kind.modelScale();
 			if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
@@ -110,6 +127,26 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				-w, 0, -w, w, h, w, 0.95f, 0.8f, 0.3f, 1f);
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
+	}
+
+	/**
+	 * How far the ground under a walker's middle lies below its feet (owner 17.10: ground units seemed to fly over
+	 * blocks): a wide body stands on the edge of a step or a ditch with its middle over air, so it is drawn lowered
+	 * onto the ground under its middle, by up to a block and a half. Not flyers, buildings or the dead.
+	 */
+	private static float groundGap(StarUnit entity, float partialTick) {
+		if (entity.kind.flying || entity.kind.structure() || !entity.onGround() || entity.deathTime > 0 || entity.isPassenger()) return 0f;
+		var level = entity.level();
+		double x = Mth.lerp(partialTick, entity.xo, entity.getX()), y = Mth.lerp(partialTick, entity.yo, entity.getY()), z = Mth.lerp(partialTick, entity.zo, entity.getZ());
+		net.minecraft.core.BlockPos.MutableBlockPos at = new net.minecraft.core.BlockPos.MutableBlockPos();
+		for (int down = 0; down <= 2; down++) {
+			at.set(Mth.floor(x), Mth.floor(y - 0.01) - down, Mth.floor(z));
+			var shape = level.getBlockState(at).getCollisionShape(level, at);
+			if (shape.isEmpty()) continue;
+			double top = at.getY() + shape.max(net.minecraft.core.Direction.Axis.Y);
+			return (float) Math.max(0, Math.min(1.5, y - top));
+		}
+		return 1.5f;
 	}
 
 	/** The drone's valuable slot held in front of it: one small block per unit, up to 8 (2x2x2). */

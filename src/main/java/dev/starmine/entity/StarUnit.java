@@ -589,7 +589,6 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (weapon.interval() <= 0 || this.tickCount % weapon.interval() != 0) return;
 		LivingEntity foe = null;
 		double best = weapon.range() * weapon.range();
-		boolean terran = kind.race == UnitKind.Race.TERRAN;
 		boolean planetary = mode() == dev.starmine.ability.Modes.PLANETARY;
 		for (LivingEntity other : server.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(weapon.range()),
 			entity -> dev.starmine.faction.Faction.hostile(this, entity) && !(entity instanceof StarUnit unit && !dev.starmine.ability.Cloak.seen(unit, this)))) {
@@ -612,7 +611,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(planetary && dev.starmine.ability.Modes.siegeShot(this, foe)))
 			foe.hurt(attackSource(), (float) (weapon.damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, foe)));
 		dev.starmine.ability.Passives.onHit(this, foe);
-		if (terran) tracer(server, foe);
+		if (kind.race != UnitKind.Race.ZERG) tracer(server, foe);
 		shotSounds();
 	}
 
@@ -1162,6 +1161,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	public boolean canBeCollidedWith() {
+		if (lowered()) return false;
 		return kind.structure() || super.canBeCollidedWith();
 	}
 
@@ -1224,16 +1224,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		Entity body = body();
 		if (kind.shot() != null && kind.attack != UnitKind.Attack.LINE) {
 			ZergSpit spit = new ZergSpit(this.level(), body instanceof LivingEntity living ? living : this, kind);
+			spit.setPos(muzzle());
 			Vec3 from = spit.position(), to = point.subtract(from);
 			spit.shoot(to.x, to.y, to.z, ZergSpit.speed(kind), 0.5f);
 			this.level().addFreshEntity(spit);
 		} else if (this.level() instanceof ServerLevel server) {
-			Vec3 from = body.position().add(0, body.getBbHeight() * 0.7, 0);
-			int steps = (int) Math.min(24, from.distanceTo(point) * 2);
-			for (int i = 1; i <= steps; i++) {
-				Vec3 at = from.lerp(point, i / (double) steps);
-				server.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, 1, 0, 0, 0, 0);
-			}
+			Fx.shot(server, kind, muzzle(), point);
 			server.sendParticles(ParticleTypes.SMOKE, point.x, point.y, point.z, 4, 0.1, 0.1, 0.1, 0.01);
 		}
 	}
@@ -1294,9 +1290,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			}
 			default -> {
 				ZergSpit spit = new ZergSpit(this.level(), body(), kind);
-				double dx = target.getX() - this.getX();
+				spit.setPos(muzzle());
+				double dx = target.getX() - spit.getX();
 				double dy = target.getY(0.4) - spit.getY();
-				double dz = target.getZ() - this.getZ();
+				double dz = target.getZ() - spit.getZ();
 				double flat = Math.sqrt(dx * dx + dz * dz);
 				spit.shoot(dx, dy + flat * (kind == UnitKind.BROOD_LORD ? 0.0 : 0.15), dz, ZergSpit.speed(kind), 4.0f);
 				spit.aimAt(target);
@@ -1305,31 +1302,68 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		}
 	}
 
-	/** A terran shot (sparks) or a protoss beam (end rods): a line from the muzzle to the target and a puff where it hits. */
-	private void tracer(ServerLevel server, LivingEntity target) {
-		Vec3 from = this.position().add(0, this.getBbHeight() * 0.6, 0), to = target.position().add(0, target.getBbHeight() * 0.5, 0);
-		int steps = (int) Math.min(24, from.distanceTo(to) * 2);
-		for (int i = 1; i <= steps; i++) {
-			Vec3 point = from.lerp(to, i / (double) steps);
-			server.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : ParticleTypes.ELECTRIC_SPARK, point.x, point.y, point.z, 1, 0, 0, 0, 0);
-		}
-		server.sendParticles(ParticleTypes.SMOKE, to.x, to.y, to.z, 3, 0.1, 0.1, 0.1, 0.01);
+	/** Shots it has fired: twin weapons take turns ({@link UnitKind#muzzle}). */
+	private int shots;
+
+	/** Where its next shot leaves its weapon, in the world (its pilot's body when played: it faces where they look). */
+	public Vec3 muzzle() {
+		Entity body = body();
+		float[] at = kind.muzzle(shots++);
+		double yaw = Math.toRadians(body instanceof LivingEntity living ? living.yBodyRot : body.getYRot());
+		double half = body.getBbWidth() / 2;
+		double forward = at[2] * half, right = at[0] * half;
+		// Minecraft: forward is (-sin, cos), right is (-cos, -sin)
+		return body.position().add(-Math.sin(yaw) * forward - Math.cos(yaw) * right, at[1] * body.getBbHeight(),
+			Math.cos(yaw) * forward - Math.sin(yaw) * right);
 	}
 
-	/** Lurker: spines burst out of the ground along a line toward the target, hitting all in it. */
+	/** A hitscan shot: its beam from the weapon to the target ({@link Fx}) and a flash and a puff where it hits. */
+	private void tracer(ServerLevel server, LivingEntity target) {
+		Vec3 from = muzzle(), to = target.position().add(0, target.getBbHeight() * 0.5, 0);
+		Fx.shot(server, kind, from, to);
+		server.sendParticles(kind.race == UnitKind.Race.PROTOSS ? ParticleTypes.END_ROD : ParticleTypes.SMOKE, to.x, to.y, to.z, 3, 0.1, 0.1, 0.1, 0.01);
+		server.sendParticles(ParticleTypes.CRIT, from.x, from.y, from.z, 2, 0.02, 0.02, 0.02, 0.05); // the muzzle flash
+	}
+
+	/**
+	 * A line weapon, everyone in it hit once: the lurker's spines burst out of the ground toward the target, the
+	 * hellion's and hellbat's flames pour from its nozzle; the colossus' two thermal lances sweep a line across the
+	 * target (SC2: across, not along — a colossus burns a row of zerglings), drawn as lasers from its weapons.
+	 */
 	private void spineLine(LivingEntity target) {
 		Vec3 from = this.position(), direction = target.position().subtract(from).multiply(1, 0, 1).normalize();
 		dev.starmine.ability.Modes.Weapon weapon = weapon();
 		java.util.Set<LivingEntity> hit = new java.util.HashSet<>(); // each once along the line
-		for (double step = 1; step <= weapon.range(); step += 0.5) {
-			Vec3 point = from.add(direction.scale(step));
+		java.util.List<Vec3> line = new java.util.ArrayList<>();
+		if (kind == UnitKind.COLOSSUS) { // across the target, SC2's sweep about 2.6 long
+			Vec3 across = new Vec3(-direction.z, 0, direction.x);
+			double half = 1.3 * UnitKind.BLOCKS_PER_UNIT;
+			for (double step = -half; step <= half; step += 0.5) line.add(target.position().add(across.scale(step)));
+		} else {
+			Vec3 start = kind == UnitKind.LURKER ? from : muzzle().subtract(0, 0.3, 0);
+			for (double step = 1; step <= weapon.range(); step += 0.5) line.add(start.add(direction.scale(step)));
+		}
+		for (Vec3 point : line) {
 			if (this.level() instanceof ServerLevel server)
-				server.sendParticles(kind == UnitKind.HELLION ? ParticleTypes.FLAME : ParticleTypes.CRIT, point.x, point.y + 0.3, point.z, 3, 0.2, 0.3, 0.2, 0.05);
+				server.sendParticles(switch (kind) {
+					case HELLION, HELLBAT -> ParticleTypes.FLAME;
+					case COLOSSUS -> ParticleTypes.SMALL_FLAME;
+					default -> ParticleTypes.CRIT;
+				}, point.x, point.y + 0.3, point.z, kind == UnitKind.COLOSSUS ? 1 : 3, 0.2, 0.3, 0.2, 0.05);
 			for (LivingEntity other : enemiesAround(point, 0.6))
 				if (hit.add(other)) {
-					other.hurt(attackSource(), (float) (weapon.damage() + dev.starmine.ability.Passives.bonus(this, other)));
+					other.hurt(attackSource(), (float) (weapon.damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, other)));
 					dev.starmine.ability.Passives.onHit(this, other);
 				}
+		}
+		if (kind == UnitKind.COLOSSUS && this.level() instanceof ServerLevel server && !line.isEmpty()) {
+			Vec3 left = muzzle(), right = muzzle(); // its two lances sweep the line from each end to the middle
+			int steps = Math.min(6, line.size());
+			dev.starmine.ability.Delayed.repeat(server, 1, steps, n -> {
+				Vec3 a = line.get(n * (line.size() - 1) / Math.max(1, 2 * steps - 1)), b = line.get(line.size() - 1 - n * (line.size() - 1) / Math.max(1, 2 * steps - 1));
+				Fx.shot(server, kind, left, a.add(0, 0.2, 0));
+				Fx.shot(server, kind, right, b.add(0, 0.2, 0));
+			});
 		}
 	}
 
@@ -1346,6 +1380,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	protected void tickDeath() {
 		++this.deathTime;
+		if (this.level() instanceof ServerLevel server) deathBurst(server);
 		if (kind.flying) this.setNoGravity(false);
 		if (this.isVehicle()) {
 			if (kind == UnitKind.BUNKER) dev.starmine.ability.Transport.unloadHere(this); // a bunker's garrison walks out
@@ -1355,6 +1390,49 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			this.level().broadcastEntityEvent(this, (byte) 60);
 			this.remove(Entity.RemovalReason.KILLED);
 		}
+	}
+
+	/**
+	 * How it dies, seen (owner 17.10: better deaths): zerg burst in gore and acid, terran machines and buildings
+	 * explode in fire and smoke (a building in several blasts), terran infantry falls with blood, protoss flash
+	 * blue as their shields and bodies come apart; a flyer trails smoke as it falls. The body itself falls over and
+	 * sinks or plays its SC2 death (client).
+	 */
+	private void deathBurst(ServerLevel server) {
+		double w = this.getBbWidth() / 2, h = this.getBbHeight(), x = this.getX(), y = this.getY() + h / 2, z = this.getZ();
+		int size = (int) Math.max(1, Math.min(12, w * h));
+		boolean building = kind.structure() && kind != UnitKind.EGG;
+		if (this.deathTime == 1 || building && (this.deathTime == 10 || this.deathTime == 22)) {
+			double ox = building ? (this.random.nextDouble() - 0.5) * w : 0, oz = building ? (this.random.nextDouble() - 0.5) * w : 0;
+			switch (kind.race) {
+				case ZERG -> {
+					server.sendParticles(new net.minecraft.core.particles.ItemParticleOption(ParticleTypes.ITEM, new net.minecraft.world.item.ItemStack(
+						net.minecraft.world.item.Items.SLIME_BALL)), x + ox, y, z + oz, 10 * size, w / 2, h / 3, w / 2, 0.15);
+					server.sendParticles(ParticleTypes.SQUID_INK, x + ox, y, z + oz, 4 * size, w / 2, h / 3, w / 2, 0.05);
+					server.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.45f, 0.05f, 0.1f), 2f),
+						x + ox, y, z + oz, 6 * size, w / 2, h / 3, w / 2, 0);
+				}
+				case TERRAN -> {
+					if (kind.mechanical()) {
+						server.sendParticles(building ? ParticleTypes.EXPLOSION_EMITTER : ParticleTypes.EXPLOSION, x + ox, y, z + oz, building ? 1 : Math.max(1, size / 3),
+							w / 3, h / 4, w / 3, 0);
+						server.sendParticles(ParticleTypes.LAVA, x + ox, y, z + oz, 3 * size, w / 2, h / 3, w / 2, 0);
+						server.sendParticles(ParticleTypes.LARGE_SMOKE, x + ox, y, z + oz, 4 * size, w / 2, h / 3, w / 2, 0.03);
+						server.playSound(null, x, y, z, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.HOSTILE,
+							building ? 2f : 0.8f, building ? 0.7f : 1.2f);
+					} else server.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.6f, 0.05f, 0.05f), 1.5f),
+						x, y, z, 12, w / 2, h / 3, w / 2, 0);
+				}
+				case PROTOSS -> {
+					server.sendParticles(ParticleTypes.FLASH, x + ox, y, z + oz, 1, 0, 0, 0, 0);
+					server.sendParticles(ParticleTypes.END_ROD, x + ox, y, z + oz, 8 * size, w / 2, h / 3, w / 2, 0.12);
+					server.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x + ox, y, z + oz, 4 * size, w / 2, h / 3, w / 2, 0.06);
+					if (kind.mechanical()) server.sendParticles(ParticleTypes.EXPLOSION, x + ox, y, z + oz, Math.max(1, size / 3), w / 3, h / 4, w / 3, 0);
+				}
+			}
+		}
+		if (kind.flying && this.deathTime % 2 == 0 && !this.onGround()) // a falling flyer trails smoke
+			server.sendParticles(kind.race == UnitKind.Race.ZERG ? ParticleTypes.SQUID_INK : ParticleTypes.LARGE_SMOKE, x, y, z, 2, w / 3, h / 4, w / 3, 0.01);
 	}
 
 	@Override
@@ -1837,12 +1915,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!steady) super.knockback(strength, x, z);
 	}
 
-	/** A lowered supply depot lets the units of its side walk over it. */
-	@Override
-	public boolean canCollideWith(Entity other) {
-		if (other instanceof StarUnit depot && depot.kind == UnitKind.SUPPLY_DEPOT && depot.mode() == dev.starmine.ability.Modes.LOWERED
-			&& dev.starmine.faction.Faction.allied(this, depot)) return false;
-		return super.canCollideWith(other);
+	/** A lowered supply depot (SC2) lies flat in the ground: everyone walks over it, players too. */
+	public boolean lowered() {
+		return kind == UnitKind.SUPPLY_DEPOT && mode() == dev.starmine.ability.Modes.LOWERED;
 	}
 
 	private void modifier(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, ResourceLocation id, double amount,

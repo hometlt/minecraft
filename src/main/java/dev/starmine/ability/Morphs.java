@@ -42,6 +42,11 @@ public final class Morphs {
 	static void begin(StarUnit unit, UnitKind to, int ticks) {
 		unit.abilities.morphTo = to;
 		Modes.change(unit, unit.mode(), ticks);
+		if (unit.level() instanceof ServerLevel level) // its parts move: sparks round it while it changes
+			Delayed.repeat(level, 4, Math.max(1, ticks / 4), n -> {
+				if (unit.isAlive()) level.sendParticles(ParticleTypes.ELECTRIC_SPARK, unit.getX(), unit.getY() + unit.getBbHeight() / 2, unit.getZ(), 6,
+					unit.getBbWidth() / 2, unit.getBbHeight() / 3, unit.getBbWidth() / 2, 0.05);
+			});
 	}
 
 	/** Puts a unit of `to` in this one's place; returns it (or the old unit when it could not). */

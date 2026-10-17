@@ -351,8 +351,7 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		helper.runAfterDelay(2, () -> {
 			helper.assertTrue(marine.canCollideWith(depot), "a raised depot lets units through");
 			helper.assertTrue(Abilities.cast(depot, level, Ability.LOWER_DEPOT, null, null), "no lowering");
-			helper.assertTrue(!marine.canCollideWith(depot), "the lowered depot stops its own marine");
-			helper.assertTrue(zergling.canCollideWith(depot), "the lowered depot lets a foe through");
+			helper.assertTrue(!marine.canCollideWith(depot) && !zergling.canCollideWith(depot), "the lowered depot stops someone (SC2: everyone walks over it)");
 			helper.succeed();
 		});
 	}

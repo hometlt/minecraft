@@ -42,10 +42,14 @@ public final class StarMineClient implements ClientModInitializer {
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::render);
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(CommandView::renderPlans);
+		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(BeamRenderer::render);
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.entity.Fx.Beam.TYPE,
+			(beam, context) -> BeamRenderer.receive(beam));
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			BaseStatusClient.receive(dev.starmine.colony.ColonyNetwork.BaseStatus.NONE);
 			CommandView.exit(mc);
 			PilotClient.clear();
+			BeamRenderer.clear();
 		});
 		PilotClient.register();
 		// modules (dev.starmine.possess): tinted by the race of their unit

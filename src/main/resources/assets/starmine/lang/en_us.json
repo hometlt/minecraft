@@ -521,7 +521,7 @@
 	"ability.starmine.scanner_sweep": "Scanner Sweep",
 	"ability.starmine.scanner_sweep.tip": "Reveals an area and cloaked units there for 12 s",
 	"ability.starmine.lower_depot": "Lower",
-	"ability.starmine.lower_depot.tip": "A lowered depot lets the units of its base pass",
+	"ability.starmine.lower_depot.tip": "Sinks into the ground: everyone walks over it (raise it to wall off again)",
 	"ability.starmine.techlab": "Build Tech Lab",
 	"ability.starmine.techlab.tip": "Needed for advanced units",
 	"ability.starmine.reactor": "Build Reactor",
