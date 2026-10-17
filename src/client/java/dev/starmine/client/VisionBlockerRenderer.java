@@ -36,20 +36,21 @@ final class VisionBlockerRenderer extends EntityRenderer<VisionBlocker> {
 	public void render(VisionBlocker entity, float yaw, float partialTick, PoseStack pose, MultiBufferSource buffers, int light) {
 		AABB box = entity.hiding();
 		int sizeX = (int) Math.round(box.getXsize()), sizeZ = (int) Math.round(box.getZsize()), height = (int) Math.round(box.getYsize());
-		VertexConsumer stalks = buffers.getBuffer(RenderType.entityCutoutNoCull(STALKS));
-		VertexConsumer tips = buffers.getBuffer(RenderType.entityCutoutNoCull(TIPS));
 		PoseStack.Pose at = pose.last();
-		for (int ix = 0; ix < sizeX; ix++)
-			for (int iz = 0; iz < sizeZ; iz++) {
-				long seed = Mth.getSeed((int) box.minX + ix, 0, (int) box.minZ + iz);
-				float cx = ix + 0.5f + ((seed & 15) - 7.5f) / 40f, cz = iz + 0.5f + (((seed >> 4) & 15) - 7.5f) / 40f;
-				int top = height - (int) ((seed >> 8) & 1); // a little ragged on top
-				for (int y = 0; y < top; y++) {
-					VertexConsumer out = y == top - 1 ? tips : stalks;
-					card(at, out, cx - R, y, cz - R, cx + R, cz + R, light);
-					card(at, out, cx - R, y, cz + R, cx + R, cz - R, light);
+		// one buffer at a time: taking another ends the one before
+		for (boolean tip : new boolean[] {false, true}) {
+			VertexConsumer out = buffers.getBuffer(RenderType.entityCutoutNoCull(tip ? TIPS : STALKS));
+			for (int ix = 0; ix < sizeX; ix++)
+				for (int iz = 0; iz < sizeZ; iz++) {
+					long seed = Mth.getSeed((int) box.minX + ix, 0, (int) box.minZ + iz);
+					float cx = ix + 0.5f + ((seed & 15) - 7.5f) / 40f, cz = iz + 0.5f + (((seed >> 4) & 15) - 7.5f) / 40f;
+					int top = height - (int) ((seed >> 8) & 1); // a little ragged on top
+					for (int y = tip ? top - 1 : 0; y < (tip ? top : top - 1); y++) {
+						card(at, out, cx - R, y, cz - R, cx + R, cz + R, light);
+						card(at, out, cx - R, y, cz + R, cx + R, cz - R, light);
+					}
 				}
-			}
+		}
 	}
 
 	/** One vertical card from (x0, z0) to (x1, z1), a block high from `y`. */
