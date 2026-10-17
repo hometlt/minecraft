@@ -128,15 +128,26 @@ if (modelMode == 'voxel') {
 	if (!prepared.selectedModels.containsAll(packagedModels)) {
 		throw new GradleException('Partial voxel package refused: every packaged model must be converted, not an original fallback')
 	}
+	// Every model of the mod's export list (docs/sc2-models.json) is converted or named as unavailable with its
+	// reason (no model in the game's data): a model left out without a word is a partial package.
+	def unavailable = prepared.unavailableModels ?: [:]
+	if (!(unavailable instanceof Map) || unavailable.any { name, reason -> !(reason instanceof String) || reason.isBlank() || name in prepared.selectedModels }) {
+		throw new GradleException('Invalid unavailableModels in the voxel package marker')
+	}
+	def listed = new groovy.json.JsonSlurper().parse(file('docs/sc2-models.json')).models.collect { it.model }
+	def uncovered = listed.findAll { !(it in prepared.selectedModels) && !unavailable.containsKey(it) }
+	if (!uncovered.isEmpty()) {
+		throw new GradleException("Partial voxel package refused: models of docs/sc2-models.json neither converted nor listed unavailable: ${uncovered}")
+	}
 	prepared.selectedModels.each { kind ->
-		if (!(kind instanceof String) || !(kind ==~ /[a-z0-9]+/) ||
+		if (!(kind instanceof String) || !(kind ==~ /[a-z0-9_]+/) ||
 			!new File(assetsRoot, "assets/starmine/models/sc2/${kind}.smm").isFile() ||
 			!new File(assetsRoot, "assets/starmine/textures/entity/sc2/${kind}_voxel.png").isFile() ||
 			new File(assetsRoot, "assets/starmine/models/sc2/${kind}_death.smm").exists()) {
 			throw new GradleException("Missing voxel model/atlas or stale original death model: ${kind}")
 		}
 	}
-	logger.lifecycle("StarMine voxel mode: all ${prepared.selectedModels.size()} packaged models converted")
+	logger.lifecycle("StarMine voxel mode: ${prepared.selectedModels.size()} models converted, ${unavailable.size()} unavailable in the game: ${unavailable.keySet()}")
 } else if (modelMarker.isFile()) {
 	throw new GradleException('original mode must not use a voxel package; select the original assets directory')
 }
