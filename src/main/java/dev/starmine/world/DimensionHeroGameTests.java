@@ -167,4 +167,23 @@ public class DimensionHeroGameTests implements FabricGameTest {
 		}
 		helper.succeed();
 	}
+
+	@GameTest(template = ARENA, batch = "heroNetherHall", timeoutTicks = 400)
+	public void aNetherBaseHasAGreatHall(GameTestHelper helper) {
+		ServerLevel nether = helper.getLevel().getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+		helper.assertTrue(nether != null, "no Nether");
+		int x = 34000 + helper.getLevel().random.nextInt(4000), z = 30000;
+		int ground = dev.starmine.hive.HiveStructure.ground(nether, x, z);
+		net.minecraft.core.BlockPos floor = new net.minecraft.core.BlockPos(x, ground, z);
+		DimensionBases.hall(nether, floor, net.minecraft.util.RandomSource.create(1));
+		int r = DimensionBases.HALL_RADIUS;
+		for (int[] d : new int[][] {{0, 0}, {r - 3, 0}, {0, -(r - 3)}, {-(r - 5), 6}, {8, 8}}) {
+			net.minecraft.core.BlockPos at = floor.offset(d[0], 0, d[1]);
+			helper.assertTrue(nether.getBlockState(at).isAir() && nether.getBlockState(at.above(3)).isAir(), "no room in the hall at " + at);
+			helper.assertTrue(nether.getBlockState(at.below()).isCollisionShapeFullBlock(nether, at.below()), "no floor in the hall at " + at);
+		}
+		helper.assertTrue(nether.getBlockState(floor.above(DimensionBases.HALL_HEIGHT - 2)).isAir() || floor.getY() + DimensionBases.HALL_HEIGHT > 120,
+			"the hall is low in the middle");
+		helper.succeed();
+	}
 }
