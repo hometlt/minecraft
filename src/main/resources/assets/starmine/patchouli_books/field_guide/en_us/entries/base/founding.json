@@ -11,8 +11,16 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_platform",
-			"text": "A map ringed with 8 armor shards of a race makes its supply platform. Fill it with ores, ingots, gems or vespene worth 500 minerals and use the command panel on it: a transport brings a worker.",
+			"text": "A map ringed with 8 armor shards of a race makes its supply platform. Placed, it is a building of its race: monsters and the wild races attack it. Lay $(l)100 minerals$() in it and use the command panel on it: a transport brings a worker, who founds your base there.",
 			"recipe2": "starmine:zerg_platform"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Workers bring what they gather to the nearest $(l)storage$(): a main building or a supply platform. They take $(l)minerals first$(); only where there are none other valuable blocks. All storages are one bank of minerals and vespene: open any of them like a chest — minerals show as mineral shards; anything valuable laid in turns into minerals by its worth."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Units and buildings cost only $(l)minerals and vespene$(), as in StarCraft II. Build the main building with a worker when you have its price."
 		}
 	]
 }

@@ -130,6 +130,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private int defendTicks;
 	/** Drone sent to mutate into a building at a site; a building still being built (ticks left). */
 	private UnitKind buildKind;
+	/** A supply platform's own minerals and vespene while it belongs to no base (owner 17.10; dev.starmine.colony.Storage). */
+	public int bankMinerals, bankVespene;
 	private BlockPos buildSite;
 	private int constructTicks;
 	/** Drone fleeing from an armed attacker until this game time. */
@@ -292,6 +294,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.aiStep();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		holdPlace();
+		if (kind.platform() && this.tickCount % 20 == 0) dev.starmine.colony.Storage.tickPlatform(this, server);
 		if (this.tickCount % 4 == 0) leaveBuildings(server);
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
@@ -1022,6 +1025,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			tag.putString("StarMineResearch", research);
 			tag.putInt("StarMineResearchTicks", researchTicks);
 		}
+		if (bankMinerals != 0 || bankVespene != 0) {
+			tag.putInt("StarMineBankMinerals", bankMinerals);
+			tag.putInt("StarMineBankVespene", bankVespene);
+		}
 		if (cargoLabel != null) tag.putString("StarMineCargoLabel", cargoLabel);
 		if (buildKind != null && buildSite != null) {
 			tag.putString("StarMineBuild", buildKind.name());
@@ -1103,6 +1110,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
 		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
 		researchTicks = tag.getInt("StarMineResearchTicks");
+		bankMinerals = tag.getInt("StarMineBankMinerals");
+		bankVespene = tag.getInt("StarMineBankVespene");
 		cargoLabel = tag.contains("StarMineCargoLabel") ? tag.getString("StarMineCargoLabel") : null;
 		if (tag.contains("StarMineBuild")) {
 			try {

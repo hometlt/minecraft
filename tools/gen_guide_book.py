@@ -54,8 +54,12 @@ CATEGORIES = [
         ('founding', t('Founding a Base', 'Основание базы'), 'starmine:commandcenter_spawn_egg', [
             text('A main building — hatchery, command center or nexus — placed from a spawn egg founds your base: 50 minerals and 4 workers. One base per dimension, shared by all three races.',
                  'Главное здание — инкубатор, командный центр или нексус — поставленное из яйца призыва, основывает вашу базу: 50 минералов и 4 рабочих. Одна база на измерение, общая для всех трёх рас.'),
-            craft('terran_platform', 'A map ringed with 8 armor shards of a race makes its supply platform. Fill it with ores, ingots, gems or vespene worth 500 minerals and use the command panel on it: a transport brings a worker.',
-                  'Карта в кольце из 8 осколков брони расы — её склад-платформа. Заполните её рудой, слитками, самоцветами или веспеном на 500 минералов и примените к ней командную панель: транспорт привезёт рабочего.', 'zerg_platform'),
+            craft('terran_platform', 'A map ringed with 8 armor shards of a race makes its supply platform. Placed, it is a building of its race: monsters and the wild races attack it. Lay $(l)100 minerals$() in it and use the command panel on it: a transport brings a worker, who founds your base there.',
+                  'Карта в кольце из 8 осколков брони расы — её склад-платформа. Поставленная, она — здание своей расы: на неё нападают монстры и дикие расы. Положите в неё $(l)100 минералов$() и примените командную панель: транспорт привезёт рабочего, и он основывает вашу базу у платформы.', 'zerg_platform'),
+            text('Workers bring what they gather to the nearest $(l)storage$(): a main building or a supply platform. They take $(l)minerals first$(); only where there are none other valuable blocks. All storages are one bank of minerals and vespene: open any of them like a chest — minerals show as mineral shards; anything valuable laid in turns into minerals by its worth.',
+                 'Рабочие несут добытое в ближайшее $(l)хранилище$(): главное здание или склад-платформу. Они берут $(l)сначала минералы$(), другие ценные блоки — только где минералов нет. Все хранилища — один банк минералов и веспена: любое открывается как сундук, минералы видны осколками, всё ценное, что положено внутрь, превращается в минералы по своей цене.'),
+            text('Units and buildings cost only $(l)minerals and vespene$(), as in StarCraft II. Build the main building with a worker when you have its price.',
+                 'Юниты и здания стоят только $(l)минералы и веспен$(), как в StarCraft II. Главное здание стройте рабочим, когда хватит его цены.'),
         ]),
         ('command', t('Command View', 'Командный вид'), 'starmine:command_panel', [
             craft('command_panel', 'The command panel: a map, 4 repeaters, 4 comparators. Hold it and press the command key: a camera from above.',
@@ -116,8 +120,8 @@ GENERAL = {
                  'Слизь растёт вокруг инкубаторов и опухолей: на ней зерги быстрее и лечатся. Дикие зерги ненавидят всё живое, нападают на деревни, роют туннели и захватывают пещеры плотью и опухолями. От базы идут нидус-коридоры: длинный туннель жидкой слизи к нидусову червю, через который перебрасывают и охраняют воинов.'),
         ]),
         ('sky', t('The Leviathan', 'Левиафан'), 'starmine:glowing_zerg_flesh', [
-            text('Over the clouds above the lair floats the leviathan, a beast of flesh: no stairs, only passages of flesh, pools of liquid creep, eggs and a chest in its belly. Under the lair a stair leads to a portal hall; kill the portal\'s guards and step in to reach the beast.',
-                 'Над облаками над логовом парит левиафан — чудовище из плоти: без лестниц, только ходы в плоти, лужи жидкой слизи, яйца и сундук в чреве. Под логовом лестница ведёт в зал порталов: убейте стражей портала и войдите, чтобы попасть внутрь.'),
+            text('Over the clouds above the lair floats the leviathan, a beast of flesh: passages of flesh, pools of liquid creep, eggs and a chest in its belly. Under the lair a stair leads to a portal hall; kill the portal\'s guards and step in to reach the beast.',
+                 'Над облаками над логовом парит левиафан — чудовище из плоти: ходы в плоти, лужи жидкой слизи, яйца и сундук в чреве. Под логовом лестница ведёт в зал порталов: убейте стражей портала и войдите, чтобы попасть внутрь.'),
         ]),
         ('boss', t('Boss: Kerrigan', 'Босс: Керриган'), 'starmine:zerg_chestplate', [
             entity('kerrigan', 'The Queen of Blades waits in the leviathan\'s heart. At 2/3 health she calls her brood; at 1/3 she rages. Reward: a full zerg suit, 16 shards, 8 diamonds.',
@@ -129,7 +133,7 @@ GENERAL = {
             entity('commandcenter', 'A paved square 480 blocks from where you first appeared: a command center, depots, barracks, factory, starport, engineering bay, bunker and turrets. An SCV builds and stays by the building; buildings lift off and land.',
                    'Бетонная площадь в 480 блоках от места вашего появления: командный центр, склады, казармы, завод, космопорт, инженерный отсек, бункер и турели. КСМ строит и стоит рядом, пока строит; здания взлетают и садятся.'),
             text('Under the base lies a steel labyrinth with labs and a reactor core. Terrans claim land with concrete, lamps and cables; their camps have a campfire, a forge and an antenna, guarded by marines.',
-                 'Под базой — стальной лабиринт с лабораториями и реакторным ядром. Терраны захватывают земли бетоном, фонарями и кабелями; в их лагерях костёр, кузня и антенна под охраной морпехов.'),
+                 'Под базой — стальной лабиринт с лабораториями и реакторным ядром. Терраны захватывают земли бетоном, фонарями и кабелями; в их лагерях костёр, кузня и антенна под охраной пехотинцев.'),
         ]),
         ('sky', t('The Hyperion', '«Гиперион»'), 'minecraft:iron_block', [
             text('Over the clouds above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks and a hold of chests. A stair under the base leads to the portal hall.',
@@ -137,7 +141,7 @@ GENERAL = {
         ]),
         ('boss', t('Boss: Raynor', 'Босс: Рейнор'), 'starmine:terran_helmet', [
             entity('raynor', 'Jim Raynor holds the Hyperion\'s bridge. At 2/3 health he calls his marines; at 1/3 he rages. Reward: a full terran suit, 16 shards, 8 diamonds.',
-                   'Джим Рейнор держит мостик «Гипериона». На 2/3 здоровья он зовёт морпехов, на 1/3 впадает в ярость. Награда: полный костюм терранов, 16 осколков, 8 алмазов.'),
+                   'Джим Рейнор держит мостик «Гипериона». На 2/3 здоровья он зовёт пехотинцев, на 1/3 впадает в ярость. Награда: полный костюм терранов, 16 осколков, 8 алмазов.'),
         ]),
     ],
     'PROTOSS': [

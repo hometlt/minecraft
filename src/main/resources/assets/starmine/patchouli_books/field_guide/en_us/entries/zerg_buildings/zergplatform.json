@@ -1,0 +1,19 @@
+{
+	"name": "Zerg Supply Platform",
+	"icon": "starmine:zergplatform_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:zergplatform",
+			"name": "Zerg Supply Platform",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Zerg Supply Platform",
+			"text": "$(l)Health$(): 400$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

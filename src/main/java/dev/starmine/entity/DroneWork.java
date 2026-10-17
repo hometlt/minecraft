@@ -361,7 +361,7 @@ final class DroneWork extends Goal {
 		if (griefing) {
 			BlockPos ore = oreNear(level);
 			if (ore != null) {
-				claimGroup(level, ore);
+				if (!dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(ore))) claimGroup(level, ore);
 				mineTarget = ore;
 				deep = false;
 				to(State.MINE);
@@ -538,12 +538,14 @@ final class DroneWork extends Goal {
 	BlockPos oreNear(ServerLevel level) {
 		long now = level.getGameTime();
 		unreachable.values().removeIf(until -> until < now);
+		BlockPos crystal = crystalNear(level);
+		if (crystal != null) return crystal;
 		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID(), unreachable.keySet());
 		if (ore != null || drone.hiveId() == null) return ore;
 		StarUnit main = null;
 		double best = Double.MAX_VALUE;
 		for (StarUnit unit : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(48),
-				mob -> mob.kind.main() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) {
+				mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) {
 			double d = unit.distanceToSqr(drone);
 			if (d < best) {
 				best = d;
@@ -553,6 +555,28 @@ final class DroneWork extends Goal {
 		if (main == null) return null;
 		ore = findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID(), unreachable.keySet());
 		return ore != null ? ore : farOre(level, main);
+	}
+
+	/** How far from its base (or itself) a worker looks for mineral crystals first. */
+	static final int CRYSTALS = 48;
+
+	/**
+	 * Owner 17.10: workers gather minerals first, other valuable blocks only when there are none. A crystal within
+	 * {@link #CRYSTALS} blocks of its base's nearest storage building: of the nearest few, one by the worker, so
+	 * a base's workers spread over its crystals as in SC2.
+	 */
+	private BlockPos crystalNear(ServerLevel level) {
+		if (drone.hiveId() == null) return null;
+		// round its base's storage building (with none there is nowhere to bring them)
+		StarUnit storage = level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(96),
+			mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive()).stream()
+			.min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(drone))).orElse(null);
+		if (storage == null) return null;
+		BlockPos from = storage.blockPosition();
+		List<BlockPos> cores = dev.starmine.mineral.Minerals.coresNear(level, from, CRYSTALS);
+		cores.removeIf(unreachable::containsKey);
+		if (cores.isEmpty()) return null;
+		return cores.get(Math.floorMod(drone.getUUID().hashCode(), Math.min(3, cores.size())));
 	}
 
 	/** Ores of a base farther out ({@link #FAR} from its main building's edge), found once for all its workers every {@link #FAR_TICKS}. */
@@ -666,6 +690,8 @@ final class DroneWork extends Goal {
 			mineTarget = null;
 			to(State.SEEK);
 		} else if (move == Move.FAILED) {
+			// a crystal with no way to it is set aside a while (else the next look picks it again, and again)
+			if (dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(mineTarget))) unreachable.put(mineTarget, level.getGameTime() + GIVE_UP_FOR);
 			release(mineTarget);
 			mineTarget = null;
 			to(State.SEEK);
@@ -691,7 +717,7 @@ final class DroneWork extends Goal {
 
 	// ---- CARRY ----
 
-	/** The load goes to the edge of the nearest main building of its base (hatchery, command center, nexus; they are solid). */
+	/** The load goes to the edge of the nearest storage building of its base (a main building or a supply platform; they are solid). */
 	private void carry(ServerLevel level, boolean griefing) {
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		if (hive == null) {
@@ -704,7 +730,7 @@ final class DroneWork extends Goal {
 		StarUnit nearest = null;
 		double best = Double.MAX_VALUE;
 		for (StarUnit main : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(160),
-			mob -> mob.kind.main() && hive.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
+			mob -> mob.kind.storage() && hive.id.equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
 			double d = main.distanceToSqr(drone);
 			if (d < best) {
 				best = d;
@@ -777,7 +803,7 @@ final class DroneWork extends Goal {
 	private BlockPos base(ServerLevel level) {
 		if (drone.hiveId() != null)
 			for (StarUnit main : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(96),
-				mob -> mob.kind.main() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) return main.blockPosition();
+				mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) return main.blockPosition();
 		return drone.home() != null ? drone.home() : drone.blockPosition();
 	}
 

@@ -6,25 +6,31 @@ import dev.starmine.ability.TestArena;
 import dev.starmine.entity.StarUnit;
 import dev.starmine.entity.UnitKind;
 import dev.starmine.hive.Hive;
+import dev.starmine.hive.HiveResources;
 import dev.starmine.hive.HiveSavedData;
+import dev.starmine.mineral.Minerals;
 import dev.starmine.suit.SuitItems;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 
 /**
- * The supply platform (CLOUD_TASK_2 stage 5): its recipe, resources put in, a call refused when it holds
- * too little, and a call that brings a worker by transport and founds the player's base there.
+ * The supply platform (owner 17.10): crafted, placed it is a building of its race; a chest of its bank; a worker
+ * for exactly 100 minerals, who founds the player's base at it; monsters attack it; workers gather minerals first.
  */
 public class PlatformGameTests implements FabricGameTest {
 	private static final BlockPos AT = new BlockPos(24, 2, 24);
@@ -47,76 +53,106 @@ public class PlatformGameTests implements FabricGameTest {
 		return helper.makeMockPlayer(GameType.SURVIVAL);
 	}
 
+	/** A placed platform block: the platform building of its race, the player's, the block gone. */
+	private static StarUnit platform(GameTestHelper helper, UnitKind.Race race, Player player) {
+		helper.setBlock(AT, PlatformBlock.BLOCKS.get(race));
+		StarUnit platform = Storage.fromBlock(helper.getLevel(), helper.absolutePos(AT), race, player.getUUID());
+		helper.assertTrue(platform != null && platform.kind == UnitKind.platformOf(race), "no " + race + " platform building");
+		helper.assertTrue(platform.kind.structure() && platform.kind.storage(), "the platform is not a storage building");
+		helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(AT)).isAir(), "the platform block stayed");
+		return platform;
+	}
+
 	@GameTest(template = ARENA, batch = "platformShort", timeoutTicks = 40)
 	public void aPlatformWithTooLittleCallsNobody(GameTestHelper helper) {
 		TestArena.clear(helper);
-		helper.setBlock(AT, PlatformBlock.BLOCKS.get(UnitKind.Race.TERRAN));
-		BlockPos pos = helper.absolutePos(AT);
 		Player player = player(helper);
-		ItemStack iron = new ItemStack(Items.RAW_IRON, 40);
-		helper.assertTrue("message.starmine.platform_holds".equals(PlatformBlock.put(helper.getLevel(), pos, player, iron)), "raw iron is not taken");
-		helper.assertTrue(iron.isEmpty(), "the stack is left in the hand");
-		PlatformBlockEntity platform = (PlatformBlockEntity) helper.getLevel().getBlockEntity(pos);
-		helper.assertTrue(platform.minerals() == 320 && platform.stock().getOrDefault("iron", 0) == 40,
-			"40 raw iron: " + platform.minerals() + " minerals, " + platform.stock());
-		helper.assertTrue("message.starmine.platform_short".equals(PlatformBlock.call(helper.getLevel(), pos, player)), "a call with 320 minerals");
+		StarUnit platform = platform(helper, UnitKind.Race.TERRAN, player);
+		platform.bankMinerals = Storage.WORKER_PRICE - 5;
+		helper.assertTrue("message.starmine.platform_short".equals(Storage.call(helper.getLevel(), platform, player)), "a call with 95 minerals");
 		helper.runAfterDelay(20, () -> {
-			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(40)).isEmpty(), "a transport came anyway");
-			helper.assertBlockPresent(PlatformBlock.BLOCKS.get(UnitKind.Race.TERRAN), AT);
+			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(platform.blockPosition()).inflate(40),
+				unit -> unit.kind == UnitKind.MEDIVAC).isEmpty(), "a transport came anyway");
+			helper.assertTrue(platform.bankMinerals == 95, "the short call took minerals");
 			helper.succeed();
 		});
 	}
 
-	/** Owner 17.10: the platform is a chest of its race — what is laid in its 27 slots counts and pays the call. */
+	/** The bank as a chest: its minerals as mineral shards; shards taken out and iron laid in change the bank. */
 	@GameTest(template = ARENA, batch = "platformChest", timeoutTicks = 40)
-	public void thePlatformIsAChest(GameTestHelper helper) {
+	public void thePlatformIsAChestOfTheBank(GameTestHelper helper) {
 		TestArena.clear(helper);
-		helper.setBlock(AT, PlatformBlock.BLOCKS.get(UnitKind.Race.ZERG));
-		BlockPos pos = helper.absolutePos(AT);
-		PlatformBlockEntity platform = (PlatformBlockEntity) helper.getLevel().getBlockEntity(pos);
-		helper.assertTrue(platform.getContainerSize() == 27, "not a chest: " + platform.getContainerSize() + " slots");
-		helper.assertTrue(platform.createMenu(0, player(helper).getInventory(), player(helper)) instanceof net.minecraft.world.inventory.ChestMenu,
-			"it does not open as a chest");
-		platform.setItem(3, new ItemStack(Items.RAW_IRON, 64));
-		platform.setItem(9, new ItemStack(Items.COAL, 5));
-		helper.assertTrue(platform.minerals() >= 500 && platform.stock().getOrDefault("iron", 0) == 64, "the slots do not count: " + platform.minerals());
 		Player player = player(helper);
-		helper.assertTrue("message.starmine.platform_calling".equals(PlatformBlock.call(helper.getLevel(), pos, player)), "the slots do not pay the call");
-		helper.assertTrue(platform.getItem(3).isEmpty() && platform.stock().getOrDefault("coal", 0) == 5, "the call took the wrong things");
-		helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(48, 40, 48), unit -> unit.owner().map(player.getUUID()::equals).orElse(false))
-			.forEach(StarUnit::discard);
+		StarUnit platform = platform(helper, UnitKind.Race.ZERG, player);
+		platform.bankMinerals = 52;
+		Storage.View view = new Storage.View(Storage.bankOf(helper.getLevel(), platform), player);
+		helper.assertTrue(view.getContainerSize() == 54 && view.getItem(0).is(Minerals.SHARD) && view.getItem(0).getCount() == 10,
+			"52 minerals do not show as 10 shards: " + view.getItem(0));
+		view.removeItem(0, 4); // 4 shards = 20 minerals taken out
+		helper.assertTrue(platform.bankMinerals == 32, "taking 4 shards left " + platform.bankMinerals);
+		view.setItem(5, new ItemStack(Items.RAW_IRON, 10));
+		int iron = HiveResources.yieldOfItem(new ItemStack(Items.RAW_IRON)).minerals() * 10;
+		helper.assertTrue(platform.bankMinerals == 32 + iron, "10 raw iron did not count: " + platform.bankMinerals);
+		helper.assertFalse(view.canPlaceItem(6, new ItemStack(Items.STICK)), "a stick is taken");
 		helper.succeed();
 	}
 
-	/** 63 raw iron (504 minerals) and the command panel: a medivac brings an SCV, the platform goes, a command center rises there. */
+	/** 100 minerals and the command panel: a medivac brings an SCV, the base is founded at the platform, no main building. */
 	@GameTest(template = ARENA, batch = "platformCall", timeoutTicks = 1600)
-	public void aCalledTransportFoundsTheBase(GameTestHelper helper) {
+	public void aCalledWorkerFoundsTheBaseAtThePlatform(GameTestHelper helper) {
 		TestArena.clear(helper);
-		helper.setBlock(AT, PlatformBlock.BLOCKS.get(UnitKind.Race.TERRAN));
-		BlockPos pos = helper.absolutePos(AT);
 		Player player = player(helper);
-		PlatformBlock.put(helper.getLevel(), pos, player, new ItemStack(Items.RAW_IRON, 63));
-		PlatformBlock.put(helper.getLevel(), pos, player, new ItemStack(Items.COAL, 5));
-		String said = PlatformBlock.call(helper.getLevel(), pos, player);
+		StarUnit platform = platform(helper, UnitKind.Race.TERRAN, player);
+		platform.bankMinerals = Storage.WORKER_PRICE + 30;
+		String said = Storage.call(helper.getLevel(), platform, player);
 		helper.assertTrue("message.starmine.platform_calling".equals(said), "the call: " + said);
-		helper.assertTrue("message.starmine.platform_called".equals(PlatformBlock.call(helper.getLevel(), pos, player)), "a second call went through");
-		AABB area = new AABB(pos).inflate(48, 40, 48);
+		helper.assertTrue(platform.bankMinerals == 30, "the call cost " + (Storage.WORKER_PRICE + 30 - platform.bankMinerals));
+		helper.assertTrue("message.starmine.platform_called".equals(Storage.call(helper.getLevel(), platform, player)), "a second call went through");
+		AABB area = new AABB(platform.blockPosition()).inflate(48, 40, 48);
 		StarUnit medivac = helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.MEDIVAC).stream().findFirst().orElse(null);
 		helper.assertTrue(medivac != null && medivac.getPassengers().size() == 1, "no medivac with an SCV aboard");
-		helper.assertTrue(medivac.distanceToSqr(pos.getCenter()) > 15 * 15, "the medivac did not come from afar");
 		helper.succeedWhen(() -> {
 			Hive base = HiveSavedData.get(helper.getLevel().getServer()).baseOf(player.getUUID(), helper.getLevel().dimension().location().toString());
 			helper.assertTrue(base != null, "no base yet");
-			StarUnit cc = helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.COMMAND_CENTER).stream().findFirst().orElse(null);
-			helper.assertTrue(cc != null && base.id.equals(cc.hiveId()), "no command center of the base");
-			helper.assertTrue(cc.blockPosition().distManhattan(pos) <= 2, "the command center is not on the platform's place: " + TestArena.where(helper, cc));
-			helper.assertTrue(!(helper.getLevel().getBlockState(pos).getBlock() instanceof PlatformBlock), "the platform is still there");
-			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.MEDIVAC).isEmpty(), "the medivac is still there");
-			// (other tests' SCVs may stand within this area: the brought one is the base's)
+			helper.assertTrue(base.id.equals(platform.hiveId()), "the platform is not a storage of the base");
+			helper.assertTrue(base.minerals == 30 && platform.bankMinerals == 0, "the platform's minerals did not go to the base: " + base.minerals);
 			StarUnit scv = helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.SCV && base.id.equals(unit.hiveId()))
 				.stream().findFirst().orElse(null);
 			helper.assertTrue(scv != null && scv.owner().map(player.getUUID()::equals).orElse(false), "the base has no SCV of the player's");
-			helper.assertTrue(base.collected.getOrDefault("coal", 0) == 5, "the platform's coal did not go to the base: " + base.collected);
+			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.COMMAND_CENTER
+				&& base.id.equals(unit.hiveId())).isEmpty(), "a command center came for free");
+			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, area, unit -> unit.kind == UnitKind.MEDIVAC).isEmpty(), "the medivac is still there");
+		});
+	}
+
+	/** The platform is a building: a zombie goes for it and hurts it. */
+	@GameTest(template = ARENA, batch = "platformAttacked", timeoutTicks = 400)
+	public void monstersAttackThePlatform(GameTestHelper helper) {
+		TestArena.clear(helper);
+		StarUnit platform = platform(helper, UnitKind.Race.PROTOSS, player(helper));
+		Zombie zombie = helper.spawn(EntityType.ZOMBIE, AT.offset(5, 0, 0));
+		zombie.setPersistenceRequired();
+		helper.succeedWhen(() -> helper.assertTrue(platform.getHealth() < platform.getMaxHealth() || platform.shield() < platform.kind.shields,
+			"the zombie did not hurt the platform (target " + zombie.getTarget() + ")"));
+	}
+
+	/** Owner 17.10: workers gather minerals first — a crystal farther off before iron ore at hand. */
+	@GameTest(template = ARENA, batch = "platformMinerals", timeoutTicks = 600)
+	public void workersGatherMineralsFirst(GameTestHelper helper) {
+		TestArena.clear(helper);
+		BlockPos core = helper.absolutePos(new BlockPos(38, 2, 24));
+		helper.assertTrue(Minerals.place(helper.getLevel(), core, (pos, state) -> helper.getLevel().setBlock(pos, state, 2)), "no crystal");
+		for (int z = 20; z <= 28; z++) helper.setBlock(new BlockPos(14, 2, z), Blocks.IRON_ORE);
+		StarUnit cc = TestArena.unit(helper, UnitKind.COMMAND_CENTER, 24, 8, UUID.randomUUID());
+		helper.runAfterDelay(20, () -> {
+			Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			StarUnit scv = TestArena.member(helper, base, UnitKind.SCV, 16, 24);
+			helper.succeedWhen(() -> {
+				helper.assertTrue(scv.cargoBlocks > 0 || base.collected.getOrDefault("minerals", 0) > 0, "nothing gathered yet: " + scv.goalsRunning());
+				helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(14, 2, 24))).is(Blocks.IRON_ORE), "the SCV took the iron first");
+				helper.assertTrue("minerals".equals(scv.cargoLabel) || base.collected.getOrDefault("minerals", 0) > 0, "the SCV carries " + scv.cargoLabel);
+			});
 		});
 	}
 }

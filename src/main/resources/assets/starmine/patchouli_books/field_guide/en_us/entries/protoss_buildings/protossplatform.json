@@ -1,0 +1,19 @@
+{
+	"name": "Protoss Supply Platform",
+	"icon": "starmine:protossplatform_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 15,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:protossplatform",
+			"name": "Protoss Supply Platform",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Protoss Supply Platform",
+			"text": "$(l)Health$(): 200, shields 200$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

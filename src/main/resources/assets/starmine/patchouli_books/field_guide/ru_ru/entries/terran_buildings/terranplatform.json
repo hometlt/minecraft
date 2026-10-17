@@ -1,0 +1,19 @@
+{
+	"name": "Склад-платформа терранов",
+	"icon": "starmine:terranplatform_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 12,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:terranplatform",
+			"name": "Склад-платформа терранов",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Склад-платформа терранов",
+			"text": "$(l)Здоровье$(): 400$(br)Без атаки$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

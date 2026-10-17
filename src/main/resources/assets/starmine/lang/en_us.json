@@ -832,9 +832,9 @@
 	"block.starmine.terran_platform": "Terran Supply Platform",
 	"block.starmine.protoss_platform": "Protoss Supply Platform",
 	"message.starmine.platform_holds": "The platform holds %s (minerals / vespene, resources)",
-	"message.starmine.platform_short": "Not enough on the platform to call a main building: %s (see costs/platform.json: 500 minerals, 500 iron or 100 diamonds)",
+	"message.starmine.platform_short": "Not enough minerals on the platform to call a worker: %s of %s",
 	"message.starmine.platform_called": "A transport is already on its way",
-	"message.starmine.platform_calling": "A transport is on its way with a worker (left on the platform: %s)",
+	"message.starmine.platform_calling": "A transport is on its way with a worker",
 	"entity.starmine.kerrigan": "Kerrigan",
 	"item.starmine.kerrigan_spawn_egg": "Kerrigan Spawn Egg",
 	"entity.starmine.raynor": "Raynor",
@@ -972,5 +972,11 @@
 	"book.starmine.guide.33": "Crafting\n\nCommand panel: map in the middle, repeaters and comparators round it.\nPlatform: map ringed by 8 armor shards.\nModule: 3 shards, 2 mineral shards, a vespene bucket.\nSuits: shards in vanilla armor shapes.",
 	"book.starmine.guide.32": "Races apart\n\nThe races are always foes. A pack, a claim or a nydus worm of one race never appears within 96 blocks of another race's wild. Packs wake for any player but a spectator.",
 	"book.starmine.field_guide.landing": "Three races of StarCraft II have come to this world. This guide tells how to live among them and how to command them: your base, resources, the gear and its crafting, each race, the world and its heroes.",
-	"book.starmine.field_guide.name": "StarMine Field Guide"
+	"book.starmine.field_guide.name": "StarMine Field Guide",
+	"message.starmine.base_founded_platform": "A worker has landed: your base is founded at the platform. Workers bring minerals to the platform; build a main building when you can.",
+	"message.starmine.worker_arrived": "A worker has landed and joined your base",
+	"container.starmine.bank": "%s — %s minerals, %s vespene",
+	"entity.starmine.zergplatform": "Zerg Supply Platform",
+	"entity.starmine.terranplatform": "Terran Supply Platform",
+	"entity.starmine.protossplatform": "Protoss Supply Platform"
 }

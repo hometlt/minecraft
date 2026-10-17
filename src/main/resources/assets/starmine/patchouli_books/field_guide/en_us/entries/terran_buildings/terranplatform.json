@@ -1,0 +1,19 @@
+{
+	"name": "Terran Supply Platform",
+	"icon": "starmine:terranplatform_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 12,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:terranplatform",
+			"name": "Terran Supply Platform",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Terran Supply Platform",
+			"text": "$(l)Health$(): 400$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

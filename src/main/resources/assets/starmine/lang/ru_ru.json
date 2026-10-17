@@ -832,9 +832,9 @@
 	"block.starmine.terran_platform": "Склад-платформа терранов",
 	"block.starmine.protoss_platform": "Склад-платформа протоссов",
 	"message.starmine.platform_holds": "На платформе: %s (минералы / газ, ресурсы)",
-	"message.starmine.platform_short": "На платформе мало ресурсов, чтобы вызвать главное здание: %s (нужно 500 минералов, 500 железа или 100 алмазов — costs/platform.json)",
+	"message.starmine.platform_short": "На платформе мало минералов, чтобы вызвать рабочего: %s из %s",
 	"message.starmine.platform_called": "Транспорт уже в пути",
-	"message.starmine.platform_calling": "Транспорт летит с рабочим (на платформе осталось: %s)",
+	"message.starmine.platform_calling": "Транспорт летит с рабочим",
 	"entity.starmine.kerrigan": "Керриган",
 	"item.starmine.kerrigan_spawn_egg": "Яйцо призыва: Керриган",
 	"entity.starmine.raynor": "Рейнор",
@@ -972,5 +972,11 @@
 	"book.starmine.guide.33": "Крафт\n\nКомандная панель: карта в центре, вокруг повторители и компараторы.\nПлатформа: карта в кольце из 8 осколков брони.\nМодуль: 3 осколка, 2 осколка минерала, ведро веспена.\nКостюмы: осколки в форме обычной брони.",
 	"book.starmine.guide.32": "Расы порознь\n\nРасы всегда враждебны. Стая, захват или нидусов червь одной расы не появляются ближе 96 блоков к дикому другой. Стаи просыпаются для любого игрока, кроме наблюдателя.",
 	"book.starmine.field_guide.landing": "В этот мир пришли три расы StarCraft II. Справочник расскажет, как жить среди них и как ими командовать: база, ресурсы, снаряжение и его крафт, каждая раса, мир и его герои.",
-	"book.starmine.field_guide.name": "Справочник StarMine"
+	"book.starmine.field_guide.name": "Справочник StarMine",
+	"message.starmine.base_founded_platform": "Рабочий высадился: база основана у платформы. Рабочие несут минералы на платформу; главное здание стройте, когда хватит ресурсов.",
+	"message.starmine.worker_arrived": "Рабочий высадился и присоединился к вашей базе",
+	"container.starmine.bank": "%s — %s минералов, %s веспена",
+	"entity.starmine.zergplatform": "Склад-платформа зергов",
+	"entity.starmine.terranplatform": "Склад-платформа терранов",
+	"entity.starmine.protossplatform": "Склад-платформа протоссов"
 }

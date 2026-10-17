@@ -178,6 +178,23 @@ public final class Minerals {
 		}
 	}
 
+	/** The cores of the crystals with minerals left within `radius` blocks (flat) of `centre`, nearest first, from the loaded chunks. */
+	public static java.util.List<BlockPos> coresNear(net.minecraft.server.level.ServerLevel level, BlockPos centre, int radius) {
+		java.util.List<BlockPos> cores = new java.util.ArrayList<>();
+		for (int cx = (centre.getX() - radius) >> 4; cx <= (centre.getX() + radius) >> 4; cx++)
+			for (int cz = (centre.getZ() - radius) >> 4; cz <= (centre.getZ() + radius) >> 4; cz++) {
+				if (!level.hasChunk(cx, cz)) continue;
+				for (BlockEntity entity : level.getChunk(cx, cz).getBlockEntities().values())
+					if (entity instanceof Core core && core.amount() > 0) {
+						BlockPos pos = core.getBlockPos();
+						double dx = pos.getX() - centre.getX(), dz = pos.getZ() - centre.getZ();
+						if (dx * dx + dz * dz <= (double) radius * radius) cores.add(pos.immutable());
+					}
+			}
+		cores.sort(java.util.Comparator.comparingDouble(pos -> pos.distSqr(centre)));
+		return cores;
+	}
+
 	public static boolean isCrystal(BlockState state) {
 		return state.is(CRYSTAL);
 	}

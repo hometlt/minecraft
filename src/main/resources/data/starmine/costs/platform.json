@@ -1,5 +1,3 @@
 {
-	"minerals": {"minerals": 500},
-	"iron": {"iron": 500},
-	"diamond": {"diamond": 100}
+	"worker": {"minerals": 100}
 }

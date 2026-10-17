@@ -57,6 +57,8 @@ public enum UnitKind {
 	// owner 16.10: nydus corridors from zerg bases (dev.starmine.world.Nydus) — the network at the base, the worm at the far end
 	NYDUS_NETWORK(     850,  0, false, Attack.NONE,      0,  0,    0, false, 5.0f, 3.6f, 0x4a2a3a, 0x60c0a0),
 	NYDUS_CANAL(       300,  0, false, Attack.NONE,      0,  0,    0, false, 3.5f, 7.8f, 0x4a2a3a, 0xd06080),
+	// owner 17.10: the supply platform of each race — a chest of the base's resources, attacked like any building
+	ZERG_PLATFORM(     400,  0, false, Attack.NONE,      0,  0,    0, false, 3.0f, 1.2f, 0x4a2a3a, 0xc08a6a),
 
 	// terran (owner 14.10): an SCV-built base the player commands (see dev.starmine.colony); hitboxes from the model sizes
 	//                          sc2Hp speed  fly    attack         dmg   period range aggressive w/h          egg colours
@@ -84,6 +86,7 @@ public enum UnitKind {
 	BUNKER(        Race.TERRAN, 400,  0,     false, Attack.NONE,   12,   0.61,  6,    true,  3.0f, 1.0f,  0x3a5a8a, 0x605040),
 	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040),
 	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060),
+	TERRAN_PLATFORM(Race.TERRAN, 400, 0,     false, Attack.NONE,   0,    0,     0,    false, 3.0f, 1.2f,  0x3a5a8a, 0xc0c0c0),
 
 	// protoss (owner 14.10): SC2 life and plasma shields; hitboxes from the model sizes
 	//                            sc2Hp shield speed  fly    attack         dmg  period range aggressive w/h          egg colours
@@ -122,6 +125,7 @@ public enum UnitKind {
 	DARK_SHRINE(      Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 2.6f, 6.2f,  0x403050, 0x80ff80),
 	ROBOTICS_BAY(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.3f, 2.0f,  0xc8a030, 0xd0d0d0),
 	FLEET_BEACON(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.9f,  0xc8a030, 0xffd040),
+	PROTOSS_PLATFORM( Race.PROTOSS, 200, 200,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.0f, 1.2f,  0xc8a030, 0x40c0ff),
 	// ---- heroes: the bosses of the sky ships (CLOUD_TASK_2 stage 8; numbers and sources in docs/BALANCE.md) ----
 	KERRIGAN(         Race.ZERG,    800, 0,    3.94,  false, Attack.MELEE,  40,  1.5,   1,    true,  1.1f, 2.3f,  0x5a2a6a, 0xd060ff),
 	RAYNOR(           Race.TERRAN,  600, 0,    3.15,  false, Attack.RANGED, 18,  0.61,  6,    true,  1.1f, 2.1f,  0x3a5a8a, 0xffb060),
@@ -204,6 +208,7 @@ public enum UnitKind {
 	private static int footprintOf(String name) {
 		return switch (name) {
 			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
+			case "ZERG_PLATFORM", "TERRAN_PLATFORM", "PROTOSS_PLATFORM" -> 1;
 			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
 			default -> 3;
 		};
@@ -310,12 +315,31 @@ public enum UnitKind {
 
 	/** Built buildings: what a drone mutates into, what an SCV builds (the command center too; not the hatchery). */
 	public boolean building() {
-		return race != Race.ZERG ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= NYDUS_CANAL.ordinal();
+		return race != Race.ZERG ? speed == 0 : ordinal() >= SPAWNING_POOL.ordinal() && ordinal() <= ZERG_PLATFORM.ordinal();
 	}
 
 	/** The building a hive or base is anchored to: the hatchery, the command center, the nexus. */
 	public boolean main() {
 		return this == HATCHERY || this == COMMAND_CENTER || this == NEXUS;
+	}
+
+	/** A supply platform (owner 17.10): a chest of its base's resources, where a worker is called (Storage). */
+	public boolean platform() {
+		return this == ZERG_PLATFORM || this == TERRAN_PLATFORM || this == PROTOSS_PLATFORM;
+	}
+
+	/** Where workers bring what they gather: a main building or a supply platform (owner 17.10). */
+	public boolean storage() {
+		return main() || platform();
+	}
+
+	/** The platform of a race. */
+	public static UnitKind platformOf(Race race) {
+		return switch (race) {
+			case ZERG -> ZERG_PLATFORM;
+			case TERRAN -> TERRAN_PLATFORM;
+			case PROTOSS -> PROTOSS_PLATFORM;
+		};
 	}
 
 	/** Vespene buildings (owner 14.10): put on a vein outlet; workers draw vespene inside them. */
