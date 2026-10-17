@@ -35,9 +35,9 @@ public final class VespeneVeinFeature extends Feature<NoneFeatureConfiguration> 
 
 	@Override
 	public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
-		WorldGenLevel level = context.level();
 		int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
-		return build(level, context.random(), cx, cz, Integer.MIN_VALUE);
+		if (dev.starmine.world.MapOverlay.covers(cx, cz)) return false; // a laid-over map has its own geysers
+		return build(context.level(), context.random(), cx, cz, Integer.MIN_VALUE);
 	}
 
 	/**
@@ -46,16 +46,32 @@ public final class VespeneVeinFeature extends Feature<NoneFeatureConfiguration> 
 	 * floor, and the hall's air is left open; else it ends at the surface (a geyser) or underground.
 	 */
 	public static boolean build(WorldGenLevel level, RandomSource random, int cx, int cz, int hall) {
+		return build(level, random, cx, cz, hall, false, Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG);
+	}
+
+	/**
+	 * A vein round the column (cx, cz), from the bedrock under it. `geyser`: it always comes up as a
+	 * geyser where the ground is dry (a map's geyser, {@link dev.starmine.world.MapOverlay}), and no
+	 * minerals are laid by it; else as world generation wants. `floor` and `surface` are the heightmaps
+	 * that name the ground and its top (the generation's own while chunks generate, the final ones after).
+	 */
+	public static boolean build(WorldGenLevel level, RandomSource random, int cx, int cz, boolean geyser,
+		Heightmap.Types floor, Heightmap.Types surface) {
+		return build(level, random, cx, cz, Integer.MIN_VALUE, geyser, floor, surface);
+	}
+
+	private static boolean build(WorldGenLevel level, RandomSource random, int cx, int cz, int hall, boolean geyser,
+		Heightmap.Types floor, Heightmap.Types surface) {
 		int bottom = level.getMinBuildHeight();
 		if (!level.getBlockState(new BlockPos(cx, bottom, cz)).is(Blocks.BEDROCK)) return false; // not a bedrock-floored world
 		BlockPos root = new BlockPos(cx, bottom + 1, cz);
-		Vein vein = new Vein(level, cx, cz);
+		Vein vein = new Vein(level, cx, cz, floor);
 		boolean inHall = hall != Integer.MIN_VALUE;
 		if (inHall) vein.surface = hall;
-		boolean wet = !inHall && level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, cx, cz) > level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, cx, cz);
+		boolean wet = !inHall && level.getHeight(surface, cx, cz) > level.getHeight(floor, cx, cz);
 		int ground = vein.ground(cx, cz);
 		boolean shallow = ground - bottom < 40; // a flat world: the trunk always comes up
-		boolean reach = inHall || !wet && (shallow || random.nextBoolean());
+		boolean reach = inHall || !wet && (geyser || shallow || random.nextBoolean());
 		int top = reach ? Integer.MAX_VALUE : bottom + 24 + random.nextInt(Math.max(1, ground - bottom - 36));
 		if (!reach) top = Math.max(bottom + 3, Math.min(top, ground - 5)); // ends underground (under water too)
 
@@ -97,7 +113,7 @@ public final class VespeneVeinFeature extends Feature<NoneFeatureConfiguration> 
 
 		vein.build(root);
 		// owner 16.10 / 17.10: mineral crystals mostly lie near a geyser, a field of several across the chunk from it
-		if (reach && !inHall && random.nextInt(6) > 0) {
+		if (reach && !inHall && !geyser && random.nextInt(6) > 0) {
 			int fx = cx + (x >= cx ? -7 : 7), fz = cz + (z >= cz ? -7 : 7);
 			dev.starmine.mineral.Minerals.field(level, random, fx, fz, 8, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS));
 		}
@@ -108,21 +124,23 @@ public final class VespeneVeinFeature extends Feature<NoneFeatureConfiguration> 
 	private static final class Vein {
 		final WorldGenLevel level;
 		final int cx, cz;
+		final Heightmap.Types floor;
 		final LinkedHashSet<BlockPos> channel = new LinkedHashSet<>();
 		final List<BlockPos> outlets = new ArrayList<>();
 		final Set<BlockPos> open = new HashSet<>(), mound = new HashSet<>();
 		/** The floor of a hall the vein ends in: its air is not underground (nothing fills it). */
 		int surface = Integer.MAX_VALUE;
 
-		Vein(WorldGenLevel level, int cx, int cz) {
+		Vein(WorldGenLevel level, int cx, int cz, Heightmap.Types floor) {
 			this.level = level;
+			this.floor = floor;
 			this.cx = cx;
 			this.cz = cz;
 		}
 
 		/** The first free height of a column above its solid ground (trees and water not counted); a hall's floor. */
 		int ground(int x, int z) {
-			return Math.min(surface, level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z));
+			return Math.min(surface, level.getHeight(floor, x, z));
 		}
 
 		void add(int x, int y, int z) {

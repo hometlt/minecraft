@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
@@ -477,6 +478,15 @@ public final class HiveStructure {
 		flatten(level, feet, half, height, false);
 	}
 
+	/**
+	 * A laid-over map's resources stay when a site is cleared: StarMine's blocks (vespene, crystals) and,
+	 * on the map, the cobblestone of a geyser's mound and walls ({@link dev.starmine.world.MapOverlay}).
+	 */
+	private static boolean keep(BlockState state, BlockPos pos) {
+		if (BuiltInRegistries.BLOCK.getKey(state.getBlock()).getNamespace().equals(dev.starmine.StarMine.MOD_ID)) return true;
+		return state.is(Blocks.COBBLESTONE) && dev.starmine.world.MapOverlay.covers(pos.getX(), pos.getZ());
+	}
+
 	/** {@link #flatten}; `round`: only the disc of radius `half` (owner 16.10: the land round a base's plaza stays as it was). */
 	public static void flatten(ServerLevel level, BlockPos feet, int half, int height, boolean round) {
 		for (int dx = -half; dx <= half; dx++)
@@ -485,7 +495,7 @@ public final class HiveStructure {
 				for (int dy = 0; dy <= height + 12; dy++) {
 					BlockPos pos = feet.offset(dx, dy, dz);
 					BlockState state = level.getBlockState(pos);
-					if (state.isAir() || state.getDestroySpeed(level, pos) < 0) continue;
+					if (state.isAir() || state.getDestroySpeed(level, pos) < 0 || keep(state, pos)) continue;
 					if (dy <= height || state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
 				}
 				for (int dy = 1; dy <= 6; dy++) {

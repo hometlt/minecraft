@@ -350,6 +350,7 @@ public final class Minerals {
 		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
 			WorldGenLevel level = context.level();
 			int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
+			if (dev.starmine.world.MapOverlay.covers(cx, cz)) return false; // a laid-over map has its own minerals
 			return field(level, context.random(), cx, cz, 22, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS)) > 0;
 		}
 	}
