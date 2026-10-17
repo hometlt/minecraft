@@ -1,0 +1,24 @@
+{
+	"name": "Raven",
+	"icon": "starmine:raven_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:raven",
+			"name": "Raven",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Raven",
+			"text": "$(l)Health$(): 140$(br)No attack$(br)$(l)Speed$(): 3.85, flying$(br)$(l)Cost$(): 100 minerals, 150 vespene, 2 supply$(br)$(l)Build time$(): 34 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Auto-Turret$(): Puts down a turret for 10 s: 18 a shot, range 6$(br2)$(l)Interference Matrix$(): A mechanical or psionic unit neither fights nor casts for 11 s$(br2)$(l)Anti-Armor Missile$(): Foes round the point lose 3 armor for 21 s"
+		}
+	]
+}

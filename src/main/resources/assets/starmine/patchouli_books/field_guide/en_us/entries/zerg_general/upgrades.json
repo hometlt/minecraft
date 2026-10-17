@@ -27,11 +27,11 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "$(l)Seismic Spines$() (Hydralisk Den): Lurkers: +2 range$(br2)$(l)Adaptive Talons$() (Hydralisk Den): Lurkers burrow half as fast again$(br2)$(l)Neural Parasite$() (Infestation Pit): Opens the infestors' neural parasite"
+			"text": "$(l)Seismic Spines$() (Lurker Den): Lurkers: +2 range$(br2)$(l)Adaptive Talons$() (Lurker Den): Lurkers burrow half as fast again$(br2)$(l)Greater Spire$() (Spire): The spire grows into a greater spire: corruptors may become brood lords (needs a hive)"
 		},
 		{
 			"type": "patchouli:text",
-			"text": "$(l)Chitinous Plating$() (Ultralisk Cavern): Ultralisks: +2 armor$(br2)$(l)Anabolic Synthesis$() (Ultralisk Cavern): Ultralisks run faster (4.95 instead of 4.13)"
+			"text": "$(l)Neural Parasite$() (Infestation Pit): Opens the infestors' neural parasite$(br2)$(l)Chitinous Plating$() (Ultralisk Cavern): Ultralisks: +2 armor$(br2)$(l)Anabolic Synthesis$() (Ultralisk Cavern): Ultralisks run faster (4.95 instead of 4.13)"
 		}
 	]
 }

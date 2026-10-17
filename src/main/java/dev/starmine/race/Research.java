@@ -33,8 +33,8 @@ public enum Research {
 	CHITINOUS_PLATING('C'), ANABOLIC_SYNTHESIS('A'),
 	WARP_GATE_RESEARCH('W'), RESONATING_GLAIVES('G'), PSIONIC_STORM('T'), SHADOW_STRIDE('B'), EXTENDED_THERMAL_LANCE('E'),
 	GRAVITIC_BOOSTERS('B'), GRAVITIC_DRIVE('D'), FLUX_VANES('F'), ANION_PULSE_CRYSTALS('P'), TECTONIC_DESTABILIZERS('T'),
-	// owner 17.10: the Yamato cannon waits for its refit (an older SC2's), for a player's cruisers
-	WEAPON_REFIT('Y');
+	// owner 17.10: the Yamato cannon waits for its refit (an older SC2's), for a player's cruisers; the spire's greater spire (brood lords)
+	WEAPON_REFIT('Y'), GREATER_SPIRE('G');
 
 	public final char hotkey;
 
@@ -68,7 +68,9 @@ public enum Research {
 			case BURROW, PNEUMATIZED_CARAPACE -> building == UnitKind.HATCHERY;
 			case ADRENAL_GLANDS -> building == UnitKind.SPAWNING_POOL;
 			case GLIAL_RECONSTITUTION, TUNNELING_CLAWS -> building == UnitKind.ROACH_WARREN;
-			case GROOVED_SPINES, MUSCULAR_AUGMENTS, SEISMIC_SPINES, ADAPTIVE_TALONS -> building == UnitKind.HYDRALISK_DEN; // no lurker den here
+			case GROOVED_SPINES, MUSCULAR_AUGMENTS -> building == UnitKind.HYDRALISK_DEN;
+			case SEISMIC_SPINES, ADAPTIVE_TALONS -> building == UnitKind.LURKER_DEN;
+			case GREATER_SPIRE -> building == UnitKind.SPIRE;
 			case NEURAL_PARASITE -> building == UnitKind.INFESTATION_PIT;
 			case CHITINOUS_PLATING, ANABOLIC_SYNTHESIS -> building == UnitKind.ULTRALISK_CAVERN;
 			case RESONATING_GLAIVES -> building == UnitKind.TWILIGHT_COUNCIL;
@@ -273,7 +275,8 @@ public enum Research {
 				GLIAL_RECONSTITUTION, TUNNELING_CLAWS, GROOVED_SPINES, MUSCULAR_AUGMENTS, RESONATING_GLAIVES, SHADOW_STRIDE, GRAVITIC_BOOSTERS,
 				GRAVITIC_DRIVE -> new int[] {100, 100};
 			case HYPERFLIGHT_ROTORS -> new int[] {125, 125};
-			case WEAPON_REFIT -> new int[] {150, 150};
+			case WEAPON_REFIT, GREATER_SPIRE -> new int[] {150, 150};
+
 			case ADRENAL_GLANDS, PSIONIC_STORM -> new int[] {200, 200};
 			default -> new int[] {150, 150}; // neosteel, ballistics, cloaking, shockwaves, seismic spines, talons, neural, plating, synthesis, lance, vanes, crystals, destabilizers
 		};
@@ -299,6 +302,7 @@ public enum Research {
 			case ADRENAL_GLANDS -> 93 * 20;
 			case NEOSTEEL_ARMOR, WEAPON_REFIT, WARP_GATE_RESEARCH, RESONATING_GLAIVES, SHADOW_STRIDE, EXTENDED_THERMAL_LANCE, TECTONIC_DESTABILIZERS -> 100 * 20;
 			case HYPERFLIGHT_ROTORS -> 121 * 20;
+			case GREATER_SPIRE -> 71 * 20;
 			default -> 79 * 20;
 		};
 	}
@@ -327,7 +331,7 @@ public enum Research {
 			default -> {
 				if (base.researched.contains(id())) return "message.starmine.research_done";
 				if ((this == CENTRIFUGAL_HOOKS || this == GLIAL_RECONSTITUTION || this == TUNNELING_CLAWS) && base.tier < 2) return "message.starmine.need_tech";
-				if (this == ADRENAL_GLANDS && base.tier < 3) return "message.starmine.need_tech";
+				if ((this == ADRENAL_GLANDS || this == GREATER_SPIRE) && base.tier < 3) return "message.starmine.need_tech";
 			}
 		}
 		return base.lacking(price(level));

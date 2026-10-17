@@ -143,6 +143,8 @@ public final class Hive {
 	/** Whether the hive has what a unit or building needs (its tech building, its hatchery tier). */
 	public boolean unlocked(UnitKind kind) {
 		UnitKind need = kind.requires();
+		// owner 17.10: brood lords need the spire made greater (a player's base; the wild need no research)
+		if (kind == UnitKind.BROOD_LORD && owner != null && !researched.contains(dev.starmine.race.Research.GREATER_SPIRE.id())) return false;
 		return (need == null || count(need) > 0) && tier >= kind.tier();
 	}
 

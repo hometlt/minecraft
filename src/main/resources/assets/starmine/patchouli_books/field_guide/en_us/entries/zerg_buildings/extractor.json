@@ -2,7 +2,7 @@
 	"name": "Extractor",
 	"icon": "starmine:extractor_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 9,
+	"sortnum": 10,
 	"pages": [
 		{
 			"type": "patchouli:entity",

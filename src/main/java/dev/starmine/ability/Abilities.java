@@ -52,7 +52,7 @@ public final class Abilities {
 		if (!ability.users().contains(unit.kind) || !unit.isAlive()) return "message.starmine.no_ability";
 		if (!available(unit, ability)) return "message.starmine.no_ability";
 		if (unit.abilities.changingMode() || unit.abilities.channelling() || unit.underConstruction()) return "message.starmine.busy";
-		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING)
+		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING) || Status.has(unit, Status.INTERFERED)
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
 		if (ability == Ability.LIFT_OFF && LiftOff.refusal(unit) != null) return LiftOff.refusal(unit); // idle to lift, room to land
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
@@ -207,7 +207,10 @@ public final class Abilities {
 			case ABDUCT -> target != unit && !(other != null && other.kind.structure());
 			case PARASITIC_BOMB -> !ally && (other == null ? !target.onGround() : other.flying());
 			case FEEDBACK -> !ally && other != null && other.maxEnergy() > 0;
-			case CHARGE, YAMATO -> !ally;
+			case CHARGE, YAMATO, LOCK_ON -> !ally;
+			// SC2: a mechanical or psionic unit
+			case INTERFERENCE_MATRIX -> !ally && (dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.MECHANICAL)
+				|| dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.PSIONIC)) && !(other != null && other.kind.structure());
 			default -> true;
 		};
 	}
@@ -239,6 +242,10 @@ public final class Abilities {
 			case NUKE -> { } // the missile lands by itself (NukeMissile)
 			case AFTERBURNERS -> Status.apply(unit, Status.AFTERBURNERS, TerranAbilities.AFTERBURNER_TICKS);
 			case YAMATO -> TerranAbilities.yamato(unit, level, target);
+			case LOCK_ON -> TerranAbilities.lockOn(unit, target);
+			case AUTO_TURRET -> TerranAbilities.autoTurret(unit, level, point);
+			case INTERFERENCE_MATRIX -> TerranAbilities.interference(unit, level, target);
+			case ANTI_ARMOR_MISSILE -> TerranAbilities.antiArmor(unit, level, point);
 			case TACTICAL_JUMP -> TerranAbilities.tacticalJump(unit, level, point);
 			case REPAIR -> TerranAbilities.repair(unit, target);
 			case MULE -> TerranAbilities.mule(unit, level, point);
@@ -302,6 +309,7 @@ public final class Abilities {
 			unit.setEnergy(Math.min(max, unit.energy() + ENERGY_PER_TICK * (unit.kind == UnitKind.MEDIVAC && researched(unit, dev.starmine.race.Research.CADUCEUS_REACTOR) ? 2 : 1)));
 		Status.tick(unit, level);
 		if (!unit.isAlive() && unit.pilot() == null) return;
+		if (unit.abilities.lockOn != null) TerranAbilities.lockOnTick(unit, level);
 		Cloak.tick(unit, level);
 		if (state.modeTicks > 0 && --state.modeTicks == 0) Modes.finish(unit);
 		if (Ability.LIFT_OFF.users().contains(unit.kind)) LiftOff.tick(unit);

@@ -2,7 +2,7 @@
 	"name": "Spire",
 	"icon": "starmine:spire_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 6,
+	"sortnum": 7,
 	"pages": [
 		{
 			"type": "patchouli:entity",

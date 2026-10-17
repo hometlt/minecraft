@@ -1,0 +1,19 @@
+{
+	"name": "Auto-Turret",
+	"icon": "starmine:autoturret_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:autoturret",
+			"name": "Auto-Turret",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Auto-Turret",
+			"text": "$(l)Health$(): 150$(br)$(l)Damage$(): 18, every 0.57 s, range 6$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

@@ -113,6 +113,11 @@ final class AbilityAi {
 				yield !on && groundFoes || on && (airFoes || calm) ? cast(unit, level, ability) : false;
 			}
 			case AFTERBURNERS -> unit.getHealth() < unit.getMaxHealth() * 0.5f && foeWithin(unit, 10) && cast(unit, level, ability);
+			case LOCK_ON -> unit.abilities.lockOn == null && target != null && reach < ability.range && cast(unit, level, ability, target);
+			case AUTO_TURRET -> target != null && reach < 10 && cast(unit, level, ability, unit.position().lerp(target.position(), 0.15));
+			case INTERFERENCE_MATRIX -> target instanceof StarUnit foe && (foe.kind.mechanical() || foe.kind.psionic()) && foe.getMaxHealth() >= 30
+				&& cast(unit, level, ability, target);
+			case ANTI_ARMOR_MISSILE -> target != null && foesAround(unit, at, TerranAbilities.ANTI_ARMOR_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case REPAIR -> {
 				if (state.repairTarget != null || unit.cargoBlocks > 0) yield false;
 				StarUnit broken = nearestOwn(unit, 16, other -> other.kind.mechanical() && other.kind.race == UnitKind.Race.TERRAN

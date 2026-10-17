@@ -1,0 +1,24 @@
+{
+	"name": "Cyclone",
+	"icon": "starmine:cyclone_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:cyclone",
+			"name": "Cyclone",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Cyclone",
+			"text": "$(l)Health$(): 120$(br)$(l)Damage$(): 11, every 0.71 s, range 6$(br)$(l)Speed$(): 4.72, on the ground$(br)$(l)Cost$(): 125 minerals, 50 vespene, 3 supply$(br)$(l)Build time$(): 32 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Lock On$(): Locks on a target: 400 damage over 14 s while it stays within 15; the cyclone may move"
+		}
+	]
+}

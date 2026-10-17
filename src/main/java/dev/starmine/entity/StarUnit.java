@@ -2082,8 +2082,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (source.getEntity() instanceof StarUnit attacker) // its base's damage upgrades (infernal pre-igniter, tectonic destabilizers)
 			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, Trait.of(this)) * UnitKind.SCALE);
 		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0)
-			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind));
-		if (armor <= 0) return amount;
+			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind))
+			- (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.ARMOR_BROKEN) ? 3 : 0); // a raven's anti-armor missile
+		if (armor == 0) return amount;
 		int strikes = by == null ? 1 : by.strikes();
 		return (float) Math.max(0.5 * strikes * UnitKind.SCALE, amount - armor * strikes * UnitKind.SCALE);
 	}

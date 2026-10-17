@@ -2,7 +2,7 @@
 	"name": "Крейсер",
 	"icon": "starmine:battlecruiser_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 15,
+	"sortnum": 17,
 	"pages": [
 		{
 			"type": "patchouli:entity",

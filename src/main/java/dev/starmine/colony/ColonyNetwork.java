@@ -200,6 +200,7 @@ public final class ColonyNetwork {
 	/** Lets the client check tech: whether a kind's requirement is in the counts and the tier is enough. */
 	public static boolean unlocked(Map<String, Integer> counts, UnitKind kind) {
 		UnitKind need = kind.requires();
+		if (kind == UnitKind.BROOD_LORD && counts.getOrDefault("research:greater_spire", 0) == 0) return false; // the greater spire first
 		return (need == null || counts.getOrDefault(need.name(), 0) > 0) && counts.getOrDefault("tier", 1) >= kind.tier();
 	}
 }

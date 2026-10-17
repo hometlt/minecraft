@@ -94,6 +94,10 @@ public final class Sc2Buttons {
 			case BLINK -> "Blink";
 			case PSIONIC_TRANSFER -> "AdeptPhaseShift";
 			case SHADE_CANCEL -> "AdeptPhaseShiftCancel";
+			case LOCK_ON -> "LockOn";
+			case AUTO_TURRET -> "BuildAutoTurret";
+			case INTERFERENCE_MATRIX -> "InterferenceMatrix";
+			case ANTI_ARMOR_MISSILE -> "AntiArmorMissile";
 			case FORCE_FIELD -> "ForceField";
 			case GUARDIAN_SHIELD -> "GuardianShield";
 			case HALLUCINATION -> "Hallucination";
@@ -191,6 +195,7 @@ public final class Sc2Buttons {
 			case ANION_PULSE_CRYSTALS -> "ResearchPhoenixAnionPulseCrystals";
 			case TECTONIC_DESTABILIZERS -> "ResearchTempestResearchGroundAttackUpgrade";
 			case WEAPON_REFIT -> "ResearchBattlecruiserSpecializations";
+			case GREATER_SPIRE -> "GreaterSpire";
 		};
 	}
 }

@@ -48,6 +48,8 @@ public enum UnitKind {
 	ROACH_WARREN(      850,  0, false, Attack.NONE,      0,  0,    0, false, 3.4f, 2.9f, 0x5a3a20, 0x90b040),
 	BANELING_NEST(     850,  0, false, Attack.NONE,      0,  0,    0, false, 3.3f, 3.9f, 0x30602a, 0x9ae050),
 	HYDRALISK_DEN(     850,  0, false, Attack.NONE,      0,  0,    0, false, 4.5f, 3.7f, 0x6a2a40, 0xe0a060),
+	// owner 17.10: the lurker den (SC2 LotV): lurkers and their upgrades
+	LURKER_DEN(        850,  0, false, Attack.NONE,      0,  0,    0, false, 3.6f, 2.6f, 0x3a2a40, 0xc0a0c0),
 	SPIRE(             850,  0, false, Attack.NONE,      0,  0,    0, false, 2.8f, 4.4f, 0x5a2050, 0x40c0a0),
 	INFESTATION_PIT(   850,  0, false, Attack.NONE,      0,  0,    0, false, 3.8f, 1.2f, 0x40303a, 0xa0e060),
 	ULTRALISK_CAVERN(  850,  0, false, Attack.NONE,      0,  0,    0, false, 4.6f, 3.0f, 0x5a4a3a, 0xe0d0b0),
@@ -70,6 +72,9 @@ public enum UnitKind {
 	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  2.0f, 1.5f,  0x3a5a8a, 0xf08020),
 	// owner 17.10: the hellbat a unit of its own (the hellion's battle mode in SC2), the widow mine and the liberator
 	HELLBAT(       Race.TERRAN, 135,  3.15,  false, Attack.LINE,   18,   1.43,  2,    true,  2.0f, 1.5f,  0x3a5a8a, 0xd05010),
+	// owner 17.10: the cyclone (lock on), the raven (auto-turret, interference matrix, anti-armor missile) and its turret
+	CYCLONE(       Race.TERRAN, 120,  4.72,  false, Attack.RANGED, 11,   0.71,  6,    true,  1.8f, 1.6f,  0x3a5a8a, 0xe0a030),
+	RAVEN(         Race.TERRAN, 140,  3.85,  true,  Attack.NONE,   0,    0,     0,    false, 2.2f, 1.0f,  0x3a5a8a, 0x40e0c0),
 	WIDOW_MINE(    Race.TERRAN, 90,   3.94,  false, Attack.NONE,   0,    0,     0,    false, 1.0f, 0.8f,  0x3a5a8a, 0xe0d040),
 	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.9f, 1.5f,  0x3a5a8a, 0x707050),
 	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
@@ -90,6 +95,8 @@ public enum UnitKind {
 	FUSION_CORE(   Race.TERRAN, 750,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.8f, 2.5f,  0x3a5a8a, 0xe0e060),
 	BUNKER(        Race.TERRAN, 400,  0,     false, Attack.NONE,   12,   0.61,  6,    true,  3.0f, 1.0f,  0x3a5a8a, 0x605040),
 	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040),
+	AUTO_TURRET(   Race.TERRAN, 150,  0,     false, Attack.NONE,   18,   0.57,  6,    true,  1.0f, 1.2f,  0x3a5a8a, 0x40e0c0),
+	SENSOR_TOWER(  Race.TERRAN, 200,  0,     false, Attack.NONE,   0,    0,     0,    false, 1.4f, 3.4f,  0x3a5a8a, 0x40c0e0),
 	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060),
 	TERRAN_PLATFORM(Race.TERRAN, 400, 0,     false, Attack.NONE,   0,    0,     0,    false, 3.0f, 1.2f,  0x3a5a8a, 0xc0c0c0),
 
@@ -149,6 +156,8 @@ public enum UnitKind {
 	public static final float UNIT_SIZE = 2f;
 	/** Blocks per SC2 distance unit (ranges, radii, sight), grown with the units. */
 	public static final double BLOCKS_PER_UNIT = 1.153 * UNIT_SIZE;
+	/** How far a sensor tower senses (SC2 30): its owner sees what moves there through walls (client Radar). */
+	public static final double SENSOR_RANGE = 30 * BLOCKS_PER_UNIT;
 	/** Workers' hitbox limit: they dig and walk 2x2 tunnels. */
 	private static final float WORKER_BODY = 1.9f;
 
@@ -220,7 +229,8 @@ public enum UnitKind {
 		return switch (name) {
 			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
 			case "ZERG_PLATFORM", "TERRAN_PLATFORM", "PROTOSS_PLATFORM" -> 1;
-			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
+			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE",
+				"AUTO_TURRET", "SENSOR_TOWER" -> 2;
 			default -> 3;
 		};
 	}
@@ -259,7 +269,7 @@ public enum UnitKind {
 			case HYDRALISK, MUTALISK -> Shot.NEEDLE;
 			case CORRUPTOR -> Shot.CORROSIVE;
 			case BROOD_LORD -> Shot.EGG;
-			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
+			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR, CYCLONE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
 			case MARAUDER -> Shot.GRENADE;
 			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
 			default -> race == Race.ZERG ? Shot.ACID : null;
@@ -522,7 +532,7 @@ public enum UnitKind {
 			case OVERLORD, OVERSEER -> 6;
 			case BROOD_LORD -> 7;
 			case MUTALISK, CORRUPTOR, VIPER -> 4;
-			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE -> 5;
+			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE, RAVEN -> 5;
 			case OBSERVER -> 6;
 			case INTERCEPTOR -> 4;
 			case BATTLECRUISER, TEMPEST, CARRIER -> 8;
@@ -534,7 +544,7 @@ public enum UnitKind {
 	/** SC2 energy of casters (owner 14.10, abilities): the most it holds; 0 for kinds without energy. */
 	public int maxEnergy() {
 		return switch (this) {
-			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS, ARTANIS -> 200;
+			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS, ARTANIS, RAVEN -> 200;
 			case SHIELD_BATTERY -> 100;
 			default -> 0;
 		};
@@ -553,7 +563,7 @@ public enum UnitKind {
 
 	/** Detectors see cloaked and burrowed units within their sight (SC2): overseer, observer, spore crawler, missile turret, photon cannon. */
 	public boolean detector() {
-		return this == OVERSEER || this == OBSERVER || this == SPORE_CRAWLER || this == MISSILE_TURRET || this == PHOTON_CANNON;
+		return this == OVERSEER || this == OBSERVER || this == SPORE_CRAWLER || this == MISSILE_TURRET || this == PHOTON_CANNON || this == RAVEN;
 	}
 
 	/** Always cloaked (SC2): the dark templar and the observer. */
@@ -566,7 +576,7 @@ public enum UnitKind {
 		if (structure()) return true;
 		return switch (this) {
 			case OVERLORD, OVERSEER, ROACH, RAVAGER, LURKER, CORRUPTOR, BROOD_LORD, INFESTOR, SWARM_HOST, VIPER, ULTRALISK,
-				MARAUDER, SIEGE_TANK, THOR, VIKING, VIKING_ASSAULT, MEDIVAC, LIBERATOR, BATTLECRUISER,
+				MARAUDER, SIEGE_TANK, THOR, VIKING, VIKING_ASSAULT, MEDIVAC, LIBERATOR, BATTLECRUISER, CYCLONE,
 				STALKER, IMMORTAL, COLOSSUS, DISRUPTOR, WARP_PRISM, VOID_RAY, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> true;
 			default -> false;
 		};
@@ -580,7 +590,7 @@ public enum UnitKind {
 		if (structure()) return 1;
 		return switch (this) {
 			case ROACH, RAVAGER, LURKER, QUEEN, BROOD_LORD, SWARM_HOST, VIPER, OVERSEER,
-				MARAUDER, SIEGE_TANK, THOR, MEDIVAC,
+				MARAUDER, SIEGE_TANK, THOR, MEDIVAC, CYCLONE, RAVEN,
 				ZEALOT, STALKER, SENTRY, ADEPT, DARK_TEMPLAR, IMMORTAL, COLOSSUS, DISRUPTOR -> 1;
 			case CORRUPTOR, ULTRALISK, TEMPEST, CARRIER, MOTHERSHIP -> 2;
 			case BATTLECRUISER -> 3;
@@ -610,7 +620,7 @@ public enum UnitKind {
 	public boolean light() {
 		return switch (this) {
 			case ZERGLING, DRONE, BROODLING, LOCUST, HYDRALISK, MUTALISK, CHANGELING, LARVA, SCV, MARINE, REAPER, HELLION, HELLBAT, WIDOW_MINE, BANSHEE,
-				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR -> true;
+				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR, RAVEN -> true;
 			default -> false;
 		};
 	}

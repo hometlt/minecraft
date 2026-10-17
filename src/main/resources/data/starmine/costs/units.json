@@ -91,5 +91,9 @@
 	"templararchives": {"minerals": 150, "vespene": 200},
 	"darkshrine": {"minerals": 150, "vespene": 150},
 	"roboticsbay": {"minerals": 150, "vespene": 150},
-	"fleetbeacon": {"minerals": 300, "vespene": 200}
+	"fleetbeacon": {"minerals": 300, "vespene": 200},
+	"lurkerden": {"minerals": 100, "vespene": 150},
+	"cyclone": {"minerals": 125, "vespene": 50},
+	"raven": {"minerals": 100, "vespene": 150},
+	"sensortower": {"minerals": 125, "vespene": 100}
 }

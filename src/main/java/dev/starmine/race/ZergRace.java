@@ -52,13 +52,13 @@ public final class ZergRace implements RaceRules {
 	@Override
 	public List<UnitKind> aiBuildOrder() {
 		return List.of(SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, ROACH_WARREN, SPORE_CRAWLER, BANELING_NEST, HYDRALISK_DEN,
-			SPINE_CRAWLER, NYDUS_NETWORK, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
+			SPINE_CRAWLER, NYDUS_NETWORK, LURKER_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN);
 	}
 
 	@Override
 	public List<UnitKind> buildings() {
 		return List.of(HATCHERY, EXTRACTOR, SPAWNING_POOL, EVOLUTION_CHAMBER, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST,
-			HYDRALISK_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN, NYDUS_NETWORK, NYDUS_CANAL);
+			HYDRALISK_DEN, LURKER_DEN, SPIRE, INFESTATION_PIT, ULTRALISK_CAVERN, NYDUS_NETWORK, NYDUS_CANAL);
 	}
 
 	@Override
@@ -87,6 +87,7 @@ public final class ZergRace implements RaceRules {
 			case ROACH_WARREN -> new Economy(150, 0, 0, seconds(39), 0, 0);
 			case BANELING_NEST -> new Economy(100, 50, 0, seconds(43), 0, 0);
 			case HYDRALISK_DEN -> new Economy(100, 100, 0, seconds(29), 0, 0);
+			case LURKER_DEN -> new Economy(100, 150, 0, seconds(57), 0, 0);
 			case SPIRE -> new Economy(200, 200, 0, seconds(71), 0, 0);
 			case INFESTATION_PIT -> new Economy(100, 100, 0, seconds(36), 0, 0);
 			case ULTRALISK_CAVERN -> new Economy(150, 200, 0, seconds(46), 0, 0);
@@ -105,7 +106,8 @@ public final class ZergRace implements RaceRules {
 			case ZERGLING, QUEEN, SPINE_CRAWLER, SPORE_CRAWLER, ROACH_WARREN, BANELING_NEST, EVOLUTION_CHAMBER -> SPAWNING_POOL;
 			case ROACH, RAVAGER -> ROACH_WARREN;
 			case BANELING -> BANELING_NEST;
-			case HYDRALISK, LURKER -> HYDRALISK_DEN;
+			case HYDRALISK, LURKER_DEN -> HYDRALISK_DEN;
+			case LURKER -> LURKER_DEN;
 			case MUTALISK, CORRUPTOR, BROOD_LORD -> SPIRE;
 			case INFESTOR, SWARM_HOST, VIPER -> INFESTATION_PIT;
 			case ULTRALISK -> ULTRALISK_CAVERN;
@@ -118,7 +120,7 @@ public final class ZergRace implements RaceRules {
 	@Override
 	public int tier(UnitKind kind) {
 		return switch (kind) {
-			case HYDRALISK_DEN, SPIRE, INFESTATION_PIT, NYDUS_NETWORK, NYDUS_CANAL, OVERSEER, RAVAGER, LURKER, INFESTOR, SWARM_HOST -> 2;
+			case HYDRALISK_DEN, LURKER_DEN, SPIRE, INFESTATION_PIT, NYDUS_NETWORK, NYDUS_CANAL, OVERSEER, RAVAGER, LURKER, INFESTOR, SWARM_HOST -> 2;
 			case ULTRALISK_CAVERN, VIPER, BROOD_LORD -> 3;
 			default -> 1;
 		};
@@ -160,7 +162,7 @@ public final class ZergRace implements RaceRules {
 			case ROACH, ROACH_WARREN, RAVAGER -> 'R';
 			case BANELING, BROOD_LORD -> 'B';
 			case HYDRALISK, HATCHERY -> 'H';
-			case LURKER -> 'L';
+			case LURKER, LURKER_DEN -> 'L';
 			case MUTALISK -> 'T';
 			case CORRUPTOR, SPINE_CRAWLER -> 'C';
 			case INFESTOR, INFESTATION_PIT -> 'I';

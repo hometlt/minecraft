@@ -49,12 +49,12 @@ public final class TerranRace implements RaceRules {
 
 	@Override
 	public List<UnitKind> aiBuildOrder() {
-		return List.of(BARRACKS, ENGINEERING_BAY, BUNKER, FACTORY, MISSILE_TURRET, BARRACKS, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
+		return List.of(BARRACKS, ENGINEERING_BAY, BUNKER, FACTORY, MISSILE_TURRET, BARRACKS, STARPORT, SENSOR_TOWER, ARMORY, GHOST_ACADEMY, FUSION_CORE);
 	}
 
 	@Override
 	public List<UnitKind> buildings() {
-		return List.of(COMMAND_CENTER, SUPPLY_DEPOT, REFINERY, BARRACKS, ENGINEERING_BAY, BUNKER, MISSILE_TURRET,
+		return List.of(COMMAND_CENTER, SUPPLY_DEPOT, REFINERY, BARRACKS, ENGINEERING_BAY, BUNKER, MISSILE_TURRET, SENSOR_TOWER,
 			FACTORY, STARPORT, ARMORY, GHOST_ACADEMY, FUSION_CORE);
 	}
 
@@ -77,6 +77,9 @@ public final class TerranRace implements RaceRules {
 			case MEDIVAC -> new Economy(100, 100, 2, seconds(30), 0, 0);
 			case BANSHEE -> new Economy(150, 100, 3, seconds(43), 0, 0);
 			case BATTLECRUISER -> new Economy(400, 300, 6, seconds(64), 0, 0);
+			case CYCLONE -> new Economy(125, 50, 3, seconds(32), 0, 4);
+			case RAVEN -> new Economy(100, 150, 2, seconds(34), 0, 0);
+			case SENSOR_TOWER -> new Economy(125, 100, 0, seconds(18), 0, 0);
 			case COMMAND_CENTER -> new Economy(400, 0, 0, seconds(71), 15, 0);
 			case SUPPLY_DEPOT -> new Economy(100, 0, 0, seconds(21), 8, 0);
 			case BARRACKS -> new Economy(150, 0, 0, seconds(46), 0, 0);
@@ -100,10 +103,10 @@ public final class TerranRace implements RaceRules {
 			case BARRACKS -> SUPPLY_DEPOT;
 			case MARINE, MARAUDER, REAPER, FACTORY, BUNKER, GHOST_ACADEMY -> BARRACKS;
 			case GHOST -> GHOST_ACADEMY;
-			case MISSILE_TURRET -> ENGINEERING_BAY;
-			case HELLION, WIDOW_MINE, SIEGE_TANK, STARPORT, ARMORY -> FACTORY;
+			case MISSILE_TURRET, SENSOR_TOWER -> ENGINEERING_BAY;
+			case HELLION, WIDOW_MINE, SIEGE_TANK, CYCLONE, STARPORT, ARMORY -> FACTORY;
 			case THOR, HELLBAT -> ARMORY;
-			case VIKING, VIKING_ASSAULT, MEDIVAC, BANSHEE, LIBERATOR, FUSION_CORE -> STARPORT;
+			case VIKING, VIKING_ASSAULT, MEDIVAC, BANSHEE, LIBERATOR, RAVEN, FUSION_CORE -> STARPORT;
 			case BATTLECRUISER -> FUSION_CORE;
 			default -> null;
 		};
@@ -114,8 +117,8 @@ public final class TerranRace implements RaceRules {
 		return switch (kind) {
 			case SCV -> COMMAND_CENTER;
 			case MARINE, MARAUDER, REAPER, GHOST -> BARRACKS;
-			case HELLION, HELLBAT, WIDOW_MINE, SIEGE_TANK, THOR -> FACTORY;
-			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, BATTLECRUISER -> STARPORT;
+			case HELLION, HELLBAT, WIDOW_MINE, CYCLONE, SIEGE_TANK, THOR -> FACTORY;
+			case VIKING, MEDIVAC, RAVEN, BANSHEE, LIBERATOR, BATTLECRUISER -> STARPORT;
 			default -> null;
 		};
 	}
@@ -128,6 +131,8 @@ public final class TerranRace implements RaceRules {
 			case MARAUDER, MEDIVAC, WIDOW_MINE -> 'D';
 			case REAPER, REFINERY, HELLBAT -> 'R';
 			case LIBERATOR -> 'L';
+			case CYCLONE -> 'Y';
+			case RAVEN, SENSOR_TOWER -> 'R';
 			case GHOST, GHOST_ACADEMY -> 'G';
 			case HELLION, BANSHEE, ENGINEERING_BAY -> 'E';
 			case THOR, MISSILE_TURRET -> 'T';

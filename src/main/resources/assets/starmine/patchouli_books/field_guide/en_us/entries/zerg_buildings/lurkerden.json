@@ -1,0 +1,19 @@
+{
+	"name": "Lurker Den",
+	"icon": "starmine:lurkerden_spawn_egg",
+	"category": "starmine:zerg_buildings",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:lurkerden",
+			"name": "Lurker Den",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Lurker Den",
+			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 100 minerals, 150 vespene$(br)$(l)Build time$(): 57 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		}
+	]
+}

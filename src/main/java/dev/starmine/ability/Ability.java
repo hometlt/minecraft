@@ -62,6 +62,11 @@ public enum Ability {
 	BUILD_TECHLAB(      "techlab",             'X', Target.NONE,    0,     0,       0,    0,      18),
 	BUILD_REACTOR(      "reactor",             'C', Target.NONE,    0,     0,       0,    0,      36),
 	LIFT_OFF(           "lift_off",            'L', Target.TOGGLE,  0,     0,       0,    0,      0),
+	// owner 17.10: the cyclone and the raven (SC2 LotV)
+	LOCK_ON(            "lock_on",             'E', Target.UNIT,    0,     4,       7,    0,      0),
+	AUTO_TURRET(        "auto_turret",         'T', Target.POINT,   50,    0,       2,    0,      0),
+	INTERFERENCE_MATRIX("interference_matrix", 'R', Target.UNIT,    75,    0,       9,    0,      0),
+	ANTI_ARMOR_MISSILE( "anti_armor_missile",  'F', Target.POINT,   75,    0,       10,   0,      0),
 	// ---- protoss ----
 	CHARGE(             "charge",              'C', Target.UNIT,    0,     7,       4,    0,      0),
 	BLINK(              "blink",               'B', Target.POINT,   0,     7,       8,    0,      0),
@@ -160,6 +165,8 @@ public enum Ability {
 			case DEFENDER_MODE -> List.of(LIBERATOR);
 			case LIFT_OFF -> List.of(COMMAND_CENTER, BARRACKS, FACTORY, STARPORT);
 			case AFTERBURNERS -> List.of(MEDIVAC);
+			case LOCK_ON -> List.of(CYCLONE);
+			case AUTO_TURRET, INTERFERENCE_MATRIX, ANTI_ARMOR_MISSILE -> List.of(RAVEN);
 			case YAMATO, TACTICAL_JUMP -> List.of(BATTLECRUISER);
 			case REPAIR -> List.of(SCV);
 			case ORBITAL_COMMAND, PLANETARY_FORTRESS, MULE, SCANNER_SWEEP -> List.of(COMMAND_CENTER);

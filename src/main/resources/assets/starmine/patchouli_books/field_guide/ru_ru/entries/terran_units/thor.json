@@ -2,7 +2,7 @@
 	"name": "Тор",
 	"icon": "starmine:thor_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 9,
+	"sortnum": 11,
 	"pages": [
 		{
 			"type": "patchouli:entity",

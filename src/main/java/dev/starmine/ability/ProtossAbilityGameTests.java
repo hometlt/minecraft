@@ -363,7 +363,7 @@ public class ProtossAbilityGameTests implements FabricGameTest {
 			helper.assertTrue(Abilities.horizontal(stalker.position(), point(helper, 8, 40)) < 1, "a stalker outside the circle was recalled");
 			// the nexus calls the stalker home
 			helper.assertTrue(Abilities.cast(nexus, level, Ability.MASS_RECALL, null, stalker.position()), "no nexus recall: " + Abilities.refusal(nexus, Ability.MASS_RECALL));
-			helper.assertTrue(stalker.distanceTo(nexus) < 12, "the stalker is not at the nexus: " + stalker.distanceTo(nexus));
+			helper.assertTrue(stalker.distanceTo(nexus) < nexus.getBbWidth() / 2 + 10, "the stalker is not at the nexus: " + stalker.distanceTo(nexus));
 			helper.succeed();
 		});
 	}

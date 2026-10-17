@@ -60,6 +60,9 @@ public final class AbilityState {
 	@Nullable UUID parasiteCaster;
 	/** An adept's shade out (owner 17.10), and a shade's adept. */
 	@Nullable UUID shade, shadeOf;
+	/** A cyclone's locked target (owner 17.10) and the ticks it has held it. */
+	@Nullable UUID lockOn;
+	int lockTicks;
 	/** An SCV's repair target and the minerals owed for it so far (paid by whole minerals). */
 	@Nullable UUID repairTarget;
 	double repairDebt;

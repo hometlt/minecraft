@@ -2,7 +2,7 @@
 	"name": "Пещера ультралисков",
 	"icon": "starmine:ultraliskcavern_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 8,
+	"sortnum": 9,
 	"pages": [
 		{
 			"type": "patchouli:entity",

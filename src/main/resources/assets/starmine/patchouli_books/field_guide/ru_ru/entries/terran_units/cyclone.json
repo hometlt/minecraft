@@ -1,0 +1,24 @@
+{
+	"name": "Циклон",
+	"icon": "starmine:cyclone_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:cyclone",
+			"name": "Циклон",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Циклон",
+			"text": "$(l)Здоровье$(): 120$(br)$(l)Урон$(): 11, раз в 0.71 с, дальность 6$(br)$(l)Скорость$(): 4.72, по земле$(br)$(l)Цена$(): 125 минералов, 50 веспена, 3 снабжения$(br)$(l)Время$(): 32 с$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Способности",
+			"text": "$(l)Захват цели$(): Захватывает цель: 400 урона за 14 с, пока она ближе 15; циклон может двигаться"
+		}
+	]
+}
