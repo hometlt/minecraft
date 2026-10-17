@@ -134,6 +134,50 @@ CATEGORIES = [
                  'Расы всегда враждебны и не селятся рядом: стая, захват или нидусов червь одной расы не появляется ближе 96 блоков к дикому другой.'),
         ]),
     ]),
+    ('endgame', t('Bosses, Artifact, Void', 'Боссы, артефакт, Пустота'), t('The heroes, their helmets, the xel\'naga artifact, the stratosphere and the Void.', 'Герои, их шлемы, артефакт зел-нага, стратосфера и Пустота.'), 'starmine:artifact_pedestal', [
+        ('kerrigan', t('Kerrigan', 'Керриган'), 'starmine:kerrigan_crown', [
+            entity('kerrigan', 'The Queen of Blades, in the head of the leviathan high in the stratosphere over the zerg lair.',
+                   'Королева Клинков — в голове левиафана высоко в стратосфере над логовом зергов.'),
+            text('Leaping strike and psionic shift. At 2/3 health she calls her brood (zerglings, a hydralisk, a roach) and her shields come back; at 1/3 she rages for the rest of the fight and calls more. Her bar shows the phase.$(br2)$(l)Reward$(): Kerrigan\'s Crown, the rest of a zerg suit, the $(l)zerg part of the artifact\'s key$(), 16 chitin shards, 8 diamonds.',
+                 'Удар в прыжке и пси-рывок. На 2/3 здоровья зовёт выводок (зерглинги, гидралиск, таракан), щиты восстанавливаются; на 1/3 впадает в ярость до конца боя и зовёт ещё. Фаза видна на полосе.$(br2)$(l)Награда$(): корона Керриган, остальной костюм зергов, $(l)часть ключа-артефакта зергов$(), 16 осколков хитина, 8 алмазов.'),
+        ]),
+        ('raynor', t('Raynor', 'Рейнор'), 'starmine:raynor_helmet', [
+            entity('raynor', 'Jim Raynor holds the bridge of the Hyperion high in the stratosphere over the terran base.',
+                   'Джим Рейнор держит мостик «Гипериона» высоко в стратосфере над базой терранов.'),
+            text('A grenade and a call to the Hyperion (a Yamato blast). At 2/3 health he calls marines, a marauder and a ghost; at 1/3 he rages and calls more.$(br2)$(l)Reward$(): Raynor\'s Helmet, the rest of a terran suit, the $(l)terran part of the artifact\'s key$(), 16 shards, 8 diamonds.',
+                 'Граната и вызов «Гипериона» (залп Ямато). На 2/3 здоровья зовёт пехотинцев, мародёра и призрака; на 1/3 впадает в ярость и зовёт ещё.$(br2)$(l)Награда$(): шлем Рейнора, остальной костюм терранов, $(l)часть ключа-артефакта терранов$(), 16 осколков, 8 алмазов.'),
+        ]),
+        ('artanis', t('Artanis', 'Артанис'), 'starmine:artanis_helmet', [
+            entity('artanis', 'Hierarch Artanis waits under the dome of the mothership high in the stratosphere over the protoss base.',
+                   'Иерарх Артанис ждёт под куполом материнского корабля высоко в стратосфере над базой протоссов.'),
+            text('A blinding dash and psionic storm. At 2/3 health he calls zealots, a stalker and a high templar and his shields come back; at 1/3 he rages and calls more.$(br2)$(l)Reward$(): Artanis\'s Helmet, the rest of a protoss suit, the $(l)protoss part of the artifact\'s key$(), 16 shards, 8 diamonds.',
+                 'Молниеносный рывок и пси-шторм. На 2/3 здоровья зовёт фанатиков, сталкера и высшего тамплиера, щиты восстанавливаются; на 1/3 впадает в ярость и зовёт ещё.$(br2)$(l)Награда$(): шлем Артаниса, остальной костюм протоссов, $(l)часть ключа-артефакта протоссов$(), 16 осколков, 8 алмазов.'),
+        ]),
+        ('helmets', t('Heroes\' Helmets', 'Шлемы героев'), 'starmine:kerrigan_crown', [
+            spot('starmine:kerrigan_crown', 'Kerrigan\'s Crown: a piece of the zerg suit with a perk of its own — regeneration in any armor, a heart every 2 seconds (faster on creep). With the whole zerg suit it heals twice as fast.',
+                 'Корона Керриган: часть костюма зергов со своим перком — регенерация в любой броне, сердце раз в 2 секунды (на слизи быстрее). С полным костюмом зергов лечит вдвое быстрее.'),
+            spot('starmine:raynor_helmet', 'Raynor\'s Helmet: a piece of the terran suit with heavy plating — 6 armor and 4 toughness instead of 3 and 2, and steadier against knockback.',
+                 'Шлем Рейнора: часть костюма терранов с тяжёлой бронёй — 6 брони и 4 прочности вместо 3 и 2, и лучше держит отбрасывание.'),
+            spot('starmine:artanis_helmet', 'Artanis\'s Helmet: a piece of the protoss suit; in the whole suit its shields come back three times faster and twice as soon after a hit.',
+                 'Шлем Артаниса: часть костюма протоссов; в полном костюме щиты восстанавливаются втрое быстрее и вдвое раньше после удара.'),
+        ]),
+        ('artifact', t('The Xel\'Naga Artifact', 'Артефакт зел-нага'), 'starmine:artifact_pedestal', [
+            text('Each hero carries a $(l)part of the artifact\'s key$(). Put a xel\'naga pedestal down and stack the three parts on it, one on another, like a beacon\'s crystal on its base — zerg, terran and protoss, in any order. The pedestal lights, a violet beam rises, and $(l)high in the sky over it$() (at least 48 blocks up, at height 200 or more) a portal to the Void opens.',
+                 'У каждого героя — $(l)часть ключа-артефакта$(). Поставьте постамент зел-нага и сложите на него три части одну на другую, как кристалл маяка на основание, — зергов, терранов и протоссов, в любом порядке. Постамент загорается, вверх уходит фиолетовый луч, и $(l)высоко в небе над ним$() (не ниже 48 блоков над ним и не ниже высоты 200) открывается портал в Пустоту.'),
+            craft('artifact_pedestal', 'The pedestal: a shard of each race over obsidian and an amethyst block.',
+                  'Постамент: по осколку брони каждой расы над обсидианом и аметистовым блоком.'),
+            text('The portal and its frame cannot be broken. $(l)Take the artifact apart$() — any part, or the pedestal — and the portal is gone.$(br2)Fly into the portal from below, on a flyer or as one, or build up to it. $(l)Units$(): select them and order them onto the portal or onto the artifact — they are carried through by its beam. The portal on the Void\'s first island leads back to the artifact.',
+                 'Портал и его рамку не сломать. $(l)Разберите артефакт$() — любую часть или постамент — и портал исчезнет.$(br2)Влетайте в портал снизу — на летающем юните или в его теле — или постройте к нему лестницу. $(l)Юниты$(): выделите их и пошлите на портал или на артефакт — луч перенесёт их. Портал на первом острове Пустоты ведёт назад к артефакту.'),
+        ]),
+        ('stratosphere', t('The Stratosphere', 'Стратосфера'), 'minecraft:elytra', [
+            text('A world of its own above the overworld: black sky and stars, the huge Earth below across the horizon, the same sun, moon, day and night. The leviathan, the Hyperion and the mothership hang there over their bases.$(br2)You cannot fly up alone: ride a flying unit (or play as one, or sit in a transport) above height 300. Whatever falls below its floor comes down into the overworld high over the same place; a player falls slowly.',
+                 'Отдельный мир над Верхним: чёрное небо и звёзды, внизу во весь горизонт огромная Земля, те же солнце, луна, день и ночь. Там над своими базами висят левиафан, «Гиперион» и материнский корабль.$(br2)Сами туда не взлететь: поднимитесь выше высоты 300 на летающем юните (или в его теле, или в транспорте). Всё, что упадёт ниже её дна, вернётся в Верхний мир высоко над тем же местом; игрок падает медленно.'),
+        ]),
+        ('void', t('The Void', 'Пустота'), 'starmine:void_portal_frame', [
+            text('Amun\'s dimension, reached only through the artifact\'s portal: eternal night, a black sky with red flashes, islands in the dark. One arrives on the first island beside the portal back.$(br2)Your army answers your command panel there as at home; buildings cannot be put down away from your base\'s world.',
+                 'Измерение Амуна, куда ведёт только портал артефакта: вечная ночь, чёрное небо с красными всполохами, острова во тьме. Прибытие — на первом острове рядом с порталом назад.$(br2)Ваша армия слушается командной панели и там, как дома; здания вдали от мира вашей базы не ставятся.'),
+        ]),
+    ]),
 ]
 
 # ---- each race: general information (hand-written), troops and buildings (from the code) ----

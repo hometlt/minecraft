@@ -1,0 +1,18 @@
+{
+	"name": "Artanis",
+	"icon": "starmine:artanis_helmet",
+	"category": "starmine:endgame",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:artanis",
+			"text": "Hierarch Artanis waits under the dome of the mothership high in the stratosphere over the protoss base.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A blinding dash and psionic storm. At 2/3 health he calls zealots, a stalker and a high templar and his shields come back; at 1/3 he rages and calls more.$(br2)$(l)Reward$(): Artanis's Helmet, the rest of a protoss suit, the $(l)protoss part of the artifact's key$(), 16 shards, 8 diamonds."
+		}
+	]
+}

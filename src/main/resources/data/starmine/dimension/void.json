@@ -1,0 +1,13 @@
+{
+	"type": "starmine:void",
+	"generator": {
+		"type": "minecraft:flat",
+		"settings": {
+			"biome": "starmine:void",
+			"layers": [],
+			"features": false,
+			"lakes": false,
+			"structure_overrides": []
+		}
+	}
+}

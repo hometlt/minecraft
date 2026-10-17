@@ -17,7 +17,8 @@ import net.minecraft.world.item.Items;
  * The heroes of the sky ships' boss rooms (CLOUD_TASK_2 stage 8: Kerrigan on the leviathan, Raynor on the
  * Hyperion, Artanis on the mothership): a boss health bar on the screen of every player within
  * {@link #BAR_RANGE} (health and shields together), and their reward when killed — a whole suit of their
- * race ({@link SuitItems}: the rare armor its modules need), 16 shards and 8 diamonds. Their abilities
+ * race ({@link SuitItems}: the rare armor its modules need) with the hero's own helmet ({@link dev.starmine.suit.HeroHelmets}),
+ * its part of the artifact's key ({@link dev.starmine.world.Artifact}), 16 shards and 8 diamonds. Their abilities
  * are the ability engine's ({@link dev.starmine.ability.HeroAbilities}).
  */
 public final class Heroes {
@@ -102,7 +103,9 @@ public final class Heroes {
 	/** What a hero leaves when killed. */
 	public static List<ItemStack> reward(StarUnit hero) {
 		List<ItemStack> loot = new ArrayList<>();
-		for (ArmorItem.Type type : SuitItems.TYPES) loot.add(new ItemStack(SuitItems.piece(hero.kind.race, type)));
+		for (ArmorItem.Type type : SuitItems.TYPES) // owner 17.10: the hero's own helmet, with its perk
+			loot.add(new ItemStack(type == ArmorItem.Type.HELMET ? dev.starmine.suit.HeroHelmets.HELMETS.get(hero.kind.race) : SuitItems.piece(hero.kind.race, type)));
+		loot.add(new ItemStack(dev.starmine.world.Artifact.part(hero.kind.race))); // and its part of the artifact's key
 		loot.add(new ItemStack(SuitItems.SHARDS.get(hero.kind.race), 16));
 		loot.add(new ItemStack(Items.DIAMOND, 8));
 		return loot;

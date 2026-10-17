@@ -1,0 +1,12 @@
+{
+	"name": "The Void",
+	"icon": "starmine:void_portal_frame",
+	"category": "starmine:endgame",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Amun's dimension, reached only through the artifact's portal: eternal night, a black sky with red flashes, islands in the dark. One arrives on the first island beside the portal back.$(br2)Your army answers your command panel there as at home; buildings cannot be put down away from your base's world."
+		}
+	]
+}

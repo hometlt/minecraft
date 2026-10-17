@@ -5,6 +5,9 @@
 		"starmine:terran_portal_frame",
 		"starmine:terran_teleporter",
 		"starmine:protoss_portal_frame",
-		"starmine:protoss_teleporter"
+		"starmine:protoss_teleporter",
+		"starmine:artifact_pedestal",
+		"starmine:terran_key_part",
+		"starmine:protoss_key_part"
 	]
 }

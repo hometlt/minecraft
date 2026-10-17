@@ -96,6 +96,7 @@ public final class SuitItems {
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> SHARDS.values().forEach(entries::accept));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> {
 			for (UnitKind.Race race : UnitKind.Race.values()) for (ArmorItem.Type type : TYPES) entries.accept(piece(race, type));
+			HeroHelmets.HELMETS.values().forEach(entries::accept);
 			for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) // the modules a suit casts
 				if (Suits.casterKind(ability) != null) entries.accept(dev.starmine.possess.ModuleItem.of(ability));
 		});

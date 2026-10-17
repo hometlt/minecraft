@@ -1,0 +1,7 @@
+{
+	"variants": {
+		"": {
+			"model": "starmine:block/void_portal_frame"
+		}
+	}
+}

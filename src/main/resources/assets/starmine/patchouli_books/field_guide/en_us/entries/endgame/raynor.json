@@ -1,0 +1,18 @@
+{
+	"name": "Raynor",
+	"icon": "starmine:raynor_helmet",
+	"category": "starmine:endgame",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:raynor",
+			"text": "Jim Raynor holds the bridge of the Hyperion high in the stratosphere over the terran base.",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A grenade and a call to the Hyperion (a Yamato blast). At 2/3 health he calls marines, a marauder and a ghost; at 1/3 he rages and calls more.$(br2)$(l)Reward$(): Raynor's Helmet, the rest of a terran suit, the $(l)terran part of the artifact's key$(), 16 shards, 8 diamonds."
+		}
+	]
+}

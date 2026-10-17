@@ -1,0 +1,30 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"ZTP",
+		"OAO",
+		"OOO"
+	],
+	"key": {
+		"Z": {
+			"item": "starmine:zerg_armor_shard"
+		},
+		"T": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"P": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"O": {
+			"item": "minecraft:obsidian"
+		},
+		"A": {
+			"item": "minecraft:amethyst_block"
+		}
+	},
+	"result": {
+		"id": "starmine:artifact_pedestal",
+		"count": 1
+	}
+}

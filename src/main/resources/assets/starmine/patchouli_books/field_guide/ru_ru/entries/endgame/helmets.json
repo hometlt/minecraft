@@ -1,0 +1,23 @@
+{
+	"name": "Шлемы героев",
+	"icon": "starmine:kerrigan_crown",
+	"category": "starmine:endgame",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:kerrigan_crown",
+			"text": "Корона Керриган: часть костюма зергов со своим перком — регенерация в любой броне, сердце раз в 2 секунды (на слизи быстрее). С полным костюмом зергов лечит вдвое быстрее."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:raynor_helmet",
+			"text": "Шлем Рейнора: часть костюма терранов с тяжёлой бронёй — 6 брони и 4 прочности вместо 3 и 2, и лучше держит отбрасывание."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:artanis_helmet",
+			"text": "Шлем Артаниса: часть костюма протоссов; в полном костюме щиты восстанавливаются втрое быстрее и вдвое раньше после удара."
+		}
+	]
+}

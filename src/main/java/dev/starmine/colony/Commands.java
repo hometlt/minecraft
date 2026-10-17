@@ -34,8 +34,9 @@ public final class Commands {
 	public static void command(ServerPlayer player, ColonyNetwork.UnitCommand command) {
 		ServerLevel level = player.serverLevel();
 		if (!CommandPanel.carried(player)) return; // owner 14.10: commands only with a command panel
-		Hive base = HiveSavedData.get(level.getServer()).baseOf(player.getUUID(), level.dimension().location().toString());
+		Hive base = HiveSavedData.get(level.getServer()).baseOrHome(player.getUUID(), level.dimension().location().toString());
 		if (base == null) return;
+		boolean away = !base.dimension.equals(level.dimension().location().toString()); // its army away from home: orders, no building
 		List<StarUnit> units = new ArrayList<>();
 		for (int id : command.ids())
 			if (level.getEntity(id) instanceof StarUnit unit && base.id.equals(unit.hiveId()) && unit.isAlive()
@@ -80,7 +81,9 @@ public final class Commands {
 				}
 			}
 			case "return" -> workers.forEach(unit -> unit.commandWork(StarUnit.Work.RETURN, null));
-			case "build" -> build(level, base, workers, kind(command.arg()), at);
+			case "build" -> {
+				if (!away) build(level, base, workers, kind(command.arg()), at);
+			}
 			case "train" -> train(level, base, units, kind(command.arg()));
 			case "cancel" -> buildings.forEach(StarUnit::cancelLast);
 			case "rally" -> { // a right click for buildings: a lifted terran building flies there (owner 16.10: it took the order and stayed)

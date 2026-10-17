@@ -1,0 +1,12 @@
+{
+	"name": "The Stratosphere",
+	"icon": "minecraft:elytra",
+	"category": "starmine:endgame",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A world of its own above the overworld: black sky and stars, the huge Earth below across the horizon, the same sun, moon, day and night. The leviathan, the Hyperion and the mothership hang there over their bases.$(br2)You cannot fly up alone: ride a flying unit (or play as one, or sit in a transport) above height 300. Whatever falls below its floor comes down into the overworld high over the same place; a player falls slowly."
+		}
+	]
+}

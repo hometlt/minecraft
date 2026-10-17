@@ -85,7 +85,7 @@ public final class Suits {
 	}
 
 	/** Each tick of a player: the suit's gift (not while they play as a unit: the unit's body is theirs then). */
-	static void tick(ServerPlayer player) {
+	public static void tick(ServerPlayer player) {
 		AttributeInstance max = player.getAttribute(Attributes.MAX_ABSORPTION);
 		if (Possession.piloting(player)) {
 			if (max != null) max.removeModifier(SHIELD_MODIFIER);
@@ -101,9 +101,12 @@ public final class Suits {
 			}
 		}
 		long now = player.level().getGameTime();
-		if (shields && player.tickCount % 20 == 0 && now - LAST_HURT.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2) >= StarUnit.SHIELD_DELAY
+		boolean artanis = HeroHelmets.worn(player) == UnitKind.Race.PROTOSS; // owner 17.10: Artanis's helmet — shields come back faster
+		long delay = artanis ? StarUnit.SHIELD_DELAY / 2 : StarUnit.SHIELD_DELAY;
+		if (shields && player.tickCount % 20 == 0 && now - LAST_HURT.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2) >= delay
 			&& player.getAbsorptionAmount() < SHIELDS)
-			player.setAbsorptionAmount(Math.min(SHIELDS, player.getAbsorptionAmount() + SHIELD_REGEN));
+			player.setAbsorptionAmount(Math.min(SHIELDS, player.getAbsorptionAmount() + SHIELD_REGEN * (artanis ? HeroHelmets.ARTANIS_REGEN : 1)));
+		HeroHelmets.tick(player);
 		if (race == UnitKind.Race.ZERG && player.getHealth() < player.getMaxHealth()
 			&& player.tickCount % (CreepTouch.onCreep(player) ? REGEN_TICKS / 4 : REGEN_TICKS) == 0)
 			player.heal(1);
@@ -197,6 +200,7 @@ public final class Suits {
 
 	public static void register() {
 		SuitItems.register();
+		HeroHelmets.load();
 		ServerTickEvents.END_SERVER_TICK.register(Suits::tick);
 		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
 			if (entity instanceof ServerPlayer player) LAST_HURT.put(player.getUUID(), player.level().getGameTime());

@@ -146,6 +146,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.colony.CommandPanel.load();
 		dev.starmine.colony.PlatformBlock.load();
 		dev.starmine.world.Teleporter.load();
+		dev.starmine.world.Artifact.load();
 		dev.starmine.world.DungeonHeart.load();
 		dev.starmine.world.SmallDungeons.load();
 		dev.starmine.world.Nydus.load();
@@ -171,6 +172,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.entity.Fx.register();
 		dev.starmine.colony.CommanderEye.register();
 		dev.starmine.world.Stratosphere.register();
+		dev.starmine.world.VoidWorld.register();
 		dev.starmine.possess.Possession.register();
 		dev.starmine.suit.Suits.register();
 		net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->

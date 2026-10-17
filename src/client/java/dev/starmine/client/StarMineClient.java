@@ -54,6 +54,7 @@ public final class StarMineClient implements ClientModInitializer {
 		});
 		PilotClient.register();
 		StratosphereSky.register();
+		VoidSky.register();
 		// modules (dev.starmine.possess): tinted by the race of their unit
 		java.util.List<net.minecraft.world.item.Item> modules = new java.util.ArrayList<>(java.util.List.of(dev.starmine.possess.ModuleItem.WEAPON,
 			dev.starmine.possess.ModuleItem.WEAPON_UPGRADE, dev.starmine.possess.ModuleItem.ARMOR_UPGRADE));
@@ -80,6 +81,9 @@ public final class StarMineClient implements ClientModInitializer {
 		});
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
 		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
+		BlockEntityRenderers.register(dev.starmine.world.Artifact.CORE, ArtifactRenderer::new); // owner 17.10: the artifact's beam
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
+		for (net.minecraft.world.level.block.Block part : dev.starmine.world.Artifact.PARTS.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
 		// the liquids (owner 16.10): vespene and liquid creep, their own still and flowing textures
 		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(dev.starmine.vespene.Vespene.SOURCE,

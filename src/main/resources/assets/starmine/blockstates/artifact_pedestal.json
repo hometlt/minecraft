@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"active=false": {
+			"model": "starmine:block/artifact_pedestal"
+		},
+		"active=true": {
+			"model": "starmine:block/artifact_pedestal_on"
+		}
+	}
+}

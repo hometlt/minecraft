@@ -87,9 +87,10 @@ public final class BaseLogic {
 			for (Hive hive : dead) data.remove(hive.id);
 		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			Hive base = data.baseOf(player.getUUID(), player.serverLevel().dimension().location().toString());
+			String dimension = player.serverLevel().dimension().location().toString();
+			Hive base = data.baseOrHome(player.getUUID(), dimension); // owner 17.10: away from home (the Void) the army still answers
 			ColonyNetwork.sendStatus(player, base);
-			ColonyNetwork.sendMarks(player, base);
+			ColonyNetwork.sendMarks(player, base != null && base.dimension.equals(dimension) ? base : null);
 		}
 	}
 }

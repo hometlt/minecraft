@@ -58,6 +58,16 @@ public final class HiveSavedData extends SavedData {
 		return null;
 	}
 
+	/** A player's base in this dimension, else their base anywhere (owner 17.10: their army in the stratosphere or the Void). */
+	public Hive baseOrHome(UUID player, String dimension) {
+		Hive here = baseOf(player, dimension);
+		if (here != null) return here;
+		Hive home = baseOf(player, "minecraft:overworld");
+		if (home != null) return home;
+		for (Hive hive : hives.values()) if (player.equals(hive.owner)) return hive;
+		return null;
+	}
+
 	public void add(Hive hive) {
 		hives.put(hive.id, hive);
 		setDirty();
