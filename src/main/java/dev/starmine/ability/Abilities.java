@@ -52,7 +52,7 @@ public final class Abilities {
 		if (!ability.users().contains(unit.kind) || !unit.isAlive()) return "message.starmine.no_ability";
 		if (!available(unit, ability)) return "message.starmine.no_ability";
 		if (unit.abilities.changingMode() || unit.abilities.channelling() || unit.underConstruction()) return "message.starmine.busy";
-		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING)
+		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING) || Status.has(unit, Status.INTERFERED)
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
 		if (ability == Ability.LIFT_OFF && LiftOff.refusal(unit) != null) return LiftOff.refusal(unit); // idle to lift, room to land
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
@@ -72,10 +72,10 @@ public final class Abilities {
 		}
 		return switch (ability) {
 			case LOAD, UNLOAD -> unit.pilot() != null ? "message.starmine.pilot_transport" : Transport.refusal(unit, ability);
-			case MASS_RECALL -> base(unit) == null ? "message.starmine.no_base" : null;
 			case BLINK, SHADOW_STRIDE, CHARGE -> Status.has(unit, Status.ROOTED) ? "message.starmine.rooted" : null;
 			case ARCHON_WARP -> ProtossAbilities.partner(unit) == null ? "message.starmine.no_partner" : null;
 			case REPAIR, MULE -> base(unit) == null ? "message.starmine.no_base" : null;
+			case GREATER_SPIRE -> base(unit) != null && base(unit).tier < 3 ? "message.starmine.need_tech" : null; // SC2: a hive first
 			default -> null;
 		};
 	}
@@ -89,6 +89,8 @@ public final class Abilities {
 		if (Modes.oneWay(ability)) return mode == Modes.NORMAL;
 		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE; // an add-on or upgrade keeps it down
 		if (mode == Modes.AIRBORNE) return false; // in the air a building only flies and lands
+		if (ability == Ability.SHADE_CANCEL || ability == Ability.PSIONIC_TRANSFER) // an adept with its shade out may call it off (shown both sides)
+			return (ability == Ability.SHADE_CANCEL) == ProtossAbilities.SHADING.equals(unit.disguise());
 		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP || mode == Modes.ORBITAL;
 	}
 
@@ -199,13 +201,17 @@ public final class Abilities {
 				&& !other.underConstruction();
 			case CHRONO_BOOST -> ally && other != null && other.kind.structure() && other.kind.race == UnitKind.Race.PROTOSS && !other.underConstruction();
 			case BATTERY_OVERCHARGE -> ally && other != null && other.kind == UnitKind.SHIELD_BATTERY;
-			case GRAVITON_BEAM -> !ally && !(other != null && (other.kind.massive() || other.kind.structure() || other.flying()));
-			case STEADY_TARGETING -> !ally && (other == null || other.kind.biological() || other.kind.race == UnitKind.Race.ZERG && !other.kind.structure());
-			case NEURAL_PARASITE -> !ally && !(target instanceof Player) && !(other != null && (other.kind.structure() || other.kind.massive()));
+			case GRAVITON_BEAM -> !ally && !(dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.MASSIVE) || other != null && (other.kind.structure() || other.flying()));
+			case STEADY_TARGETING -> !ally && dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.BIOLOGICAL) && !dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.STRUCTURE);
+			// SC2: anything but heroes and buildings (massive ones too); owner 17.10: never a player, but any creature
+			case NEURAL_PARASITE -> !ally && !(target instanceof Player) && !(other != null && other.kind.structure()) && !dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.HEROIC);
 			case ABDUCT -> target != unit && !(other != null && other.kind.structure());
 			case PARASITIC_BOMB -> !ally && (other == null ? !target.onGround() : other.flying());
 			case FEEDBACK -> !ally && other != null && other.maxEnergy() > 0;
-			case CHARGE, YAMATO -> !ally;
+			case CHARGE, YAMATO, LOCK_ON -> !ally;
+			// SC2: a mechanical or psionic unit
+			case INTERFERENCE_MATRIX -> !ally && (dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.MECHANICAL)
+				|| dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.PSIONIC)) && !(other != null && other.kind.structure());
 			default -> true;
 		};
 	}
@@ -237,6 +243,10 @@ public final class Abilities {
 			case NUKE -> { } // the missile lands by itself (NukeMissile)
 			case AFTERBURNERS -> Status.apply(unit, Status.AFTERBURNERS, TerranAbilities.AFTERBURNER_TICKS);
 			case YAMATO -> TerranAbilities.yamato(unit, level, target);
+			case LOCK_ON -> TerranAbilities.lockOn(unit, target);
+			case AUTO_TURRET -> TerranAbilities.autoTurret(unit, level, point);
+			case INTERFERENCE_MATRIX -> TerranAbilities.interference(unit, level, target);
+			case ANTI_ARMOR_MISSILE -> TerranAbilities.antiArmor(unit, level, point);
 			case TACTICAL_JUMP -> TerranAbilities.tacticalJump(unit, level, point);
 			case REPAIR -> TerranAbilities.repair(unit, target);
 			case MULE -> TerranAbilities.mule(unit, level, point);
@@ -244,7 +254,8 @@ public final class Abilities {
 			// protoss
 			case CHARGE -> ProtossAbilities.charge(unit, level, target);
 			case BLINK, SHADOW_STRIDE -> ProtossAbilities.blink(unit, level, point);
-			case PSIONIC_TRANSFER -> ProtossAbilities.blink(unit, level, point);
+			case PSIONIC_TRANSFER -> ProtossAbilities.shade(unit, level, point);
+			case SHADE_CANCEL -> ProtossAbilities.cancelShade(unit, level);
 			case FORCE_FIELD -> ProtossAbilities.forceField(unit, level, point);
 			case GUARDIAN_SHIELD -> Status.apply(unit, Status.GUARDIAN, ProtossAbilities.GUARDIAN_TICKS);
 			case HALLUCINATION -> ProtossAbilities.hallucination(unit, level);
@@ -257,7 +268,7 @@ public final class Abilities {
 			case REVELATION -> ProtossAbilities.revelation(unit, level, point);
 			case STASIS_WARD -> ProtossAbilities.stasisWard(unit, level, point);
 			case DISINTEGRATION -> ProtossAbilities.disintegration(unit, level, point);
-			case MASS_RECALL -> ProtossAbilities.massRecall(unit, level);
+			case MASS_RECALL -> ProtossAbilities.massRecall(unit, level, point);
 			case TIME_WARP -> ProtossAbilities.timeWarp(unit, level, point);
 			case CHRONO_BOOST -> {
 				if (target instanceof StarUnit building) Status.apply(building, Status.CHRONO, ProtossAbilities.CHRONO_TICKS);
@@ -299,6 +310,7 @@ public final class Abilities {
 			unit.setEnergy(Math.min(max, unit.energy() + ENERGY_PER_TICK * (unit.kind == UnitKind.MEDIVAC && researched(unit, dev.starmine.race.Research.CADUCEUS_REACTOR) ? 2 : 1)));
 		Status.tick(unit, level);
 		if (!unit.isAlive() && unit.pilot() == null) return;
+		if (unit.abilities.lockOn != null) TerranAbilities.lockOnTick(unit, level);
 		Cloak.tick(unit, level);
 		if (state.modeTicks > 0 && --state.modeTicks == 0) Modes.finish(unit);
 		if (Ability.LIFT_OFF.users().contains(unit.kind)) LiftOff.tick(unit);
@@ -394,9 +406,19 @@ public final class Abilities {
 	/** Living things within `radius` of a point (horizontally; a few blocks up and down), the caster's foes only or everyone. */
 	static List<LivingEntity> around(StarUnit caster, Vec3 centre, double radius, boolean foesOnly) {
 		Level level = caster.level();
-		AABB box = new AABB(centre, centre).inflate(radius, 3, radius);
+		// an area spell reaches the flyers over it too (SC2 storms, fungals and EMPs hit air): up to 12 blocks over the point
+		AABB box = new AABB(centre.x - radius, centre.y - 3, centre.z - radius, centre.x + radius, centre.y + 12, centre.z + radius);
 		return level.getEntitiesOfClass(LivingEntity.class, box, other -> other.isAlive() && horizontal(other.position(), centre) <= radius + other.getBbWidth() / 2
 			&& (!foesOnly || other != caster.body() && Faction.hostile(caster, other)));
+	}
+
+	/** A line of particles between two points. */
+	public static void beamOf(ServerLevel level, Vec3 from, Vec3 to, ParticleOptions particle) {
+		int steps = (int) Math.min(32, Math.max(3, from.distanceTo(to) * 2));
+		for (int i = 0; i <= steps; i++) {
+			Vec3 at = from.lerp(to, i / (double) steps);
+			level.sendParticles(particle, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		}
 	}
 
 	/** A ring of particles on the ground (an area spell's edge). */
@@ -412,7 +434,7 @@ public final class Abilities {
 	 * Where a unit of its size may stand at or next to a point (feet position): on solid ground with room
 	 * for its body, searched a few blocks around and up and down; null when there is none.
 	 */
-	static @Nullable Vec3 standable(StarUnit unit, Level level, Vec3 point) {
+	public static @Nullable Vec3 standable(StarUnit unit, Level level, Vec3 point) {
 		Entity body = unit.body();
 		BlockPos start = BlockPos.containing(point);
 		// a big body needs a wider search to find room for itself (a stalker is 4.4 wide, a colossus 7)
@@ -432,7 +454,7 @@ public final class Abilities {
 	}
 
 	/** Moves the unit (or its pilot's body) to a point at once. */
-	static void teleport(StarUnit unit, Vec3 at) {
+	public static void teleport(StarUnit unit, Vec3 at) {
 		Entity body = unit.body();
 		body.teleportTo(at.x, at.y, at.z);
 		body.setDeltaMovement(Vec3.ZERO);

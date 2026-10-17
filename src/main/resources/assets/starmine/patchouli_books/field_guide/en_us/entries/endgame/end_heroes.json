@@ -1,0 +1,16 @@
+{
+	"name": "Heroes of the End",
+	"icon": "starmine:horner_spawn_egg",
+	"category": "starmine:endgame",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Far from the dragon, about 1300 blocks from the middle, the End holds three bases on islands of their own: $(l)Stukov$()'s, $(l)Horner$()'s and $(l)Selendis$()'s. The heroes are heroic ships over their bases: Horner fires the Yamato cannon, Stukov drops broodling eggs, Selendis launches interceptors and warps time. Beaten, they are freed with their bases, give the End's parts of the key and bring battlecruisers, brood lords and a carrier against Amun."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Every world has its three heroes and its three parts of the key: whole on a pedestal in any world, the artifact opens the portal to the Void. A freed hero is yours to command and to take along — on foot, on transports, through the portal. Should one fall, it comes back at its base after 30 minutes."
+		}
+	]
+}

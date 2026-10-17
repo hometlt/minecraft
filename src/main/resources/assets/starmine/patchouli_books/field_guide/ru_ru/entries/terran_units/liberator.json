@@ -2,7 +2,7 @@
 	"name": "Освободитель",
 	"icon": "starmine:liberator_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 14,
+	"sortnum": 16,
 	"pages": [
 		{
 			"type": "patchouli:entity",

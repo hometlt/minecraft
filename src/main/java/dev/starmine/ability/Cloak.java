@@ -41,6 +41,9 @@ public final class Cloak {
 	private Cloak() {
 	}
 
+	/** How far a detector potion detects: SC2 11. */
+	public static final double POTION_DETECT = 11 * dev.starmine.entity.UnitKind.BLOCKS_PER_UNIT;
+
 	/** Blocks around a cloaked unit searched for detectors: the farthest detector sight (an observer's, grown with the units). */
 	private static final double DETECT_SEARCH = 32;
 
@@ -50,7 +53,8 @@ public final class Cloak {
 
 	/** Cloaked for free by its kind or its state: the dark templar and observer, a burrowed unit, a unit in a cloaking field. */
 	public static boolean forced(StarUnit unit) {
-		return unit.kind.permanentlyCloaked() || unit.mode() == Modes.BURROWED || Status.has(unit, Status.CLOAK_FIELD);
+		return unit.kind.permanentlyCloaked() || unit.mode() == Modes.BURROWED || Status.has(unit, Status.CLOAK_FIELD)
+			|| unit.getTags().contains(dev.starmine.world.DimensionHeroes.CLOAKED); // Tosh's and Zeratul's cloak (owner 17.10)
 	}
 
 	/** The side of `caster` sees cloaked units within `radius` of a point for `ticks` (a scanner sweep). */
@@ -84,6 +88,10 @@ public final class Cloak {
 		Entity body = unit.body();
 		List<Entity> detectors = new ArrayList<>(level.getEntitiesOfClass(StarUnit.class, body.getBoundingBox().inflate(DETECT_SEARCH),
 			other -> other.isAlive() && other.kind.detector() && !other.underConstruction() && other.distanceTo(body) <= other.kind.sight()));
+		// owner 17.10: anyone under a detector potion detects as a detector does, within 11 SC2 units
+		detectors.addAll(level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, body.getBoundingBox().inflate(POTION_DETECT),
+			other -> other.isAlive() && !(other instanceof StarUnit) && other.distanceTo(body) <= POTION_DETECT
+				&& other.hasEffect(dev.starmine.gear.TraitPotions.effect(dev.starmine.entity.Trait.DETECTOR))));
 		long now = level.getGameTime();
 		for (Iterator<Scan> it = SCANS.iterator(); it.hasNext(); ) {
 			Scan scan = it.next();

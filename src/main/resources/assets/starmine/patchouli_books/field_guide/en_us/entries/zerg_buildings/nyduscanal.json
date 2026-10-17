@@ -2,7 +2,7 @@
 	"name": "Nydus Worm",
 	"icon": "starmine:nyduscanal_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 13,
+	"sortnum": 14,
 	"pages": [
 		{
 			"type": "patchouli:entity",

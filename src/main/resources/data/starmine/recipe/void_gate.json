@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"SSS",
+		"SES",
+		"SSS"
+	],
+	"key": {
+		"S": {
+			"item": "starmine:void_shard"
+		},
+		"E": {
+			"item": "minecraft:ender_eye"
+		}
+	},
+	"result": {
+		"id": "starmine:void_gate",
+		"count": 1
+	}
+}

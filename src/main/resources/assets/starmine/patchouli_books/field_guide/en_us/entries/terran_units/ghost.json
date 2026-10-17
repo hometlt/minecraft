@@ -22,7 +22,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second$(br2)$(l)EMP Round$(): Removes shields and energy in the area$(br2)$(l)Steady Targeting$(): After aiming 1.4 s: 170 damage to a biological unit$(br2)$(l)Tactical Nuke$(): Needs a nuke armed at a ghost academy. The ghost lasers the point for 10 s; the missile rises from the academy and falls there: a huge blast. An order or the ghost's death loses it"
+			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second$(br2)$(l)EMP Round$(): Removes shields and energy in the area$(br2)$(l)Tactical Nuke$(): Needs a nuke armed at a ghost academy. The ghost lasers the point for 10 s; the missile rises from the academy and falls there: a huge blast. An order or the ghost's death loses it$(br2)$(l)Steady Targeting$(): After aiming 1.4 s: 170 damage to a biological unit"
 		}
 	]
 }

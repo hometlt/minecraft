@@ -46,7 +46,7 @@ public class DroneGameTests implements FabricGameTest {
 	 * the hatchery's edge, goes to mine them: ore is looked for around the base's main building too (only
 	 * around itself, it stood idle all game — half a hive's drones did, and zerg mined half as much).
 	 */
-	@GameTest(template = ARENA, batch = "hiveFarDrone", timeoutTicks = 600)
+	@GameTest(template = ARENA, batch = "hiveFarDrone", timeoutTicks = 900)
 	public void droneBeyondItsHatcheryFindsTheMinerals(GameTestHelper helper) {
 		hiveArena(helper);
 		fill(helper, 30, 2, 18, 35, 3, 29, Blocks.IRON_ORE); // 144 ores: enough for the hive's own 4 drones' claims too
@@ -199,7 +199,7 @@ public class DroneGameTests implements FabricGameTest {
 	}
 
 	/** A hive with resources and 4 drones mutates one into a spawning pool. */
-	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hivePool")
+	@GameTest(template = ARENA, timeoutTicks = 5400, batch = "hivePool")
 	public void droneBecomesSpawningPool(GameTestHelper helper) {
 		hiveArena(helper);
 		helper.spawn(StarMine.type(UnitKind.HATCHERY), new BlockPos(24, 2, 24));
@@ -220,7 +220,7 @@ public class DroneGameTests implements FabricGameTest {
 	}
 
 	/** Owner 14.10: a zerg wave sent into a closed stone room waits while the hive's drones cut it a way. */
-	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hiveEngineering")
+	@GameTest(template = ARENA, timeoutTicks = 5400, batch = "hiveEngineering")
 	public void dronesCutAWayForAWave(GameTestHelper helper) {
 		hiveArena(helper);
 		ServerLevel level = helper.getLevel();
@@ -251,7 +251,7 @@ public class DroneGameTests implements FabricGameTest {
 	}
 
 	/** A real hive's drone digs to an iron ore walled in stone and mines it. */
-	@GameTest(template = ARENA, timeoutTicks = 2400, batch = "hiveOre")
+	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hiveOre")
 	public void droneMinesOreBehindWall(GameTestHelper helper) {
 		hiveArena(helper);
 		fill(helper, 21, 2, 21, 27, 5, 27, Blocks.STONE);

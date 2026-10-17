@@ -2,11 +2,11 @@
 	"name": "Upgrades",
 	"icon": "starmine:evolutionchamber_spawn_egg",
 	"category": "starmine:zerg_general",
-	"sortnum": 2,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:text",
-			"text": "Evolution chamber: $(l)melee attacks$() (zerglings, banelings, ultralisks), $(l)missile attacks$() (roaches, hydralisks, queens…) and $(l)ground carapace$(). Spire: $(l)flyer attacks$() and $(l)flyer carapace$(). Three levels each: level 2 needs a lair, level 3 a hive."
+			"text": "Evolution chamber: $(l)melee attacks$() (zerglings, banelings, ultralisks), $(l)missile attacks$() (roaches, hydralisks, queens…) and $(l)ground carapace$(). Spire: $(l)flyer attacks$() and $(l)flyer carapace$(). Three levels each: level 2 needs a lair, level 3 a hive. With a hive the spire itself grows into a $(l)greater spire$() (100/150, 71 s; it stands taller): then corruptors may become brood lords."
 		},
 		{
 			"type": "patchouli:text",
@@ -27,7 +27,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "$(l)Seismic Spines$() (Hydralisk Den): Lurkers: +2 range$(br2)$(l)Adaptive Talons$() (Hydralisk Den): Lurkers burrow half as fast again$(br2)$(l)Neural Parasite$() (Infestation Pit): Opens the infestors' neural parasite"
+			"text": "$(l)Seismic Spines$() (Lurker Den): Lurkers: +2 range$(br2)$(l)Adaptive Talons$() (Lurker Den): Lurkers burrow half as fast again$(br2)$(l)Neural Parasite$() (Infestation Pit): Opens the infestors' neural parasite"
 		},
 		{
 			"type": "patchouli:text",

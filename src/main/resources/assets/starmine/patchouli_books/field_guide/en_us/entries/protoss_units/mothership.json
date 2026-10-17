@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Mass Recall$(): Units around teleport to a nexus$(br2)$(l)Time Warp$(): Slows foes in the area"
+			"text": "$(l)Time Warp$(): Slows foes in the area$(br2)$(l)Strategic Recall$(): Your units in the circle at the point teleport to the caster (the mothership or a nexus)"
 		}
 	]
 }

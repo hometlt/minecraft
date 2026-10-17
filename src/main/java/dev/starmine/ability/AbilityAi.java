@@ -113,6 +113,11 @@ final class AbilityAi {
 				yield !on && groundFoes || on && (airFoes || calm) ? cast(unit, level, ability) : false;
 			}
 			case AFTERBURNERS -> unit.getHealth() < unit.getMaxHealth() * 0.5f && foeWithin(unit, 10) && cast(unit, level, ability);
+			case LOCK_ON -> unit.abilities.lockOn == null && target != null && reach < ability.range && cast(unit, level, ability, target);
+			case AUTO_TURRET -> target != null && reach < 10 && cast(unit, level, ability, unit.position().lerp(target.position(), 0.15));
+			case INTERFERENCE_MATRIX -> target instanceof StarUnit foe && (foe.kind.mechanical() || foe.kind.psionic()) && foe.getMaxHealth() >= 30
+				&& cast(unit, level, ability, target);
+			case ANTI_ARMOR_MISSILE -> target != null && foesAround(unit, at, TerranAbilities.ANTI_ARMOR_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case REPAIR -> {
 				if (state.repairTarget != null || unit.cargoBlocks > 0) yield false;
 				StarUnit broken = nearestOwn(unit, 16, other -> other.kind.mechanical() && other.kind.race == UnitKind.Race.TERRAN
@@ -124,6 +129,10 @@ final class AbilityAi {
 				Hive base = Abilities.base(unit);
 				boolean fortress = unit.getUUID().getLeastSignificantBits() % 3 == 0; // one command center in three digs in
 				yield base != null && base.minerals >= 400 && fortress == (ability == Ability.PLANETARY_FORTRESS) && cast(unit, level, ability);
+			}
+			case GREATER_SPIRE -> { // the AI grows it once it has a hive and the resources
+				Hive base = Abilities.base(unit);
+				yield base != null && base.tier >= 3 && base.minerals >= 250 && base.vespene >= 250 && cast(unit, level, ability);
 			}
 			case MULE -> cast(unit, level, ability, unit.position().add(level.random.nextGaussian() * 6, 0, level.random.nextGaussian() * 6));
 			case SCANNER_SWEEP -> {
@@ -192,8 +201,11 @@ final class AbilityAi {
 				yield hidden != null && cast(unit, level, ability, hidden.position());
 			}
 			case STASIS_WARD -> target != null && foesAround(unit, at, ProtossAbilities.WARD_RADIUS) >= 3 && cast(unit, level, ability, at);
-			case MASS_RECALL -> unit.getHealth() < unit.getMaxHealth() * 0.3f && unit.home() != null && unit.home().distSqr(unit.blockPosition()) > 48 * 48
-				&& cast(unit, level, ability);
+			case MASS_RECALL -> { // its own troops losing a fight far off come to it
+				StarUnit losing = nearestOwn(unit, unit.kind == UnitKind.NEXUS ? 96 : 48, other -> !other.kind.structure() && other != unit
+					&& other.distanceTo(unit) > 16 && other.getHealth() < other.getMaxHealth() * 0.4f && foeWithin(other, 10));
+				yield losing != null && cast(unit, level, ability, losing.position());
+			}
 			case TIME_WARP -> target != null && foesAround(unit, at, ProtossAbilities.TIME_WARP_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case CHRONO_BOOST -> {
 				StarUnit busy = nearestOwn(unit, 32, other -> other.kind.structure() && !other.queue().isEmpty() && !Status.has(other, Status.CHRONO));

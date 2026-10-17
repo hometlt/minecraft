@@ -42,6 +42,24 @@ public final class BaseGround {
 			|| state.is(Blocks.WHITE_CONCRETE) || state.is(Blocks.YELLOW_CONCRETE);
 	}
 
+	/** The stone of a dimension's ground (owner 17.10: bases in the Nether and the End): netherrack, end stone, stone. */
+	static BlockState stone(ServerLevel level) {
+		if (level.dimension() == net.minecraft.world.level.Level.NETHER) return Blocks.NETHERRACK.defaultBlockState();
+		if (level.dimension() == net.minecraft.world.level.Level.END) return Blocks.END_STONE.defaultBlockState();
+		return Blocks.STONE.defaultBlockState();
+	}
+
+	/** Its soil (under the top) and its top: dirt and grass, soul soil and nylium, end stone. */
+	static BlockState soil(ServerLevel level) {
+		if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD) return Blocks.DIRT.defaultBlockState();
+		return level.dimension() == net.minecraft.world.level.Level.NETHER ? Blocks.SOUL_SOIL.defaultBlockState() : stone(level);
+	}
+
+	static BlockState top(ServerLevel level) {
+		if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD) return Blocks.GRASS_BLOCK.defaultBlockState();
+		return level.dimension() == net.minecraft.world.level.Level.NETHER ? Blocks.CRIMSON_NYLIUM.defaultBlockState() : stone(level);
+	}
+
 	/** Whether a block may be overwritten here (not unbreakable, no block entity). */
 	private static boolean free(ServerLevel level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
@@ -55,7 +73,7 @@ public final class BaseGround {
 	 * concrete, and the {@link #DEPTH} blocks under it plain stone wherever there was ore or a cave (water is left be).
 	 */
 	public static void foundation(ServerLevel level, BlockPos feet, int radius, UnitKind.Race race) {
-		BlockState top = top(race), stone = Blocks.STONE.defaultBlockState();
+		BlockState top = top(race), stone = stone(level);
 		for (int dx = -radius; dx <= radius; dx++)
 			for (int dz = -radius; dz <= radius; dz++) {
 				if (dx * dx + dz * dz > (radius + 0.5) * (radius + 0.5)) continue;
@@ -78,7 +96,7 @@ public final class BaseGround {
 
 	/** Fills the land under a generated base's plaza (radius `half` round `feet`) down to {@link #DEPTH}: no cave, no drop under it. */
 	public static void fillUnder(ServerLevel level, BlockPos feet, int half) {
-		BlockState stone = Blocks.STONE.defaultBlockState(), dirt = Blocks.DIRT.defaultBlockState();
+		BlockState stone = stone(level), dirt = soil(level);
 		for (int dx = -half; dx <= half; dx++)
 			for (int dz = -half; dz <= half; dz++) {
 				if (dx * dx + dz * dz > (half + 0.5) * (half + 0.5)) continue;
@@ -97,7 +115,7 @@ public final class BaseGround {
 	 * is cut down or built up towards the plaza's level, the more the nearer the plaza, topped with grass.
 	 */
 	public static void blend(ServerLevel level, BlockPos feet, int inner, int outer) {
-		BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState(), dirt = Blocks.DIRT.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+		BlockState grass = top(level), dirt = soil(level), air = Blocks.AIR.defaultBlockState();
 		for (int dx = -outer; dx <= outer; dx++)
 			for (int dz = -outer; dz <= outer; dz++) {
 				double r = Math.sqrt(dx * dx + dz * dz);

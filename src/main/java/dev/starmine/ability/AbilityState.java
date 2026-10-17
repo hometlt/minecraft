@@ -58,6 +58,14 @@ public final class AbilityState {
 	/** A neural parasite's hold: the side it fights for and the infestor. */
 	@Nullable Faction parasiteSide;
 	@Nullable UUID parasiteCaster;
+	/** An adept's shade out (owner 17.10), and a shade's adept. */
+	@Nullable UUID shade, shadeOf;
+	/** A cyclone's locked target (owner 17.10) and the ticks it has held it. */
+	@Nullable UUID lockOn;
+	int lockTicks;
+	/** Zagara under the ground (owner 17.10): ticks till she comes up, and where. */
+	public int digTicks;
+	public @Nullable net.minecraft.world.phys.Vec3 digTo;
 	/** An SCV's repair target and the minerals owed for it so far (paid by whole minerals). */
 	@Nullable UUID repairTarget;
 	double repairDebt;

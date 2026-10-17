@@ -47,6 +47,7 @@ final class ModeLook {
 			case Modes.PLANETARY -> "planetary";
 			case Modes.AIRBORNE -> "airborne";
 			case Modes.DEFENDER -> "defender";
+			case Modes.GREATER -> "greater";
 			default -> "normal";
 		};
 	}
@@ -56,6 +57,7 @@ final class ModeLook {
 			case Modes.SIEGED -> new Shape(1.18f, 0.8f, 0);
 			case Modes.PHASING -> new Shape(1.35f, 0.65f, 0);
 			case Modes.DEFENDER -> new Shape(1.05f, 1f, 24);
+			case Modes.GREATER -> new Shape(1.06f, 1.3f, 0); // the greater spire: taller, its spikes out
 			case Modes.HIGH_IMPACT -> new Shape(1.05f, 1.08f, 0);
 			case Modes.PULSAR -> new Shape(1f, 1f, -8);
 			case Modes.WARPGATE -> new Shape(1.08f, 0.92f, 0);

@@ -81,7 +81,7 @@ public final class ZergAbilities {
 		if (point == null) return;
 		BlockPos at = BlockPos.containing(point);
 		for (BlockPos pos : BlockPos.betweenClosed(at.offset(-1, -1, -1), at.offset(1, 1, 1)))
-			if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepGrowth.placeTumor(level, pos.immutable(), 1)) {
+			if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepGrowth.placeTumor(level, pos.immutable(), 1, unit.owner().orElse(null))) {
 				unit.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 				return;
 			}
@@ -139,7 +139,7 @@ public final class ZergAbilities {
 	}
 
 	/** A summon joins its summoner's side and base without counting in it. */
-	static void summon(StarUnit summoner, StarUnit summon, ServerLevel level) {
+	public static void summon(StarUnit summoner, StarUnit summon, ServerLevel level) {
 		Hive hive = summoner.hiveId() == null ? null : HiveSavedData.get(level.getServer()).get(summoner.hiveId());
 		if (hive != null) summon.joinAsSummon(hive, summoner.getUUID());
 		else summon.summonedBy(summoner);

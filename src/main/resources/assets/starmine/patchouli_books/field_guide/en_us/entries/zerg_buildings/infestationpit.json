@@ -2,7 +2,7 @@
 	"name": "Infestation Pit",
 	"icon": "starmine:infestationpit_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 7,
+	"sortnum": 8,
 	"pages": [
 		{
 			"type": "patchouli:entity",

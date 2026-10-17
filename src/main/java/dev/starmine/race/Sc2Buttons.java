@@ -84,6 +84,7 @@ public final class Sc2Buttons {
 			case REPAIR -> "Repair";
 			case ORBITAL_COMMAND -> "OrbitalCommand";
 			case PLANETARY_FORTRESS -> "PlanetaryFortress";
+			case GREATER_SPIRE -> "GreaterSpire";
 			case MULE -> "CalldownMULE";
 			case SCANNER_SWEEP -> "Scan";
 			case LOWER_DEPOT -> "Lower";
@@ -93,6 +94,11 @@ public final class Sc2Buttons {
 			case CHARGE -> "Charge";
 			case BLINK -> "Blink";
 			case PSIONIC_TRANSFER -> "AdeptPhaseShift";
+			case SHADE_CANCEL -> "AdeptPhaseShiftCancel";
+			case LOCK_ON -> "LockOn";
+			case AUTO_TURRET -> "BuildAutoTurret";
+			case INTERFERENCE_MATRIX -> "InterferenceMatrix";
+			case ANTI_ARMOR_MISSILE -> "AntiArmorMissile";
 			case FORCE_FIELD -> "ForceField";
 			case GUARDIAN_SHIELD -> "GuardianShield";
 			case HALLUCINATION -> "Hallucination";
@@ -189,6 +195,7 @@ public final class Sc2Buttons {
 			case FLUX_VANES -> "ResearchVoidRaySpeedUpgrade";
 			case ANION_PULSE_CRYSTALS -> "ResearchPhoenixAnionPulseCrystals";
 			case TECTONIC_DESTABILIZERS -> "ResearchTempestResearchGroundAttackUpgrade";
+			case WEAPON_REFIT -> "ResearchBattlecruiserSpecializations";
 		};
 	}
 }

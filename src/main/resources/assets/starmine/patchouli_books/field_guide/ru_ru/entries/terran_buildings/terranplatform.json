@@ -2,7 +2,7 @@
 	"name": "Склад-платформа терранов",
 	"icon": "starmine:terranplatform_spawn_egg",
 	"category": "starmine:terran_buildings",
-	"sortnum": 12,
+	"sortnum": 14,
 	"pages": [
 		{
 			"type": "patchouli:entity",

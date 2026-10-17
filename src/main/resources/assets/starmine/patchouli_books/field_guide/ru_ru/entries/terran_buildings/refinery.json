@@ -2,7 +2,7 @@
 	"name": "Очистительный завод",
 	"icon": "starmine:refinery_spawn_egg",
 	"category": "starmine:terran_buildings",
-	"sortnum": 11,
+	"sortnum": 13,
 	"pages": [
 		{
 			"type": "patchouli:entity",

@@ -74,6 +74,11 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 	}
 
 	/** Who Amun's side fights: players (not creative or spectating) and players' units. */
+	/** Whether Amun's side fights `entity` (owner 17.10: only players and players' units). */
+	public static boolean foeOf(LivingEntity entity) {
+		return foe(entity);
+	}
+
 	static boolean foe(LivingEntity entity) {
 		if (!entity.isAlive() || Faction.amun(entity)) return false;
 		if (entity instanceof Player player) return !player.isCreative() && !player.isSpectator();

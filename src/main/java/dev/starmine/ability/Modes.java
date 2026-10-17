@@ -14,7 +14,7 @@ import static dev.starmine.entity.UnitKind.SCALE;
  * race — the siege tank's siege mode, burrowing (zerg), the viking's landing, the hellion's hellbat
  * form, the warp prism's phasing mode, the oracle's pulsar beam, the thor's high impact payload, a
  * lowered supply depot, a warp gate, a barracks' tech lab or reactor, an orbital command or planetary
- * fortress, a terran building lifted off ({@link LiftOff}). A change takes its SC2 time ({@link #changeTicks}), during which the unit neither moves nor
+ * fortress, a greater spire, a terran building lifted off ({@link LiftOff}). A change takes its SC2 time ({@link #changeTicks}), during which the unit neither moves nor
  * fights; then its weapon, speed and body follow the new mode ({@link #weapon}, {@link #speedFactor},
  * applied by {@link StarUnit#refreshWeapon} and {@link StarUnit#applyModeBody}). Toggles go back and
  * forth; the add-ons, the orbital command and the planetary fortress are for good ({@link #oneWay}).
@@ -24,8 +24,10 @@ import static dev.starmine.entity.UnitKind.SCALE;
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
 		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
-		AIRBORNE = 14, DEFENDER = 15;
+		AIRBORNE = 14, DEFENDER = 15, GREATER = 16;
 	public static final int CHANGE_TICKS = 60;
+	/** The mark of a base that has a greater spire (brood lords need it). */
+	public static final String GREATER_SPIRE_ID = "greater_spire";
 
 	/** A weapon in a mode: blocks of reach, damage, ticks between shots, splash radius, the closest it can shoot, whether it can move. */
 	public record Weapon(double range, double damage, int interval, double splash, double minRange, boolean mobile) {
@@ -49,6 +51,7 @@ public final class Modes {
 			case BUILD_REACTOR -> REACTOR;
 			case ORBITAL_COMMAND -> ORBITAL;
 			case PLANETARY_FORTRESS -> PLANETARY;
+			case GREATER_SPIRE -> GREATER;
 			case LIFT_OFF -> AIRBORNE;
 			default -> -1;
 		};
@@ -57,7 +60,7 @@ public final class Modes {
 	/** Modes that are for good (add-ons, command center upgrades): only from the normal mode, never back. */
 	public static boolean oneWay(Ability ability) {
 		return ability == Ability.BUILD_TECHLAB || ability == Ability.BUILD_REACTOR || ability == Ability.ORBITAL_COMMAND
-			|| ability == Ability.PLANETARY_FORTRESS;
+			|| ability == Ability.PLANETARY_FORTRESS || ability == Ability.GREATER_SPIRE;
 	}
 
 	/** SC2 time of a change to `mode` by `ability`, in ticks (0: at once). */
@@ -139,6 +142,11 @@ public final class Modes {
 		}
 		boolean landing = unit.mode() == AIRBORNE && unit.abilities.nextMode != AIRBORNE;
 		unit.setMode(unit.abilities.nextMode);
+		if (unit.mode() == GREATER) { // its base may morph corruptors into brood lords now
+			dev.starmine.hive.Hive base = Abilities.base(unit);
+			if (base != null && base.researched.add(GREATER_SPIRE_ID) && unit.level() instanceof ServerLevel server)
+				dev.starmine.hive.HiveSavedData.get(server.getServer()).setDirty();
+		}
 		if (landing) LiftOff.landed(unit, Abilities.base(unit), unit.abilities.liftedFrom);
 		unit.applyModeBody();
 		unit.refreshWeapon();

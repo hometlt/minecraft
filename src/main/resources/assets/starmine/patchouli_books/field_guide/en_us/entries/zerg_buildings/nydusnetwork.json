@@ -2,7 +2,7 @@
 	"name": "Nydus Network",
 	"icon": "starmine:nydusnetwork_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 12,
+	"sortnum": 13,
 	"pages": [
 		{
 			"type": "patchouli:entity",

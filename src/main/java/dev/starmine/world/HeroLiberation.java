@@ -19,6 +19,7 @@ import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -70,6 +71,7 @@ public final class HeroLiberation {
 	}
 
 	public static void load() {
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(HeroLiberation::respawn);
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
 			!(entity instanceof StarUnit hero && hero.kind.boss() && hero.level() instanceof ServerLevel level && beaten(hero, level, source)));
 		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
@@ -145,8 +147,10 @@ public final class HeroLiberation {
 		BlockPos home = hero.nest();
 		if (home == null || hero.isPassenger() || hero.pilot() != null) return;
 		double dx = hero.getX() - (home.getX() + 0.5), dz = hero.getZ() - (home.getZ() + 0.5);
-		int stay = hero.kind.guardian() ? GUARD_RADIUS : STAY_RADIUS;
-		boolean out = dx * dx + dz * dz > stay * stay, fell = !hero.kind.guardian() && hero.getY() < home.getY() - 1.5;
+		boolean guard = hero.kind.guardian() || hero.kind.dimensionHero(); // a base's hero keeps near it; a ship's stays on its arena
+		if (freed(hero) && hero.owner().isPresent()) return; // a freed hero goes where its player sends it
+		int stay = guard ? GUARD_RADIUS : STAY_RADIUS;
+		boolean out = dx * dx + dz * dz > stay * stay, fell = !guard && hero.getY() < home.getY() - 1.5;
 		if (out || fell) { // back onto the arena: a hero does not leave it, nor fall off
 			Vec3 back = fell ? Vec3.atBottomCenterOf(home) : new Vec3(home.getX() + 0.5 + dx * 0.7, hero.getY(), home.getZ() + 0.5 + dz * 0.7);
 			hero.teleportTo(back.x, Math.max(back.y, home.getY()), back.z);
@@ -158,11 +162,14 @@ public final class HeroLiberation {
 
 	// ---- beaten ----
 
-	/** A hero would die: while Amun holds it, it is freed instead (false: let it die — never, for a freed hero it keeps 1 health). */
+	/**
+	 * A hero would die: while Amun holds it, it is freed instead. A freed hero dies (owner 17.10) and comes back at its base
+	 * {@link #RESPAWN_TICKS} later ({@link #respawn}); false then.
+	 */
 	static boolean beaten(StarUnit hero, ServerLevel level, DamageSource source) {
 		if (freed(hero)) {
-			hero.setHealth(1);
-			return true;
+			fell(hero, level);
+			return false;
 		}
 		ServerPlayer player = victor(hero, level, source);
 		hero.setHealth(Math.max(1, hero.getMaxHealth() * LEFT));
@@ -187,13 +194,15 @@ public final class HeroLiberation {
 		hero.command(StarUnit.Order.HOLD, null);
 		Heroes.gone(hero);
 		VoidWorld.State data = VoidWorld.State.get(level.getServer());
-		data.freed.add(hero.kind.guardian() ? hero.kind.name() : hero.kind.race.name()); // a ship hero by its race (its key part), a guardian by name
+		// a ship hero by its race (its key part), a guardian and the other worlds' heroes by name
+		data.freed.add(hero.kind.guardian() || hero.kind.dimensionHero() ? hero.kind.name() : hero.kind.race.name());
 		data.setDirty();
 		level.sendParticles(ParticleTypes.FLASH, hero.getX(), hero.getY() + hero.getBbHeight() / 2, hero.getZ(), 1, 0, 0, 0, 0);
 		level.sendParticles(ParticleTypes.END_ROD, hero.getX(), hero.getY() + hero.getBbHeight() / 2, hero.getZ(), 60, 1, 1, 1, 0.15);
 		level.playSound(null, hero.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 2.0f, 0.8f);
 		for (ItemStack loot : Heroes.reward(hero)) level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), loot));
-		if (!hero.kind.guardian() && !data.parts.containsKey(hero.kind.race.name())) // a ship built before the parts stood on it: the part from the hero's hand
+		if (hero.kind.dimensionHero() // owner 17.10: the Nether's and the End's heroes carry their world's part of the key
+			|| !hero.kind.guardian() && !data.parts.containsKey(hero.kind.race.name())) // a ship built before the parts stood on it: the part from the hero's hand
 			level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), new ItemStack(Artifact.part(hero.kind.race))));
 		List<ServerPlayer> audience = level.players().stream().filter(p -> p.distanceTo(hero) <= Heroes.BAR_RANGE * 2).toList();
 		for (ServerPlayer near : audience) dev.starmine.guide.Goals.heroFreed(near, hero.kind);
@@ -212,6 +221,60 @@ public final class HeroLiberation {
 			beats.add(Cutscene.Beat.act(0, () -> HeroicTransport.summon(level, hero, player)));
 		Cutscene.play(level, audience.isEmpty() ? List.of(player) : audience, beats, () -> {
 		});
+	}
+
+	/** Owner 17.10: a fallen freed hero comes back at its base after 30 minutes of game time. */
+	public static final int RESPAWN_TICKS = 30 * 60 * 20;
+
+	/** A freed hero fell: it is remembered, to come back at its base ({@link #respawn}). */
+	static void fell(StarUnit hero, ServerLevel level) {
+		UUID owner = hero.owner().orElse(null);
+		if (owner == null) return;
+		Hive base = HiveSavedData.get(level.getServer()).get(hero.hiveId());
+		BlockPos home = base != null ? base.hatchery : hero.nest() != null ? hero.nest() : hero.blockPosition();
+		String dimension = base != null ? base.dimension : level.dimension().location().toString();
+		VoidWorld.State data = VoidWorld.State.get(level.getServer());
+		data.fallen.add(new VoidWorld.State.Fallen(hero.kind.name(), owner, dimension, home.immutable(), level.getGameTime() + RESPAWN_TICKS));
+		data.setDirty();
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(owner);
+		if (player != null) player.displayClientMessage(Component.translatable("message.starmine.hero_fell", hero.getDisplayName(), RESPAWN_TICKS / 1200), false);
+	}
+
+	/** Each second: fallen heroes whose time has come stand again at their base, freed and their player's. */
+	static void respawn(MinecraftServer server) {
+		if (server.getTickCount() % 20 != 3) return;
+		VoidWorld.State data = VoidWorld.State.get(server);
+		if (data.fallen.isEmpty()) return;
+		long now = server.overworld().getGameTime();
+		for (java.util.Iterator<VoidWorld.State.Fallen> it = data.fallen.iterator(); it.hasNext(); ) {
+			VoidWorld.State.Fallen f = it.next();
+			if (f.due() > now) continue;
+			ServerLevel level = null;
+			for (ServerLevel each : server.getAllLevels()) if (each.dimension().location().toString().equals(f.dimension())) level = each;
+			if (level == null) level = server.overworld();
+			if (!level.isLoaded(f.home())) continue; // waits till its base is loaded
+			UnitKind kind;
+			try {
+				kind = UnitKind.valueOf(f.kind());
+			} catch (IllegalArgumentException e) {
+				it.remove();
+				continue;
+			}
+			it.remove();
+			data.setDirty();
+			StarUnit hero = StarMine.type(kind).create(level);
+			if (hero == null) continue;
+			Vec3 at = Vec3.atBottomCenterOf(f.home()).add(kind.width + 3, kind.flying ? kind.hoverHeight() : 0, 0);
+			hero.moveTo(at.x, at.y, at.z, 0, 0);
+			hero.addTag(FREED);
+			hero.setOwner(f.owner());
+			Hive base = HiveSavedData.get(server).baseOf(f.owner(), level.dimension().location().toString());
+			if (base != null) hero.joinHive(base);
+			level.addFreshEntity(hero);
+			level.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 1, at.z, 40, 0.6, 1, 0.6, 0.1);
+			ServerPlayer player = server.getPlayerList().getPlayer(f.owner());
+			if (player != null) player.displayClientMessage(Component.translatable("message.starmine.hero_back", hero.getDisplayName()), false);
+		}
 	}
 
 	/**

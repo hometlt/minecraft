@@ -117,7 +117,9 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
 			// cloaked (dev.starmine.ability.Cloak): see-through for its own side, a faint shimmer for others unless a detector reveals it
 			var player = net.minecraft.client.Minecraft.getInstance().player;
-			if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
+			if (dev.starmine.ability.ProtossAbilities.SHADE.equals(entity.disguise())) // an adept's shade: see-through, violet
+				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, 0x90B080FF);
+			else if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
 				boolean ours = player != null && dev.starmine.faction.Faction.allied(entity, player);
 				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, ours ? 0x70FFFFFF : 0x14FFFFFF);
 			} else if (shown(entity.kind) != entity.kind && entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
@@ -146,6 +148,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			int alpha = 255;
 			if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed())
 				alpha = player != null && dev.starmine.faction.Faction.allied(entity, player) ? 0x70 : 0x14;
+			if (dev.starmine.ability.ProtossAbilities.SHADE.equals(entity.disguise())) alpha = 0x90; // an adept's shade
 			FallbackModels.draw(entity, partialTick, poseStack, buffers, packedLight, overlay, alpha);
 			poseStack.popPose();
 		}

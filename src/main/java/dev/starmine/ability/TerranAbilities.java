@@ -143,6 +143,62 @@ public final class TerranAbilities {
 			level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE);
 	}
 
+	/** SC2 lock on: 400 damage over 14 s while the target stays within 15. */
+	public static final double LOCK_DAMAGE = 400, LOCK_RANGE = 15 * BLOCKS_PER_UNIT;
+	public static final int LOCK_TICKS = 14 * 20;
+	/** SC2 auto-turret: 10 s; interference matrix 11 s; anti-armor missile 21 s over radius 2.88. */
+	public static final int TURRET_TICKS = 10 * 20, INTERFERENCE_TICKS = 11 * 20, ARMOR_BROKEN_TICKS = 21 * 20;
+	public static final double ANTI_ARMOR_RADIUS = 2.88 * BLOCKS_PER_UNIT;
+
+	/** The cyclone locks on: it may move and keeps firing at its target while it is within reach. */
+	static void lockOn(StarUnit unit, @Nullable LivingEntity target) {
+		if (target == null) return;
+		unit.abilities.lockOn = target.getUUID();
+		unit.abilities.lockTicks = 0;
+	}
+
+	static void lockOnTick(StarUnit unit, ServerLevel level) {
+		AbilityState state = unit.abilities;
+		LivingEntity target = level.getEntity(state.lockOn) instanceof LivingEntity living && living.isAlive() ? living : null;
+		if (target == null || ++state.lockTicks > LOCK_TICKS || unit.distanceTo(target) > LOCK_RANGE || Status.has(unit, Status.INTERFERED)) {
+			state.lockOn = null;
+			return;
+		}
+		if (state.lockTicks % 10 == 0) {
+			target.hurt(unit.attackSource(), (float) (LOCK_DAMAGE / (LOCK_TICKS / 10.0) * SCALE));
+			Channels.beam(level, unit, target, ParticleTypes.FLAME);
+		}
+	}
+
+	/** The raven puts down an auto-turret at the point: 18 a shot, range 6, for 10 s. */
+	static void autoTurret(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
+		if (point == null) return;
+		StarUnit turret = dev.starmine.StarMine.type(UnitKind.AUTO_TURRET).create(level);
+		if (turret == null) return;
+		Vec3 at = Abilities.standable(turret, level, point);
+		if (at == null) at = point;
+		turret.moveTo(at.x, at.y, at.z, unit.getYRot(), 0);
+		ZergAbilities.summon(unit, turret, level);
+		Status.apply(turret, Status.TEMPORARY, TURRET_TICKS);
+		level.addFreshEntity(turret);
+		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y + 0.5, at.z, 20, 0.4, 0.4, 0.4, 0.1);
+	}
+
+	/** Interference matrix: a mechanical or psionic unit neither fights nor casts for 11 s. */
+	static void interference(StarUnit unit, ServerLevel level, @Nullable LivingEntity target) {
+		if (target == null) return;
+		Status.apply(target, Status.INTERFERED, INTERFERENCE_TICKS);
+		Channels.beam(level, unit, target, ParticleTypes.ELECTRIC_SPARK);
+	}
+
+	/** Anti-armor missile: the foes round the point lose 3 armor for 21 s. */
+	static void antiArmor(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
+		if (point == null) return;
+		level.sendParticles(ParticleTypes.EXPLOSION, point.x, point.y + 0.5, point.z, 2, 0.5, 0.3, 0.5, 0);
+		Abilities.ring(level, point, ANTI_ARMOR_RADIUS, ParticleTypes.ELECTRIC_SPARK);
+		for (LivingEntity other : Abilities.around(unit, point, ANTI_ARMOR_RADIUS, true)) Status.apply(other, Status.ARMOR_BROKEN, ARMOR_BROKEN_TICKS);
+	}
+
 	/** After its 2 s channel, the Yamato cannon hits the target: a bolt of light and 240 SC2 damage. */
 	static void yamato(StarUnit unit, ServerLevel level, @Nullable LivingEntity target) {
 		if (target == null || !target.isAlive()) return;

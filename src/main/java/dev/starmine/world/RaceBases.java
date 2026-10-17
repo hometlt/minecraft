@@ -340,7 +340,7 @@ public final class RaceBases {
 			data.structuresDone.add("GUARD:" + race.name());
 		}
 		if (ship == null) { // the base and its dungeon; its ship later
-			for (Spawn spawn : spawns) wait(data, base.id, spawn);
+			for (Spawn spawn : spawns) wait(data, base.id, spawn, level); // in the base's own dimension (a nether or End base's)
 			data.setDirty();
 			return new Report(base.id, painter.placed(), spawns.size());
 		}

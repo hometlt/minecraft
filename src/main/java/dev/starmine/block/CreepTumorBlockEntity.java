@@ -11,14 +11,18 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * A creep tumor's life (owner): it grows creep (radius {@link CreepSources#TUMOR_RADIUS}) and once, 5 to
- * 10 minutes after it appears, spawns one new tumor at the edge of its creep — only where creep still
- * meets bare ground, and never within 8 blocks of another tumor — with a trail of slime running over
- * the creep to it. Then it is exhausted and only feeds its creep.
+ * A creep tumor's life (owner): it grows creep (radius {@link CreepSources#TUMOR_RADIUS}) and once, as in SC2
+ * soon after it burrows (owner 17.10: 15 to 30 s), spawns one new tumor at the edge of its creep — only where creep
+ * still meets bare ground, and never within 8 blocks of another tumor — with a trail of slime running over the creep
+ * to it. Then it is exhausted and only feeds its creep. It has its side (the player whose queen planted it, or none:
+ * the wild) and {@link dev.starmine.creep.CreepTumors#HEALTH} hit points ({@link dev.starmine.creep.CreepTumors}).
  */
 public class CreepTumorBlockEntity extends BlockEntity {
 	private int age, spreadAt;
 	private boolean spawned;
+	/** Its player (null: the wild's), synced: its own side sees it burrowed. */
+	private @org.jetbrains.annotations.Nullable java.util.UUID owner;
+	private double health = dev.starmine.creep.CreepTumors.HEALTH;
 	/** Game time it was planted (synced to clients: it turns invisible 5 s later). */
 	private long plantedAt = -1;
 
@@ -35,9 +39,9 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		}
 		CreepGrowth.grow(server, pos, CreepSources.TUMOR_RADIUS);
 		tumor.age++;
-		if (tumor.spreadAt == 0) tumor.spreadAt = 6000 + level.random.nextInt(6001); // 5-10 minutes
+		if (tumor.spreadAt == 0) tumor.spreadAt = 300 + level.random.nextInt(301); // SC2: soon after it burrows (15-30 s)
 		if (!tumor.spawned && tumor.age >= tumor.spreadAt && tumor.age % 100 == 0) {
-			if (CreepGrowth.spawnTumor(server, pos, CreepSources.TUMOR_SPACING, CreepSources.TUMOR_RADIUS)) {
+			if (CreepGrowth.spawnTumor(server, pos, CreepSources.TUMOR_SPACING, CreepSources.TUMOR_RADIUS, tumor.owner)) {
 				tumor.spawned = true; // exhausted: it only feeds its creep from now on
 				tumor.setChanged();
 			}
@@ -51,6 +55,30 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		tag.putInt("spreadAt", spreadAt);
 		tag.putBoolean("spawned", spawned);
 		tag.putLong("plantedAt", plantedAt);
+		if (owner != null) tag.putUUID("owner", owner);
+		tag.putDouble("health", health);
+	}
+
+	public long plantedAt() {
+		return plantedAt;
+	}
+
+	public @org.jetbrains.annotations.Nullable java.util.UUID owner() {
+		return owner;
+	}
+
+	/** Planted for a player (null: the wild). */
+	public void setOwner(@org.jetbrains.annotations.Nullable java.util.UUID owner) {
+		this.owner = owner;
+		setChanged();
+		if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+	}
+
+	/** Takes damage; the hit points left. */
+	public double damage(double amount) {
+		health -= amount;
+		setChanged();
+		return health;
 	}
 
 	@Override
@@ -60,6 +88,8 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		spreadAt = tag.getInt("spreadAt");
 		spawned = tag.getBoolean("spawned");
 		plantedAt = tag.contains("plantedAt") ? tag.getLong("plantedAt") : -1;
+		owner = tag.hasUUID("owner") ? tag.getUUID("owner") : null;
+		health = tag.contains("health") ? tag.getDouble("health") : dev.starmine.creep.CreepTumors.HEALTH;
 	}
 
 	@Override

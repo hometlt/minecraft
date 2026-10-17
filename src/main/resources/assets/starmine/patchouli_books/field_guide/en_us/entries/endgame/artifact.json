@@ -2,7 +2,7 @@
 	"name": "The Xel'Naga Artifact",
 	"icon": "starmine:artifact_pedestal",
 	"category": "starmine:endgame",
-	"sortnum": 7,
+	"sortnum": 10,
 	"pages": [
 		{
 			"type": "patchouli:image",

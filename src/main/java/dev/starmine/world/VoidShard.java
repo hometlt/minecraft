@@ -26,6 +26,8 @@ public class VoidShard extends Mob implements Enemy, VoidForces.Member {
 	public static final float HEALTH = 60;
 	/** How far a shard's beam reaches Amun. */
 	public static final double REACH = 192;
+	/** Ticks until an invasion's shard sends out its next wave ({@link AmunInvasion#shardTick}). */
+	int waveIn = 100;
 	private static final EntityDataAccessor<Integer> AMUN = SynchedEntityData.defineId(VoidShard.class, EntityDataSerializers.INT);
 
 	public VoidShard(EntityType<? extends VoidShard> type, Level level) {
@@ -53,6 +55,7 @@ public class VoidShard extends Mob implements Enemy, VoidForces.Member {
 		if (level() instanceof ServerLevel server && tickCount % 20 == 0) {
 			Amun near = Amun.find(server, position(), REACH);
 			entityData.set(AMUN, near == null ? -1 : near.getId());
+			if (!VoidWorld.is(server)) AmunInvasion.shardTick(this, server); // owner 17.10: a shard of his invasion darkens the land round it
 		}
 		if (level().isClientSide && random.nextInt(3) == 0)
 			level().addParticle(ParticleTypes.REVERSE_PORTAL, getRandomX(0.8), getRandomY(), getRandomZ(0.8), 0, 0.05, 0);
@@ -84,6 +87,9 @@ public class VoidShard extends Mob implements Enemy, VoidForces.Member {
 		server.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
 		server.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 1, getZ(), 80, 1, 1, 1, 0.3);
 		playSound(SoundEvents.GENERIC_EXPLODE.value(), 4.0f, 0.7f);
+		// owner 17.10: a broken shard leaves void shards (a void gate is made of them)
+		spawnAtLocation(new net.minecraft.world.item.ItemStack(VoidGate.SHARD, 2 + random.nextInt(3)));
+		if (!VoidWorld.is(server)) return; // one of the invasion's: Amun's own shards are the Void's
 		VoidWorld.State state = VoidWorld.State.get(server.getServer());
 		state.shards = Math.max(0, state.shards - 1);
 		state.setDirty();

@@ -32,6 +32,7 @@ public final class Heroes {
 	/** Every 10 ticks of a hero: its bar's fill and who sees it. */
 	static void tick(StarUnit hero, ServerLevel level) {
 		dev.starmine.world.HeroLiberation.tick(hero, level); // owner 17.10: Amun's hold, the arena
+		if (hero.kind.dimensionHero()) dev.starmine.world.DimensionHeroes.tick(hero, level); // the Nether's and the End's heroes' ways
 		if (hero.tickCount % 10 != 0 || dev.starmine.world.HeroLiberation.freed(hero)) return;
 		ServerBossEvent bar = BARS.computeIfAbsent(hero.getId(), id -> new ServerBossEvent(hero.getDisplayName(), switch (hero.kind.race) {
 			case ZERG -> BossEvent.BossBarColor.PURPLE;

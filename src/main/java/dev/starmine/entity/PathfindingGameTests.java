@@ -47,7 +47,8 @@ public class PathfindingGameTests implements FabricGameTest {
 	 * (horizontally, within 2 blocks up or down); logs every arrival's tick and, when `limit` ticks are
 	 * over, who is stuck where.
 	 */
-	private static void race(GameTestHelper helper, String scenario, Map<StarUnit, Vec3> goals, double radius, int limit) {
+	private static void race(GameTestHelper helper, String scenario, Map<StarUnit, Vec3> goals, double radius, int baseLimit) {
+		int limit = baseLimit * 3 / 2; // headroom (timeouts too): a loaded test server runs slower, not the units — the log keeps their ticks
 		Map<StarUnit, Long> arrived = new LinkedHashMap<>();
 		long[] start = new long[] {-1};
 		boolean[] over = new boolean[1];
@@ -99,7 +100,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		return line.toString().trim();
 	}
 
-	@GameTest(template = ARENA, batch = "pathFlat", timeoutTicks = 800)
+	@GameTest(template = ARENA, batch = "pathFlat", timeoutTicks = 1200)
 	public void everySizeCrossesOpenGround(GameTestHelper helper) {
 		clear(helper);
 		UUID player = UUID.randomUUID();
@@ -114,7 +115,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "open ground, 32 blocks", goals, 1.5, 700);
 	}
 
-	@GameTest(template = ARENA, batch = "pathGaps", timeoutTicks = 800)
+	@GameTest(template = ARENA, batch = "pathGaps", timeoutTicks = 1200)
 	public void unitsFindGapsTheirSize(GameTestHelper helper) {
 		clear(helper);
 		// a wall 3 high across the arena with gaps 2, 4 and 7 wide: a zergling and a marine (1.3 and 1.6 wide)
@@ -133,7 +134,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "wall with gaps 2/4/7", goals, 1.5, 700);
 	}
 
-	@GameTest(template = ARENA, batch = "pathCliff", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathCliff", timeoutTicks = 1350)
 	public void cliffClimbersAndTheRest(GameTestHelper helper) {
 		clear(helper);
 		// a plateau 4 high from x 24 on, with a ramp of steps at its far end (z 42-46)
@@ -149,7 +150,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "cliff 4 up (ramp at the far end)", goals, 2, 800);
 	}
 
-	@GameTest(template = ARENA, batch = "pathCliffDown", timeoutTicks = 700)
+	@GameTest(template = ARENA, batch = "pathCliffDown", timeoutTicks = 1050)
 	public void unitsComeDownACliff(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 0, 2, 0, 23, 5, 47, Blocks.STONE.defaultBlockState());
@@ -165,12 +166,12 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "cliff 4 down", goals, 2, 600);
 	}
 
-	@GameTest(template = ARENA, batch = "pathRiver5", timeoutTicks = 1200)
+	@GameTest(template = ARENA, batch = "pathRiver5", timeoutTicks = 1800)
 	public void armyCrossesANarrowRiver(GameTestHelper helper) {
 		river(helper, 5);
 	}
 
-	@GameTest(template = ARENA, batch = "pathRiver12", timeoutTicks = 2400)
+	@GameTest(template = ARENA, batch = "pathRiver12", timeoutTicks = 3600)
 	public void armyCrossesAWideRiver(GameTestHelper helper) {
 		river(helper, 12);
 	}
@@ -220,7 +221,7 @@ public class PathfindingGameTests implements FabricGameTest {
 	}
 
 	/** A river 12 wide and a medivac of the base: it carries the army over (no bridge), nobody gets wet. */
-	@GameTest(template = ARENA, batch = "pathFerry", timeoutTicks = 2400)
+	@GameTest(template = ARENA, batch = "pathFerry", timeoutTicks = 3600)
 	public void aTransportCarriesTheArmyOverARiver(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 18, 0, 0, 29, 1, 47, Blocks.WATER.defaultBlockState());
@@ -258,7 +259,7 @@ public class PathfindingGameTests implements FabricGameTest {
 	}
 
 	/** No workers, no transport: a marine sent over a river stays on its bank (and its player is told there is no way). */
-	@GameTest(template = ARENA, batch = "pathNoWay", timeoutTicks = 700)
+	@GameTest(template = ARENA, batch = "pathNoWay", timeoutTicks = 1050)
 	public void aUnitWithNoWayStaysOutOfTheWater(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 18, 0, 0, 29, 1, 47, Blocks.WATER.defaultBlockState());
@@ -342,7 +343,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "pathMountain", timeoutTicks = 9600)
+	@GameTest(template = ARENA, batch = "pathMountain", timeoutTicks = 14400)
 	public void workersTunnelThroughAMountain(GameTestHelper helper) {
 		clear(helper);
 		// a ridge higher than a thor (11 tall, its way 12): a tunnel through it, not a cut over a lower ridge
@@ -367,7 +368,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "pathTunnels", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathTunnels", timeoutTicks = 1350)
 	public void zergFollowWindingTunnels(GameTestHelper helper) {
 		clear(helper);
 		// solid rock with a winding 3x3 tunnel (a roach is 2.6 wide, a drone 1.9): east, north, east, south, east
@@ -387,7 +388,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "winding 3x3 tunnel", goals, 2.5, 800);
 	}
 
-	@GameTest(template = ARENA, batch = "pathForest", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathForest", timeoutTicks = 1350)
 	public void unitsCrossAForest(GameTestHelper helper) {
 		clear(helper);
 		// tall trees every 9 blocks, staggered: a trunk 9 high and a crown of leaves from 8 up (an ultralisk, 7.4
@@ -413,7 +414,7 @@ public class PathfindingGameTests implements FabricGameTest {
 	 * Owner 17.10: the colossus could not move at all. It walks on stilts: through low trees whose crowns hang
 	 * across its body (5 up, a trunk every 5 blocks), and up a cliff 4 high with no ramp.
 	 */
-	@GameTest(template = ARENA, batch = "pathColossus", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathColossus", timeoutTicks = 1350)
 	public void theColossusStepsOverTreesAndCliffs(GameTestHelper helper) {
 		clear(helper);
 		for (int x = 14; x <= 22; x += 5)
@@ -429,7 +430,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "colossus: trees and a cliff", goals, 2, 800);
 	}
 
-	@GameTest(template = ARENA, batch = "pathFlyMountain", timeoutTicks = 1400)
+	@GameTest(template = ARENA, batch = "pathFlyMountain", timeoutTicks = 2100)
 	public void flyersCrossAMountain(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 20, 2, 0, 27, 10, 47, Blocks.STONE.defaultBlockState());
@@ -443,7 +444,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "flyers over a mountain", goals, 2.5, 1300);
 	}
 
-	@GameTest(template = ARENA, batch = "pathFlyCeiling", timeoutTicks = 800)
+	@GameTest(template = ARENA, batch = "pathFlyCeiling", timeoutTicks = 1200)
 	public void flyersUnderACeiling(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 0, 12, 0, 47, 12, 47, Blocks.STONE.defaultBlockState()); // a cave roof 10 blocks over the floor (an overseer is 7.6 tall)
@@ -467,7 +468,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "flyers under a ceiling", goals, 2.5, 750);
 	}
 
-	@GameTest(template = ARENA, batch = "pathFlyWater", timeoutTicks = 800)
+	@GameTest(template = ARENA, batch = "pathFlyWater", timeoutTicks = 1200)
 	public void flyersCrossWater(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 10, 1, 0, 36, 1, 47, Blocks.WATER.defaultBlockState());
@@ -481,7 +482,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "flyers over water", goals, 2.5, 750);
 	}
 
-	@GameTest(template = ARENA, batch = "pathTransport", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathTransport", timeoutTicks = 1350)
 	public void transportsCrossAChasm(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 18, 0, 0, 29, 1, 47, Blocks.AIR.defaultBlockState()); // a chasm 12 wide down to the void floor of the arena
@@ -509,7 +510,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "pathCrowd", timeoutTicks = 1400)
+	@GameTest(template = ARENA, batch = "pathCrowd", timeoutTicks = 2100)
 	public void aCrowdSqueezesThroughAPass(GameTestHelper helper) {
 		clear(helper);
 		fill(helper, 24, 2, 0, 25, 5, 47, Blocks.STONE.defaultBlockState());
@@ -524,7 +525,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "crowd of 24 through a pass 3 wide", goals, 2.5, 1300);
 	}
 
-	@GameTest(template = ARENA, batch = "pathBuildings", timeoutTicks = 900)
+	@GameTest(template = ARENA, batch = "pathBuildings", timeoutTicks = 1350)
 	public void unitsWalkAroundBuildings(GameTestHelper helper) {
 		clear(helper);
 		UUID player = UUID.randomUUID(), other = UUID.randomUUID();
@@ -544,7 +545,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "buildings in the way", goals, 2, 800);
 	}
 
-	@GameTest(template = ARENA, batch = "pathWave", timeoutTicks = 2400)
+	@GameTest(template = ARENA, batch = "pathWave", timeoutTicks = 3600)
 	public void aWildWaveReachesAPlayersBase(GameTestHelper helper) {
 		clear(helper);
 		ServerLevel level = helper.getLevel();

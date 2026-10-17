@@ -85,6 +85,9 @@ public final class StarMine implements ModInitializer {
 	 */
 	public static final GameRules.Key<GameRules.IntegerValue> AI_PRESSURE =
 		GameRuleRegistry.register("starmineAiPressure", GameRules.Category.MOBS, GameRuleFactory.createIntRule(2, 0, 3));
+	/** Owner 17.10: the Minecraft days a world plays before Amun invades it (unless he is dead by then). */
+	public static final GameRules.Key<GameRules.IntegerValue> AMUN_DAYS =
+		GameRuleRegistry.register("starmineAmunDays", GameRules.Category.MOBS, GameRuleFactory.createIntRule(30, 1, 100000));
 	public static final GameRules.Key<GameRules.BooleanValue> CREEP_SPREAD =
 		GameRuleRegistry.register("starmineCreepSpread", GameRules.Category.MOBS, GameRuleFactory.createBooleanRule(true));
 
@@ -149,6 +152,9 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		StarMineBlocks.load();
+		dev.starmine.gear.TraitPotions.load();
+		dev.starmine.world.VoidGate.load();
+		dev.starmine.world.AmunInvasion.register();
 		dev.starmine.vespene.Vespene.load();
 		dev.starmine.colony.CommandPanel.load();
 		dev.starmine.colony.PlatformBlock.load();
@@ -176,6 +182,7 @@ public final class StarMine implements ModInitializer {
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.DimensionBases::tick); // owner 17.10: the Nether's and the End's bases
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ai.Territory::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.Painter::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ability.Delayed::tick);

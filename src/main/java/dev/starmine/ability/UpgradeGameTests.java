@@ -45,6 +45,33 @@ public class UpgradeGameTests implements FabricGameTest {
 		});
 	}
 
+	@GameTest(template = ARENA, batch = "upgradeGreaterSpire", timeoutTicks = 80)
+	public void theSpireGrowsIntoAGreaterSpire(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		StarUnit hatchery = unit(helper, UnitKind.HATCHERY, 34, 34, UUID.randomUUID());
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, hatchery);
+			helper.assertTrue(base != null, "no base");
+			base.minerals = 1000;
+			base.vespene = 1000;
+			base.join(UnitKind.SPIRE);
+			StarUnit spire = TestArena.member(helper, base, UnitKind.SPIRE, 12, 12);
+			base.tier = 2;
+			helper.assertTrue("message.starmine.need_tech".equals(Abilities.refusal(spire, Ability.GREATER_SPIRE)), "a greater spire without a hive");
+			base.tier = 3;
+			helper.assertTrue(!base.unlocked(UnitKind.BROOD_LORD), "brood lords before the greater spire");
+			helper.assertTrue(Abilities.cast(spire, level, Ability.GREATER_SPIRE, null, null), "the spire does not grow: " + Abilities.refusal(spire, Ability.GREATER_SPIRE));
+			helper.assertTrue(base.minerals == 900 && base.vespene == 850, "the greater spire is not paid: " + base.minerals + "/" + base.vespene);
+			helper.assertTrue(spire.abilities.changingMode(), "the spire is not changing");
+			Modes.finish(spire); // its 71 s at once
+			helper.assertTrue(spire.mode() == Modes.GREATER, "the spire is not greater: " + spire.mode());
+			helper.assertTrue(base.unlocked(UnitKind.BROOD_LORD), "no brood lords with a greater spire");
+			helper.assertTrue(!Abilities.available(spire, Ability.GREATER_SPIRE), "a greater spire grows again");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "upgradeEffects", timeoutTicks = 60)
 	public void upgradesChangeTheUnits(GameTestHelper helper) {
 		clear(helper);

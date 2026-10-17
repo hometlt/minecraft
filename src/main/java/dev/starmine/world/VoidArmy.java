@@ -40,6 +40,19 @@ public final class VoidArmy {
 		new Wing(UnitKind.WARP_PRISM, List.of(UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.PROBE, UnitKind.PROBE)));
 	private static final List<UnitKind> FLYERS = List.of(UnitKind.MUTALISK, UnitKind.MUTALISK, UnitKind.MUTALISK, UnitKind.CORRUPTOR,
 		UnitKind.VIKING, UnitKind.VIKING, UnitKind.BANSHEE, UnitKind.PHOENIX, UnitKind.PHOENIX, UnitKind.VOID_RAY);
+	/**
+	 * Owner 17.10: what each freed hero of the Nether and the End adds to the army for Amun: Tosh ghosts, Zeratul dark
+	 * templar, Zagara banelings and hydralisks (in transports); Horner a battlecruiser, Stukov brood lords, Selendis a carrier.
+	 */
+	private static final java.util.Map<UnitKind, Wing> EXTRA_WINGS = java.util.Map.of(
+		UnitKind.TOSH, new Wing(UnitKind.MEDIVAC, List.of(UnitKind.GHOST, UnitKind.GHOST, UnitKind.MARAUDER, UnitKind.MARAUDER)),
+		UnitKind.ZERATUL, new Wing(UnitKind.WARP_PRISM, List.of(UnitKind.DARK_TEMPLAR, UnitKind.DARK_TEMPLAR, UnitKind.ZEALOT, UnitKind.ZEALOT)),
+		UnitKind.ZAGARA, new Wing(UnitKind.OVERLORD, List.of(UnitKind.BANELING, UnitKind.BANELING, UnitKind.BANELING, UnitKind.BANELING,
+			UnitKind.HYDRALISK, UnitKind.HYDRALISK)));
+	private static final java.util.Map<UnitKind, List<UnitKind>> EXTRA_FLYERS = java.util.Map.of(
+		UnitKind.HORNER, List.of(UnitKind.BATTLECRUISER, UnitKind.VIKING, UnitKind.VIKING),
+		UnitKind.STUKOV, List.of(UnitKind.BROOD_LORD, UnitKind.BROOD_LORD, UnitKind.CORRUPTOR),
+		UnitKind.SELENDIS, List.of(UnitKind.CARRIER, UnitKind.PHOENIX, UnitKind.PHOENIX));
 
 	private VoidArmy() {
 	}
@@ -63,8 +76,17 @@ public final class VoidArmy {
 	public static List<StarUnit> spawn(ServerLevel level, Vec3 centre, double lift, UUID player) {
 		Hive base = base(level, player);
 		List<StarUnit> roots = new ArrayList<>();
-		int i = 0, total = TRANSPORTS.size() + FLYERS.size();
-		for (Wing wing : TRANSPORTS) {
+		java.util.Set<String> freed = VoidWorld.State.get(level.getServer()).freed;
+		List<Wing> wings = new ArrayList<>(TRANSPORTS);
+		List<UnitKind> flyers = new ArrayList<>(FLYERS);
+		EXTRA_WINGS.forEach((hero, wing) -> {
+			if (freed.contains(hero.name())) wings.add(wing);
+		});
+		EXTRA_FLYERS.forEach((hero, more) -> {
+			if (freed.contains(hero.name())) flyers.addAll(more);
+		});
+		int i = 0, total = wings.size() + flyers.size();
+		for (Wing wing : wings) {
 			StarUnit transport = unit(level, base, wing.transport(), ring(level, centre, i++, total, lift));
 			if (transport == null) continue;
 			roots.add(transport);
@@ -73,7 +95,7 @@ public final class VoidArmy {
 				if (rider != null && !rider.startRiding(transport, true)) rider.setPos(transport.getX(), transport.getY() - lift, transport.getZ());
 			}
 		}
-		for (UnitKind kind : FLYERS) {
+		for (UnitKind kind : flyers) {
 			StarUnit flyer = unit(level, base, kind, ring(level, centre, i++, total, lift));
 			if (flyer != null) roots.add(flyer);
 		}
@@ -156,12 +178,16 @@ public final class VoidArmy {
 	/** The three heroes at the artifact for the scene: the player's, still, unharmed, freed (no motes, no bar). */
 	private static List<StarUnit> heroes(ServerLevel level, Vec3 centre, UUID player) {
 		List<StarUnit> out = new ArrayList<>();
-		UnitKind[] kinds = {UnitKind.KERRIGAN, UnitKind.RAYNOR, UnitKind.ARTANIS};
-		for (int i = 0; i < kinds.length; i++) {
-			double a = Math.PI * 2 * i / kinds.length;
-			int x = (int) Math.floor(centre.x + Math.cos(a) * 5), z = (int) Math.floor(centre.z + Math.sin(a) * 5);
-			int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-			StarUnit hero = StarMine.type(kinds[i]).create(level);
+		// owner 17.10: the ships' three, and every freed hero of the Nether and the End with them
+		List<UnitKind> kinds = new ArrayList<>(List.of(UnitKind.KERRIGAN, UnitKind.RAYNOR, UnitKind.ARTANIS));
+		java.util.Set<String> freed = VoidWorld.State.get(level.getServer()).freed;
+		for (UnitKind kind : UnitKind.values()) if (kind.dimensionHero() && freed.contains(kind.name())) kinds.add(kind);
+		for (int i = 0; i < kinds.size(); i++) {
+			UnitKind kind = kinds.get(i);
+			double a = Math.PI * 2 * i / kinds.size(), r = kind.flying ? 12 : 5;
+			int x = (int) Math.floor(centre.x + Math.cos(a) * r), z = (int) Math.floor(centre.z + Math.sin(a) * r);
+			int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) + (kind.flying ? 8 : 0);
+			StarUnit hero = StarMine.type(kind).create(level);
 			if (hero == null) continue;
 			float yaw = (float) Math.toDegrees(Math.atan2(centre.z - (z + 0.5), centre.x - (x + 0.5))) - 90f;
 			hero.moveTo(x + 0.5, y, z + 0.5, yaw, 0);

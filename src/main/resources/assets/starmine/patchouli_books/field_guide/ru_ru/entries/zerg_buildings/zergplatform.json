@@ -2,7 +2,7 @@
 	"name": "Склад-платформа зергов",
 	"icon": "starmine:zergplatform_spawn_egg",
 	"category": "starmine:zerg_buildings",
-	"sortnum": 14,
+	"sortnum": 15,
 	"pages": [
 		{
 			"type": "patchouli:entity",

@@ -2,7 +2,7 @@
 	"name": "Мина «Вдова»",
 	"icon": "starmine:widowmine_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 7,
+	"sortnum": 9,
 	"pages": [
 		{
 			"type": "patchouli:entity",

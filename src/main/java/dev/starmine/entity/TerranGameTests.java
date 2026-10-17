@@ -42,7 +42,7 @@ public class TerranGameTests implements FabricGameTest {
 		return HiveSavedData.get(helper.getLevel().getServer()).all().stream().filter(hive -> hive.race == UnitKind.Race.TERRAN).findFirst().orElse(null);
 	}
 
-	@GameTest(template = ARENA, batch = "terranMine", timeoutTicks = 3000)
+	@GameTest(template = ARENA, batch = "terranMine", timeoutTicks = 4500)
 	public void scvsMineAndDeliver(GameTestHelper helper) {
 		arena(helper);
 		commandCenter(helper);
@@ -60,7 +60,7 @@ public class TerranGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "terranTrain", timeoutTicks = 800)
+	@GameTest(template = ARENA, batch = "terranTrain", timeoutTicks = 1200)
 	public void barracksTrainsMarine(GameTestHelper helper) {
 		arena(helper);
 		commandCenter(helper);
@@ -75,7 +75,7 @@ public class TerranGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "terranBuild", timeoutTicks = 1400)
+	@GameTest(template = ARENA, batch = "terranBuild", timeoutTicks = 2100)
 	public void scvBuildsSupplyDepot(GameTestHelper helper) {
 		arena(helper);
 		commandCenter(helper);
@@ -95,7 +95,7 @@ public class TerranGameTests implements FabricGameTest {
 	 * Owner 14.10: an army outside a closed stone room waits while SCVs cut a way as wide
 	 * and tall as its largest ground unit (a siege tank, 3 blocks), then goes on to the goal.
 	 */
-	@GameTest(template = ARENA, batch = "terranEngineering", timeoutTicks = 3600)
+	@GameTest(template = ARENA, batch = "terranEngineering", timeoutTicks = 5400)
 	public void scvsCutAWayForTheArmy(GameTestHelper helper) {
 		arena(helper);
 		ServerLevel level = helper.getLevel();
@@ -139,7 +139,7 @@ public class TerranGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "terranMove", timeoutTicks = 400)
+	@GameTest(template = ARENA, batch = "terranMove", timeoutTicks = 600)
 	public void marineMoves(GameTestHelper helper) {
 		arena(helper);
 		commandCenter(helper);

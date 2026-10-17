@@ -132,6 +132,58 @@ public final class ProtossAbilities {
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.HOSTILE, 0.7f, 1.4f);
 	}
 
+	/** An adept's look while its shade is out, and the shade's (synced: the card offers to call it off, the shade is drawn see-through). */
+	public static final String SHADING = "shading", SHADE = "shade";
+	/** SC2 psionic transfer: the shade lasts 7 s. */
+	public static final int SHADE_TICKS = 7 * 20;
+
+	/**
+	 * Psionic transfer (owner 17.10, SC2): the adept stays and fights on; its shade — fast, untouchable, harmless — runs
+	 * to the point and can be ordered about. When the 7 s are up the adept is where its shade is; called off, the shade goes.
+	 */
+	static void shade(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
+		if (point == null) return;
+		cancelShade(unit, level);
+		StarUnit shade = StarMine.type(UnitKind.ADEPT).create(level);
+		if (shade == null) return;
+		Entity body = unit.body();
+		shade.moveTo(body.getX(), body.getY(), body.getZ(), body.getYRot(), 0);
+		ZergAbilities.summon(unit, shade, level);
+		shade.setDisguise(SHADE);
+		shade.abilities.shadeOf = unit.getUUID();
+		Status.apply(shade, Status.SHADE, SHADE_TICKS);
+		level.addFreshEntity(shade);
+		shade.command(StarUnit.Order.MOVE, point);
+		unit.abilities.shade = shade.getUUID();
+		unit.setDisguise(SHADING);
+		level.sendParticles(ParticleTypes.SOUL, body.getX(), body.getY() + 0.8, body.getZ(), 20, 0.3, 0.6, 0.3, 0.01);
+	}
+
+	/** The adept calls its shade off: the shade goes, the adept stays. */
+	static void cancelShade(StarUnit unit, ServerLevel level) {
+		java.util.UUID id = unit.abilities.shade;
+		unit.abilities.shade = null;
+		if (SHADING.equals(unit.disguise())) unit.setDisguise("");
+		if (id != null && level.getEntity(id) instanceof StarUnit shade) {
+			shade.abilities.shadeOf = null; // no transfer when it goes
+			level.sendParticles(ParticleTypes.SOUL, shade.getX(), shade.getY() + 0.8, shade.getZ(), 15, 0.3, 0.6, 0.3, 0.01);
+			shade.discard();
+		}
+	}
+
+	/** The shade's time is up: its adept comes to where it is. */
+	static void shadeDone(StarUnit shade) {
+		if (!(shade.level() instanceof ServerLevel level)) return;
+		java.util.UUID id = shade.abilities.shadeOf;
+		Vec3 at = shade.position();
+		shade.discard();
+		if (id == null || !(level.getEntity(id) instanceof StarUnit adept) || !adept.isAlive()) return;
+		adept.abilities.shade = null;
+		if (SHADING.equals(adept.disguise())) adept.setDisguise("");
+		blink(adept, level, at);
+		adept.command(StarUnit.Order.NONE, null);
+	}
+
 	/** A force field: a disc of force blocks at the point, 3 high, where nothing stands; it goes by itself after 11 s. */
 	static void forceField(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
@@ -172,11 +224,16 @@ public final class ProtossAbilities {
 		if (point == null) return;
 		level.playSound(null, point.x, point.y, point.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 0.6f, 1.8f);
 		Delayed.repeat(level, STORM_EVERY, STORM_PULSES, n -> {
-			for (LivingEntity other : Abilities.around(unit, point, STORM_RADIUS, false))
-				if (!(other instanceof StarUnit star && (star.kind.structure() || star.flying() && other.getY() > point.y + 4)))
+			for (LivingEntity other : Abilities.around(unit, point, STORM_RADIUS, false)) // the ground and the air over it (SC2), not buildings
+				if (!(other instanceof StarUnit star && star.kind.structure()))
 					other.hurt(unit.attackSource(), (float) (STORM_DAMAGE / STORM_PULSES * SCALE));
-			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y + 1, point.z, 40, STORM_RADIUS / 2, 0.8, STORM_RADIUS / 2, 0.2);
-			level.sendParticles(ParticleTypes.WITCH, point.x, point.y + 1.5, point.z, 15, STORM_RADIUS / 2, 0.5, STORM_RADIUS / 2, 0);
+			// its edge drawn where it hurts: a ring at its radius, lightning inside
+			Abilities.ring(level, point, STORM_RADIUS, ParticleTypes.WITCH);
+			for (int k = 0; k < 24; k++) {
+				double angle = level.random.nextDouble() * Math.PI * 2, r = Math.sqrt(level.random.nextDouble()) * STORM_RADIUS;
+				level.sendParticles(k % 3 == 0 ? ParticleTypes.WITCH : ParticleTypes.ELECTRIC_SPARK, point.x + Math.cos(angle) * r,
+					point.y + 0.5 + level.random.nextDouble() * 2.5, point.z + Math.sin(angle) * r, 1, 0, 0, 0, 0.05);
+			}
 		});
 	}
 
@@ -286,27 +343,33 @@ public final class ProtossAbilities {
 				building.hurt(unit.attackSource(), (float) (DISINTEGRATION_DAMAGE * SCALE));
 	}
 
-	/** Mass recall: the mothership and its side's units around it teleport around the base's main building. */
-	static void massRecall(StarUnit unit, ServerLevel level) {
-		Hive base = Abilities.base(unit);
-		if (base == null) return;
-		Vec3 home = Vec3.atBottomCenterOf(base.hatchery);
-		List<StarUnit> army = level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(RECALL_RADIUS, 12, RECALL_RADIUS),
-			other -> other.isAlive() && !other.kind.structure() && Faction.allied(unit, other) && other.distanceTo(unit.body()) <= RECALL_RADIUS + 6);
+	/**
+	 * Strategic recall (SC2, owner 17.10): the mothership or a nexus calls its own units in the circle at the point to
+	 * itself — round the nexus, or on the ground under the mothership (flyers at their height).
+	 */
+	static void massRecall(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
+		if (point == null) return;
+		Entity self = unit.body();
+		Vec3 home = unit.flying() ? new Vec3(self.getX(), unit.groundBelow(self.getX(), self.getZ()), self.getZ()) : self.position();
+		List<StarUnit> army = level.getEntitiesOfClass(StarUnit.class, new AABB(point, point).inflate(RECALL_RADIUS, 16, RECALL_RADIUS),
+			other -> other.isAlive() && other != unit && !other.kind.structure() && other.kind != UnitKind.MOTHERSHIP && Faction.allied(unit, other)
+				&& Abilities.horizontal(other.position(), point) <= RECALL_RADIUS + other.getBbWidth() / 2);
+		Abilities.ring(level, point, RECALL_RADIUS, ParticleTypes.REVERSE_PORTAL);
 		int i = 0;
 		double widest = army.stream().filter(other -> !other.flying()).mapToDouble(other -> other.kind.width).max().orElse(1);
+		double room = unit.flying() ? 1 : unit.kind.width / 2 + 0.5;
 		for (StarUnit other : army) {
-			// round the nexus (6 wide), apart by the widest walker: a colossus or an immortal landed in it or in each other
-			double angle = i * 2.4, spread = UnitKind.NEXUS.width / 2 + 0.5 + widest * (0.6 + 0.3 * i);
+			// round the nexus (or under the mothership), apart by the widest walker: a colossus or an immortal landed in it or in each other
+			double angle = i * 2.4, spread = room + widest * (0.6 + 0.3 * i);
 			i++;
 			Vec3 spot = new Vec3(home.x + Math.cos(angle) * spread, home.y, home.z + Math.sin(angle) * spread);
 			Vec3 at = other.flying() ? spot.add(0, other.kind.hoverHeight(), 0) : Abilities.standable(other, level, spot);
 			if (at == null) at = spot.add(0, 1, 0);
 			level.sendParticles(ParticleTypes.REVERSE_PORTAL, other.getX(), other.getY() + 1, other.getZ(), 20, 0.4, 0.6, 0.4, 0.05);
 			Abilities.teleport(other, at);
+			level.sendParticles(ParticleTypes.PORTAL, at.x, at.y + 1, at.z, 20, 0.4, 0.6, 0.4, 0.3);
 			other.command(StarUnit.Order.NONE, null);
 		}
-		if (unit.pilot() != null) Abilities.teleport(unit, home.add(0, unit.kind.hoverHeight(), 0));
 	}
 
 	/** Time warp: foes in the area are slowed by half for 7.14 s. */

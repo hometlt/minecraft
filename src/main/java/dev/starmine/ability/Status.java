@@ -76,6 +76,12 @@ public enum Status {
 	HALLUCINATION(  1,     1,    false),
 	/** Stunned (Artanis's lightning dash, SC2 2 s): neither moves nor fights. */
 	STUNNED(        0,     1,    true),
+	/** An adept's shade (owner 17.10, SC2 7 s): fast, untouchable, harmless; its adept comes to it when it ends. */
+	SHADE(          1.6,   1,    true),
+	/** Under a raven's interference matrix (SC2 11 s): a mechanical or psionic unit neither fights nor casts. */
+	INTERFERED(     1,     1,    true),
+	/** Hit by a raven's anti-armor missile (SC2 21 s): 3 armor less. */
+	ARMOR_BROKEN(   1,     1,    false),
 	/** A battlecruiser charging its tactical jump (owner 17.10, SC2 4 s): neither moves nor fights. */
 	WARPING(        0,     1,    true);
 
@@ -225,6 +231,7 @@ public enum Status {
 				unit.setTarget(null);
 			}
 			case INJECTED -> ZergAbilities.injectDone(unit);
+			case SHADE -> ProtossAbilities.shadeDone(unit);
 			case TEMPORARY, HALLUCINATION -> {
 				if (unit.pilot() == null) unit.discard();
 			}

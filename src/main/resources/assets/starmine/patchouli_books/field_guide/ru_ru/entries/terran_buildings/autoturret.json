@@ -1,0 +1,19 @@
+{
+	"name": "Автотурель",
+	"icon": "starmine:autoturret_spawn_egg",
+	"category": "starmine:terran_buildings",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:autoturret",
+			"name": "Автотурель",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Автотурель",
+			"text": "$(l)Здоровье$(): 150$(br)$(l)Урон$(): 18, раз в 0.57 с, дальность 6$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		}
+	]
+}

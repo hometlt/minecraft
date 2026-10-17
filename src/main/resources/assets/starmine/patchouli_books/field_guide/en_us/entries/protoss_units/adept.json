@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Psionic Transfer$(): After 7 s teleports to the point"
+			"text": "$(l)Psionic Transfer$(): The adept stays; its shade runs to the point (orders move it). After 7 s the adept comes to the shade, unless you call it off$(br2)$(l)Cancel Shade$(): The shade goes; the adept stays where it is"
 		}
 	]
 }

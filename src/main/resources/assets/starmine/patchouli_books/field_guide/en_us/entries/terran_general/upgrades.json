@@ -31,7 +31,11 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "$(l)Personal Cloaking$() (Ghost Academy): Opens the ghosts' cloak$(br2)$(l)Enhanced Shockwaves$() (Ghost Academy): EMP covers a wider circle (2 instead of 1.5)$(br2)$(l)Arm Silo with Nuke$() (Ghost Academy): Builds a nuclear missile in the academy's silo (one an academy); a ghost launches it"
+			"text": "$(l)Weapon Refit$() (Fusion Core): Opens the battlecruisers' Yamato cannon$(br2)$(l)Personal Cloaking$() (Ghost Academy): Opens the ghosts' cloak$(br2)$(l)Enhanced Shockwaves$() (Ghost Academy): EMP covers a wider circle (2 instead of 1.5)"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Arm Silo with Nuke$() (Ghost Academy): Builds a nuclear missile in the academy's silo (one an academy); a ghost launches it"
 		}
 	]
 }

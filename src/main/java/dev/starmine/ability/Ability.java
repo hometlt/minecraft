@@ -26,6 +26,7 @@ public enum Ability {
 	//                  id                     key  target          energy cooldown range channel delay
 	// ---- zerg ----
 	BURROW(             "burrow",              'R', Target.TOGGLE,  0,     0,       0,    0,      0),
+	GREATER_SPIRE(      "greater_spire",       'G', Target.NONE,    0,     0,       0,    0,      71), // owner 17.10: the spire grows into one
 	CORROSIVE_BILE(     "corrosive_bile",      'B', Target.POINT,   0,     7,       9,    0,      2.5),
 	CREEP_TUMOR(        "creep_tumor",         'C', Target.POINT,   25,    0,       3,    0,      0),
 	INJECT_LARVA(       "inject_larva",        'V', Target.UNIT,    25,    0,       1,    0,      0),
@@ -62,10 +63,16 @@ public enum Ability {
 	BUILD_TECHLAB(      "techlab",             'X', Target.NONE,    0,     0,       0,    0,      18),
 	BUILD_REACTOR(      "reactor",             'C', Target.NONE,    0,     0,       0,    0,      36),
 	LIFT_OFF(           "lift_off",            'L', Target.TOGGLE,  0,     0,       0,    0,      0),
+	// owner 17.10: the cyclone and the raven (SC2 LotV)
+	LOCK_ON(            "lock_on",             'E', Target.UNIT,    0,     4,       7,    0,      0),
+	AUTO_TURRET(        "auto_turret",         'T', Target.POINT,   50,    0,       2,    0,      0),
+	INTERFERENCE_MATRIX("interference_matrix", 'R', Target.UNIT,    75,    0,       9,    0,      0),
+	ANTI_ARMOR_MISSILE( "anti_armor_missile",  'F', Target.POINT,   75,    0,       10,   0,      0),
 	// ---- protoss ----
 	CHARGE(             "charge",              'C', Target.UNIT,    0,     7,       4,    0,      0),
 	BLINK(              "blink",               'B', Target.POINT,   0,     7,       8,    0,      0),
-	PSIONIC_TRANSFER(   "psionic_transfer",    'F', Target.POINT,   0,     11,      0,    0,      7),
+	PSIONIC_TRANSFER(   "psionic_transfer",    'F', Target.POINT,   0,     11,      0,    0,      0),
+	SHADE_CANCEL(       "shade_cancel",        'C', Target.NONE,    0,     0,       0,    0,      0),
 	FORCE_FIELD(        "force_field",         'F', Target.POINT,   50,    0,       9,    0,      0),
 	GUARDIAN_SHIELD(    "guardian_shield",     'G', Target.NONE,    75,    0,       0,    0,      0),
 	HALLUCINATION(      "hallucination",       'C', Target.NONE,    75,    0,       0,    0,      0),
@@ -81,7 +88,7 @@ public enum Ability {
 	REVELATION(         "revelation",          'R', Target.POINT,   25,    0,       9,    0,      0),
 	STASIS_WARD(        "stasis_ward",         'T', Target.POINT,   50,    0,       3,    0,      0),
 	DISINTEGRATION(     "disintegration",      'R', Target.POINT,   0,     43,      13,   0,      7),
-	MASS_RECALL(        "mass_recall",         'R', Target.NONE,    0,     130,     0,    0,      0),
+	MASS_RECALL(        "mass_recall",         'R', Target.POINT,   0,     130,     0,    0,      0),
 	TIME_WARP(          "time_warp",           'T', Target.POINT,   75,    0,       9,    0,      0),
 	CHRONO_BOOST(       "chrono_boost",        'C', Target.UNIT,    50,    0,       0,    0,      0),
 	BATTERY_OVERCHARGE( "battery_overcharge",  'B', Target.UNIT,    0,     60,      0,    0,      0),
@@ -116,6 +123,8 @@ public enum Ability {
 		ORBITAL_COMMAND.minerals = 150;
 		PLANETARY_FORTRESS.minerals = 150;
 		PLANETARY_FORTRESS.vespene = 150;
+		GREATER_SPIRE.minerals = 100;
+		GREATER_SPIRE.vespene = 150;
 		BUILD_TECHLAB.minerals = 50;
 		BUILD_TECHLAB.vespene = 25;
 		BUILD_REACTOR.minerals = 50;
@@ -141,6 +150,7 @@ public enum Ability {
 	/** The kinds that have it. */
 	public List<UnitKind> users() {
 		return switch (this) {
+			case GREATER_SPIRE -> List.of(SPIRE);
 			case BURROW -> List.of(DRONE, ZERGLING, BANELING, ROACH, RAVAGER, HYDRALISK, LURKER, QUEEN, INFESTOR, SWARM_HOST, WIDOW_MINE);
 			case CORROSIVE_BILE -> List.of(RAVAGER);
 			case CREEP_TUMOR, INJECT_LARVA, TRANSFUSION -> List.of(QUEEN);
@@ -151,7 +161,8 @@ public enum Ability {
 			case STIMPACK -> List.of(MARINE, MARAUDER);
 			case KD8_CHARGE -> List.of(REAPER, RAYNOR); // Raynor's grenade
 			case CLOAK -> List.of(GHOST, BANSHEE);
-			case EMP, STEADY_TARGETING, NUKE -> List.of(GHOST);
+			case EMP, NUKE -> List.of(GHOST);
+			case STEADY_TARGETING -> List.of(GHOST, TOSH);
 			case HELLBAT -> List.of(HELLION, UnitKind.HELLBAT); // the two kinds turn into each other (Morphs)
 			case SIEGE_MODE -> List.of(SIEGE_TANK);
 			case HIGH_IMPACT -> List.of(THOR);
@@ -159,14 +170,17 @@ public enum Ability {
 			case DEFENDER_MODE -> List.of(LIBERATOR);
 			case LIFT_OFF -> List.of(COMMAND_CENTER, BARRACKS, FACTORY, STARPORT);
 			case AFTERBURNERS -> List.of(MEDIVAC);
-			case YAMATO, TACTICAL_JUMP -> List.of(BATTLECRUISER);
+			case LOCK_ON -> List.of(CYCLONE);
+			case AUTO_TURRET, INTERFERENCE_MATRIX, ANTI_ARMOR_MISSILE -> List.of(RAVEN);
+			case YAMATO -> List.of(BATTLECRUISER, HORNER);
+			case TACTICAL_JUMP -> List.of(BATTLECRUISER);
 			case REPAIR -> List.of(SCV);
 			case ORBITAL_COMMAND, PLANETARY_FORTRESS, MULE, SCANNER_SWEEP -> List.of(COMMAND_CENTER);
 			case LOWER_DEPOT -> List.of(SUPPLY_DEPOT);
 			case BUILD_TECHLAB, BUILD_REACTOR -> List.of(BARRACKS, FACTORY, STARPORT);
 			case CHARGE -> List.of(ZEALOT);
 			case BLINK -> List.of(STALKER);
-			case PSIONIC_TRANSFER -> List.of(ADEPT);
+			case PSIONIC_TRANSFER, SHADE_CANCEL -> List.of(ADEPT);
 			case FORCE_FIELD, GUARDIAN_SHIELD, HALLUCINATION -> List.of(SENTRY);
 			case PSIONIC_STORM -> List.of(HIGH_TEMPLAR, ARTANIS);
 			case FEEDBACK -> List.of(HIGH_TEMPLAR);
@@ -174,14 +188,15 @@ public enum Ability {
 			case HYPERION_STRIKE -> List.of(RAYNOR);
 			case LIGHTNING_DASH -> List.of(ARTANIS);
 			case ARCHON_WARP -> List.of(HIGH_TEMPLAR, DARK_TEMPLAR);
-			case SHADOW_STRIDE -> List.of(DARK_TEMPLAR);
+			case SHADOW_STRIDE -> List.of(DARK_TEMPLAR, ZERATUL);
 			case PURIFICATION_NOVA -> List.of(DISRUPTOR);
 			case PHASING_MODE -> List.of(WARP_PRISM);
 			case GRAVITON_BEAM -> List.of(PHOENIX);
 			case PRISMATIC_ALIGNMENT -> List.of(VOID_RAY);
 			case PULSAR_BEAM, REVELATION, STASIS_WARD -> List.of(ORACLE);
 			case DISINTEGRATION -> List.of(TEMPEST);
-			case MASS_RECALL, TIME_WARP -> List.of(MOTHERSHIP);
+			case TIME_WARP -> List.of(MOTHERSHIP, SELENDIS);
+			case MASS_RECALL -> List.of(MOTHERSHIP, NEXUS); // SC2 strategic recall, both
 			case CHRONO_BOOST, BATTERY_OVERCHARGE -> List.of(NEXUS);
 			case WARP_GATE -> List.of(GATEWAY);
 			case LOAD, UNLOAD -> List.of(MEDIVAC, WARP_PRISM, OVERLORD, BUNKER);

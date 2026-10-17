@@ -133,7 +133,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 		LivingEntity owner = this.getOwner() instanceof LivingEntity living ? living : null;
 		if (playerDamage >= 0) { // a player's weapon
 			if (blast || owner != null && dev.starmine.faction.Faction.allied(owner, target)) return; // a charge hurts by its blast
-			float bonus = target instanceof StarUnit unit && unit.kind.armored() ? armoredBonus : 0;
+			float bonus = target instanceof net.minecraft.world.entity.LivingEntity living && Trait.has(living, Trait.ARMORED) ? armoredBonus : 0;
 			target.hurt(owner instanceof net.minecraft.world.entity.player.Player player ? this.damageSources().playerAttack(player)
 				: this.damageSources().mobProjectile(this, owner), playerDamage + bonus);
 			if (slows) dev.starmine.ability.Status.apply(target, dev.starmine.ability.Status.SLOW, 30); // SC2 concussive shells: 1.07 s
@@ -171,7 +171,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super.onHit(hit);
 		if (this.level().isClientSide) return;
 		if (blast && this.level() instanceof ServerLevel server) kd8(server);
-		if (kind == UnitKind.BROOD_LORD && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
+		if ((kind == UnitKind.BROOD_LORD || kind == UnitKind.STUKOV) && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
 			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
 		if (this.level() instanceof ServerLevel server) switch (shot()) {
 			case ROCKET, GRENADE -> {

@@ -48,6 +48,8 @@ public enum UnitKind {
 	ROACH_WARREN(      850,  0, false, Attack.NONE,      0,  0,    0, false, 3.4f, 2.9f, 0x5a3a20, 0x90b040),
 	BANELING_NEST(     850,  0, false, Attack.NONE,      0,  0,    0, false, 3.3f, 3.9f, 0x30602a, 0x9ae050),
 	HYDRALISK_DEN(     850,  0, false, Attack.NONE,      0,  0,    0, false, 4.5f, 3.7f, 0x6a2a40, 0xe0a060),
+	// owner 17.10: the lurker den (SC2 LotV): lurkers and their upgrades
+	LURKER_DEN(        850,  0, false, Attack.NONE,      0,  0,    0, false, 3.6f, 2.6f, 0x3a2a40, 0xc0a0c0),
 	SPIRE(             850,  0, false, Attack.NONE,      0,  0,    0, false, 2.8f, 4.4f, 0x5a2050, 0x40c0a0),
 	INFESTATION_PIT(   850,  0, false, Attack.NONE,      0,  0,    0, false, 3.8f, 1.2f, 0x40303a, 0xa0e060),
 	ULTRALISK_CAVERN(  850,  0, false, Attack.NONE,      0,  0,    0, false, 4.6f, 3.0f, 0x5a4a3a, 0xe0d0b0),
@@ -70,6 +72,9 @@ public enum UnitKind {
 	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  2.0f, 1.5f,  0x3a5a8a, 0xf08020),
 	// owner 17.10: the hellbat a unit of its own (the hellion's battle mode in SC2), the widow mine and the liberator
 	HELLBAT(       Race.TERRAN, 135,  3.15,  false, Attack.LINE,   18,   1.43,  2,    true,  2.0f, 1.5f,  0x3a5a8a, 0xd05010),
+	// owner 17.10: the cyclone (lock on), the raven (auto-turret, interference matrix, anti-armor missile) and its turret
+	CYCLONE(       Race.TERRAN, 120,  4.72,  false, Attack.RANGED, 11,   0.71,  6,    true,  1.8f, 1.6f,  0x3a5a8a, 0xe0a030),
+	RAVEN(         Race.TERRAN, 140,  3.85,  true,  Attack.NONE,   0,    0,     0,    false, 2.2f, 1.0f,  0x3a5a8a, 0x40e0c0),
 	WIDOW_MINE(    Race.TERRAN, 90,   3.94,  false, Attack.NONE,   0,    0,     0,    false, 1.0f, 0.8f,  0x3a5a8a, 0xe0d040),
 	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.9f, 1.5f,  0x3a5a8a, 0x707050),
 	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
@@ -90,6 +95,8 @@ public enum UnitKind {
 	FUSION_CORE(   Race.TERRAN, 750,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.8f, 2.5f,  0x3a5a8a, 0xe0e060),
 	BUNKER(        Race.TERRAN, 400,  0,     false, Attack.NONE,   12,   0.61,  6,    true,  3.0f, 1.0f,  0x3a5a8a, 0x605040),
 	MISSILE_TURRET(Race.TERRAN, 250,  0,     false, Attack.NONE,   24,   0.61,  7,    true,  1.5f, 2.0f,  0x3a5a8a, 0xe04040),
+	AUTO_TURRET(   Race.TERRAN, 150,  0,     false, Attack.NONE,   18,   0.57,  6,    true,  1.0f, 1.2f,  0x3a5a8a, 0x40e0c0),
+	SENSOR_TOWER(  Race.TERRAN, 200,  0,     false, Attack.NONE,   0,    0,     0,    false, 1.4f, 3.4f,  0x3a5a8a, 0x40c0e0),
 	REFINERY(      Race.TERRAN, 500,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.1f, 3.3f,  0x3a5a8a, 0x60e060),
 	TERRAN_PLATFORM(Race.TERRAN, 400, 0,     false, Attack.NONE,   0,    0,     0,    false, 3.0f, 1.2f,  0x3a5a8a, 0xc0c0c0),
 
@@ -140,7 +147,15 @@ public enum UnitKind {
 	// ---- owner 17.10: the heroes guarding the three main bases in the overworld ----
 	ABATHUR(          Race.ZERG,    750, 0,    2.6,   false, Attack.RANGED, 18,  1.2,   6,    true,  1.6f, 2.0f,  0x4a5a2a, 0xc0ff60),
 	SWANN(            Race.TERRAN,  650, 0,    2.8,   false, Attack.RANGED, 24,  1.0,   6,    true,  1.3f, 2.2f,  0x6a4a2a, 0xffa040),
-	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0);
+	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0),
+	// ---- owner 17.10: the Nether's heroes (Tosh and Zeratul cloak, Zagara throws banelings and digs) ----
+	TOSH(             Race.TERRAN,  900, 0,    3.94,  false, Attack.RANGED, 32,  1.0,   7,    true,  1.0f, 2.1f,  0x2a2a3a, 0xc02020),
+	ZERATUL(          Race.PROTOSS, 700, 700,  3.94,  false, Attack.MELEE,  50,  1.0,   1,    true,  1.1f, 2.4f,  0x3a2a5a, 0x40ff80),
+	ZAGARA(           Race.ZERG,    1100, 0,   3.5,   false, Attack.RANGED, 26,  0.9,   6,    true,  1.4f, 2.6f,  0x6a2a2a, 0xffa040),
+	// ---- owner 17.10: the End's heroes, heroic ships over their bases ----
+	HORNER(           Race.TERRAN,  2000, 0,   2.62,  true,  Attack.RANGED, 12,  0.2,   8,    true,  4.3f, 2.2f,  0x3a5a8a, 0xf0d060),
+	STUKOV(           Race.ZERG,    1800, 0,   2.62,  true,  Attack.SPAWN_BROODLINGS, 30, 1.6, 9, true, 4.0f, 1.8f,  0x3a5a3a, 0x90ff60),
+	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  4.0f, 2.2f,  0xc8a030, 0xff80c0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -149,6 +164,8 @@ public enum UnitKind {
 	public static final float UNIT_SIZE = 2f;
 	/** Blocks per SC2 distance unit (ranges, radii, sight), grown with the units. */
 	public static final double BLOCKS_PER_UNIT = 1.153 * UNIT_SIZE;
+	/** How far a sensor tower senses (SC2 30): its owner sees what moves there through walls (client Radar). */
+	public static final double SENSOR_RANGE = 30 * BLOCKS_PER_UNIT;
 	/** Workers' hitbox limit: they dig and walk 2x2 tunnels. */
 	private static final float WORKER_BODY = 1.9f;
 
@@ -220,7 +237,8 @@ public enum UnitKind {
 		return switch (name) {
 			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
 			case "ZERG_PLATFORM", "TERRAN_PLATFORM", "PROTOSS_PLATFORM" -> 1;
-			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE" -> 2;
+			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE",
+				"AUTO_TURRET", "SENSOR_TOWER" -> 2;
 			default -> 3;
 		};
 	}
@@ -258,8 +276,8 @@ public enum UnitKind {
 		return switch (this) {
 			case HYDRALISK, MUTALISK -> Shot.NEEDLE;
 			case CORRUPTOR -> Shot.CORROSIVE;
-			case BROOD_LORD -> Shot.EGG;
-			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
+			case BROOD_LORD, STUKOV -> Shot.EGG;
+			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR, CYCLONE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
 			case MARAUDER -> Shot.GRENADE;
 			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
 			default -> race == Race.ZERG ? Shot.ACID : null;
@@ -301,7 +319,7 @@ public enum UnitKind {
 			case RAVAGER -> Items.MAGMA_CREAM;
 			case MUTALISK, HYDRALISK -> Items.PRISMARINE_SHARD;
 			case CORRUPTOR -> Items.FERMENTED_SPIDER_EYE;
-			case BROOD_LORD -> Items.EGG;
+			case BROOD_LORD, STUKOV -> Items.EGG;
 			default -> Items.PRISMARINE_CRYSTALS;
 		};
 	}
@@ -321,7 +339,37 @@ public enum UnitKind {
 
 	/** The heroes of the sky ships' boss rooms: Kerrigan, Raynor, Artanis (dev.starmine.boss). */
 	public boolean boss() {
-		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian();
+		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian() || dimensionHero();
+	}
+
+	/** Owner 17.10: the heroes of the other worlds: the Nether's (Tosh, Zeratul, Zagara) and the End's (Horner, Stukov, Selendis). */
+	public boolean dimensionHero() {
+		return switch (this) {
+			case TOSH, ZERATUL, ZAGARA, HORNER, STUKOV, SELENDIS -> true;
+			default -> false;
+		};
+	}
+
+	/** The hero of a race's base in the Nether (`end` false) or the End. */
+	public static UnitKind heroOf(Race race, boolean end) {
+		return switch (race) {
+			case ZERG -> end ? STUKOV : ZAGARA;
+			case TERRAN -> end ? HORNER : TOSH;
+			case PROTOSS -> end ? SELENDIS : ZERATUL;
+		};
+	}
+
+	/** SC2 psionic: the templar, the archon, the sentry, the ghost, the queen, the infestor, the viper, the oracle, the mothership, the heroes. */
+	public boolean psionic() {
+		return switch (this) {
+			case HIGH_TEMPLAR, DARK_TEMPLAR, ARCHON, SENTRY, GHOST, QUEEN, INFESTOR, VIPER, ORACLE, MOTHERSHIP -> true;
+			default -> heroic();
+		};
+	}
+
+	/** SC2 heroic: the heroes (no neural parasite, abduct or graviton beam takes them). */
+	public boolean heroic() {
+		return boss();
 	}
 
 	/** Owner 17.10: the heroes guarding the main bases in the overworld — Abathur, Swann, Karax. */
@@ -351,6 +399,12 @@ public enum UnitKind {
 			case ABATHUR -> INFESTOR;
 			case SWANN -> MARAUDER;
 			case KARAX -> HIGH_TEMPLAR;
+			case TOSH -> GHOST;
+			case ZERATUL -> DARK_TEMPLAR;
+			case ZAGARA -> QUEEN;
+			case HORNER -> BATTLECRUISER;
+			case STUKOV -> BROOD_LORD;
+			case SELENDIS -> CARRIER;
 			case HELLBAT -> HELLION; // until the assets carry their own SC2 models
 			case VIKING_ASSAULT -> VIKING;
 			case LIBERATOR -> BANSHEE;
@@ -367,6 +421,12 @@ public enum UnitKind {
 			case ABATHUR -> 0xFFB0E070;
 			case SWANN -> 0xFFE0A070;
 			case KARAX -> 0xFF80FFE0;
+			case TOSH -> 0xFFFF9090;
+			case ZERATUL -> 0xFFA0FFB0;
+			case ZAGARA -> 0xFFFFB080;
+			case HORNER -> 0xFFFFE8A0;
+			case STUKOV -> 0xFFB0FF90;
+			case SELENDIS -> 0xFFFFB0E0;
 			case HELLBAT -> 0xFFFFA070;
 			case VIKING_ASSAULT -> 0xFFB0B0C0;
 			case LIBERATOR -> 0xFFB0E0FF;
@@ -491,7 +551,10 @@ public enum UnitKind {
 		return UNIT_SIZE * switch (this) {
 			case KERRIGAN -> 1.0f; // the queen's model (4 wide at this size) stands in for her
 			case RAYNOR -> 1.15f;
-			case ARTANIS -> 1.2f;
+			case ARTANIS, ZERATUL, TOSH -> 1.2f;
+			case ZAGARA -> 1.1f;
+			case HORNER, SELENDIS -> 1.15f;
+			case STUKOV -> 1.2f;
 			case LURKER -> 1.1f;
 			case OVERLORD -> 1.6f;
 			case OVERSEER -> 1.44f;
@@ -509,10 +572,10 @@ public enum UnitKind {
 			case OVERLORD, OVERSEER -> 6;
 			case BROOD_LORD -> 7;
 			case MUTALISK, CORRUPTOR, VIPER -> 4;
-			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE -> 5;
+			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE, RAVEN -> 5;
 			case OBSERVER -> 6;
 			case INTERCEPTOR -> 4;
-			case BATTLECRUISER, TEMPEST, CARRIER -> 8;
+			case BATTLECRUISER, TEMPEST, CARRIER, HORNER, STUKOV, SELENDIS -> 8;
 			case MOTHERSHIP -> 10;
 			default -> 0;
 		};
@@ -521,7 +584,7 @@ public enum UnitKind {
 	/** SC2 energy of casters (owner 14.10, abilities): the most it holds; 0 for kinds without energy. */
 	public int maxEnergy() {
 		return switch (this) {
-			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS, ARTANIS -> 200;
+			case GHOST, BANSHEE, MEDIVAC, QUEEN, INFESTOR, VIPER, OVERSEER, HIGH_TEMPLAR, SENTRY, ORACLE, PHOENIX, MOTHERSHIP, NEXUS, ARTANIS, RAVEN -> 200;
 			case SHIELD_BATTERY -> 100;
 			default -> 0;
 		};
@@ -540,7 +603,7 @@ public enum UnitKind {
 
 	/** Detectors see cloaked and burrowed units within their sight (SC2): overseer, observer, spore crawler, missile turret, photon cannon. */
 	public boolean detector() {
-		return this == OVERSEER || this == OBSERVER || this == SPORE_CRAWLER || this == MISSILE_TURRET || this == PHOTON_CANNON;
+		return this == OVERSEER || this == OBSERVER || this == SPORE_CRAWLER || this == MISSILE_TURRET || this == PHOTON_CANNON || this == RAVEN;
 	}
 
 	/** Always cloaked (SC2): the dark templar and the observer. */
@@ -553,7 +616,7 @@ public enum UnitKind {
 		if (structure()) return true;
 		return switch (this) {
 			case OVERLORD, OVERSEER, ROACH, RAVAGER, LURKER, CORRUPTOR, BROOD_LORD, INFESTOR, SWARM_HOST, VIPER, ULTRALISK,
-				MARAUDER, SIEGE_TANK, THOR, VIKING, VIKING_ASSAULT, MEDIVAC, LIBERATOR, BATTLECRUISER,
+				MARAUDER, SIEGE_TANK, THOR, VIKING, VIKING_ASSAULT, MEDIVAC, LIBERATOR, BATTLECRUISER, CYCLONE,
 				STALKER, IMMORTAL, COLOSSUS, DISRUPTOR, WARP_PRISM, VOID_RAY, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> true;
 			default -> false;
 		};
@@ -567,7 +630,7 @@ public enum UnitKind {
 		if (structure()) return 1;
 		return switch (this) {
 			case ROACH, RAVAGER, LURKER, QUEEN, BROOD_LORD, SWARM_HOST, VIPER, OVERSEER,
-				MARAUDER, SIEGE_TANK, THOR, MEDIVAC,
+				MARAUDER, SIEGE_TANK, THOR, MEDIVAC, CYCLONE, RAVEN,
 				ZEALOT, STALKER, SENTRY, ADEPT, DARK_TEMPLAR, IMMORTAL, COLOSSUS, DISRUPTOR -> 1;
 			case CORRUPTOR, ULTRALISK, TEMPEST, CARRIER, MOTHERSHIP -> 2;
 			case BATTLECRUISER -> 3;
@@ -597,7 +660,7 @@ public enum UnitKind {
 	public boolean light() {
 		return switch (this) {
 			case ZERGLING, DRONE, BROODLING, LOCUST, HYDRALISK, MUTALISK, CHANGELING, LARVA, SCV, MARINE, REAPER, HELLION, HELLBAT, WIDOW_MINE, BANSHEE,
-				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR -> true;
+				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR, RAVEN -> true;
 			default -> false;
 		};
 	}
@@ -605,6 +668,7 @@ public enum UnitKind {
 	/** SC2 massive units: a graviton beam cannot lift them, force fields do not stop them. */
 	public boolean massive() {
 		return this == ULTRALISK || this == BROOD_LORD || this == THOR || this == BATTLECRUISER || this == COLOSSUS || this == ARCHON
+			|| this == HORNER || this == STUKOV || this == SELENDIS
 			|| this == TEMPEST || this == CARRIER || this == MOTHERSHIP;
 	}
 
@@ -620,7 +684,12 @@ public enum UnitKind {
 	 * marines…) come from it. Applied with every hit ({@link dev.starmine.ability.Passives#bonus}).
 	 */
 	public double bonusDamage(UnitKind target) {
-		boolean armored = target.armored(), light = target.light();
+		return bonusDamage(Trait.of(target));
+	}
+
+	/** {@link #bonusDamage(UnitKind)} against anyone's attributes (owner 17.10: players and creatures have theirs, {@link Trait#of(net.minecraft.world.entity.LivingEntity)}). */
+	public double bonusDamage(java.util.Set<Trait> target) {
+		boolean armored = target.contains(Trait.ARMORED), light = target.contains(Trait.LIGHT);
 		return switch (this) {
 			case MARAUDER -> armored ? 10 : 0;
 			case STALKER -> armored ? 5 : 0;
@@ -630,13 +699,14 @@ public enum UnitKind {
 			case SPINE_CRAWLER -> armored ? 5 : 0;
 			case ADEPT, HELLION -> light ? (this == ADEPT ? 12 : 6) : 0;
 			case HELLBAT -> light ? 12 : 0;
-			case VIKING_ASSAULT -> target.mechanical() ? 8 : 0;
+			case VIKING_ASSAULT -> target.contains(Trait.MECHANICAL) ? 8 : 0;
 			case BANELING -> light ? 15 : 0;
 			case COLOSSUS -> light ? 10 : 0;
 			case GHOST, PHOENIX -> light ? (this == GHOST ? 10 : 5) : 0;
 			case ORACLE -> light ? 7 : 0;
-			case ARCHON -> target.biological() ? 10 : 0;
-			case CORRUPTOR -> target.massive() ? 6 : 0;
+			case ARCHON -> target.contains(Trait.BIOLOGICAL) ? 10 : 0;
+			case CORRUPTOR -> target.contains(Trait.MASSIVE) ? 6 : 0;
+			case TEMPEST -> target.contains(Trait.MASSIVE) ? 22 : 0; // its anti-air: +22 against massive
 			default -> 0;
 		};
 	}

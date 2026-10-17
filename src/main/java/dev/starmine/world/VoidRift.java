@@ -22,7 +22,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A void rift (owner 17.10): a tear Amun opens near his foes. Every {@link #EVERY} ticks troops of all three races
  * come out of it — Amun's, not their race's ({@link VoidForces#TAG}) — up to {@link #CAP} of them round it at once,
- * stronger the longer it stands. It stands until broken, or until Amun dies.
+ * stronger the longer it stands. It stands until broken, or until Amun dies. A rift of his invasion of the worlds sends
+ * its troops only near a player, as strong as the invasion has grown ({@link AmunInvasion#wave}).
  */
 public class VoidRift extends Mob implements Enemy, VoidForces.Member {
 	public static final float HEALTH = 250;
@@ -35,7 +36,7 @@ public class VoidRift extends Mob implements Enemy, VoidForces.Member {
 		List.of(UnitKind.HYDRALISK, UnitKind.MARINE, UnitKind.MARINE, UnitKind.ADEPT, UnitKind.ROACH),
 		List.of(UnitKind.ULTRALISK, UnitKind.SIEGE_TANK, UnitKind.IMMORTAL, UnitKind.HYDRALISK),
 		List.of(UnitKind.ULTRALISK, UnitKind.THOR, UnitKind.ARCHON, UnitKind.MUTALISK, UnitKind.VOID_RAY));
-	private int waves;
+	private int waves, waveIn = 20;
 
 	public VoidRift(EntityType<? extends VoidRift> type, Level level) {
 		super(type, level);
@@ -53,10 +54,16 @@ public class VoidRift extends Mob implements Enemy, VoidForces.Member {
 					(random.nextDouble() - 0.5) * 0.2, 0.02, (random.nextDouble() - 0.5) * 0.2);
 			return;
 		}
-		if (tickCount % EVERY == 20 && level() instanceof ServerLevel server) wave(server);
+		if (!(level() instanceof ServerLevel server)) return;
+		if (VoidWorld.is(server)) {
+			if (tickCount % EVERY == 20) wave(server);
+		} else if (tickCount % 20 == 0 && AmunInvasion.nearPlayer(server, position()) && (waveIn -= 20) <= 0) { // the invasion's: near the players, as strong as it has grown
+			waveIn = AmunInvasion.every(AmunInvasion.power(server.getServer()));
+			if (AmunInvasion.wave(server, this, waves++ % 2 == 0) > 0) playSound(SoundEvents.ENDERMAN_TELEPORT, 2.0f, 0.5f);
+		}
 	}
 
-	/** A wave out of the rift, unless enough of Amun's troops are round it already. */
+	/** A wave out of a rift of the Void, unless enough of Amun's troops are round it already. */
 	void wave(ServerLevel level) {
 		AABB area = getBoundingBox().inflate(AREA, 8, AREA);
 		int near = level.getEntitiesOfClass(StarUnit.class, area, unit -> unit.isAlive() && unit.getTags().contains(VoidForces.TAG)).size();

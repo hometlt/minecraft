@@ -240,6 +240,9 @@ public final class AiCommander {
 			for (Research what : Research.of(building.kind)) {
 				if (what == Research.ARMOR && base.armorLevel >= base.attackLevel) continue;
 				if (what == Research.WEAPONS && base.attackLevel > base.armorLevel) continue;
+				// owner 17.10: the unit upgrades come with time, when it has resources to spare (an army first); a nuke only for its ghosts
+				if (what.once() && (base.minerals < 400 || base.vespene < 200)) continue;
+				if (what == Research.NUKE && (base.count(UnitKind.GHOST) == 0 || base.minerals < 400)) continue;
 				if (building.startResearch(what.id())) break;
 			}
 		}

@@ -347,6 +347,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
+		if (dev.starmine.faction.Faction.amun(this)) dev.starmine.world.AmunInvasion.unitTick(this, server); // owner 17.10: his curse, his workers
 		if (this.tickCount % 40 == 11 && hiveId != null) adoptBase(server);
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
@@ -370,6 +371,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 3 == 0 && badlyDamaged()) damagedEffects(server);
 		if (this.tickCount % 100 == 7 && hiveId != null && (!kind.structure() || kind.shields > 0 || weapon().damage() > 0)) applyUpgrades(server);
+		if (this.tickCount % 20 == 13 && weapon().damage() > 0 && !kind.worker() && dev.starmine.creep.CreepSources.tumors(server).size() > 0)
+			dev.starmine.creep.CreepTumors.attackNear(this, server); // owner 17.10: foes' tumors it sees, it shoots
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && flying() && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE))
@@ -866,6 +869,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
+		if (dev.starmine.faction.Faction.amun(this) || dev.starmine.world.VoidGate.inVoid(this)) { // owner 17.10: Amun's leave nothing, nor does anyone in the Void
+			valuable = ItemStack.EMPTY;
+			fillSlots.clear();
+			return;
+		}
 		super.dropCustomDeathLoot(level, source, recentlyHit);
 		if (!valuable.isEmpty()) this.spawnAtLocation(valuable.copy());
 		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
@@ -873,6 +881,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.boss()) for (ItemStack loot : Heroes.reward(this)) this.spawnAtLocation(loot);
 		valuable = ItemStack.EMPTY;
 		fillSlots.clear();
+	}
+
+	/** Owner 17.10: Amun's troops, and anyone dying in the Void, leave no experience. */
+	@Override
+	protected int getBaseExperienceReward() {
+		if (dev.starmine.faction.Faction.amun(this) || dev.starmine.world.VoidGate.inVoid(this)) return 0;
+		return super.getBaseExperienceReward();
 	}
 
 	/**
@@ -1366,7 +1381,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.swing(InteractionHand.MAIN_HAND);
 		shotSounds();
 		if (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.HALLUCINATION)) return; // an illusion shoots for show
-		if (kind == UnitKind.CARRIER) { // its interceptors are its weapon
+		if (kind == UnitKind.CARRIER || kind == UnitKind.SELENDIS) { // its interceptors are its weapon (Selendis's flagship too)
 			dev.starmine.ability.ProtossAbilities.launchInterceptors(this, target);
 			return;
 		}
@@ -1813,7 +1828,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null || lifted()) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || what.refusal(hive, kind) != null) return false;
-		if (what.at(UnitKind.BARRACKS) && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
+		if ((what.at(UnitKind.BARRACKS) || what.at(UnitKind.FACTORY) || what.at(UnitKind.STARPORT)) && mode() != dev.starmine.ability.Modes.TECHLAB)
+			return false; // SC2: at the tech lab
 		int level = what.nextLevel(hive);
 		hive.pay(what.price(level));
 		research = what.id();
@@ -2079,10 +2095,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		UnitKind by = source.getEntity() instanceof StarUnit attacker ? attacker.kind
 			: source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player ? dev.starmine.possess.Pilots.kindOf(player) : null;
 		if (source.getEntity() instanceof StarUnit attacker) // its base's damage upgrades (infernal pre-igniter, tectonic destabilizers)
-			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, kind) * UnitKind.SCALE);
+			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, Trait.of(this)) * UnitKind.SCALE);
 		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0)
-			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind));
-		if (armor <= 0) return amount;
+			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind))
+			- (dev.starmine.ability.Status.has(this, dev.starmine.ability.Status.ARMOR_BROKEN) ? 3 : 0); // a raven's anti-armor missile
+		if (armor == 0) return amount;
 		int strikes = by == null ? 1 : by.strikes();
 		return (float) Math.max(0.5 * strikes * UnitKind.SCALE, amount - armor * strikes * UnitKind.SCALE);
 	}
@@ -2098,6 +2115,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public void knockback(double strength, double x, double z) {
 		if (!steady) super.knockback(strength, x, z);
+	}
+
+	/** Potions and effects do not take on buildings (owner 17.10: a thrown potion of attributes leaves them be). */
+	@Override
+	public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect) {
+		return !kind.structure() && super.canBeAffected(effect);
 	}
 
 	/** A lowered supply depot (SC2) lies flat in the ground: everyone walks over it, players too. */

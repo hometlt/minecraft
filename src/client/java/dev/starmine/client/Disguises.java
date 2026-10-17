@@ -50,7 +50,14 @@ final class Disguises {
 		if (!(changeling.level() instanceof ClientLevel level)) return null;
 		LivingEntity body;
 		if (look.equals(Changeling.VILLAGER)) body = EntityType.VILLAGER.create(level);
-		else {
+		else if (look.startsWith(Changeling.KIND)) { // another race's soldier (owner 17.10)
+			StarUnit copy = null;
+			try {
+				copy = dev.starmine.StarMine.type(dev.starmine.entity.UnitKind.valueOf(look.substring(Changeling.KIND.length()))).create(level);
+			} catch (IllegalArgumentException ignored) {
+			}
+			body = copy;
+		} else {
 			UUID id;
 			try {
 				id = UUID.fromString(look);
