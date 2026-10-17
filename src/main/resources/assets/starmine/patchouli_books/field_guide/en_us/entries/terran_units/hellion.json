@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Hellbat Mode$(): Becomes a hellbat: close-range flamethrower, more health"
+			"text": "$(l)Hellbat Mode$(): Becomes a hellbat (a unit of its own): close-range flamethrower, more health; or a hellion again"
 		}
 	]
 }

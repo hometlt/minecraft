@@ -1,0 +1,28 @@
+{
+	"name": "Hellbat",
+	"icon": "starmine:hellbat_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hellbat",
+			"name": "Hellbat",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Hellbat",
+			"text": "$(l)Health$(): 135$(br)$(l)Damage$(): 18, every 1.43 s, range 2$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 100 minerals, 2 supply$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A unit of its own: trained at a factory once there is an armory, or a hellion turned into one (Hellbat Mode, and back). Biological and mechanical: a medivac heals it, an SCV repairs it. Its flames set foes alight; +12 against light."
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Hellbat Mode$(): Becomes a hellbat (a unit of its own): close-range flamethrower, more health; or a hellion again"
+		}
+	]
+}

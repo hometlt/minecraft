@@ -27,7 +27,7 @@ final class Bars {
 			if (!(entity instanceof StarUnit unit) || !unit.isAlive() || unit.isInvisible()) continue;
 			if (!CommandView.own(unit) && !CommandView.visible(unit)) continue;
 			boolean selected = CommandView.selection.contains(unit.getId());
-			boolean hurt = unit.getHealth() < unit.getMaxHealth() || unit.kind.shields > 0 && unit.shield() < unit.kind.shields;
+			boolean hurt = unit.getHealth() < unit.getMaxHealth() || unit.kind.shields > 0 && unit.shield() < unit.maxShield();
 			if (!selected && !hurt) continue;
 			Vec3 at = unit.getPosition(partial);
 			if (at.distanceToSqr(camera) > RANGE * RANGE) continue;
@@ -38,7 +38,7 @@ final class Bars {
 			int x = (int) top[0], y = (int) top[1];
 			if (x < -half || x > width + half || y < 0 || y > height) continue;
 			if (unit.kind.shields > 0) {
-				bar(graphics, x - half, y - 6, half * 2, unit.shield() / (float) unit.kind.shields, 0xFF3080FF);
+				bar(graphics, x - half, y - 6, half * 2, unit.shield() / (float) unit.maxShield(), 0xFF3080FF);
 			}
 			float health = unit.getHealth() / unit.getMaxHealth();
 			bar(graphics, x - half, y - 3, half * 2, health, health > 0.6f ? 0xFF30E030 : health > 0.3f ? 0xFFE0D020 : 0xFFE03020);

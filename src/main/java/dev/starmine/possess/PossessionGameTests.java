@@ -97,7 +97,7 @@ public class PossessionGameTests implements FabricGameTest {
 		helper.runAfterDelay(90, () -> {
 			try {
 				StarUnit puppet = Possession.puppet(player);
-				helper.assertTrue(puppet != null && puppet.mode() == dev.starmine.ability.Modes.LANDED, "the viking has not landed");
+				helper.assertTrue(puppet != null && puppet.kind == UnitKind.VIKING_ASSAULT, "the viking has not landed: " + puppet);
 				helper.assertTrue(!player.getAbilities().mayfly && !player.getAbilities().flying, "the player still flies in a landed viking");
 				Possession.end(player, false);
 				helper.assertTrue(Possession.start(player, medivac), "no possession of the medivac");

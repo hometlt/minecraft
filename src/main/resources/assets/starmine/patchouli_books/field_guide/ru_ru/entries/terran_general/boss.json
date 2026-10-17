@@ -2,7 +2,7 @@
 	"name": "Босс: Рейнор",
 	"icon": "starmine:terran_helmet",
 	"category": "starmine:terran_general",
-	"sortnum": 2,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:entity",

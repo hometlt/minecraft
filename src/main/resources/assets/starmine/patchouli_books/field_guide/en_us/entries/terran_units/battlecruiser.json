@@ -2,7 +2,7 @@
 	"name": "Battlecruiser",
 	"icon": "starmine:battlecruiser_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 11,
+	"sortnum": 15,
 	"pages": [
 		{
 			"type": "patchouli:entity",

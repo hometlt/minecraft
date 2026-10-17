@@ -2,7 +2,7 @@
 	"name": "Медэвак",
 	"icon": "starmine:medivac_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 9,
+	"sortnum": 12,
 	"pages": [
 		{
 			"type": "patchouli:entity",

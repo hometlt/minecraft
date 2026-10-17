@@ -49,6 +49,7 @@ public enum Ability {
 	SIEGE_MODE(         "siege_mode",          'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	HIGH_IMPACT(        "high_impact",         'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	VIKING_LAND(        "viking_land",         'D', Target.TOGGLE,  0,     0,       0,    0,      0),
+	DEFENDER_MODE(      "defender_mode",       'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	AFTERBURNERS(       "afterburners",        'I', Target.NONE,    0,     14,      0,    0,      0),
 	YAMATO(             "yamato",              'Y', Target.UNIT,    0,     71,      10,   2,      0),
 	TACTICAL_JUMP(      "tactical_jump",       'T', Target.POINT,   0,     71,      0,    0,      4),
@@ -137,7 +138,7 @@ public enum Ability {
 	/** The kinds that have it. */
 	public List<UnitKind> users() {
 		return switch (this) {
-			case BURROW -> List.of(DRONE, ZERGLING, BANELING, ROACH, RAVAGER, HYDRALISK, LURKER, QUEEN, INFESTOR, SWARM_HOST);
+			case BURROW -> List.of(DRONE, ZERGLING, BANELING, ROACH, RAVAGER, HYDRALISK, LURKER, QUEEN, INFESTOR, SWARM_HOST, WIDOW_MINE);
 			case CORROSIVE_BILE -> List.of(RAVAGER);
 			case CREEP_TUMOR, INJECT_LARVA, TRANSFUSION -> List.of(QUEEN);
 			case SPAWN_CHANGELING -> List.of(OVERSEER);
@@ -148,10 +149,11 @@ public enum Ability {
 			case KD8_CHARGE -> List.of(REAPER, RAYNOR); // Raynor's grenade
 			case CLOAK -> List.of(GHOST, BANSHEE);
 			case EMP, STEADY_TARGETING, NUKE -> List.of(GHOST);
-			case HELLBAT -> List.of(HELLION);
+			case HELLBAT -> List.of(HELLION, UnitKind.HELLBAT); // the two kinds turn into each other (Morphs)
 			case SIEGE_MODE -> List.of(SIEGE_TANK);
 			case HIGH_IMPACT -> List.of(THOR);
-			case VIKING_LAND -> List.of(VIKING);
+			case VIKING_LAND -> List.of(VIKING, VIKING_ASSAULT);
+			case DEFENDER_MODE -> List.of(LIBERATOR);
 			case LIFT_OFF -> List.of(COMMAND_CENTER, BARRACKS, FACTORY, STARPORT);
 			case AFTERBURNERS -> List.of(MEDIVAC);
 			case YAMATO, TACTICAL_JUMP -> List.of(BATTLECRUISER);

@@ -182,6 +182,8 @@ public final class ColonyNetwork {
 		base.pending.forEach((kind, count) -> counts.merge("pending:" + kind.name(), count, Integer::sum));
 		counts.put("tier", base.tier); // zerg: lair 2, hive 3
 		for (String done : base.researched) counts.put("research:" + done, 1); // unit upgrades done
+		for (dev.starmine.race.Research what : dev.starmine.race.Research.values()) // the levels of weapons, armor, shields
+			if (what.leveled()) counts.put("level:" + what.id(), dev.starmine.race.Research.level(base, what));
 		List<Supply> supplies = new ArrayList<>(); // the races the player commands: those with supply given or taken
 		for (UnitKind.Race race : UnitKind.Race.values())
 			if (base.supplyCap(race) > 0 || base.supplyUsed(race) > 0)

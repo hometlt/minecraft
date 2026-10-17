@@ -305,15 +305,20 @@ public final class CommandScreen extends Screen {
 			graphics.drawString(font, hp + " / " + max, panelLeft + 28, panelTop + 18, 0xFF80FF80);
 			bar(graphics, panelLeft + 6, panelTop + 30, panelWidth - 12, unit.getHealth() / unit.getMaxHealth(), 0xFF40C040);
 			if (unit.kind.shields > 0) { // protoss plasma shields over the health
-				graphics.drawString(font, Component.translatable("command.starmine.shields", (int) Math.ceil(unit.shield()), (int) Math.ceil(unit.kind.shields)),
+				graphics.drawString(font, Component.translatable("command.starmine.shields", (int) Math.ceil(unit.shield()), (int) Math.ceil(unit.maxShield())),
 					panelLeft + 120, panelTop + 18, 0xFF80C0FF);
-				bar(graphics, panelLeft + 6, panelTop + 25, panelWidth - 12, (float) (unit.shield() / unit.kind.shields), 0xFF40A0FF);
+				bar(graphics, panelLeft + 6, panelTop + 25, panelWidth - 12, (float) (unit.shield() / unit.maxShield()), 0xFF40A0FF);
 			}
 			if (unit.maxEnergy() > 0) { // casters' energy under the health
 				graphics.drawString(font, Component.translatable("command.starmine.energy", (int) unit.energy(), unit.maxEnergy()),
 					panelLeft + 200, panelTop + 18, 0xFFC080FF);
 				bar(graphics, panelLeft + 6, panelTop + 35, panelWidth - 12, unit.energy() / unit.maxEnergy(), 0xFFA040FF);
 			}
+			if (!unit.kind.structure()) // owner 17.10: its upgrade levels and armor, as SC2's unit panel shows them
+				graphics.drawString(font, unit.kind.shields > 0
+					? Component.translatable("command.starmine.upgrades_shields", unit.weaponsUpgrade(), unit.kind.armor() + unit.armorUpgrade(), unit.shieldsUpgrade())
+					: Component.translatable("command.starmine.upgrades", unit.weaponsUpgrade(), unit.kind.armor() + unit.armorUpgrade()),
+					panelLeft + 6, panelTop + 44, 0xFFD0D0D0);
 			if (unit.kind.structure() && CommandView.own(unit)) {
 				int progress = unit.progress();
 				String queue = unit.queueIds();
@@ -463,19 +468,18 @@ public final class CommandScreen extends Screen {
 	private Button research(int slot, Research what, UnitKind building) {
 		ColonyNetwork.BaseStatus status = BaseStatusClient.status;
 		int tier = status.counts().getOrDefault("tier", 1);
-		int level = switch (what) {
-			case WEAPONS -> status.attackLevel() + 1;
-			case ARMOR -> status.armorLevel() + 1;
+		int level = what.leveled() ? status.counts().getOrDefault("level:" + what.id(), 0) + 1 : switch (what) {
 			case LAIR -> 2;
 			case HIVE -> 3;
 			default -> 1;
 		};
 		UnitKind need = switch (what) {
-			case WEAPONS, ARMOR -> level <= 1 ? null : switch (building.race) {
+			case WEAPONS, ARMOR, MELEE, VEHICLE_WEAPONS, SHIP_WEAPONS, PLATING, FLYER_ATTACKS, FLYER_CARAPACE, SHIELDS -> level <= 1 ? null : switch (building.race) {
 				case TERRAN -> UnitKind.ARMORY;
 				case PROTOSS -> UnitKind.TWILIGHT_COUNCIL;
 				case ZERG -> null;
 			};
+			case AIR_WEAPONS, AIR_ARMOR -> level <= 1 ? null : UnitKind.FLEET_BEACON;
 			case LAIR -> UnitKind.SPAWNING_POOL;
 			case HIVE -> UnitKind.INFESTATION_PIT;
 			default -> null;
@@ -488,7 +492,7 @@ public final class CommandScreen extends Screen {
 		boolean enabled = !done && tech && status.minerals() >= cost[0] && status.vespene() >= cost[1];
 		Component label = Component.translatable("command.starmine." + what.id());
 		List<Component> tooltip = new ArrayList<>();
-		tooltip.add(label.copy().append((what == Research.WEAPONS || what == Research.ARMOR ? " " + Math.min(level, 3) : "") + " (" + what.hotkey + ")"));
+		tooltip.add(label.copy().append((what.leveled() ? " " + Math.min(level, 3) : "") + " (" + what.hotkey + ")"));
 		tooltip.add(Component.translatable("command.starmine.cost", cost[0], cost[1]));
 		if (need != null && status.counts().getOrDefault(need.name(), 0) == 0) tooltip.add(Component.translatable("command.starmine.requires", name(need)).withColor(0xFF6060));
 		return new Button(slot, label, what.hotkey, null, enabled, tooltip, () -> CommandView.send("research", Vec3.ZERO, -1, what.id()),

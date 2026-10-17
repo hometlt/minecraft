@@ -41,12 +41,13 @@ public final class UnitGoals {
 		targets.addGoal(1, new HurtByTargetGoal(unit) {
 			@Override
 			public boolean canUse() {
-				return !(unit.getLastHurtByMob() instanceof StarUnit hidden && !dev.starmine.ability.Cloak.seen(hidden, unit)) && super.canUse();
+				return !(unit.getLastHurtByMob() instanceof StarUnit hidden && !dev.starmine.ability.Cloak.seen(hidden, unit))
+					&& (unit.getLastHurtByMob() == null || unit.canTarget(unit.getLastHurtByMob())) && super.canUse();
 			}
 		}.setAlertOthers(StarUnit.class));
 		if (!kind.worker() && kind.aggressive)
 			targets.addGoal(2, new NearestAttackableTargetGoal<>(unit, LivingEntity.class, 5, true, false,
-				other -> dev.starmine.faction.Faction.hostile(unit, other)
+				other -> dev.starmine.faction.Faction.hostile(unit, other) && unit.canTarget(other)
 					&& !(other instanceof StarUnit cloaked && !dev.starmine.ability.Cloak.seen(cloaked, unit))) {
 				// vanilla looks only 4 blocks up and down: a carrier hovering 8 blocks up never saw the ground under it
 				@Override
@@ -81,7 +82,7 @@ public final class UnitGoals {
 		@Override
 		public boolean canUse() {
 			LivingEntity aim = unit.getTarget();
-			if (aim == null || !aim.isAlive() || !armed(unit)) return false;
+			if (aim == null || !aim.isAlive() || !armed(unit) || !unit.canTarget(aim)) return false;
 			target = aim;
 			return true;
 		}

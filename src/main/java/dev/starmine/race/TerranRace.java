@@ -67,9 +67,13 @@ public final class TerranRace implements RaceRules {
 			case REAPER -> new Economy(50, 50, 1, seconds(32), 0, 1);
 			case GHOST -> new Economy(150, 125, 2, seconds(29), 0, 2);
 			case HELLION -> new Economy(100, 0, 2, seconds(21), 0, 2);
+			case HELLBAT -> new Economy(100, 0, 2, seconds(21), 0, 4);
+			case WIDOW_MINE -> new Economy(75, 25, 2, seconds(21), 0, 2);
 			case SIEGE_TANK -> new Economy(150, 125, 3, seconds(32), 0, 4);
 			case THOR -> new Economy(300, 200, 6, seconds(43), 0, 8);
 			case VIKING -> new Economy(150, 75, 2, seconds(30), 0, 0);
+			case VIKING_ASSAULT -> new Economy(150, 75, 2, seconds(30), 0, 2);
+			case LIBERATOR -> new Economy(150, 125, 3, seconds(43), 0, 0);
 			case MEDIVAC -> new Economy(100, 100, 2, seconds(30), 0, 0);
 			case BANSHEE -> new Economy(150, 100, 3, seconds(43), 0, 0);
 			case BATTLECRUISER -> new Economy(400, 300, 6, seconds(64), 0, 0);
@@ -97,9 +101,9 @@ public final class TerranRace implements RaceRules {
 			case MARINE, MARAUDER, REAPER, FACTORY, BUNKER, GHOST_ACADEMY -> BARRACKS;
 			case GHOST -> GHOST_ACADEMY;
 			case MISSILE_TURRET -> ENGINEERING_BAY;
-			case HELLION, SIEGE_TANK, STARPORT, ARMORY -> FACTORY;
-			case THOR -> ARMORY;
-			case VIKING, MEDIVAC, BANSHEE, FUSION_CORE -> STARPORT;
+			case HELLION, WIDOW_MINE, SIEGE_TANK, STARPORT, ARMORY -> FACTORY;
+			case THOR, HELLBAT -> ARMORY;
+			case VIKING, VIKING_ASSAULT, MEDIVAC, BANSHEE, LIBERATOR, FUSION_CORE -> STARPORT;
 			case BATTLECRUISER -> FUSION_CORE;
 			default -> null;
 		};
@@ -110,8 +114,8 @@ public final class TerranRace implements RaceRules {
 		return switch (kind) {
 			case SCV -> COMMAND_CENTER;
 			case MARINE, MARAUDER, REAPER, GHOST -> BARRACKS;
-			case HELLION, SIEGE_TANK, THOR -> FACTORY;
-			case VIKING, MEDIVAC, BANSHEE, BATTLECRUISER -> STARPORT;
+			case HELLION, HELLBAT, WIDOW_MINE, SIEGE_TANK, THOR -> FACTORY;
+			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, BATTLECRUISER -> STARPORT;
 			default -> null;
 		};
 	}
@@ -121,8 +125,9 @@ public final class TerranRace implements RaceRules {
 		return switch (kind) {
 			case SCV, SIEGE_TANK, SUPPLY_DEPOT, STARPORT -> 'S';
 			case MARINE, ARMORY -> 'A';
-			case MARAUDER, MEDIVAC -> 'D';
-			case REAPER, REFINERY -> 'R';
+			case MARAUDER, MEDIVAC, WIDOW_MINE -> 'D';
+			case REAPER, REFINERY, HELLBAT -> 'R';
+			case LIBERATOR -> 'L';
 			case GHOST, GHOST_ACADEMY -> 'G';
 			case HELLION, BANSHEE, ENGINEERING_BAY -> 'E';
 			case THOR, MISSILE_TURRET -> 'T';

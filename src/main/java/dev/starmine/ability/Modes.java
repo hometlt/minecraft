@@ -23,7 +23,7 @@ import static dev.starmine.entity.UnitKind.SCALE;
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
 		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
-		AIRBORNE = 14;
+		AIRBORNE = 14, DEFENDER = 15;
 	public static final int CHANGE_TICKS = 60;
 
 	/** A weapon in a mode: blocks of reach, damage, ticks between shots, splash radius, the closest it can shoot, whether it can move. */
@@ -38,8 +38,7 @@ public final class Modes {
 		return switch (ability) {
 			case SIEGE_MODE -> SIEGED;
 			case BURROW -> BURROWED;
-			case VIKING_LAND -> LANDED;
-			case HELLBAT -> HELLBAT;
+			case DEFENDER_MODE -> DEFENDER;
 			case PHASING_MODE -> PHASING;
 			case PULSAR_BEAM -> PULSAR;
 			case HIGH_IMPACT -> HIGH_IMPACT;
@@ -65,8 +64,9 @@ public final class Modes {
 		if (oneWay(ability)) return ability.delayTicks;
 		return switch (ability) {
 			case BURROW -> mode == BURROWED ? 14 : 7; // SC2 burrow 0.7 s, unburrow 0.36 s
-			case VIKING_LAND, HELLBAT, HIGH_IMPACT -> 43; // SC2 2.14 s
+			case VIKING_LAND, HELLBAT, HIGH_IMPACT -> 43; // SC2 2.14 s (the first two turn it into another kind, Morphs)
 			case PHASING_MODE -> 21; // SC2 1.07 s
+			case DEFENDER_MODE -> mode == DEFENDER ? 34 : 24; // SC2 1.71 s down, 1.21 s up
 			case LIFT_OFF -> 29; // SC2 lift-off and landing 1.43 s
 			case WARP_GATE -> 142; // SC2 7.1 s
 			case PULSAR_BEAM, LOWER_DEPOT -> 0;
@@ -82,10 +82,8 @@ public final class Modes {
 				2 * BLOCKS_PER_UNIT + 1, false);
 		if (kind == UnitKind.LURKER) return mode == BURROWED ? new Weapon(own.range(), own.damage(), own.interval(), 0, 0, false) : none(true);
 		if (mode == BURROWED) return none(kind == UnitKind.ROACH); // a burrowed roach crawls, the others lie still
-		if (kind == UnitKind.VIKING && mode == LANDED) // SC2 twin gatling cannon: 12 (+8 mechanical), range 6, 0.71 s
-			return new Weapon(6 * BLOCKS_PER_UNIT + 1, Math.round(12 * SCALE * 2) / 2.0, 14, 0, 0, true);
-		if (kind == UnitKind.HELLION && mode == HELLBAT) // SC2 infernal flame thrower: 18 (+12 light), range 2, 1.43 s
-			return new Weapon(2 * BLOCKS_PER_UNIT + 1, Math.round(18 * SCALE * 2) / 2.0, 29, 0, 0, true);
+		if (kind == UnitKind.LIBERATOR && mode == DEFENDER) // SC2 lancer missiles: 75 at ground units in its zone (range 5 + zone 5), 1.14 s
+			return new Weapon(10 * BLOCKS_PER_UNIT + 1, Math.round(75 * SCALE * 2) / 2.0, 23, 0, 0, false);
 		if (kind == UnitKind.THOR && mode == HIGH_IMPACT) // SC2 high impact payload: 40, range 11, 0.91 s
 			return new Weapon(11 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 18, 0, 0, true);
 		if (kind == UnitKind.ORACLE) return mode == PULSAR ? own : none(true); // the pulsar beam is its only weapon
@@ -99,17 +97,14 @@ public final class Modes {
 		return new Weapon(0, 0, 0, 0, 0, mobile);
 	}
 
-	/** Speed in a mode against its own (SC2: a hellbat 3.15 against 5.95, a landed viking 3.15 against 3.85, a burrowed roach 2.0). */
+	/** Speed in a mode against its own (SC2: a burrowed roach 2.0 against 3.15). */
 	public static double speedFactor(UnitKind kind, int mode) {
-		if (kind == UnitKind.HELLION && mode == HELLBAT) return 3.15 / 5.95;
-		if (kind == UnitKind.VIKING && mode == LANDED) return 3.15 / 3.85;
 		if (kind == UnitKind.ROACH && mode == BURROWED) return 2.0 / 3.15;
 		return 1;
 	}
 
-	/** SC2 hit points a mode adds (a hellbat: 135 against the hellion's 90; a planetary fortress' armor counted as 50 % more). */
+	/** SC2 hit points a mode adds (a planetary fortress' armor counted as 50 % more). */
 	public static double extraHealth(UnitKind kind, int mode) {
-		if (kind == UnitKind.HELLION && mode == HELLBAT) return 45;
 		if (kind == UnitKind.COMMAND_CENTER && mode == PLANETARY) return 750;
 		return 0;
 	}
@@ -133,6 +128,12 @@ public final class Modes {
 
 	static void finish(StarUnit unit) {
 		unit.abilities.modeTicks = 0;
+		if (unit.abilities.morphTo != null) { // a change into another kind (Morphs)
+			dev.starmine.entity.UnitKind to = unit.abilities.morphTo;
+			unit.abilities.morphTo = null;
+			Morphs.into(unit, to);
+			return;
+		}
 		boolean landing = unit.mode() == AIRBORNE && unit.abilities.nextMode != AIRBORNE;
 		unit.setMode(unit.abilities.nextMode);
 		if (landing) LiftOff.landed(unit, Abilities.base(unit), unit.abilities.liftedFrom);

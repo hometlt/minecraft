@@ -335,9 +335,9 @@ public final class Possession {
 		boolean cloaked = puppet.cloaked(), revealed = puppet.revealed();
 		Abilities.tick(puppet, level);
 		updateSpeed(player, puppet);
-		if (puppet.kind.shields > 0 && puppet.tickCount % 10 == 0
+		if (puppet.maxShield() > 0 && puppet.tickCount % 10 == 0
 			&& level.getGameTime() - LAST_HURT.getOrDefault(player.getUUID(), 0L) >= StarUnit.SHIELD_DELAY)
-			player.setAbsorptionAmount((float) Math.min(puppet.kind.shields, player.getAbsorptionAmount() + UnitKind.SCALE));
+			player.setAbsorptionAmount((float) Math.min(puppet.maxShield(), player.getAbsorptionAmount() + UnitKind.SCALE));
 		player.getFoodData().setFoodLevel(20);
 		if (puppet.flying()) {
 			player.fallDistance = 0;
@@ -346,7 +346,7 @@ public final class Possession {
 				player.getAbilities().flying = true;
 				player.onUpdateAbilities();
 			}
-		} else if (puppet.kind.flying && player.getAbilities().mayfly) { // a landed viking walks
+		} else if (player.getAbilities().mayfly) { // a ground unit walks (an assault viking just landed)
 			player.getAbilities().mayfly = false;
 			player.getAbilities().flying = false;
 			player.onUpdateAbilities();

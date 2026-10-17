@@ -2,7 +2,7 @@
 	"name": "Осадный танк",
 	"icon": "starmine:siegetank_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 6,
+	"sortnum": 8,
 	"pages": [
 		{
 			"type": "patchouli:entity",

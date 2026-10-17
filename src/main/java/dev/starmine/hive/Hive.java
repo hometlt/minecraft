@@ -86,6 +86,8 @@ public final class Hive {
 	public int attackLevel, armorLevel, upgradeTicks = -1;
 	/** Unit upgrades done once (dev.starmine.race.Research: metabolic boost, centrifugal hooks, combat shield). */
 	public final java.util.Set<String> researched = new java.util.LinkedHashSet<>();
+	/** The other leveled upgrades (owner 17.10: melee, vehicle and ship weapons, plating, flyer, shields, air), by research id. */
+	public final java.util.Map<String, Integer> levels = new java.util.LinkedHashMap<>();
 	/** A drone has been sent to mutate into this building (until it arrives or gives up). */
 	public String buildOrder;
 	public long buildOrderUntil;
@@ -270,6 +272,9 @@ public final class Hive {
 		net.minecraft.nbt.ListTag done = new net.minecraft.nbt.ListTag();
 		for (String id : researched) done.add(net.minecraft.nbt.StringTag.valueOf(id));
 		tag.put("researched", done);
+		CompoundTag upgrades = new CompoundTag();
+		levels.forEach(upgrades::putInt);
+		tag.put("levels", upgrades);
 		tag.putInt("tunnels", tunnels);
 		tag.putLong("nextTunnel", nextTunnel);
 		tag.putLongArray("routes", routes.stream().mapToLong(Long::longValue).toArray());
@@ -319,6 +324,8 @@ public final class Hive {
 		hive.armorLevel = tag.getInt("armorLevel");
 		hive.upgradeTicks = tag.contains("upgradeTicks") ? tag.getInt("upgradeTicks") : -1;
 		for (net.minecraft.nbt.Tag done : tag.getList("researched", net.minecraft.nbt.Tag.TAG_STRING)) hive.researched.add(done.getAsString());
+		CompoundTag upgrades = tag.getCompound("levels");
+		for (String id : upgrades.getAllKeys()) hive.levels.put(id, upgrades.getInt(id));
 		hive.tunnels = tag.getInt("tunnels");
 		hive.nextTunnel = tag.getLong("nextTunnel");
 		for (long cell : tag.getLongArray("routes")) hive.routes.add(cell);

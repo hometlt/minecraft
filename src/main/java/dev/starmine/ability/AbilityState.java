@@ -25,6 +25,10 @@ public final class AbilityState {
 	int modeTicks;
 	/** The mode it changes to. */
 	int nextMode;
+	/** The kind it turns into when the change is done ({@link Morphs}: a hellion into a hellbat), or null. */
+	@Nullable dev.starmine.entity.UnitKind morphTo;
+	/** A widow mine: when its sentinel missile is ready again ({@link Passives#widowMine}). */
+	long mineReadyAt;
 	/** A changeling: whom it follows ({@link Changeling}); an overseer: when it may send the next one out (wild). */
 	@Nullable java.util.UUID spied;
 	long nextChangeling;
@@ -100,6 +104,7 @@ public final class AbilityState {
 		if (modeTicks > 0) {
 			tag.putInt("StarMineModeTicks", modeTicks);
 			tag.putInt("StarMineNextMode", nextMode);
+			if (morphTo != null) tag.putString("StarMineMorph", morphTo.name());
 		}
 		if (unloadAt != null) {
 			tag.putDouble("StarMineUnloadX", unloadAt.x);
@@ -142,6 +147,11 @@ public final class AbilityState {
 		}
 		modeTicks = tag.getInt("StarMineModeTicks");
 		nextMode = tag.getInt("StarMineNextMode");
+		try {
+			morphTo = modeTicks > 0 && tag.contains("StarMineMorph") ? dev.starmine.entity.UnitKind.valueOf(tag.getString("StarMineMorph")) : null;
+		} catch (IllegalArgumentException unknown) {
+			morphTo = null;
+		}
 		unloadAt = tag.contains("StarMineUnloadX")
 			? new Vec3(tag.getDouble("StarMineUnloadX"), tag.getDouble("StarMineUnloadY"), tag.getDouble("StarMineUnloadZ")) : null;
 		statuses.clear();

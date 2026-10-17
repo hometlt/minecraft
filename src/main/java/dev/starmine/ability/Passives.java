@@ -42,7 +42,6 @@ public final class Passives {
 	public static double bonus(StarUnit attacker, LivingEntity target) {
 		if (!(target instanceof StarUnit victim)) return 0;
 		double bonus = attacker.kind.bonusDamage(victim.kind);
-		if (attacker.kind == UnitKind.HELLION && attacker.mode() == Modes.HELLBAT) bonus = victim.kind.light() ? 12 : 0;
 		if (attacker.kind == UnitKind.SIEGE_TANK && attacker.mode() == Modes.SIEGED) bonus = victim.kind.armored() ? 30 : 0;
 		if (Status.has(attacker, Status.PRISMATIC) && victim.kind.armored()) bonus += 10;
 		return bonus * UnitKind.SCALE;
@@ -52,7 +51,7 @@ public final class Passives {
 	public static void onHit(StarUnit attacker, LivingEntity target) {
 		if (attacker.kind == UnitKind.MARAUDER && dev.starmine.race.Research.has(attacker, dev.starmine.race.Research.CONCUSSIVE_SHELLS))
 			Status.apply(target, Status.SLOW, CONCUSSIVE_TICKS);
-		if (attacker.kind == UnitKind.HELLION && attacker.mode() == Modes.HELLBAT) target.igniteForSeconds(2);
+		if (attacker.kind == UnitKind.HELLBAT) target.igniteForSeconds(2);
 	}
 
 	/** Damage a unit takes, after its passives (in Minecraft health). */
@@ -91,6 +90,47 @@ public final class Passives {
 	}
 
 	/** Every tick of a unit (after its states). */
+	/** SC2 widow mine: sentinel missile range 5, 125 (+35 to shields) and 40 splash within 1.75, 1.07 s to lock on, 29 s to rearm. */
+	public static final double MINE_RANGE = 5 * UnitKind.BLOCKS_PER_UNIT + 1, MINE_SPLASH = 1.75 * UnitKind.BLOCKS_PER_UNIT;
+	public static final int MINE_LOCK_TICKS = 21, MINE_REARM_TICKS = 29 * 20;
+
+	/**
+	 * A burrowed widow mine (owner 17.10) fires its sentinel missile at the nearest foe that comes within
+	 * {@link #MINE_RANGE}, on the ground or in the air: it locks on, and the missile hits the target and
+	 * the foes round it; then it rearms. Unburrowed it does nothing.
+	 */
+	static void widowMine(StarUnit unit, ServerLevel level) {
+		AbilityState state = unit.abilities;
+		if (unit.mode() != Modes.BURROWED || state.changingMode() || level.getGameTime() < state.mineReadyAt) return;
+		LivingEntity target = level.getEntitiesOfClass(LivingEntity.class, unit.getBoundingBox().inflate(MINE_RANGE),
+				other -> other.isAlive() && Faction.hostile(unit, other) && other.distanceTo(unit) <= MINE_RANGE
+					&& !(other instanceof StarUnit star && (star.kind.structure() || !Cloak.seen(star, unit))))
+			.stream().min(java.util.Comparator.comparingDouble(other -> other.distanceToSqr(unit))).orElse(null);
+		if (target == null) return;
+		state.mineReadyAt = level.getGameTime() + MINE_REARM_TICKS;
+		level.playSound(null, unit.getX(), unit.getY(), unit.getZ(), net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(),
+			net.minecraft.sounds.SoundSource.HOSTILE, 1.2f, 1.8f);
+		Delayed.repeat(level, 3, MINE_LOCK_TICKS / 3, n -> {
+			var from = unit.position().add(0, 0.5, 0);
+			var to = target.position().add(0, target.getBbHeight() / 2, 0);
+			for (int i = 1; i <= 6; i++) {
+				var at = from.lerp(to, i / 6.0);
+				level.sendParticles(net.minecraft.core.particles.DustParticleOptions.REDSTONE, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+			}
+		});
+		Delayed.after(level, MINE_LOCK_TICKS, () -> {
+			if (!target.isAlive() || !unit.isAlive()) return;
+			double shields = target instanceof StarUnit star && star.shield() > 0 ? 35 : 0;
+			target.hurt(unit.attackSource(), (float) ((125 + shields) * UnitKind.SCALE));
+			for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(MINE_SPLASH),
+				other -> other != target && other.isAlive() && Faction.hostile(unit, other) && other.distanceTo(target) <= MINE_SPLASH))
+				other.hurt(unit.attackSource(), (float) (40 * UnitKind.SCALE));
+			level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY() + target.getBbHeight() / 2, target.getZ(), 2, 0.4, 0.4, 0.4, 0);
+			level.playSound(null, target.getX(), target.getY(), target.getZ(), net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(),
+				net.minecraft.sounds.SoundSource.HOSTILE, 1.2f, 1.4f);
+		});
+	}
+
 	static void tick(StarUnit unit, ServerLevel level) {
 		switch (unit.kind) {
 			case SENTRY -> {
@@ -103,6 +143,7 @@ public final class Passives {
 							GUARDIAN_RADIUS / 2, 0.1);
 				}
 			}
+			case WIDOW_MINE -> widowMine(unit, level);
 			case SHIELD_BATTERY -> ProtossAbilities.batteryTick(unit, level);
 			case CARRIER -> ProtossAbilities.carrierTick(unit, level);
 			case INTERCEPTOR -> ProtossAbilities.interceptorTick(unit, level);

@@ -2,7 +2,7 @@
 	"name": "Викинг",
 	"icon": "starmine:viking_spawn_egg",
 	"category": "starmine:terran_units",
-	"sortnum": 8,
+	"sortnum": 10,
 	"pages": [
 		{
 			"type": "patchouli:entity",
@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Способности",
-			"text": "$(l)Посадка$(): Садится и сражается на земле или снова взлетает"
+			"text": "$(l)Посадка$(): Садится штурмовым викингом (отдельный юнит) и сражается на земле, или снова взлетает"
 		}
 	]
 }

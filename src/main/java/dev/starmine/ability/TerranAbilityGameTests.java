@@ -88,37 +88,126 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** The unit with this UUID in the level now (a morph puts a new unit of another kind in its place). */
+	private static StarUnit same(GameTestHelper helper, UUID id) {
+		return helper.getLevel().getEntity(id) instanceof StarUnit unit ? unit : null;
+	}
+
+	/** Owner 17.10: the landed viking is a unit of its own — the viking turns into an assault viking and back. */
 	@GameTest(template = ARENA, batch = "terranViking", timeoutTicks = 300)
 	public void vikingLandsAndTakesOff(GameTestHelper helper) {
 		clear(helper);
 		StarUnit viking = unit(helper, UnitKind.VIKING, 10, 24, UUID.randomUUID());
+		UUID id = viking.getUUID();
+		int entityId = viking.getId();
 		ServerLevel level = helper.getLevel();
 		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(viking, level, Ability.VIKING_LAND, null, null), "no landing"));
 		helper.runAfterDelay(100, () -> {
-			helper.assertTrue(viking.mode() == Modes.LANDED && !viking.flying() && !viking.isNoGravity(), "not landed");
-			helper.assertTrue(viking.onGround(), "not on the ground: y " + (viking.getY() - helper.absolutePos(BlockPos.ZERO).getY()));
-			helper.assertTrue(viking.weapon().range() < UnitKind.VIKING.range, "still the air weapon");
-			helper.assertTrue(Abilities.cast(viking, level, Ability.VIKING_LAND, null, null), "no take-off");
+			StarUnit landed = same(helper, id);
+			helper.assertTrue(landed != null && landed.kind == UnitKind.VIKING_ASSAULT && landed != viking, "not an assault viking: " + landed);
+			helper.assertTrue(landed.getId() == entityId && viking.isRemoved(), "the old viking is still there, or a new id");
+			helper.assertTrue(!landed.flying() && !landed.isNoGravity() && Abilities.on(landed, Ability.VIKING_LAND), "not landed");
+			helper.assertTrue(landed.weapon().range() < UnitKind.VIKING.range, "still the air weapon");
+			helper.assertTrue(Abilities.cast(landed, level, Ability.VIKING_LAND, null, null), "no take-off");
 		});
 		helper.runAfterDelay(160, () -> {
-			helper.assertTrue(viking.mode() == Modes.NORMAL && viking.flying() && viking.isNoGravity(), "not flying again");
+			StarUnit flying = same(helper, id);
+			helper.assertTrue(flying != null && flying.kind == UnitKind.VIKING && flying.flying() && flying.isNoGravity(), "not flying again: " + flying);
 			helper.succeed();
 		});
 	}
 
+	/** Owner 17.10: the hellbat is a unit of its own (its egg, trained at a factory with an armory); a hellion turns into one. */
 	@GameTest(template = ARENA, batch = "terranHellbat", timeoutTicks = 200)
 	public void hellionBecomesHellbat(GameTestHelper helper) {
 		clear(helper);
 		StarUnit hellion = unit(helper, UnitKind.HELLION, 10, 24, UUID.randomUUID());
 		hellion.setNoAi(true);
+		UUID id = hellion.getUUID();
 		ServerLevel level = helper.getLevel();
+		helper.assertTrue(UnitKind.HELLBAT.producer() == UnitKind.FACTORY && UnitKind.HELLBAT.requires() == UnitKind.ARMORY
+			&& UnitKind.FACTORY.trains().contains(UnitKind.HELLBAT), "the factory does not train hellbats");
 		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(hellion, level, Ability.HELLBAT, null, null), "no hellbat"));
 		helper.runAfterDelay(60, () -> {
-			helper.assertTrue(hellion.mode() == Modes.HELLBAT && hellion.biological(), "not a hellbat");
-			helper.assertTrue(hellion.getMaxHealth() > UnitKind.HELLION.health + 10, "no more health: " + hellion.getMaxHealth());
+			StarUnit hellbat = same(helper, id);
+			helper.assertTrue(hellbat != null && hellbat.kind == UnitKind.HELLBAT && hellbat.biological() && hellbat.kind.mechanical(), "not a hellbat: " + hellbat);
+			helper.assertTrue(hellbat.getMaxHealth() > UnitKind.HELLION.health + 10, "no more health: " + hellbat.getMaxHealth());
 			// SC2 hellbat flame reach 2 against the hellion's 5
-			helper.assertTrue(hellion.weapon().range() <= 2 * UnitKind.BLOCKS_PER_UNIT + 1 && hellion.weapon().range() < UnitKind.HELLION.range / 2,
-				"not a short flame: " + hellion.weapon().range());
+			helper.assertTrue(hellbat.weapon().range() <= 2 * UnitKind.BLOCKS_PER_UNIT + 1 && hellbat.weapon().range() < UnitKind.HELLION.range / 2,
+				"not a short flame: " + hellbat.weapon().range());
+			helper.assertTrue(hellbat.isNoAi(), "the hellbat lost the hellion's data");
+			helper.succeed();
+		});
+	}
+
+	/**
+	 * Owner 17.10: every SC2 upgrade, 3 levels: each unit takes its own (a marine infantry weapons and armor,
+	 * a viking ship weapons, a zealot ground weapons and shields): more damage, 1 armor and a tenth more shields a level.
+	 */
+	@GameTest(template = ARENA, batch = "upgrades", timeoutTicks = 300)
+	public void upgradesRaiseDamageArmorAndShields(GameTestHelper helper) {
+		clear(helper);
+		StarUnit cc = commandCenter(helper);
+		helper.runAfterDelay(5, () -> {
+			Hive base = dev.starmine.ability.TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			base.attackLevel = 2;
+			base.armorLevel = 1;
+			base.levels.put(dev.starmine.race.Research.SHIELDS.id(), 2);
+			StarUnit marine = dev.starmine.ability.TestArena.member(helper, base, UnitKind.MARINE, 10, 20);
+			StarUnit viking = dev.starmine.ability.TestArena.member(helper, base, UnitKind.VIKING, 10, 26);
+			StarUnit zealot = dev.starmine.ability.TestArena.member(helper, base, UnitKind.ZEALOT, 10, 30);
+			for (StarUnit unit : List.of(marine, viking, zealot)) unit.setNoAi(true);
+			helper.runAfterDelay(120, () -> {
+				helper.assertTrue(marine.weaponsUpgrade() == 2 && marine.armorUpgrade() == 1, "the marine has " + marine.weaponsUpgrade() + "/" + marine.armorUpgrade());
+				helper.assertTrue(Math.abs(marine.attackBonus() - 2 * UnitKind.SCALE) < 1e-3, "the marine's weapons +2 add " + marine.attackBonus());
+				helper.assertTrue(viking.weaponsUpgrade() == 0 && viking.armorUpgrade() == 0, "the infantry upgrades reached a viking");
+				helper.assertTrue(zealot.weaponsUpgrade() == 2 && zealot.shieldsUpgrade() == 2, "the zealot has " + zealot.weaponsUpgrade() + "/" + zealot.shieldsUpgrade());
+				helper.assertTrue(Math.abs(zealot.maxShield() - UnitKind.ZEALOT.shields * 1.2) < 1e-3, "the zealot's shields: " + zealot.maxShield());
+				// 1 armor a level: a zergling's 5 reaches the marine's health as 4
+				float before = marine.getHealth();
+				StarUnit zergling = unit(helper, UnitKind.ZERGLING, 40, 40, null);
+				marine.hurt(zergling.attackSource(), (float) (5 * UnitKind.SCALE));
+				helper.assertTrue(Math.abs(before - marine.getHealth() - 4 * UnitKind.SCALE) < 1e-3, "armor 1 let through " + (before - marine.getHealth()));
+				helper.assertTrue(dev.starmine.race.Research.of(UnitKind.ARMORY).containsAll(List.of(dev.starmine.race.Research.VEHICLE_WEAPONS,
+					dev.starmine.race.Research.SHIP_WEAPONS, dev.starmine.race.Research.PLATING)), "the armory researches " + dev.starmine.race.Research.of(UnitKind.ARMORY));
+				helper.assertTrue(dev.starmine.race.Research.of(UnitKind.FORGE).contains(dev.starmine.race.Research.SHIELDS), "no shields at the forge");
+				helper.succeed();
+			});
+		});
+	}
+
+	/** Owner 17.10: a burrowed widow mine fires its sentinel missile at a foe in range: 125 to it, then it rearms. */
+	@GameTest(template = ARENA, batch = "terranWidowMine", timeoutTicks = 200)
+	public void aBurrowedWidowMineStrikes(GameTestHelper helper) {
+		clear(helper);
+		StarUnit mine = unit(helper, UnitKind.WIDOW_MINE, 10, 24, UUID.randomUUID());
+		ServerLevel level = helper.getLevel();
+		StarUnit roach = unit(helper, UnitKind.ROACH, 16, 24, null);
+		roach.setNoAi(true);
+		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(mine, level, Ability.BURROW, null, null), "the mine does not burrow"));
+		helper.succeedWhen(() -> {
+			helper.assertTrue(mine.mode() == Modes.BURROWED, "not burrowed");
+			float lost = roach.getMaxHealth() - roach.getHealth();
+			helper.assertTrue(lost >= 120 * UnitKind.SCALE, "the roach lost only " + lost);
+			helper.assertTrue(mine.abilities.mineReadyAt > level.getGameTime() + 20 * 20, "the mine did not rearm");
+		});
+	}
+
+	/** Owner 17.10: the liberator; in defender mode it stands and hits the ground hard. */
+	@GameTest(template = ARENA, batch = "terranLiberator", timeoutTicks = 200)
+	public void liberatorTakesDefenderMode(GameTestHelper helper) {
+		clear(helper);
+		StarUnit liberator = unit(helper, UnitKind.LIBERATOR, 10, 24, UUID.randomUUID());
+		liberator.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		helper.assertTrue(UnitKind.STARPORT.trains().contains(UnitKind.LIBERATOR), "the starport does not train liberators");
+		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(liberator, level, Ability.DEFENDER_MODE, null, null), "no defender mode"));
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(liberator.mode() == Modes.DEFENDER, "not in defender mode");
+			Modes.Weapon weapon = liberator.weapon();
+			helper.assertTrue(!weapon.mobile() && weapon.damage() >= 70 * UnitKind.SCALE && weapon.range() > UnitKind.LIBERATOR.range,
+				"not the lancer: " + weapon);
 			helper.succeed();
 		});
 	}

@@ -68,11 +68,16 @@ public enum UnitKind {
 	REAPER(        Race.TERRAN, 60,   5.25,  false, Attack.RANGED, 8,    0.79,  5,    true,  1.0f, 1.3f,  0x2a4a9a, 0xd04020),
 	GHOST(         Race.TERRAN, 100,  3.94,  false, Attack.RANGED, 10,   1.07,  6,    true,  0.8f, 1.6f,  0x2a4a9a, 0x30b0e0),
 	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  2.0f, 1.5f,  0x3a5a8a, 0xf08020),
+	// owner 17.10: the hellbat a unit of its own (the hellion's battle mode in SC2), the widow mine and the liberator
+	HELLBAT(       Race.TERRAN, 135,  3.15,  false, Attack.LINE,   18,   1.43,  2,    true,  2.0f, 1.5f,  0x3a5a8a, 0xd05010),
+	WIDOW_MINE(    Race.TERRAN, 90,   3.94,  false, Attack.NONE,   0,    0,     0,    false, 1.0f, 0.8f,  0x3a5a8a, 0xe0d040),
 	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.9f, 1.5f,  0x3a5a8a, 0x707050),
 	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
 	VIKING(        Race.TERRAN, 135,  3.85,  true,  Attack.RANGED, 20,   1.43,  9,    true,  2.5f, 0.9f,  0x3a5a8a, 0xa0a0b0),
+	VIKING_ASSAULT(Race.TERRAN, 135,  3.15,  false, Attack.RANGED, 12,   0.71,  6,    true,  2.0f, 1.8f,  0x3a5a8a, 0x707080),
 	MEDIVAC(       Race.TERRAN, 150,  3.5,   true,  Attack.NONE,   0,    0,     0,    false, 2.8f, 1.2f,  0x3a5a8a, 0xf0f0f0),
 	BANSHEE(       Race.TERRAN, 140,  3.85,  true,  Attack.RANGED, 24,   0.89,  6,    true,  2.5f, 0.8f,  0x3a5a8a, 0x404060),
+	LIBERATOR(     Race.TERRAN, 180,  4.72,  true,  Attack.RANGED, 10,   1.29,  5,    true,  2.6f, 1.0f,  0x3a5a8a, 0x80c0e0),
 	BATTLECRUISER( Race.TERRAN, 550,  2.62,  true,  Attack.RANGED, 8,    0.16,  6,    true,  4.3f, 2.2f,  0x3a5a8a, 0x808090),
 	COMMAND_CENTER(Race.TERRAN, 1500, 0,     false, Attack.NONE,   0,    0,     0,    false, 5.8f, 4.4f,  0x3a5a8a, 0xc0c0c0),
 	SUPPLY_DEPOT(  Race.TERRAN, 400,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.4f, 2.0f,  0x3a5a8a, 0x909090),
@@ -248,7 +253,7 @@ public enum UnitKind {
 			case HYDRALISK, MUTALISK -> Shot.NEEDLE;
 			case CORRUPTOR -> Shot.CORROSIVE;
 			case BROOD_LORD -> Shot.EGG;
-			case VIKING, MISSILE_TURRET, BANSHEE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
+			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
 			case MARAUDER -> Shot.GRENADE;
 			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
 			default -> race == Race.ZERG ? Shot.ACID : null;
@@ -294,6 +299,9 @@ public enum UnitKind {
 			case KERRIGAN -> QUEEN;
 			case RAYNOR -> MARINE;
 			case ARTANIS -> ZEALOT;
+			case HELLBAT -> HELLION; // until the assets carry their own SC2 models
+			case VIKING_ASSAULT -> VIKING;
+			case LIBERATOR -> BANSHEE;
 			default -> this;
 		};
 	}
@@ -304,6 +312,9 @@ public enum UnitKind {
 			case KERRIGAN -> 0xFFC080FF;
 			case RAYNOR -> 0xFFFFC890;
 			case ARTANIS -> 0xFF9AD0FF;
+			case HELLBAT -> 0xFFFFA070;
+			case VIKING_ASSAULT -> 0xFFB0B0C0;
+			case LIBERATOR -> 0xFFB0E0FF;
 			default -> 0xFFFFFFFF;
 		};
 	}
@@ -371,9 +382,9 @@ public enum UnitKind {
 		return this == SPINE_CRAWLER || this == BUNKER || this == PHOTON_CANNON;
 	}
 
-	/** Bio units a medivac heals (not machines, not buildings). */
+	/** Bio units a medivac heals (not machines, not buildings); the hellbat is both (SC2). */
 	public boolean biological() {
-		return this == MARINE || this == MARAUDER || this == REAPER || this == GHOST || this == ZEALOT || this == ADEPT
+		return this == MARINE || this == MARAUDER || this == REAPER || this == GHOST || this == HELLBAT || this == ZEALOT || this == ADEPT
 			|| this == HIGH_TEMPLAR || this == DARK_TEMPLAR;
 	}
 
@@ -403,7 +414,7 @@ public enum UnitKind {
 		if (building()) return this == COMMAND_CENTER ? 13 : 10;
 		return switch (this) {
 			case SCV, PROBE -> 9;
-			case GHOST, VIKING, BANSHEE, BATTLECRUISER, MEDIVAC, THOR, OBSERVER, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> 13;
+			case GHOST, VIKING, VIKING_ASSAULT, BANSHEE, LIBERATOR, BATTLECRUISER, MEDIVAC, THOR, OBSERVER, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> 13;
 			default -> 11;
 		};
 	}
@@ -443,7 +454,7 @@ public enum UnitKind {
 			case OVERLORD, OVERSEER -> 6;
 			case BROOD_LORD -> 7;
 			case MUTALISK, CORRUPTOR, VIPER -> 4;
-			case VIKING, MEDIVAC, BANSHEE, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE -> 5;
+			case VIKING, MEDIVAC, BANSHEE, LIBERATOR, WARP_PRISM, PHOENIX, VOID_RAY, ORACLE -> 5;
 			case OBSERVER -> 6;
 			case INTERCEPTOR -> 4;
 			case BATTLECRUISER, TEMPEST, CARRIER -> 8;
@@ -487,7 +498,7 @@ public enum UnitKind {
 		if (structure()) return true;
 		return switch (this) {
 			case OVERLORD, OVERSEER, ROACH, RAVAGER, LURKER, CORRUPTOR, BROOD_LORD, INFESTOR, SWARM_HOST, VIPER, ULTRALISK,
-				MARAUDER, SIEGE_TANK, THOR, VIKING, MEDIVAC, BATTLECRUISER,
+				MARAUDER, SIEGE_TANK, THOR, VIKING, VIKING_ASSAULT, MEDIVAC, LIBERATOR, BATTLECRUISER,
 				STALKER, IMMORTAL, COLOSSUS, DISRUPTOR, WARP_PRISM, VOID_RAY, ORACLE, TEMPEST, CARRIER, MOTHERSHIP -> true;
 			default -> false;
 		};
@@ -512,15 +523,25 @@ public enum UnitKind {
 	/** Strikes in one attack of its weapon (SC2: a zealot's two blades, 8 each, are 16 here; a thor's hammers, 30 each, 60): armor counts once per strike. */
 	public int strikes() {
 		return switch (this) {
-			case ZEALOT, REAPER, COLOSSUS, BANSHEE, VIKING, PHOENIX, THOR -> 2; // a thor's hammers: 30 x2 (SC2)
+			case ZEALOT, REAPER, COLOSSUS, BANSHEE, VIKING, LIBERATOR, PHOENIX, THOR -> 2; // a thor's hammers: 30 x2 (SC2)
 			default -> 1;
 		};
+	}
+
+	/**
+	 * SC2 hit points a weapons upgrade level adds to one attack: about a tenth of a strike, at least 1, for
+	 * every strike (a zergling +1, a roach +2, a thor's hammers +3 x2, a dark templar +5).
+	 */
+	public double upgradeDamage() {
+		if (attack == Attack.NONE && !defender()) return 0;
+		double strike = damage / SCALE / strikes();
+		return Math.max(1, Math.round(strike / 10)) * strikes();
 	}
 
 	/** SC2 light units. */
 	public boolean light() {
 		return switch (this) {
-			case ZERGLING, DRONE, BROODLING, LOCUST, HYDRALISK, MUTALISK, CHANGELING, LARVA, SCV, MARINE, REAPER, HELLION, BANSHEE,
+			case ZERGLING, DRONE, BROODLING, LOCUST, HYDRALISK, MUTALISK, CHANGELING, LARVA, SCV, MARINE, REAPER, HELLION, HELLBAT, WIDOW_MINE, BANSHEE,
 				PROBE, ZEALOT, SENTRY, ADEPT, HIGH_TEMPLAR, DARK_TEMPLAR, PHOENIX, OBSERVER, INTERCEPTOR -> true;
 			default -> false;
 		};
@@ -535,7 +556,7 @@ public enum UnitKind {
 	/** SC2 mechanical units and terran and protoss buildings: an SCV repairs the terran ones ({@link dev.starmine.ability.TerranAbilities}). */
 	public boolean mechanical() {
 		if (structure()) return race != Race.ZERG;
-		return race != Race.ZERG && !biological() && this != HIGH_TEMPLAR && this != ARCHON;
+		return race != Race.ZERG && (!biological() || this == HELLBAT) && this != HIGH_TEMPLAR && this != ARCHON;
 	}
 
 	/**
@@ -553,6 +574,8 @@ public enum UnitKind {
 			case VOID_RAY -> armored ? 4 : 0;
 			case SPINE_CRAWLER -> armored ? 5 : 0;
 			case ADEPT, HELLION -> light ? (this == ADEPT ? 12 : 6) : 0;
+			case HELLBAT -> light ? 12 : 0;
+			case VIKING_ASSAULT -> target.mechanical() ? 8 : 0;
 			case BANELING -> light ? 15 : 0;
 			case COLOSSUS -> light ? 10 : 0;
 			case GHOST, PHOENIX -> light ? (this == GHOST ? 10 : 5) : 0;

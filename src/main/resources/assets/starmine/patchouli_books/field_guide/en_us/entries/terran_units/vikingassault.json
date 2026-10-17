@@ -1,0 +1,28 @@
+{
+	"name": "Viking (Assault Mode)",
+	"icon": "starmine:vikingassault_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 11,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:vikingassault",
+			"name": "Viking (Assault Mode)",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Viking (Assault Mode)",
+			"text": "$(l)Health$(): 135$(br)$(l)Damage$(): 12, every 0.71 s, range 6$(br)$(l)Speed$(): 3.15, on the ground$(br)$(l)Cost$(): 150 minerals, 75 vespene, 2 supply$(br)$(l)Build time$(): 30 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A unit of its own: a viking that has landed (Assault Mode) walks and fires its twin gatling cannon at the ground, +8 against mechanical; it takes off again as a viking."
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Assault Mode$(): Lands as an assault viking (a unit of its own) to fight on the ground, or takes off again"
+		}
+	]
+}

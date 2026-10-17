@@ -94,6 +94,10 @@ final class AbilityAi {
 			case STEADY_TARGETING -> target != null && cast(unit, level, ability, target);
 			case NUKE -> target instanceof StarUnit building && building.kind.structure() && cast(unit, level, ability, at);
 			case HELLBAT -> !on && target != null && reach < 4 && foesAround(unit, unit.position(), 5) >= 2 || on && calm ? cast(unit, level, ability) : false;
+			case DEFENDER_MODE -> {
+				boolean ground = target != null && !(target instanceof StarUnit star && star.flying());
+				yield !on && ground && reach < 10 * UnitKind.BLOCKS_PER_UNIT || on && (calm || target != null && !ground) ? cast(unit, level, ability) : false;
+			}
 			case HIGH_IMPACT -> {
 				boolean air = target instanceof StarUnit star && star.flying();
 				yield !on && air || on && (calm || target != null && !air) ? cast(unit, level, ability) : false;
@@ -182,6 +186,7 @@ final class AbilityAi {
 			double range = Modes.weapon(UnitKind.LURKER, Modes.BURROWED).range();
 			return !on && target != null && unit.distanceTo(target) <= range || on && calm ? cast(unit, level, Ability.BURROW) : false;
 		}
+		if (unit.kind == UnitKind.WIDOW_MINE) return !on && cast(unit, level, Ability.BURROW); // a wild mine lies in wait
 		if (unit.kind != UnitKind.ROACH) return false; // the others burrow on their player's command only
 		float health = unit.getHealth() / unit.getMaxHealth();
 		if (!on) return health < 0.35f && !foeDetectorWithin(unit, 14) && cast(unit, level, Ability.BURROW);

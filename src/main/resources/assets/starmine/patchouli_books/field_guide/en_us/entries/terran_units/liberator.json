@@ -1,0 +1,28 @@
+{
+	"name": "Liberator",
+	"icon": "starmine:liberator_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 14,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:liberator",
+			"name": "Liberator",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Liberator",
+			"text": "$(l)Health$(): 180$(br)$(l)Damage$(): 10, every 1.29 s, range 5$(br)$(l)Speed$(): 4.72, flying$(br)$(l)Cost$(): 150 minerals, 125 vespene, 3 supply$(br)$(l)Build time$(): 43 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "In the air it fires concord cannons at flying foes, with splash. $(l)Defender Mode$() (E): it stops and strikes ground units in its zone for 75 a shot; it cannot move or shoot air until it leaves the mode."
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Defender Mode$(): Immobile; hits ground units in its zone hard (75), cannot shoot air"
+		}
+	]
+}

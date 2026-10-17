@@ -347,7 +347,7 @@ public final class ProtossAbilities {
 	}
 
 	private static double shieldMax(LivingEntity entity) {
-		if (entity instanceof StarUnit unit) return unit.kind.shields;
+		if (entity instanceof StarUnit unit) return unit.maxShield();
 		StarUnit puppet = entity instanceof ServerPlayer player ? dev.starmine.possess.Possession.puppet(player) : null;
 		return puppet == null ? 0 : puppet.kind.shields;
 	}

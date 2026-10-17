@@ -74,6 +74,7 @@ public final class Sc2Buttons {
 			case STEADY_TARGETING -> "ChannelSnipe";
 			case NUKE -> "NukeCalldown";
 			case HELLBAT -> "HellionTank";
+			case DEFENDER_MODE -> "LiberatorAGMode";
 			case SIEGE_MODE -> "SiegeMode";
 			case HIGH_IMPACT -> "ArmorpiercingMode";
 			case VIKING_LAND -> "AssaultMode";
@@ -129,8 +130,17 @@ public final class Sc2Buttons {
 			case WEAPONS -> switch (race) {
 				case TERRAN -> new String[] {"TerranInfantryWeaponsLevel1", "TerranInfantryWeaponsLevel2", "TerranInfantryWeaponsLevel3"}[at];
 				case PROTOSS -> new String[] {"ProtossGroundWeaponsLevel1", "ProtossGroundWeaponsLevel2", "ProtossGroundWeaponsLevel3"}[at];
-				case ZERG -> new String[] {"zergmeleeweapons1", "zergmeleeweapons2", "zergmeleeweapons3"}[at];
+				case ZERG -> new String[] {"zergmissileweapons1", "zergmissileweapons2", "zergmissileweapons3"}[at];
 			};
+			case MELEE -> new String[] {"zergmeleeweapons1", "zergmeleeweapons2", "zergmeleeweapons3"}[at];
+			case VEHICLE_WEAPONS -> new String[] {"TerranVehicleWeaponsLevel1", "TerranVehicleWeaponsLevel2", "TerranVehicleWeaponsLevel3"}[at];
+			case SHIP_WEAPONS -> new String[] {"TerranShipWeaponsLevel1", "TerranShipWeaponsLevel2", "TerranShipWeaponsLevel3"}[at];
+			case PLATING -> new String[] {"TerranVehicleAndShipPlatingLevel1", "TerranVehicleAndShipPlatingLevel2", "TerranVehicleAndShipPlatingLevel3"}[at];
+			case FLYER_ATTACKS -> new String[] {"zergflyerattack1", "zergflyerattack2", "zergflyerattack3"}[at];
+			case FLYER_CARAPACE -> new String[] {"zergflyerarmor1", "zergflyerarmor2", "zergflyerarmor3"}[at];
+			case SHIELDS -> new String[] {"ProtossShieldsLevel1", "ProtossShieldsLevel2", "ProtossShieldsLevel3"}[at];
+			case AIR_WEAPONS -> new String[] {"ProtossAirWeaponsLevel1", "ProtossAirWeaponsLevel2", "ProtossAirWeaponsLevel3"}[at];
+			case AIR_ARMOR -> new String[] {"ProtossAirArmorLevel1", "ProtossAirArmorLevel2", "ProtossAirArmorLevel3"}[at];
 			case ARMOR -> switch (race) {
 				case TERRAN -> new String[] {"TerranInfantryArmorLevel1", "TerranInfantryArmorLevel2", "TerranInfantryArmorLevel3"}[at];
 				case PROTOSS -> new String[] {"ProtossGroundArmorLevel1", "ProtossGroundArmorLevel2", "ProtossGroundArmorLevel3"}[at];

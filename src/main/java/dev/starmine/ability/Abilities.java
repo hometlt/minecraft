@@ -100,6 +100,7 @@ public final class Abilities {
 	/** Whether a toggle is on (both sides: the command card asks it too). */
 	public static boolean on(StarUnit unit, Ability ability) {
 		if (ability == Ability.CLOAK) return unit.cloaked() && !Cloak.forced(unit);
+		if (Morphs.target(unit.kind, ability) != null) return Morphs.on(unit.kind, ability);
 		int mode = Modes.of(ability);
 		return mode >= 0 && unit.mode() == mode;
 	}
@@ -135,6 +136,11 @@ public final class Abilities {
 				case TERRAN -> net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK;
 				case PROTOSS -> net.minecraft.core.particles.ParticleTypes.END_ROD;
 			}, body.getX(), body.getY() + body.getBbHeight() * 0.6, body.getZ(), 14, body.getBbWidth() * 0.4, body.getBbHeight() * 0.3, body.getBbWidth() * 0.4, 0.04);
+		}
+		UnitKind morph = Morphs.target(unit.kind, ability);
+		if (morph != null) { // into another kind (a hellbat, a landed viking): its SC2 time, then the new unit
+			Morphs.begin(unit, morph, Modes.changeTicks(ability, Modes.NORMAL));
+			return true;
 		}
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)

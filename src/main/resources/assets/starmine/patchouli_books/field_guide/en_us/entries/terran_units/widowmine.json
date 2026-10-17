@@ -1,0 +1,28 @@
+{
+	"name": "Widow Mine",
+	"icon": "starmine:widowmine_spawn_egg",
+	"category": "starmine:terran_units",
+	"sortnum": 7,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:widowmine",
+			"name": "Widow Mine",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Widow Mine",
+			"text": "$(l)Health$(): 90$(br)No attack$(br)$(l)Speed$(): 3.94, on the ground$(br)$(l)Cost$(): 75 minerals, 25 vespene, 2 supply$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Burrow it (R): hidden in the ground, it fires a $(l)sentinel missile$() at the first foe within 5, on the ground or in the air — 125 (+35 to shields), 40 to the foes around — then rearms for 29 s. Unburrowed it has no attack. Detectors see it."
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals"
+		}
+	]
+}

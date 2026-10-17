@@ -71,7 +71,7 @@ public final class Costs implements SimpleSynchronousResourceReloadListener {
 
 	/** `weapons_2`, `armor_1`; other research by its id. */
 	public static String researchId(Research what, int level) {
-		return what == Research.WEAPONS || what == Research.ARMOR ? what.id() + "_" + level : what.id();
+		return what.leveled() ? what.id() + "_" + level : what.id();
 	}
 
 	/** The configured price of casting an ability, else SC2's. */

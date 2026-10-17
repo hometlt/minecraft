@@ -171,6 +171,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<Integer> PROGRESS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** Protoss plasma shields left (health units); they absorb damage first and come back {@link #SHIELD_DELAY} after the last hit. */
 	private static final EntityDataAccessor<Float> SHIELD = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
+	/** Its base's upgrade levels for it (owner 17.10): weapons, armor and shields, 4 bits each ({@link #applyUpgrades}). */
+	private static final EntityDataAccessor<Integer> UPGRADES = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** SC2: shields regenerate 2 a second after 10 game seconds (7 real) without damage. */
 	public static final int SHIELD_DELAY = 140;
 	private long lastHurt;
@@ -320,7 +322,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 3 == 0 && badlyDamaged()) damagedEffects(server);
-		if (this.tickCount % 100 == 7 && hiveId != null && !kind.structure()) applyUpgrades(server);
+		if (this.tickCount % 100 == 7 && hiveId != null && (!kind.structure() || kind.shields > 0)) applyUpgrades(server);
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && flying() && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE))
@@ -614,12 +616,19 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		shotSounds();
 	}
 
-	/** The hive's evolution chamber upgrades: +0.5 damage and +2 armor per level. */
+	/**
+	 * Its base's upgrades (SC2, owner 17.10): each level of its weapons upgrade adds {@link UnitKind#upgradeDamage}
+	 * to an attack, of its armor upgrade 1 armor ({@link #armored}), of the protoss shields 1 shield armor and
+	 * a tenth more shields ({@link #maxShield}). Which upgrades are its: {@link dev.starmine.race.Research#weaponsOf}.
+	 */
 	private void applyUpgrades(ServerLevel server) {
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null) return;
-		modifier(Attributes.ATTACK_DAMAGE, UPGRADE_ATTACK, hive.attackLevel * 0.5);
-		modifier(Attributes.ARMOR, UPGRADE_ARMOR, hive.armorLevel * 2.0);
+		int weapons = dev.starmine.race.Research.level(hive, dev.starmine.race.Research.weaponsOf(kind));
+		int armor = dev.starmine.race.Research.level(hive, dev.starmine.race.Research.armorOf(kind));
+		int shields = kind.shields > 0 ? dev.starmine.race.Research.level(hive, dev.starmine.race.Research.SHIELDS) : 0;
+		this.entityData.set(UPGRADES, Math.min(15, weapons) | Math.min(15, armor) << 4 | Math.min(15, shields) << 8);
+		modifier(Attributes.ATTACK_DAMAGE, UPGRADE_ATTACK, weapons * kind.upgradeDamage() * UnitKind.SCALE);
 		// unit upgrades (dev.starmine.race.Research): speed and health
 		double speed = dev.starmine.race.Research.speedFactor(hive, kind) - 1;
 		modifier(Attributes.MOVEMENT_SPEED, UPGRADE_SPEED, speed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
@@ -647,7 +656,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return bonus == null ? 0 : bonus.amount();
 	}
 
-	private static final ResourceLocation UPGRADE_ATTACK = StarMine.id("upgrade_attack"), UPGRADE_ARMOR = StarMine.id("upgrade_armor"),
+	private static final ResourceLocation UPGRADE_ATTACK = StarMine.id("upgrade_attack"),
 		UPGRADE_SPEED = StarMine.id("upgrade_speed"), UPGRADE_HEALTH = StarMine.id("upgrade_health");
 
 	/** A weapon in hand: swords, axes, bows, crossbows, tridents, maces. */
@@ -794,6 +803,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(CARRIED, ItemStack.EMPTY);
 		builder.define(OWNER, java.util.Optional.empty());
 		builder.define(SHIELD, 0f);
+		builder.define(UPGRADES, 0);
 		builder.define(PROGRESS, 0);
 		builder.define(QUEUE_IDS, "");
 		builder.define(ENERGY, 0f);
@@ -1714,9 +1724,20 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private boolean orbitalCharged;
 	private static final ResourceLocation MODE_HEALTH = StarMine.id("mode_health"), BONUS_DAMAGE = StarMine.id("bonus_damage");
 
-	/** Whether it is in the air now: a flying kind, unless a viking has landed; a terran building lifted off. */
+	/** Whether it is in the air now: a flying kind, or a terran building lifted off. */
 	public boolean flying() {
-		return kind.flying && mode() != dev.starmine.ability.Modes.LANDED || mode() == dev.starmine.ability.Modes.AIRBORNE;
+		return kind.flying || mode() == dev.starmine.ability.Modes.AIRBORNE;
+	}
+
+	/**
+	 * Whether its weapon can hit this target (SC2): a liberator hits only flying foes, and in defender mode
+	 * only ground ones; the rest hit both.
+	 */
+	public boolean canTarget(LivingEntity other) {
+		if (kind != UnitKind.LIBERATOR) return true;
+		boolean air = other instanceof StarUnit unit ? unit.flying() || unit.kind.hitByAntiAir()
+			: other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying() || !other.onGround() && other.getY() > this.getY() - 1;
+		return mode() == dev.starmine.ability.Modes.DEFENDER ? !air : air;
 	}
 
 	/** SC2 energy it holds at most: its kind's, or an orbital command's 200. */
@@ -1724,9 +1745,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return kind == UnitKind.COMMAND_CENTER && mode() == dev.starmine.ability.Modes.ORBITAL ? 200 : kind.maxEnergy();
 	}
 
-	/** Biological (a medivac heals it, steady targeting hits it): its kind's, a hellbat too. */
+	/** Biological (a medivac heals it, steady targeting hits it): its kind's (a hellbat too). */
 	public boolean biological() {
-		return kind.biological() || kind == UnitKind.HELLION && mode() == dev.starmine.ability.Modes.HELLBAT;
+		return kind.biological();
 	}
 
 	/**
@@ -1795,7 +1816,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	 * 5, not 3.) Spells count as one strike.
 	 */
 	private float armored(DamageSource source, float amount) {
-		int armor = kind.armor() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0);
+		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0);
 		if (armor <= 0) return amount;
 		UnitKind by = source.getEntity() instanceof StarUnit attacker ? attacker.kind
 			: source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player ? dev.starmine.possess.Pilots.kindOf(player) : null;
@@ -1866,7 +1887,27 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	public void setShield(float shield) {
-		this.entityData.set(SHIELD, (float) Math.max(0, Math.min(kind.shields, shield)));
+		this.entityData.set(SHIELD, (float) Math.max(0, Math.min(maxShield(), shield)));
+	}
+
+	/** Its weapons upgrade level (0-3), both sides. */
+	public int weaponsUpgrade() {
+		return this.entityData.get(UPGRADES) & 15;
+	}
+
+	/** Its armor upgrade level (0-3): 1 armor each. */
+	public int armorUpgrade() {
+		return this.entityData.get(UPGRADES) >> 4 & 15;
+	}
+
+	/** Its shields upgrade level (0-3, protoss). */
+	public int shieldsUpgrade() {
+		return this.entityData.get(UPGRADES) >> 8 & 15;
+	}
+
+	/** Shields it holds at most: its kind's, a tenth more for each shields upgrade level (owner 17.10). */
+	public double maxShield() {
+		return kind.shields * (1 + 0.1 * shieldsUpgrade());
 	}
 
 	/** Shields left (health units), for the command view. */
@@ -1878,6 +1919,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private float absorbByShield(DamageSource source, float amount) {
 		float shield = shield();
 		if (shield <= 0 || amount <= 0 || this.level().isClientSide || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_ARMOR)) return amount;
+		// SC2 shields upgrade: 1 shield armor a level, at least half a hit point gets through
+		if (shieldsUpgrade() > 0) amount = (float) Math.max(Math.min(amount, 0.5 * UnitKind.SCALE), amount - shieldsUpgrade() * UnitKind.SCALE);
 		float taken = Math.min(shield, amount);
 		this.entityData.set(SHIELD, shield - taken);
 		lastHurt = this.level().getGameTime();
@@ -1890,8 +1933,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Shields come back (SC2 2 a second, scaled) once {@link #SHIELD_DELAY} has passed since the last hit. */
 	private void shieldTick(ServerLevel server) {
 		float shield = shield();
-		if (shield >= kind.shields || server.getGameTime() - lastHurt < SHIELD_DELAY || this.tickCount % 10 != 0) return;
-		this.entityData.set(SHIELD, (float) Math.min(kind.shields, shield + 2 * UnitKind.SCALE / 2));
+		if (shield >= maxShield() || server.getGameTime() - lastHurt < SHIELD_DELAY || this.tickCount % 10 != 0) return;
+		this.entityData.set(SHIELD, (float) Math.min(maxShield(), shield + 2 * UnitKind.SCALE / 2));
 	}
 
 	/** SC2 medivac heal range 4. */

@@ -146,6 +146,12 @@ GENERAL = {
             text('Over the clouds above the lair floats the leviathan, a beast of flesh: passages of flesh, pools of liquid creep, eggs and a chest in its belly. Under the lair a stair leads to a portal hall; kill the portal\'s guards and step in to reach the beast.',
                  'Над облаками над логовом парит левиафан — чудовище из плоти: ходы в плоти, лужи жидкой слизи, яйца и сундук в чреве. Под логовом лестница ведёт в зал порталов: убейте стражей портала и войдите, чтобы попасть внутрь.'),
         ]),
+        ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:evolutionchamber_spawn_egg', [
+            text('Evolution chamber: $(l)melee attacks$() (zerglings, banelings, ultralisks), $(l)missile attacks$() (roaches, hydralisks, queens…) and $(l)ground carapace$(). Spire: $(l)flyer attacks$() and $(l)flyer carapace$(). Three levels each: level 2 needs a lair, level 3 a hive.',
+                 'Эволюционная камера: $(l)атаки ближнего боя$() (зерглинги, гиблинги, ультралиски), $(l)дальние атаки$() (тараканы, гидралиски, королевы…) и $(l)наземный панцирь$(). Шпиль: $(l)атаки летунов$() и $(l)панцирь летунов$(). По три уровня: для 2-го нужно логово, для 3-го — улей.'),
+            text('Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit\'s levels.',
+                 'Каждый уровень улучшения оружия добавляет примерно десятую часть удара (не меньше 1) к каждому удару юнитов, для которых оно; каждый уровень брони — 1 броня, она вычитается из каждого удара по здоровью (у лёгких юнитов брони мало, у бронированных больше; бонусный урон по лёгким или бронированным — сверх того). Щиты: 1 броня щитов и на десятую больше щитов за уровень. Панель юнита показывает его уровни.'),
+        ]),
         ('boss', t('Boss: Kerrigan', 'Босс: Керриган'), 'starmine:zerg_chestplate', [
             entity('kerrigan', 'The Queen of Blades waits in the leviathan\'s heart. At 2/3 health she calls her brood; at 1/3 she rages. Reward: a full zerg suit, 16 shards, 8 diamonds.',
                    'Королева Клинков ждёт в сердце левиафана. На 2/3 здоровья она зовёт выводок, на 1/3 впадает в ярость. Награда: полный костюм зергов, 16 осколков, 8 алмазов.'),
@@ -161,6 +167,12 @@ GENERAL = {
         ('sky', t('The Hyperion', '«Гиперион»'), 'minecraft:iron_block', [
             text('Over the clouds above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks and a hold of chests. A stair under the base leads to the portal hall.',
                  'Над облаками над базой висит линкор «Гиперион»: корпус с носом-«молотом», мостик, турели и двигатели, две палубы и трюм с сундуками. Лестница под базой ведёт в зал порталов.'),
+        ]),
+        ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:engineeringbay_spawn_egg', [
+            text('Engineering bay: $(l)infantry weapons$() and $(l)infantry armor$(). Armory: $(l)vehicle weapons$(), $(l)ship weapons$() and $(l)vehicle and ship plating$(). Three levels each; levels 2 and 3 of the infantry upgrades need an armory.',
+                 'Инженерный отсек: $(l)оружие пехоты$() и $(l)броня пехоты$(). Оружейная: $(l)оружие техники$(), $(l)оружие кораблей$() и $(l)броня техники и кораблей$(). По три уровня; для 2-го и 3-го уровня пехотных улучшений нужна оружейная.'),
+            text('Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit\'s levels.',
+                 'Каждый уровень улучшения оружия добавляет примерно десятую часть удара (не меньше 1) к каждому удару юнитов, для которых оно; каждый уровень брони — 1 броня, она вычитается из каждого удара по здоровью (у лёгких юнитов брони мало, у бронированных больше; бонусный урон по лёгким или бронированным — сверх того). Щиты: 1 броня щитов и на десятую больше щитов за уровень. Панель юнита показывает его уровни.'),
         ]),
         ('boss', t('Boss: Raynor', 'Босс: Рейнор'), 'starmine:terran_helmet', [
             entity('raynor', 'Jim Raynor holds the Hyperion\'s bridge. At 2/3 health he calls his marines; at 1/3 he rages. Reward: a full terran suit, 16 shards, 8 diamonds.',
@@ -178,6 +190,12 @@ GENERAL = {
             text('Over the clouds above the base floats the mothership: a disc with a dome, a golden ring and arms, a vortex beneath, a hall of chests. A stair under the base leads to the portal hall.',
                  'Над облаками над базой парит материнский корабль: диск с куполом, золотое кольцо и рукава, воронка снизу, зал с сундуками. Лестница под базой ведёт в зал порталов.'),
         ]),
+        ('upgrades', t('Upgrades', 'Улучшения'), 'starmine:forge_spawn_egg', [
+            text('Forge: $(l)ground weapons$(), $(l)ground armor$() and $(l)shields$() (every unit and building with shields). Cybernetics core: $(l)air weapons$() and $(l)air armor$(). Three levels each: forge levels 2-3 need a twilight council, air levels 2-3 a fleet beacon.',
+                 'Кузница: $(l)наземное оружие$(), $(l)наземная броня$() и $(l)щиты$() (все юниты и здания со щитами). Кибернетическое ядро: $(l)воздушное оружие$() и $(l)воздушная броня$(). По три уровня: для 2–3 уровня кузницы нужен Сумрачный совет, для воздушных — маяк флота.'),
+            text('Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit\'s levels.',
+                 'Каждый уровень улучшения оружия добавляет примерно десятую часть удара (не меньше 1) к каждому удару юнитов, для которых оно; каждый уровень брони — 1 броня, она вычитается из каждого удара по здоровью (у лёгких юнитов брони мало, у бронированных больше; бонусный урон по лёгким или бронированным — сверх того). Щиты: 1 броня щитов и на десятую больше щитов за уровень. Панель юнита показывает его уровни.'),
+        ]),
         ('boss', t('Boss: Artanis', 'Босс: Артанис'), 'starmine:protoss_chestplate', [
             entity('artanis', 'Hierarch Artanis waits in the mothership. At 2/3 health he calls his guard and restores his shields; at 1/3 he rages. Reward: a full protoss suit, 16 shards, 8 diamonds.',
                    'Иерарх Артанис ждёт в материнском корабле. На 2/3 здоровья он зовёт стражу и восстанавливает щиты, на 1/3 впадает в ярость. Награда: полный костюм протоссов, 16 осколков, 8 алмазов.'),
@@ -191,6 +209,17 @@ SUB = [('units', t('Troops', 'Войска')), ('buildings', t('Buildings', 'П�
 SUB_ICON = {('ZERG', 'units'): 'zergling', ('ZERG', 'buildings'): 'spawningpool', ('TERRAN', 'units'): 'marine',
             ('TERRAN', 'buildings'): 'barracks', ('PROTOSS', 'units'): 'zealot', ('PROTOSS', 'buildings'): 'gateway'}
 HEROES = {'KERRIGAN', 'RAYNOR', 'ARTANIS'}
+# what a troop does that its numbers do not say (owner 17.10)
+NOTES = {
+    'HELLBAT': t('A unit of its own: trained at a factory once there is an armory, or a hellion turned into one (Hellbat Mode, and back). Biological and mechanical: a medivac heals it, an SCV repairs it. Its flames set foes alight; +12 against light.',
+                 'Отдельный юнит: тренируется на заводе, когда есть оружейная, или геллион превращается в него (режим геллбата и обратно). Биологический и механический: медэвак лечит, КСМ чинит. Огонь поджигает врагов; +12 по лёгким.'),
+    'WIDOW_MINE': t('Burrow it (R): hidden in the ground, it fires a $(l)sentinel missile$() at the first foe within 5, on the ground or in the air — 125 (+35 to shields), 40 to the foes around — then rearms for 29 s. Unburrowed it has no attack. Detectors see it.',
+                    'Закопайте её (R): спрятанная в земле, она пускает $(l)ракету «Страж»$() в первого врага ближе 5, на земле или в воздухе — 125 (+35 по щитам), 40 врагам рядом — и перезаряжается 29 с. Не закопанная — без атаки. Детекторы её видят.'),
+    'VIKING_ASSAULT': t('A unit of its own: a viking that has landed (Assault Mode) walks and fires its twin gatling cannon at the ground, +8 against mechanical; it takes off again as a viking.',
+                        'Отдельный юнит: севший викинг (режим посадки) ходит и стреляет по земле спаренными пулемётами, +8 по механическим; взлетает снова викингом.'),
+    'LIBERATOR': t('In the air it fires concord cannons at flying foes, with splash. $(l)Defender Mode$() (E): it stops and strikes ground units in its zone for 75 a shot; it cannot move or shoot air until it leaves the mode.',
+                   'В воздухе бьёт летающих врагов залпами с уроном по площади. $(l)Режим защитника$() (E): останавливается и бьёт наземные цели в своей зоне по 75 за выстрел; пока не выйдет из режима, не двигается и не стреляет по воздуху.'),
+}
 
 JAVA = os.path.join(ROOT, 'src/main/java/dev/starmine')
 
@@ -231,10 +260,10 @@ def abilities():
     src = read('ability/Ability.java')
     ids = dict(re.findall(r'^\t([A-Z0-9_]+)\(\s*"([a-z0-9_]+)"', src, re.M))
     users = {}
-    for m in re.finditer(r'case ([A-Z0-9_, ]+) -> List\.of\(([A-Z_, ]*)\)', src[src.index('public List<UnitKind> users()'):]):
+    for m in re.finditer(r'case ([A-Z0-9_, ]+) -> List\.of\(([A-Za-z_., ]*)\)', src[src.index('public List<UnitKind> users()'):]):
         for constant in m.group(1).split(','):
             if constant.strip() in ids:
-                users[ids[constant.strip()]] = [k.strip() for k in m.group(2).split(',') if k.strip()]
+                users[ids[constant.strip()]] = [k.strip().replace('UnitKind.', '') for k in m.group(2).split(',') if k.strip()]
     return users
 
 LANG = {lang: json.load(open(os.path.join(ROOT, f'src/main/resources/assets/starmine/lang/{lang}.json'), encoding='utf8')) for lang in ('en_us', 'ru_ru')}
@@ -289,6 +318,8 @@ def race_categories():
                         title = LANG[lang].get(f'entity.starmine.{kid}', kind)
                         pages[lang] = [{'type': 'patchouli:entity', 'entity': f'starmine:{kid}', 'name': title, 'rotate': True}]
                         pages[lang].append({'type': 'patchouli:text', 'title': title, 'text': stats(k, eco.get(kind), lang)})
+                        if kind in NOTES:
+                            pages[lang].append({'type': 'patchouli:text', 'text': NOTES[kind][lang]})
                         known = [a for a in by_kind.get(kind, [])]
                         if known:
                             pages[lang].append({'type': 'patchouli:text', 'title': LABEL[lang]['abilities'], 'text': '$(br2)'.join(
