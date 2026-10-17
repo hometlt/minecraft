@@ -24,7 +24,9 @@ if (parsed.schemaVersion !== 1) throw new Error(`sc2-models.json: schema ${parse
 /**
  * Every model StarMine draws: `model` the file name (models/sc2/<model>.smm, and <model>_death.smm when `death`), `kind`
  * its UnitKind (null for the creep tumor), `race`, `unit` the StarCraft II unit to take it from and `mod` the mod or
- * campaign that has it, `form` for a form's own model (ModeLook), `verify` when the source is a guess to check.
+ * campaign that has it, `form` for a form's own model (ModeLook), `verify` when the source is a guess to check,
+ * `sc2Model` / `sc2ModelPath` when the unit's actor draws no model: the CModel entry or the file to take instead
+ * (`sc2ModelAnims`: its animation files when the entry names none).
  */
 export const KINDS = Object.freeze(parsed.models.map((entry) => Object.freeze({ ...entry, teamColor: TEAM_COLORS[entry.race] })));
 

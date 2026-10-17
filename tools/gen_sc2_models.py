@@ -20,9 +20,7 @@ SWARM = 'Campaigns/SwarmStory.SC2Campaign'
 LIBERTY = 'Campaigns/LibertyStory.SC2Campaign'
 
 # kinds whose SC2 unit is not their name in CamelCase: (unit, mod, verify). Heroes checked 17.10 against the
-# campaigns' Data (actor model found in the installed game). verify stays on Abathur, Swann and Horner: no unit of
-# theirs has a model in the local campaign data, and the co-op mod (AlliedCommanders) has no local assets, so the
-# client draws them with UnitKind.look().
+# campaigns' Data (actor model found in the installed game); Abathur, Swann and Horner take a model named in MODELS.
 SOURCES = {
 	'SCV': ('SCV', MULTI, False),
 	'TEMPLAR_ARCHIVES': ('TemplarArchive', MULTI, False),
@@ -37,15 +35,26 @@ SOURCES = {
 	'KERRIGAN': ('KerriganVoid', VOID, False),
 	'RAYNOR': ('RaynorCommando', VOID, False),
 	'ARTANIS': ('ArtanisVoid', VOID, False),
-	'ABATHUR': ('Abathur', SWARM, True),
-	'SWANN': ('Swann', LIBERTY, True),
+	'ABATHUR': ('Abathur', SWARM, False),
+	'SWANN': ('Swann', VOID, False),
 	'KARAX': ('KaraxChampion', VOID, False),
 	'TOSH': ('Tosh', LIBERTY, False),
 	'ZERATUL': ('ZeratulVoid', VOID, False),
 	'ZAGARA': ('ZaGara', SWARM, False),
-	'HORNER': ('HornerBattlecruiser', VOID, True),
+	'HORNER': ('Horner', VOID, False),
 	'STUKOV': ('InfestedStukov', VOID, False),
 	'SELENDIS': ('Selendis', VOID, False),
+}
+# kinds whose unit draws no model of its own in the game's data (checked 18.10): the model to take instead,
+# a CModel entry of the mod (`sc2Model`) or a file (`sc2ModelPath`), with animation files (`sc2ModelAnims`) the entry lacks. Swann: his Model `Swann` (the armed Swann of
+# the campaign, MarauderSwann.m3); Horner: the Hyperion's first officer of
+# the story mode (SMX3_FirstOfficer; CivilianHorner's older SM_FirstOfficer has an animation file too big to convert); Abathur
+# never walks the field in SC2, the closest is his 3D portrait (the co-op one, kept in Base.SC2Assets).
+MODELS = {
+	'SWANN': {'sc2Model': 'Swann'},
+	'HORNER': {'sc2ModelPath': r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer\SMX3_FirstOfficer.m3',
+		'sc2ModelAnims': [r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer_RequiredAnims\SMX3_FirstOfficer_RequiredAnims.m3a']},
+	'ABATHUR': {'sc2ModelPath': 'Assets\\Portraits\\Zerg\\AbathurEx3_Portrait\\AbathurEx3_Portrait.m3'},
 }
 # the mod's own (no SC2 model: drawn from its blocks)
 OWN = {'ZERG_PLATFORM', 'TERRAN_PLATFORM', 'PROTOSS_PLATFORM'}
@@ -96,7 +105,7 @@ def main():
 		if kind in OWN:
 			continue
 		unit, mod, verify = SOURCES.get(kind, (camel(kind), MULTI, False))
-		entry = {'model': ident(kind), 'kind': kind, 'race': races[kind], 'unit': unit, 'mod': mod, 'death': True}
+		entry = {'model': ident(kind), 'kind': kind, 'race': races[kind], 'unit': unit, 'mod': mod, 'death': kind not in MODELS, **MODELS.get(kind, {})}
 		if verify:
 			entry['verify'] = True
 		models.append(entry)

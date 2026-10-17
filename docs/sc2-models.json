@@ -863,17 +863,17 @@
 			"race": "ZERG",
 			"unit": "Abathur",
 			"mod": "Campaigns/SwarmStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": false,
+			"sc2ModelPath": "Assets\\Portraits\\Zerg\\AbathurEx3_Portrait\\AbathurEx3_Portrait.m3"
 		},
 		{
 			"model": "swann",
 			"kind": "SWANN",
 			"race": "TERRAN",
 			"unit": "Swann",
-			"mod": "Campaigns/LibertyStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2Model": "Swann"
 		},
 		{
 			"model": "karax",
@@ -911,10 +911,13 @@
 			"model": "horner",
 			"kind": "HORNER",
 			"race": "TERRAN",
-			"unit": "HornerBattlecruiser",
+			"unit": "Horner",
 			"mod": "Campaigns/VoidStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": false,
+			"sc2ModelPath": "Assets\\StoryModeCharacters\\Terran\\SMX3_FirstOfficer\\SMX3_FirstOfficer.m3",
+			"sc2ModelAnims": [
+				"Assets\\StoryModeCharacters\\Terran\\SMX3_FirstOfficer_RequiredAnims\\SMX3_FirstOfficer_RequiredAnims.m3a"
+			]
 		},
 		{
 			"model": "stukov",
