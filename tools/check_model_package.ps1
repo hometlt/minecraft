@@ -16,8 +16,10 @@ try {
 		if ($derived.Count -ne 0) { throw 'Public JAR contains private SC2-derived assets' }
 	} else {
 		if (!$AssetsDir -or $derived.Count -eq 0) { throw 'Private JAR/assets directory is missing' }
+		# relative path by prefix (Path.GetRelativePath is missing in Windows PowerShell 5.1)
+		$root = (Resolve-Path -LiteralPath $AssetsDir).Path.TrimEnd('\', '/')
 		$expected = @(Get-ChildItem -LiteralPath "$AssetsDir/assets/starmine" -Recurse -File | Where-Object {
-			$relative = [System.IO.Path]::GetRelativePath((Resolve-Path -LiteralPath $AssetsDir), $_.FullName).Replace('\', '/')
+			$relative = $_.FullName.Substring($root.Length + 1).Replace('\', '/')
 			$relative -match '^assets/starmine/(.*/sc2/|sounds\.json$)'
 		})
 		if ($expected.Count -ne $derived.Count) { throw "Derived entry count differs: $($derived.Count) vs $($expected.Count)" }
