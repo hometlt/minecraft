@@ -87,13 +87,18 @@ Kerrigan, Raynor и Artanis рисуются своими моделями из 
 Нет файла формы — клиент рисует модель вида и меняет её очертания (`ModeLook`).
 
 Новые с 17.10: циклон, ворон, автотурель, сенсорная башня, логово скрытней, большой шпиль, герои Тош, Зератул, Загара,
-Хорнер, Стуков, Селендис. `kinds.mjs` живёт вне git — его список надо сверить с `docs/sc2-models.json`.
+Хорнер, Стуков, Селендис.
+
+Список для установщика Modkit — `tools/sc2-export/kinds.mjs` в git мода (замена прежней копии в
+`parked/GAME-MINECRAFT/starmine-export`): `KINDS` (из `docs/sc2-models.json`), `teamColor(kind)` — цвет команды по расе,
+`selected()` — фильтр `ONLY=...`. Проверка: `node tools/sc2-export/kinds.mjs` (`--json`).
 
 ## Где экспортёр
 
 - Звуки: ModKit-Blizzard, `scripts/export-starmine-sounds.mjs`
   (`starcraft2/modules/mod/shared/export/unit-sounds.ts`):
   `pnpm --dir starcraft2 exec tsx ../scripts/export-starmine-sounds.mjs --starmine <StarMine> [--out <каталог>] [--voice-locale=ruRU]`.
-- Модели и текстуры: прототип установщика `kinds.mjs` / `survey.mjs` / `fetch-assets.mjs` /
-  `build-assets.mjs` (в рабочем пространстве Modkit, `parked/GAME-MINECRAFT/starmine-export`, вне git);
+- Модели и текстуры: прототип установщика `survey.mjs` / `fetch-assets.mjs` / `build-assets.mjs` (в рабочем
+  пространстве Modkit, `parked/GAME-MINECRAFT/starmine-export`, вне git); список моделей — `tools/sc2-export/kinds.mjs`
+  этого репозитория;
   герои — с `MOD=Campaigns/VoidStory.SC2Campaign ONLY=kerrigan,raynor,artanis`.

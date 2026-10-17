@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The models StarMine draws, for Modkit's model export (kinds.mjs): docs/sc2-models.json.
+"""The models StarMine draws, for Modkit's model export: docs/sc2-models.json (read by tools/sc2-export/kinds.mjs).
 
 Every unit kind (UnitKind.java) with its death model, the forms with a look of their own (ModeLook: `<kind>_<form>`),
 the creep tumor — each with the StarCraft II unit to take it from and the mod or campaign that has it. `verify: true`
@@ -70,7 +70,8 @@ def kinds():
 	text = KINDS.read_text(encoding='utf-8')
 	body = text[text.index('public enum UnitKind'):]
 	body = body[:body.index(';\n')]
-	return re.findall(r'^\t([A-Z_]+)\(', body, re.M)
+	# the constants with their race: the first argument when it is one (`Race.TERRAN`), else the zerg
+	return [(name, race or 'ZERG') for name, race in re.findall(r'^\t([A-Z_]+)\(\s*(?:Race\.([A-Z]+))?', body, re.M)]
 
 
 def camel(name):
@@ -84,18 +85,20 @@ def ident(name):
 def main():
 	all_kinds = kinds()
 	models = []
+	races = dict(all_kinds)
+	all_kinds = [name for name, _ in all_kinds]
 	for kind in all_kinds:
 		if kind in OWN:
 			continue
 		unit, mod, verify = SOURCES.get(kind, (camel(kind), MULTI, False))
-		entry = {'model': ident(kind), 'kind': kind, 'unit': unit, 'mod': mod, 'death': True}
+		entry = {'model': ident(kind), 'kind': kind, 'race': races[kind], 'unit': unit, 'mod': mod, 'death': True}
 		if verify:
 			entry['verify'] = True
 		models.append(entry)
 	for kind, form, unit in FORMS:
 		assert kind in all_kinds, kind
-		models.append({'model': ident(kind) + '_' + form, 'kind': kind, 'form': form, 'unit': unit, 'mod': MULTI, 'death': False})
-	models.append({'model': 'creeptumor', 'kind': None, 'unit': 'CreepTumorBurrowed', 'mod': MULTI, 'death': False})
+		models.append({'model': ident(kind) + '_' + form, 'kind': kind, 'race': races[kind], 'form': form, 'unit': unit, 'mod': MULTI, 'death': False})
+	models.append({'model': 'creeptumor', 'kind': None, 'race': 'ZERG', 'unit': 'CreepTumorBurrowed', 'mod': MULTI, 'death': False})
 	OUT.write_text(json.dumps({'schemaVersion': 1, 'models': models}, indent='\t', ensure_ascii=False) + '\n', encoding='utf-8')
 	print(f'{len(models)} models -> {OUT.relative_to(ROOT)}')
 
