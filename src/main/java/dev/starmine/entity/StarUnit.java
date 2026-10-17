@@ -347,6 +347,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
+		if (dev.starmine.faction.Faction.amun(this)) dev.starmine.world.AmunInvasion.unitTick(this, server); // owner 17.10: his curse, his workers
 		if (this.tickCount % 40 == 11 && hiveId != null) adoptBase(server);
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
@@ -868,6 +869,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean recentlyHit) {
+		if (dev.starmine.faction.Faction.amun(this) || dev.starmine.world.VoidGate.inVoid(this)) { // owner 17.10: Amun's leave nothing, nor does anyone in the Void
+			valuable = ItemStack.EMPTY;
+			fillSlots.clear();
+			return;
+		}
 		super.dropCustomDeathLoot(level, source, recentlyHit);
 		if (!valuable.isEmpty()) this.spawnAtLocation(valuable.copy());
 		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
@@ -875,6 +881,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.boss()) for (ItemStack loot : Heroes.reward(this)) this.spawnAtLocation(loot);
 		valuable = ItemStack.EMPTY;
 		fillSlots.clear();
+	}
+
+	/** Owner 17.10: Amun's troops, and anyone dying in the Void, leave no experience. */
+	@Override
+	protected int getBaseExperienceReward() {
+		if (dev.starmine.faction.Faction.amun(this) || dev.starmine.world.VoidGate.inVoid(this)) return 0;
+		return super.getBaseExperienceReward();
 	}
 
 	/**

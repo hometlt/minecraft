@@ -1367,5 +1367,11 @@
 	"item.minecraft.potion.effect.radar": "Зелье: радар",
 	"item.minecraft.splash_potion.effect.radar": "Взрывное зелье: радар",
 	"item.minecraft.lingering_potion.effect.radar": "Оседающее зелье: радар",
-	"item.minecraft.tipped_arrow.effect.radar": "Стрела: радар"
+	"item.minecraft.tipped_arrow.effect.radar": "Стрела: радар",
+	"item.starmine.void_shard": "Осколок пустоты",
+	"block.starmine.void_gate": "Врата Пустоты",
+	"message.starmine.no_void": "Отсюда в Пустоту не попасть",
+	"message.starmine.amun_invades": "Терпение Амуна иссякло: его осколки падают на мир, и вокруг них раскрываются разломы.",
+	"message.starmine.amun_shard_fell": "Неподалёку упал осколок пустоты",
+	"gamerule.starmineAmunDays": "Дней до вторжения Амуна"
 }

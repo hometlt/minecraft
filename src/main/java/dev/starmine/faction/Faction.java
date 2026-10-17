@@ -55,6 +55,9 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	/** Whether `unit` attacks `other` unprovoked (targets, crawlers, splash). */
 	public static boolean hostile(StarUnit unit, LivingEntity other) {
 		if (!other.isAlive() || other instanceof ArmorStand || allied(unit, other)) return false;
+		// owner 17.10: Amun's troops fight only the players and their units; the races leave Amun's be
+		if (amun(unit)) return dev.starmine.world.Amun.foeOf(other);
+		if (amun(other)) return unit.owner().isPresent();
 		if (other instanceof StarUnit changeling && changeling.kind == UnitKind.CHANGELING) return false; // SC2: nobody attacks a changeling unprovoked
 		if (other instanceof StarUnit shade && dev.starmine.ability.ProtossAbilities.SHADE.equals(shade.disguise())) return false; // an adept's shade cannot be hit
 		if (other instanceof Player player && (player.isCreative() || player.isSpectator())) return false;

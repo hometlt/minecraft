@@ -2,7 +2,7 @@
 	"name": "The Void",
 	"icon": "starmine:void_portal_frame",
 	"category": "starmine:endgame",
-	"sortnum": 12,
+	"sortnum": 13,
 	"pages": [
 		{
 			"type": "patchouli:image",

@@ -2,7 +2,7 @@
 	"name": "Heroes of the End",
 	"icon": "starmine:horner_spawn_egg",
 	"category": "starmine:endgame",
-	"sortnum": 5,
+	"sortnum": 6,
 	"pages": [
 		{
 			"type": "patchouli:text",

@@ -2,7 +2,7 @@
 	"name": "Герои Нижнего мира",
 	"icon": "starmine:zagara_spawn_egg",
 	"category": "starmine:endgame",
-	"sortnum": 4,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:text",

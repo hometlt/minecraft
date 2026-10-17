@@ -72,6 +72,14 @@ public class VoidRift extends Mob implements Enemy, VoidForces.Member {
 			unit.addTag(VoidForces.TAG);
 			if (foe != null) unit.setTarget(foe);
 		}
+		if (!VoidWorld.is(level) && waves % 2 == 1 && near + wave.size() < CAP) { // owner 17.10: a worker of his to make the way (AmunInvasion#sap)
+			UnitKind kind = List.of(UnitKind.SCV, UnitKind.DRONE, UnitKind.PROBE).get(random.nextInt(3));
+			StarUnit worker = HiveLogic.spawnNest(level, null, kind, Spots.near(level, kind, position()), blockPosition());
+			if (worker != null) {
+				worker.addTag(VoidForces.TAG);
+				worker.addTag(AmunInvasion.SAPPER);
+			}
+		}
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 2, getZ(), 60, 1.2, 1.5, 1.2, 0.2);
 		playSound(SoundEvents.ENDERMAN_TELEPORT, 2.0f, 0.5f);
 	}

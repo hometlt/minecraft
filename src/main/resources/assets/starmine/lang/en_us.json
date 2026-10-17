@@ -1367,5 +1367,11 @@
 	"item.minecraft.potion.effect.radar": "Potion of the Radar",
 	"item.minecraft.splash_potion.effect.radar": "Splash Potion of the Radar",
 	"item.minecraft.lingering_potion.effect.radar": "Lingering Potion of the Radar",
-	"item.minecraft.tipped_arrow.effect.radar": "Arrow of the Radar"
+	"item.minecraft.tipped_arrow.effect.radar": "Arrow of the Radar",
+	"item.starmine.void_shard": "Void Shard",
+	"block.starmine.void_gate": "Void Gate",
+	"message.starmine.no_void": "The Void cannot be reached from here",
+	"message.starmine.amun_invades": "Amun's patience is spent: his shards fall on the world, and his rifts open round them.",
+	"message.starmine.amun_shard_fell": "A void shard has fallen nearby",
+	"gamerule.starmineAmunDays": "Days before Amun invades"
 }
