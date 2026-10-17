@@ -301,7 +301,7 @@
 			"model": "scv",
 			"kind": "SCV",
 			"race": "TERRAN",
-			"unit": "Scv",
+			"unit": "SCV",
 			"mod": "Mods/VoidMulti.SC2Mod",
 			"death": true
 		},
@@ -805,7 +805,7 @@
 			"model": "templararchives",
 			"kind": "TEMPLAR_ARCHIVES",
 			"race": "PROTOSS",
-			"unit": "TemplarArchives",
+			"unit": "TemplarArchive",
 			"mod": "Mods/VoidMulti.SC2Mod",
 			"death": true
 		},
@@ -879,10 +879,9 @@
 			"model": "karax",
 			"kind": "KARAX",
 			"race": "PROTOSS",
-			"unit": "KaraxVoid",
+			"unit": "KaraxChampion",
 			"mod": "Campaigns/VoidStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "tosh",
@@ -890,8 +889,7 @@
 			"race": "TERRAN",
 			"unit": "Tosh",
 			"mod": "Campaigns/LibertyStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "zeratul",
@@ -899,17 +897,15 @@
 			"race": "PROTOSS",
 			"unit": "ZeratulVoid",
 			"mod": "Campaigns/VoidStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "zagara",
 			"kind": "ZAGARA",
 			"race": "ZERG",
-			"unit": "Zagara",
+			"unit": "ZaGara",
 			"mod": "Campaigns/SwarmStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "horner",
@@ -926,17 +922,15 @@
 			"race": "ZERG",
 			"unit": "InfestedStukov",
 			"mod": "Campaigns/VoidStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "selendis",
 			"kind": "SELENDIS",
 			"race": "PROTOSS",
-			"unit": "SelendisCarrier",
+			"unit": "Selendis",
 			"mod": "Campaigns/VoidStory.SC2Campaign",
-			"death": true,
-			"verify": true
+			"death": true
 		},
 		{
 			"model": "spire_greater",

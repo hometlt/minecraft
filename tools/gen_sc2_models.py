@@ -19,8 +19,13 @@ VOID = 'Campaigns/VoidStory.SC2Campaign'
 SWARM = 'Campaigns/SwarmStory.SC2Campaign'
 LIBERTY = 'Campaigns/LibertyStory.SC2Campaign'
 
-# kinds whose SC2 unit is not their name in CamelCase: (unit, mod, verify)
+# kinds whose SC2 unit is not their name in CamelCase: (unit, mod, verify). Heroes checked 17.10 against the
+# campaigns' Data (actor model found in the installed game). verify stays on Abathur, Swann and Horner: no unit of
+# theirs has a model in the local campaign data, and the co-op mod (AlliedCommanders) has no local assets, so the
+# client draws them with UnitKind.look().
 SOURCES = {
+	'SCV': ('SCV', MULTI, False),
+	'TEMPLAR_ARCHIVES': ('TemplarArchive', MULTI, False),
 	'LURKER': ('LurkerMP', MULTI, False),
 	'LURKER_DEN': ('LurkerDenMP', MULTI, False),
 	'SWARM_HOST': ('SwarmHostMP', MULTI, False),
@@ -34,13 +39,13 @@ SOURCES = {
 	'ARTANIS': ('ArtanisVoid', VOID, False),
 	'ABATHUR': ('Abathur', SWARM, True),
 	'SWANN': ('Swann', LIBERTY, True),
-	'KARAX': ('KaraxVoid', VOID, True),
-	'TOSH': ('Tosh', LIBERTY, True),
-	'ZERATUL': ('ZeratulVoid', VOID, True),
-	'ZAGARA': ('Zagara', SWARM, True),
+	'KARAX': ('KaraxChampion', VOID, False),
+	'TOSH': ('Tosh', LIBERTY, False),
+	'ZERATUL': ('ZeratulVoid', VOID, False),
+	'ZAGARA': ('ZaGara', SWARM, False),
 	'HORNER': ('HornerBattlecruiser', VOID, True),
-	'STUKOV': ('InfestedStukov', VOID, True),
-	'SELENDIS': ('SelendisCarrier', VOID, True),
+	'STUKOV': ('InfestedStukov', VOID, False),
+	'SELENDIS': ('Selendis', VOID, False),
 }
 # the mod's own (no SC2 model: drawn from its blocks)
 OWN = {'ZERG_PLATFORM', 'TERRAN_PLATFORM', 'PROTOSS_PLATFORM'}
