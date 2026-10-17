@@ -2,7 +2,7 @@
 	"name": "Heroes' Helmets",
 	"icon": "starmine:kerrigan_crown",
 	"category": "starmine:endgame",
-	"sortnum": 4,
+	"sortnum": 6,
 	"pages": [
 		{
 			"type": "patchouli:spotlight",

@@ -57,6 +57,27 @@ public final class Stratosphere {
 		});
 	}
 
+	/**
+	 * Owner 17.10: a flying unit ordered up or down — from the overworld into the stratosphere over the same place, or
+	 * from the stratosphere down into the overworld high over it — with what it carries. Returns the unit there.
+	 */
+	public static @Nullable Entity shift(StarUnit unit) {
+		if (!(unit.level() instanceof ServerLevel level)) return null;
+		MinecraftServer server = level.getServer();
+		ServerLevel sky = level(server);
+		if (sky == null) return null;
+		boolean up = !is(level);
+		ServerLevel to = up ? sky : server.overworld();
+		double y = up ? ARRIVE_Y : Math.min(CLIMB_Y - 20, to.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+			unit.getBlockX(), unit.getBlockZ()) + 30);
+		level.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, unit.getX(), unit.getY(), unit.getZ(), 20, 1, 1, 1, 0.1);
+		unit.command(StarUnit.Order.NONE, null);
+		Entity moved = unit.changeDimension(new DimensionTransition(to, new Vec3(unit.getX(), y, unit.getZ()), Vec3.ZERO, unit.getYRot(), 0,
+			DimensionTransition.DO_NOTHING));
+		if (moved != null) to.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, moved.getX(), moved.getY(), moved.getZ(), 20, 1, 1, 1, 0.1);
+		return moved;
+	}
+
 	/** Whether a player is carried by a flyer: riding a flying unit, or playing as one. */
 	static boolean carried(ServerPlayer player) {
 		if (player.getRootVehicle() instanceof StarUnit unit && unit.flying()) return true;

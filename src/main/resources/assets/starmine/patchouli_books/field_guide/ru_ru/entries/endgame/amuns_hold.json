@@ -2,7 +2,7 @@
 	"name": "Власть Амуна",
 	"icon": "minecraft:wither_rose",
 	"category": "starmine:endgame",
-	"sortnum": 3,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:text",

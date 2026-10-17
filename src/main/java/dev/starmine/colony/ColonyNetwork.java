@@ -154,7 +154,11 @@ public final class ColonyNetwork {
 		if (player.level().dimension() == net.minecraft.world.level.Level.OVERWORLD) {
 			dev.starmine.hive.HiveSavedData data = dev.starmine.hive.HiveSavedData.get(player.getServer());
 			if (data.spawnHiveSite != null) marks.add(new Mark("ZERG", data.spawnHiveSite.getX(), data.spawnHiveSite.getZ()));
-			data.structureSites.forEach((race, site) -> marks.add(new Mark(race, site.getX(), site.getZ())));
+			data.structureSites.forEach((race, site) -> {
+				if (!race.startsWith("FAR")) marks.add(new Mark(race, site.getX(), site.getZ()));
+			});
+			for (net.minecraft.core.BlockPos at : dev.starmine.world.HeroicTransport.waiting(player)) // owner 17.10: the heroic transport waiting
+				marks.add(new Mark("TRANSPORT", at.getX(), at.getZ()));
 		}
 		if (base != null) marks.add(new Mark("PLAYER", base.hatchery.getX(), base.hatchery.getZ()));
 		ServerPlayNetworking.send(player, new BaseMarks(marks));

@@ -36,6 +36,20 @@ public final class HiveCommands {
 				.then(Commands.argument("what", com.mojang.brigadier.arguments.StringArgumentType.word())
 					.suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(STRUCTURES, builder))
 					.executes(HiveCommands::structure)))
+			.then(Commands.literal("heroic") // owner 17.10: a race's ship and its heroic transport (to try them), or aboard it
+				.then(Commands.literal("board").executes(context -> dev.starmine.world.HeroicTransport.boardNearest(context.getSource().getPlayerOrException()) ? 1 : 0))
+				.then(Commands.argument("race", com.mojang.brigadier.arguments.StringArgumentType.word())
+					.suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.List.of("zerg", "terran", "protoss"), builder))
+					.executes(context -> {
+						String race = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "race").toUpperCase(java.util.Locale.ROOT);
+						try {
+							dev.starmine.world.HeroicTransport.forPlayer(context.getSource().getPlayerOrException(), UnitKind.Race.valueOf(race));
+							return 1;
+						} catch (IllegalArgumentException wrong) {
+							context.getSource().sendFailure(Component.literal("zerg, terran or protoss"));
+							return 0;
+						}
+					})))
 			.then(Commands.literal("void") // owner 17.10: into the Void at its first island, or over Amun's
 				.executes(context -> dev.starmine.world.VoidWorld.visit(context.getSource().getPlayerOrException(), false) ? 1 : 0)
 				.then(Commands.literal("amun")

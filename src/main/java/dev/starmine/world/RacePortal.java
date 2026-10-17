@@ -23,12 +23,18 @@ import net.minecraft.world.level.block.state.BlockState;
  * under the base wakes at the same time ({@link Teleporter#locked}).
  */
 public final class RacePortal {
+	/**
+	 * Owner 17.10: off for now — no portal opens where a main building fell, and the portal halls under the bases stay
+	 * asleep; the way to a ship is the heroic transport of its race's freed guardian ({@link HeroicTransport}).
+	 */
+	public static final boolean ENABLED = false;
+
 	private RacePortal() {
 	}
 
 	/** Opens the portal of `base` at `where` (the fallen main building's feet); nothing for a base without a ship. */
 	public static void open(ServerLevel level, Hive base, BlockPos where) {
-		if (base.shipPad == null || base.race == null) return;
+		if (!ENABLED || base.shipPad == null || base.race == null) return;
 		UnitKind.Race race = base.race;
 		BlockPos centre = where.immutable(); // the building stood on the ground: its feet
 		BlockState frame = Teleporter.FRAMES.get(race).defaultBlockState();

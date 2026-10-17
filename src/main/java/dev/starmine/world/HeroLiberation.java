@@ -46,6 +46,8 @@ import org.jetbrains.annotations.Nullable;
 public final class HeroLiberation {
 	/** Blocks round the hero's place that are its arena: the floor under them cannot be broken, the hero stays inside. */
 	public static final int ARENA_RADIUS = 8, STAY_RADIUS = 7;
+	/** How far a guardian of a main base (owner 17.10: Abathur, Swann, Karax) may go from its post. */
+	public static final int GUARD_RADIUS = 24;
 	/** The share of its health a beaten hero keeps. */
 	public static final float LEFT = 0.1f;
 	public static final String FREED = "starmine_freed";
@@ -143,7 +145,8 @@ public final class HeroLiberation {
 		BlockPos home = hero.nest();
 		if (home == null || hero.isPassenger() || hero.pilot() != null) return;
 		double dx = hero.getX() - (home.getX() + 0.5), dz = hero.getZ() - (home.getZ() + 0.5);
-		boolean out = dx * dx + dz * dz > STAY_RADIUS * STAY_RADIUS, fell = hero.getY() < home.getY() - 1.5;
+		int stay = hero.kind.guardian() ? GUARD_RADIUS : STAY_RADIUS;
+		boolean out = dx * dx + dz * dz > stay * stay, fell = !hero.kind.guardian() && hero.getY() < home.getY() - 1.5;
 		if (out || fell) { // back onto the arena: a hero does not leave it, nor fall off
 			Vec3 back = fell ? Vec3.atBottomCenterOf(home) : new Vec3(home.getX() + 0.5 + dx * 0.7, hero.getY(), home.getZ() + 0.5 + dz * 0.7);
 			hero.teleportTo(back.x, Math.max(back.y, home.getY()), back.z);
@@ -184,27 +187,31 @@ public final class HeroLiberation {
 		hero.command(StarUnit.Order.HOLD, null);
 		Heroes.gone(hero);
 		VoidWorld.State data = VoidWorld.State.get(level.getServer());
-		data.freed.add(hero.kind.race.name());
+		data.freed.add(hero.kind.guardian() ? hero.kind.name() : hero.kind.race.name()); // a ship hero by its race (its key part), a guardian by name
 		data.setDirty();
 		level.sendParticles(ParticleTypes.FLASH, hero.getX(), hero.getY() + hero.getBbHeight() / 2, hero.getZ(), 1, 0, 0, 0, 0);
 		level.sendParticles(ParticleTypes.END_ROD, hero.getX(), hero.getY() + hero.getBbHeight() / 2, hero.getZ(), 60, 1, 1, 1, 0.15);
 		level.playSound(null, hero.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 2.0f, 0.8f);
 		for (ItemStack loot : Heroes.reward(hero)) level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), loot));
-		if (!data.parts.containsKey(hero.kind.race.name())) // a ship built before the parts stood on it: the part from the hero's hand
+		if (!hero.kind.guardian() && !data.parts.containsKey(hero.kind.race.name())) // a ship built before the parts stood on it: the part from the hero's hand
 			level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), new ItemStack(Artifact.part(hero.kind.race))));
 		List<ServerPlayer> audience = level.players().stream().filter(p -> p.distanceTo(hero) <= Heroes.BAR_RANGE * 2).toList();
 		for (ServerPlayer near : audience) dev.starmine.guide.Goals.heroFreed(near, hero.kind);
+		if (hero.kind.guardian()) RaceBases.shipAfterGuardian(level, hero.kind.race); // owner 17.10: its race's ship comes to the stratosphere now
 		if (player == null) return;
 		hero.setOwner(player.getUUID());
 		HiveSavedData hives = HiveSavedData.get(level.getServer());
 		Hive base = hives.get(hero.hiveId());
 		convert(hives, base, player.getUUID());
 		String who = hero.kind.id;
-		Cutscene.play(level, audience.isEmpty() ? List.of(player) : audience, List.of(
+		List<Cutscene.Beat> beats = new java.util.ArrayList<>(List.of(
 			Cutscene.Beat.say(who, "cutscene.starmine." + who + ".freed1", 70),
 			Cutscene.Beat.say(who, "cutscene.starmine." + who + ".freed2", 80),
-			Cutscene.Beat.say(who, "cutscene.starmine." + who + ".freed3", 90)), () -> {
-			});
+			Cutscene.Beat.say(who, "cutscene.starmine." + who + ".freed3", 90)));
+		if (hero.kind.guardian()) // the heroic transport comes, to carry the player to the race's ship
+			beats.add(Cutscene.Beat.act(0, () -> HeroicTransport.summon(level, hero, player)));
+		Cutscene.play(level, audience.isEmpty() ? List.of(player) : audience, beats, () -> {
+		});
 	}
 
 	/**

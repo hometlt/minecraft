@@ -99,6 +99,9 @@ public final class Commands {
 					if (why != null) BaseLogic.tell(level, base, why);
 				}
 			}
+			case "sky" -> { // owner 17.10: flyers up into the stratosphere, or down from it to the overworld
+				for (StarUnit unit : mobile) if (unit.kind.flying && !unit.isPassenger()) dev.starmine.world.Stratosphere.shift(unit);
+			}
 			case "possess" -> { // owner 14.10: play as this unit (dev.starmine.possess)
 				if (units.size() == 1) dev.starmine.possess.Possession.start(player, units.get(0));
 			}

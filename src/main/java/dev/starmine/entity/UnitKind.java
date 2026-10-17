@@ -136,7 +136,11 @@ public enum UnitKind {
 	// ---- heroes: the bosses of the sky ships (CLOUD_TASK_2 stage 8; numbers and sources in docs/BALANCE.md) ----
 	KERRIGAN(         Race.ZERG,    800, 0,    3.94,  false, Attack.MELEE,  40,  1.5,   1,    true,  1.1f, 2.3f,  0x5a2a6a, 0xd060ff),
 	RAYNOR(           Race.TERRAN,  600, 0,    3.15,  false, Attack.RANGED, 18,  0.61,  6,    true,  1.1f, 2.1f,  0x3a5a8a, 0xffb060),
-	ARTANIS(          Race.PROTOSS, 500, 500,  3.15,  false, Attack.MELEE,  40,  1.2,   1,    true,  1.2f, 2.4f,  0xc8a030, 0x80c0ff);
+	ARTANIS(          Race.PROTOSS, 500, 500,  3.15,  false, Attack.MELEE,  40,  1.2,   1,    true,  1.2f, 2.4f,  0xc8a030, 0x80c0ff),
+	// ---- owner 17.10: the heroes guarding the three main bases in the overworld ----
+	ABATHUR(          Race.ZERG,    750, 0,    2.6,   false, Attack.RANGED, 18,  1.2,   6,    true,  1.6f, 2.0f,  0x4a5a2a, 0xc0ff60),
+	SWANN(            Race.TERRAN,  650, 0,    2.8,   false, Attack.RANGED, 24,  1.0,   6,    true,  1.3f, 2.2f,  0x6a4a2a, 0xffa040),
+	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -317,7 +321,21 @@ public enum UnitKind {
 
 	/** The heroes of the sky ships' boss rooms: Kerrigan, Raynor, Artanis (dev.starmine.boss). */
 	public boolean boss() {
-		return this == KERRIGAN || this == RAYNOR || this == ARTANIS;
+		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian();
+	}
+
+	/** Owner 17.10: the heroes guarding the main bases in the overworld — Abathur, Swann, Karax. */
+	public boolean guardian() {
+		return this == ABATHUR || this == SWANN || this == KARAX;
+	}
+
+	/** The guardian of a race's main base. */
+	public static UnitKind guardianOf(Race race) {
+		return switch (race) {
+			case ZERG -> ABATHUR;
+			case TERRAN -> SWANN;
+			case PROTOSS -> KARAX;
+		};
 	}
 
 	/**
@@ -330,6 +348,9 @@ public enum UnitKind {
 			case KERRIGAN -> QUEEN;
 			case RAYNOR -> MARINE;
 			case ARTANIS -> ZEALOT;
+			case ABATHUR -> INFESTOR;
+			case SWANN -> MARAUDER;
+			case KARAX -> HIGH_TEMPLAR;
 			case HELLBAT -> HELLION; // until the assets carry their own SC2 models
 			case VIKING_ASSAULT -> VIKING;
 			case LIBERATOR -> BANSHEE;
@@ -343,6 +364,9 @@ public enum UnitKind {
 			case KERRIGAN -> 0xFFC080FF;
 			case RAYNOR -> 0xFFFFC890;
 			case ARTANIS -> 0xFF9AD0FF;
+			case ABATHUR -> 0xFFB0E070;
+			case SWANN -> 0xFFE0A070;
+			case KARAX -> 0xFF80FFE0;
 			case HELLBAT -> 0xFFFFA070;
 			case VIKING_ASSAULT -> 0xFFB0B0C0;
 			case LIBERATOR -> 0xFFB0E0FF;

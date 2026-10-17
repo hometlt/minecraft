@@ -47,7 +47,10 @@ public final class CommandPanel extends Item {
 	public net.minecraft.world.InteractionResult interactLivingEntity(ItemStack stack, Player player, net.minecraft.world.entity.LivingEntity target,
 			InteractionHand hand) {
 		if (!(target instanceof dev.starmine.entity.StarUnit unit) || !player.getUUID().equals(unit.owner().orElse(null))) return net.minecraft.world.InteractionResult.PASS;
-		if (player instanceof net.minecraft.server.level.ServerPlayer server) dev.starmine.possess.Possession.start(server, unit);
+		if (player instanceof net.minecraft.server.level.ServerPlayer server) {
+			if (dev.starmine.world.HeroicTransport.is(unit)) dev.starmine.world.HeroicTransport.board(server, unit); // owner 17.10: aboard, to the ship
+			else dev.starmine.possess.Possession.start(server, unit);
+		}
 		return net.minecraft.world.InteractionResult.sidedSuccess(player.level().isClientSide);
 	}
 

@@ -83,7 +83,8 @@ public final class RaceBases {
 			}
 		}
 		if (farBases(level, data)) return;
-		if (!data.structuresDone.contains(LEVIATHAN) && data.spawnHiveDone) {
+		legacyGuardians(level, data);
+		if (false && !data.structuresDone.contains(LEVIATHAN) && data.spawnHiveDone) { // owner 17.10: the leviathan comes when Abathur is freed
 			if (data.spawnHiveSite == null) {
 				data.structuresDone.add(LEVIATHAN);
 				data.setDirty();
@@ -93,6 +94,66 @@ public final class RaceBases {
 				leviathan(level, data.spawnHiveSite, RandomSource.create(level.getSeed() ^ 0x1E7A7A4L));
 			}
 		}
+	}
+
+	/**
+	 * Owner 17.10: worlds whose main bases were built before their guardians existed get them now (and their ships,
+	 * built with the bases then, count as there): each guardian waits by its base's main building.
+	 */
+	static void legacyGuardians(ServerLevel level, HiveSavedData data) {
+		for (UnitKind.Race race : UnitKind.Race.values()) {
+			String guard = "GUARD:" + race.name();
+			if (data.structuresDone.contains(guard)) continue;
+			boolean built = race == UnitKind.Race.ZERG ? data.spawnHiveDone && data.spawnHiveSite != null : data.structuresDone.contains(race.name());
+			BlockPos site = race == UnitKind.Race.ZERG ? data.spawnHiveSite : data.structureSites.get(race.name());
+			if (!built || site == null) continue;
+			data.structuresDone.add(guard);
+			if (race == UnitKind.Race.ZERG ? data.structuresDone.contains(LEVIATHAN) : true) data.structuresDone.add("SHIP:" + race.name());
+			Hive base = data.all().stream().filter(h -> h.owner == null && h.race == race && h.hatchery.distSqr(site) < 40 * 40).findFirst().orElse(null);
+			BlockPos post = groundAt(level, site, Math.PI, race.rules().main().width / 2 + 5);
+			data.pending.add(new HiveStructure.Pending(base != null ? base.id : UUID.randomUUID(), UnitKind.guardianOf(race), post, site, null, 0));
+			data.setDirty();
+		}
+	}
+
+	/**
+	 * Owner 17.10: a race's ship comes to the stratosphere only once the guardian of its main base is freed — the
+	 * Hyperion over the terran base, the mothership over the protoss one, the leviathan over the lair — with its own
+	 * wild crew (its hero still Amun's), its arena, its key part and a hangar under it for the heroic transport.
+	 */
+	public static void shipAfterGuardian(ServerLevel any, UnitKind.Race race) {
+		ServerLevel level = any.getServer().overworld();
+		HiveSavedData data = HiveSavedData.get(level.getServer());
+		String key = "SHIP:" + race.name();
+		if (data.structuresDone.contains(key)) return;
+		BlockPos site = race == UnitKind.Race.ZERG ? data.spawnHiveSite : data.structureSites.get(race.name());
+		if (site == null) return;
+		data.structuresDone.add(key);
+		if (race == UnitKind.Race.ZERG) data.structuresDone.add(LEVIATHAN);
+		ship(level, race, site);
+	}
+
+	/** The race's ship over `site` (the base's ground column) with a wild crew of its own; returns the crew's base. */
+	public static Hive ship(ServerLevel level, UnitKind.Race race, BlockPos site) {
+		HiveSavedData data = HiveSavedData.get(level.getServer());
+		RandomSource random = RandomSource.create(level.getSeed() ^ site.asLong() ^ 0x5417L);
+		ServerLevel skyLevel = skyLevel(level);
+		int ground = HiveStructure.ground(level, site.getX(), site.getZ());
+		BlockPos middle = new BlockPos(site.getX(), skyLevel == level ? skyHeight(level, ground) : Stratosphere.SHIP_Y, site.getZ());
+		Hive crew = new Hive(UUID.randomUUID(), skyLevel.dimension().location().toString(), middle);
+		crew.race = race;
+		Painter above = Painter.deferred(skyLevel, random);
+		SkyShips.Ship ship = switch (race) {
+			case TERRAN -> SkyShips.hyperion(above, middle, random.nextInt(4));
+			case PROTOSS -> SkyShips.mothership(above, middle);
+			case ZERG -> SkyShips.leviathan(above, middle, random.nextInt(4));
+		};
+		crew.shipPad = ship.pad().immutable(); // a ship's crew: kept though it has no workers (BaseLogic)
+		crew.shipDim = skyLevel == level ? null : skyLevel.dimension().location().toString();
+		data.add(crew);
+		finish(skyLevel, data, crew.id, ship, above);
+		data.setDirty();
+		return crew;
 	}
 
 	/** Owner 17.10: a region of the world (blocks a side) holds at most one far base, by this chance. */
@@ -264,12 +325,16 @@ public final class RaceBases {
 		if (terran) {
 			int span = Dungeons.MAZE_CELLS * Dungeons.PITCH;
 			spawns.addAll(Dungeons.techLabyrinth(painter, new BlockPos(centre.getX() + PLAZA + depth + 4, under, centre.getZ() - span / 2)));
-			ship = withShip ? SkyShips.hyperion(above, new BlockPos(centre.getX(), sky, centre.getZ()), random.nextInt(4)) : null;
+			ship = null; // owner 17.10: the Hyperion comes when Swann is freed (shipAfterGuardian)
 		} else {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
-			ship = withShip ? SkyShips.mothership(above, new BlockPos(centre.getX(), sky, centre.getZ())) : null;
+			ship = null; // owner 17.10: the mothership comes when Karax is freed
 		}
-		if (ship == null) { // a far base: the base and its dungeon only
+		if (withShip) { // owner 17.10: a main base's guardian hero by its main building (Swann, Karax)
+			spawns.add(Spawn.guard(UnitKind.guardianOf(race), groundAt(level, centre, Math.PI, main.width / 2 + 5), centre));
+			data.structuresDone.add("GUARD:" + race.name());
+		}
+		if (ship == null) { // the base and its dungeon; its ship later
 			for (Spawn spawn : spawns) wait(data, base.id, spawn);
 			data.setDirty();
 			return new Report(base.id, painter.placed(), spawns.size());
@@ -333,8 +398,11 @@ public final class RaceBases {
 	/** Once a ship is built, its guards wait for their chunks to tick (they would have fallen through it before). */
 	private static void finish(ServerLevel level, HiveSavedData data, UUID base, SkyShips.Ship ship, Painter above) {
 		above.then(() -> {
-			for (Spawn spawn : ship.spawns()) // owner 17.10: the hero's arena and its key part beside it
-				if (spawn.kind().boss()) HeroLiberation.prepare(level, ship.bossRoom(), spawn.kind().race);
+			for (Spawn spawn : ship.spawns()) // owner 17.10: the hero's arena and its key part beside it, the hangar under the ship
+				if (spawn.kind().boss()) {
+					HeroLiberation.prepare(level, ship.bossRoom(), spawn.kind().race);
+					HeroicTransport.hangar(level, ship, spawn.kind().race);
+				}
 			for (Spawn spawn : ship.spawns()) wait(data, base, spawn, level);
 			data.setDirty();
 		});

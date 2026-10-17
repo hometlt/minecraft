@@ -38,6 +38,17 @@ public class RacePortalGameTests implements FabricGameTest {
 		BlockPos where = cc.blockPosition();
 		helper.assertTrue(level.getBlockEntity(hallPortal) instanceof Teleporter.Pad pad && Teleporter.locked(level, pad), "the hall's portal is awake with the base standing");
 		helper.runAfterDelay(5, cc::kill);
+		if (!RacePortal.ENABLED) { // owner 17.10: the race portals are off — no portal opens, the hall sleeps on
+			helper.runAfterDelay(30, () -> {
+				boolean none = !(level.getBlockState(where).getBlock() instanceof Teleporter);
+				boolean asleep = level.getBlockEntity(hallPortal) instanceof Teleporter.Pad pad && Teleporter.locked(level, pad);
+				HiveSavedData.get(level.getServer()).remove(base.id);
+				helper.assertTrue(none, "a portal opened where the command center stood, though the race portals are off");
+				helper.assertTrue(asleep, "the hall's portal woke, though the race portals are off");
+				helper.succeed();
+			});
+			return;
+		}
 		helper.succeedWhen(() -> {
 			helper.assertTrue(level.getBlockState(where).getBlock() instanceof Teleporter, "no portal where the command center stood");
 			helper.assertTrue(level.getBlockEntity(where) instanceof Teleporter.Pad portal && shipPad.equals(portal.pair()), "the portal does not lead to the ship");

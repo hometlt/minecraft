@@ -477,6 +477,14 @@ public final class CommandScreen extends Screen {
 				buttons.add(simple(10, "build", race, 'B', () -> page = Page.BUILD));
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", race, 'V', () -> page = Page.ADVANCED));
 			}
+			// owner 17.10: flyers go up into the stratosphere, or down to the overworld from it
+			if (worker == null && mobile.stream().allMatch(unit -> unit.kind.flying) && Minecraft.getInstance().level != null) {
+				boolean up = Minecraft.getInstance().level.dimension() != dev.starmine.world.Stratosphere.KEY;
+				Component label = Component.translatable(up ? "command.starmine.ascend" : "command.starmine.descend");
+				buttons.add(new Button(5, label, 'Y', null, true, List.of(label.copy().append(" (Y)"),
+					Component.translatable(up ? "command.starmine.ascend.tip" : "command.starmine.descend.tip").withColor(0xFFC0C0C0)),
+					() -> CommandView.send("sky", Vec3.ZERO, -1, null), null));
+			}
 			// abilities of the first selected kind (dev.starmine.ability): the bottom row, a worker's beside its gather keys
 			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(mobile.get(0));
 			int[] slots = worker == null ? new int[] {10, 11, 12, 13} : new int[] {7, 8, 9};

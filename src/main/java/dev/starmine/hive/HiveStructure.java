@@ -127,7 +127,17 @@ public final class HiveStructure {
 		if (!near) return;
 		data.spawnHiveDone = true;
 		data.setDirty();
-		if (!data.full()) build(level, site, RandomSource.create(level.getSeed() ^ site.asLong()));
+		if (!data.full()) {
+			build(level, site, RandomSource.create(level.getSeed() ^ site.asLong()));
+			// owner 17.10: Abathur guards the lair (the leviathan comes when he is freed)
+			Hive lair = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(site) < 32 * 32).findFirst().orElse(null);
+			if (lair != null) {
+				int x = site.getX() - 12, z = site.getZ();
+				data.pending.add(new Pending(lair.id, UnitKind.ABATHUR, new BlockPos(x, ground(level, x, z), z), lair.hatchery, null, 0));
+				data.structuresDone.add("GUARD:ZERG");
+				data.setDirty();
+			}
+		}
 	}
 
 	/** A dry, fairly flat place at the configured radius from `spawn`; null when none is found. */

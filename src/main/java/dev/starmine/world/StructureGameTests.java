@@ -81,6 +81,34 @@ public class StructureGameTests implements FabricGameTest {
 	}
 
 	/** Three pylons (owner 16.10: four were too many) must still power every generated production/defence building after grid snapping. */
+	/** Owner 17.10: a guardian freed — its race's ship comes, with a wild crew of its own, its hero, a hangar under it. */
+	@GameTest(template = ARENA, batch = "structuresShip", timeoutTicks = 400)
+	public void theShipComesWithItsHangar(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		HiveSavedData data = HiveSavedData.get(level.getServer());
+		HeroicTransport.State transports = HeroicTransport.State.get(level.getServer());
+		BlockPos oldHangar = transports.hangars.get("PROTOSS");
+		BlockPos site = far(helper, 900).below(70);
+		Hive crew = RaceBases.ship(level, UnitKind.Race.PROTOSS, site);
+		Painter.finishAll();
+		BlockPos hangar = transports.hangars.get("PROTOSS");
+		try {
+			helper.assertTrue(crew != null && crew.owner == null && crew.shipPad != null, "no wild crew for the mothership");
+			helper.assertTrue(data.pending.stream().anyMatch(p -> p.hive().equals(crew.id) && p.kind() == UnitKind.ARTANIS), "no Artanis aboard");
+			helper.assertTrue(hangar != null && !hangar.equals(oldHangar), "no hangar under the mothership");
+			helper.assertTrue(level.getBlockState(hangar).isAir() && level.getBlockState(hangar.above(3)).isAir() && !level.getBlockState(hangar.below()).isAir(),
+				"the hangar is not a hall with a floor");
+			helper.assertTrue(level.getBlockState(hangar.offset(HeroicTransport.HANGAR_HALF + 1, 2, 0)).isAir(), "the hangar is not open for the transport");
+		} finally {
+			data.pending.removeIf(p -> crew != null && p.hive().equals(crew.id));
+			if (crew != null) data.remove(crew.id);
+			if (oldHangar != null) transports.hangars.put("PROTOSS", oldHangar);
+			else transports.hangars.remove("PROTOSS");
+			VoidWorld.State.get(level.getServer()).parts.remove("PROTOSS");
+		}
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "structuresBase", timeoutTicks = 400)
 	public void protossBaseUsesThreePylonsWithoutLosingPower(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
@@ -309,16 +337,11 @@ public class StructureGameTests implements FabricGameTest {
 			helper.assertTrue(base != null && base.owner == null && base.race == UnitKind.Race.TERRAN, "no wild terran base");
 			helper.assertTrue(data.pending.stream().anyMatch(p -> p.hive().equals(base.id) && p.kind() == UnitKind.COMMAND_CENTER && p.hall() == null),
 				"no command center waiting");
-			helper.assertTrue(data.pending.stream().anyMatch(p -> p.hive().equals(base.id) && p.kind() == UnitKind.VIKING), "no Hyperion guards");
-			helper.assertTrue(report.blocks() > 5000, "only " + report.blocks() + " blocks");
-			// the portal hall under the command center (owner 16.10): portal blocks in their frame, off while guarded
-			BlockPos hall = new BlockPos(base.hatchery.getX(), Math.max(level.getMinBuildHeight() + 8, base.hatchery.getY() - PortalHall.DEPTH),
-				base.hatchery.getZ());
-			helper.assertTrue(level.getBlockState(hall).getBlock() instanceof Teleporter, "no portal under the base at " + hall.toShortString());
-			helper.assertTrue(level.getBlockState(hall.offset(2, 0, 0)).is(Teleporter.FRAMES.get(UnitKind.Race.TERRAN)), "no portal frame");
-			helper.assertTrue(level.getBlockEntity(hall) instanceof Teleporter.Pad pad && pad.pair() != null, "the portal leads nowhere");
-			helper.assertTrue(data.pending.stream().filter(p -> p.hive().equals(base.id) && p.hall() != null
-				&& p.hall().equals(hall)).count() >= 4, "the portal has no guards");
+			// owner 17.10: Swann guards the base by its command center; the Hyperion comes when he is freed
+			helper.assertTrue(data.pending.stream().anyMatch(p -> p.hive().equals(base.id) && p.kind() == UnitKind.SWANN && p.hall() != null),
+				"no Swann guarding the base");
+			helper.assertTrue(data.pending.stream().noneMatch(p -> p.hive().equals(base.id) && p.kind() == UnitKind.VIKING), "the Hyperion came with the base");
+			helper.assertTrue(report.blocks() > 3000, "only " + report.blocks() + " blocks");
 		} finally { // other tests share the world: no waiting units, no base left behind
 			data.pending.removeIf(p -> base != null && p.hive().equals(base.id));
 			if (base != null) data.remove(base.id);

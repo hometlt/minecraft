@@ -105,6 +105,11 @@ public final class Heroes {
 	/** What a hero leaves when killed. */
 	public static List<ItemStack> reward(StarUnit hero) {
 		List<ItemStack> loot = new ArrayList<>();
+		if (hero.kind.guardian()) { // a main base's guardian: shards and diamonds; the suits are the ships' heroes'
+			loot.add(new ItemStack(SuitItems.SHARDS.get(hero.kind.race), 16));
+			loot.add(new ItemStack(Items.DIAMOND, 4));
+			return loot;
+		}
 		for (ArmorItem.Type type : SuitItems.TYPES) // owner 17.10: the hero's own helmet, with its perk
 			loot.add(new ItemStack(type == ArmorItem.Type.HELMET ? dev.starmine.suit.HeroHelmets.HELMETS.get(hero.kind.race) : SuitItems.piece(hero.kind.race, type)));
 		loot.add(new ItemStack(SuitItems.SHARDS.get(hero.kind.race), 16));

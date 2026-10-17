@@ -1,0 +1,16 @@
+{
+	"name": "Guardians of the Bases",
+	"icon": "starmine:karax_spawn_egg",
+	"category": "starmine:endgame",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The three main bases near your spawn are guarded by heroes under Amun's hold: $(l)Abathur$() at the zerg lair, $(l)Swann$() at the terran base, $(l)Karax$() at the protoss base. They keep within 24 blocks of their post.$(br2)Beaten, a guardian does not die: Amun's hold breaks, it tells you how Amun held it and its troops, and it goes over to you with its whole base and army."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Only then does its race's ship come to the stratosphere (the leviathan after Abathur, the Hyperion after Swann, the mothership after Karax), and a $(l)heroic transport$() waits by the guardian — an overlord, a medivac or a warp prism, marked on your minimap. Click it with the command panel: it lifts you into the sky, into the stratosphere, to the $(l)hangar under the ship$(), and waits there. Click it again to go back down. Order it with the command panel to wait elsewhere."
+		}
+	]
+}

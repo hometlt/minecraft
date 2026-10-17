@@ -200,6 +200,7 @@ public final class Teleporter extends Block implements EntityBlock {
 	/** Whether a pad's base still has its main building (it is gone, or has none of its race's left). */
 	public static boolean locked(ServerLevel level, Pad pad) {
 		if (pad.lock == null) return false;
+		if (!RacePortal.ENABLED) return true; // owner 17.10: the halls under the bases sleep while the race portals are off
 		dev.starmine.hive.Hive base = HiveSavedData.get(level.getServer()).get(pad.lock);
 		return base != null && base.race != null && base.count(base.race.rules().main()) > 0;
 	}

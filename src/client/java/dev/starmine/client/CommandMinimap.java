@@ -178,6 +178,7 @@ final class CommandMinimap {
 			case "ZERG" -> 0xFFC060FF;
 			case "TERRAN" -> 0xFF60A0FF;
 			case "PROTOSS" -> 0xFFFFD040;
+			case "TRANSPORT" -> 0xFF60FFB0;
 			default -> 0xFFFFFFFF;
 		};
 	}
@@ -198,7 +199,7 @@ final class CommandMinimap {
 			if (at[0] >= x0 + 3 && at[1] >= y0 + 3 && at[0] < x0 + SIZE - 3 && at[1] < y0 + SIZE - 3) {
 				graphics.fill(at[0] - 3, at[1] - 3, at[0] + 4, at[1] + 4, 0xFF000000);
 				graphics.fill(at[0] - 2, at[1] - 2, at[0] + 3, at[1] + 3, colour);
-				String letter = mark.race().equals("PLAYER") ? "★" : mark.race().substring(0, 1);
+				String letter = mark.race().equals("PLAYER") ? "★" : mark.race().equals("TRANSPORT") ? "✈" : mark.race().substring(0, 1);
 				graphics.drawString(font, letter, at[0] + 4, at[1] - 4, colour);
 				continue;
 			}
@@ -221,7 +222,7 @@ final class CommandMinimap {
 			int[] b = {(int) (bx + Math.sin(angle) * half), (int) (by - Math.cos(angle) * half)};
 			line(graphics, a, b, colour);
 		}
-		String label = (nearest.race().equals("PLAYER") ? "★" : nearest.race().substring(0, 1)) + " " + Math.round(best);
+		String label = (nearest.race().equals("PLAYER") ? "★" : nearest.race().equals("TRANSPORT") ? "✈" : nearest.race().substring(0, 1)) + " " + Math.round(best);
 		graphics.drawString(font, label, Math.max(x0, Math.min(x0 + SIZE - font.width(label), tipX - font.width(label) / 2)),
 			tipY + (Math.sin(angle) > 0 ? -12 : 4), colour);
 	}

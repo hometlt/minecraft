@@ -1270,12 +1270,16 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
-		return dev.starmine.ability.Transport.carries(this, passenger);
+		return dev.starmine.ability.Transport.carries(this, passenger) || dev.starmine.world.HeroicTransport.carries(this, passenger);
 	}
 
 	/** Cargo hangs under the transport's body, spread a little around its centre. */
 	@Override
 	protected void positionRider(Entity passenger, Entity.MoveFunction move) {
+		if (passenger instanceof Player) { // a player aboard a heroic transport sits on its back
+			move.accept(passenger, this.getX(), this.getY() + this.getBbHeight() * 0.7, this.getZ());
+			return;
+		}
 		int index = this.getPassengers().indexOf(passenger);
 		double angle = index * 2.4, spread = index == 0 ? 0 : 0.6;
 		double y = kind.structure() ? this.getY() + 0.1 : this.getY() - passenger.getBbHeight() + 0.6; // in a bunker, behind its walls

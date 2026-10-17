@@ -2,7 +2,7 @@
 	"name": "The Strike Force",
 	"icon": "starmine:artifact_pedestal",
 	"category": "starmine:endgame",
-	"sortnum": 6,
+	"sortnum": 8,
 	"pages": [
 		{
 			"type": "patchouli:text",
