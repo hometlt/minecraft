@@ -18,7 +18,8 @@ import net.minecraft.world.item.Items;
  * Hyperion, Artanis on the mothership): a boss health bar on the screen of every player within
  * {@link #BAR_RANGE} (health and shields together), and their reward when killed — a whole suit of their
  * race ({@link SuitItems}: the rare armor its modules need) with the hero's own helmet ({@link dev.starmine.suit.HeroHelmets}),
- * its part of the artifact's key ({@link dev.starmine.world.Artifact}), 16 shards and 8 diamonds. Their abilities
+ * 16 shards and 8 diamonds — left when Amun's hold on it breaks ({@link dev.starmine.world.HeroLiberation}); its part of the
+ * artifact's key stands by it on its ship. Their abilities
  * are the ability engine's ({@link dev.starmine.ability.HeroAbilities}).
  */
 public final class Heroes {
@@ -30,7 +31,8 @@ public final class Heroes {
 
 	/** Every 10 ticks of a hero: its bar's fill and who sees it. */
 	static void tick(StarUnit hero, ServerLevel level) {
-		if (hero.tickCount % 10 != 0) return;
+		dev.starmine.world.HeroLiberation.tick(hero, level); // owner 17.10: Amun's hold, the arena
+		if (hero.tickCount % 10 != 0 || dev.starmine.world.HeroLiberation.freed(hero)) return;
 		ServerBossEvent bar = BARS.computeIfAbsent(hero.getId(), id -> new ServerBossEvent(hero.getDisplayName(), switch (hero.kind.race) {
 			case ZERG -> BossEvent.BossBarColor.PURPLE;
 			case TERRAN -> BossEvent.BossBarColor.RED;
@@ -95,7 +97,7 @@ public final class Heroes {
 	}
 
 	/** The hero is gone: so is its bar. */
-	static void gone(StarUnit hero) {
+	public static void gone(StarUnit hero) {
 		ServerBossEvent bar = BARS.remove(hero.getId());
 		if (bar != null) bar.removeAllPlayers();
 	}
@@ -105,7 +107,6 @@ public final class Heroes {
 		List<ItemStack> loot = new ArrayList<>();
 		for (ArmorItem.Type type : SuitItems.TYPES) // owner 17.10: the hero's own helmet, with its perk
 			loot.add(new ItemStack(type == ArmorItem.Type.HELMET ? dev.starmine.suit.HeroHelmets.HELMETS.get(hero.kind.race) : SuitItems.piece(hero.kind.race, type)));
-		loot.add(new ItemStack(dev.starmine.world.Artifact.part(hero.kind.race))); // and its part of the artifact's key
 		loot.add(new ItemStack(SuitItems.SHARDS.get(hero.kind.race), 16));
 		loot.add(new ItemStack(Items.DIAMOND, 8));
 		return loot;

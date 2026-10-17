@@ -344,6 +344,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
+		if (this.tickCount % 40 == 11 && hiveId != null) adoptBase(server);
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
@@ -949,6 +950,25 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public UUID hiveId() {
 		return hiveId;
+	}
+
+	/**
+	 * Owner 17.10: a wild base that went over to a player (a freed hero's) — its units become the player's: one whose
+	 * base was merged into the player's follows it there, one of a base the player now owns takes the player as owner.
+	 */
+	private void adoptBase(ServerLevel server) {
+		HiveSavedData data = HiveSavedData.get(server.getServer());
+		Hive hive = data.get(hiveId);
+		if (hive == null) {
+			UUID to = data.merged.get(hiveId);
+			if (to == null || (hive = data.get(to)) == null) return;
+			hiveId = to;
+		}
+		if (hive.owner != null && owner().isEmpty()) {
+			setOwner(hive.owner);
+			setTarget(null);
+			command(Order.NONE, null);
+		}
 	}
 
 	public BlockPos home() {

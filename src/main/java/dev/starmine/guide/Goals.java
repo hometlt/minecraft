@@ -71,6 +71,12 @@ public final class Goals {
 		net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> register(dispatcher));
 	}
 
+	/** Owner 17.10: a hero beaten — freed from Amun, not killed — counts as beaten for everyone near. */
+	public static void heroFreed(ServerPlayer player, UnitKind hero) {
+		Goal goal = HEROES.get(hero);
+		if (goal != null) award(player, goal);
+	}
+
 	private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("stargoals").executes(context -> {
 			ServerPlayer player = context.getSource().getPlayerOrException();

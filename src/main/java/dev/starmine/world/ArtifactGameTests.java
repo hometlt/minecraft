@@ -33,13 +33,13 @@ import net.minecraft.world.phys.Vec3;
  */
 public class ArtifactGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "artifactLoot", timeoutTicks = 20)
-	public void heroesLeaveTheirHelmetAndKeyPart(GameTestHelper helper) {
+	public void heroesLeaveTheirHelmet(GameTestHelper helper) {
 		for (UnitKind kind : List.of(UnitKind.KERRIGAN, UnitKind.RAYNOR, UnitKind.ARTANIS)) {
 			StarUnit hero = StarMine.type(kind).create(helper.getLevel());
 			List<ItemStack> loot = Heroes.reward(hero);
 			helper.assertTrue(loot.stream().anyMatch(stack -> HeroHelmets.heroOf(stack.getItem()) == kind.race), kind + " leaves no helmet of its own");
 			helper.assertTrue(loot.stream().noneMatch(stack -> stack.is(SuitItems.piece(kind.race, ArmorItem.Type.HELMET))), kind + " leaves a plain helmet too");
-			helper.assertTrue(loot.stream().anyMatch(stack -> stack.is(Artifact.part(kind.race))), kind + " leaves no key part");
+			helper.assertTrue(loot.stream().noneMatch(stack -> stack.is(Artifact.part(kind.race))), kind + "'s key part is in its loot, not on its ship");
 			helper.assertTrue(SuitItems.raceOf(HeroHelmets.HELMETS.get(kind.race)) == kind.race, kind + "'s helmet is not a piece of its suit");
 			hero.discard();
 		}

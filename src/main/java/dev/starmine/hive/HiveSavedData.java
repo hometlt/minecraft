@@ -33,6 +33,8 @@ public final class HiveSavedData extends SavedData {
 	 * (a player is near), so far tunnels and halls are not filled while nobody can see them.
 	 */
 	public final java.util.List<HiveStructure.Pending> pending = new java.util.ArrayList<>();
+	/** Owner 17.10: bases merged into a player's (a freed hero's): the old id to the new, so their units find their new base. */
+	public final Map<UUID, UUID> merged = new LinkedHashMap<>();
 
 	public static HiveSavedData get(MinecraftServer server) {
 		return server.overworld().getDataStorage().computeIfAbsent(FACTORY, "starmine_hives");
@@ -103,6 +105,9 @@ public final class HiveSavedData extends SavedData {
 		ListTag done = new ListTag();
 		for (String key : structuresDone) done.add(net.minecraft.nbt.StringTag.valueOf(key));
 		tag.put("structuresDone", done);
+		CompoundTag mergedTag = new CompoundTag();
+		merged.forEach((from, to) -> mergedTag.putUUID(from.toString(), to));
+		tag.put("merged", mergedTag);
 		return tag;
 	}
 
@@ -125,6 +130,8 @@ public final class HiveSavedData extends SavedData {
 		CompoundTag sites = tag.getCompound("structureSites");
 		for (String key : sites.getAllKeys()) data.structureSites.put(key, net.minecraft.core.BlockPos.of(sites.getLong(key)));
 		for (Tag entry : tag.getList("structuresDone", Tag.TAG_STRING)) data.structuresDone.add(entry.getAsString());
+		CompoundTag mergedTag = tag.getCompound("merged");
+		for (String key : mergedTag.getAllKeys()) data.merged.put(UUID.fromString(key), mergedTag.getUUID(key));
 		return data;
 	}
 }

@@ -181,6 +181,11 @@ public final class VoidWorld {
 		public boolean islands, amunDead;
 		/** Void shards still standing, loaded or not (Amun cannot be hurt while there are any). */
 		public int shards;
+		/** Owner 17.10: the heroes freed from Amun's hold (by race), and where each hero's key part stands on its ship. */
+		public final java.util.Set<String> freed = new java.util.LinkedHashSet<>();
+		public final java.util.Map<String, BlockPos> parts = new java.util.LinkedHashMap<>();
+		/** Players whose army waits in the Void already (it is sent once). */
+		public final java.util.Set<UUID> armies = new java.util.LinkedHashSet<>();
 
 		private static final SavedData.Factory<State> FACTORY = new SavedData.Factory<>(State::new, State::load, null);
 
@@ -215,6 +220,15 @@ public final class VoidWorld {
 			tag.putBoolean("islands", islands);
 			tag.putBoolean("amunDead", amunDead);
 			tag.putInt("shards", shards);
+			ListTag freedList = new ListTag();
+			for (String race : freed) freedList.add(net.minecraft.nbt.StringTag.valueOf(race));
+			tag.put("freed", freedList);
+			CompoundTag partTag = new CompoundTag();
+			parts.forEach((race, pos) -> partTag.putLong(race, pos.asLong()));
+			tag.put("parts", partTag);
+			ListTag armyList = new ListTag();
+			for (UUID id : armies) armyList.add(NbtUtils.createUUID(id));
+			tag.put("armies", armyList);
 			return tag;
 		}
 
@@ -228,6 +242,10 @@ public final class VoidWorld {
 			state.islands = tag.getBoolean("islands");
 			state.amunDead = tag.getBoolean("amunDead");
 			state.shards = tag.getInt("shards");
+			for (Tag t : tag.getList("freed", Tag.TAG_STRING)) state.freed.add(t.getAsString());
+			CompoundTag partTag = tag.getCompound("parts");
+			for (String race : partTag.getAllKeys()) state.parts.put(race, BlockPos.of(partTag.getLong(race)));
+			for (Tag t : tag.getList("armies", Tag.TAG_INT_ARRAY)) state.armies.add(NbtUtils.loadUUID(t));
 			return state;
 		}
 	}

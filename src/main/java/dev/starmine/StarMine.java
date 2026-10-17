@@ -147,6 +147,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.colony.PlatformBlock.load();
 		dev.starmine.world.Teleporter.load();
 		dev.starmine.world.Artifact.load();
+		dev.starmine.world.HeroLiberation.load();
 		dev.starmine.world.VoidIslands.load();
 		dev.starmine.world.VoidForces.load();
 		dev.starmine.world.DungeonHeart.load();

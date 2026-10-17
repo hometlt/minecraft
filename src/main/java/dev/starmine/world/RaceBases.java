@@ -333,6 +333,8 @@ public final class RaceBases {
 	/** Once a ship is built, its guards wait for their chunks to tick (they would have fallen through it before). */
 	private static void finish(ServerLevel level, HiveSavedData data, UUID base, SkyShips.Ship ship, Painter above) {
 		above.then(() -> {
+			for (Spawn spawn : ship.spawns()) // owner 17.10: the hero's arena and its key part beside it
+				if (spawn.kind().boss()) HeroLiberation.prepare(level, ship.bossRoom(), spawn.kind().race);
 			for (Spawn spawn : ship.spawns()) wait(data, base, spawn, level);
 			data.setDirty();
 		});
