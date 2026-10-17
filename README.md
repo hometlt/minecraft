@@ -586,6 +586,9 @@ gradlew build -PincludeSc2Assets   # личный jar с ассетами из s
 gradlew runClient                  # клиент для разработки с sc2-assets/
 gradlew runGametest                # игровые тесты (build/gametest/junit.xml)
 gradlew runGametest -PstarmineGameTests=dev.starmine.entity.VespeneGameTests,dev.starmine.race.RaceGameTests  # только эти классы
+gradlew runGametest -PstarmineGameTests=light   # всё, кроме тяжёлых (пути, бои баланса, постройки, дальние базы, другие миры)
+gradlew runGametest -PstarmineGameTests=heavy   # только тяжёлые
+tools/run_gametests.sh                          # light, затем heavy — отдельными запусками (junit-light.xml, junit-heavy.xml)
 ```
 
 ### Исходные и воксельные модели (личная сборка)
