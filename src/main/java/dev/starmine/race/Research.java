@@ -32,7 +32,9 @@ public enum Research {
 	GROOVED_SPINES('G'), MUSCULAR_AUGMENTS('M'), SEISMIC_SPINES('S'), ADAPTIVE_TALONS('A'), NEURAL_PARASITE('E'),
 	CHITINOUS_PLATING('C'), ANABOLIC_SYNTHESIS('A'),
 	WARP_GATE_RESEARCH('W'), RESONATING_GLAIVES('G'), PSIONIC_STORM('T'), SHADOW_STRIDE('B'), EXTENDED_THERMAL_LANCE('E'),
-	GRAVITIC_BOOSTERS('B'), GRAVITIC_DRIVE('D'), FLUX_VANES('F'), ANION_PULSE_CRYSTALS('P'), TECTONIC_DESTABILIZERS('T');
+	GRAVITIC_BOOSTERS('B'), GRAVITIC_DRIVE('D'), FLUX_VANES('F'), ANION_PULSE_CRYSTALS('P'), TECTONIC_DESTABILIZERS('T'),
+	// owner 17.10: the Yamato cannon waits for its refit (an older SC2's), for a player's cruisers
+	WEAPON_REFIT('Y');
 
 	public final char hotkey;
 
@@ -61,7 +63,7 @@ public enum Research {
 			case HISEC_AUTO_TRACKING, NEOSTEEL_ARMOR -> building == UnitKind.ENGINEERING_BAY;
 			case INFERNAL_PRE_IGNITER, DRILLING_CLAWS, SMART_SERVOS -> building == UnitKind.FACTORY;
 			case CLOAKING_FIELD, HYPERFLIGHT_ROTORS -> building == UnitKind.STARPORT;
-			case ADVANCED_BALLISTICS, CADUCEUS_REACTOR -> building == UnitKind.FUSION_CORE;
+			case ADVANCED_BALLISTICS, CADUCEUS_REACTOR, WEAPON_REFIT -> building == UnitKind.FUSION_CORE;
 			case PERSONAL_CLOAKING, ENHANCED_SHOCKWAVES, NUKE -> building == UnitKind.GHOST_ACADEMY;
 			case BURROW, PNEUMATIZED_CARAPACE -> building == UnitKind.HATCHERY;
 			case ADRENAL_GLANDS -> building == UnitKind.SPAWNING_POOL;
@@ -171,8 +173,11 @@ public enum Research {
 	 */
 	public static dev.starmine.ability.Modes.Weapon adjust(dev.starmine.entity.StarUnit unit, dev.starmine.ability.Modes.Weapon weapon) {
 		Hive base = dev.starmine.ability.Abilities.base(unit);
-		if (base == null || base.researched.isEmpty() || weapon.damage() <= 0) return weapon;
 		UnitKind kind = unit.kind;
+		// a burrowed roach crawls only with tunneling claws (a player's; the wild and Amun's need no research)
+		if (kind == UnitKind.ROACH && unit.mode() == dev.starmine.ability.Modes.BURROWED && weapon.mobile() && !has(unit, TUNNELING_CLAWS))
+			return new dev.starmine.ability.Modes.Weapon(weapon.range(), weapon.damage(), weapon.interval(), weapon.splash(), weapon.minRange(), false);
+		if (base == null || base.researched.isEmpty() || weapon.damage() <= 0) return weapon;
 		double range = 0, pace = 1;
 		if (kind == UnitKind.HYDRALISK && base.researched.contains(GROOVED_SPINES.id())) range = 1;
 		if (kind == UnitKind.COLOSSUS && base.researched.contains(EXTENDED_THERMAL_LANCE.id())) range = 2;
@@ -196,11 +201,11 @@ public enum Research {
 	}
 
 	/** SC2 damage its base's upgrades add to a hit (infernal pre-igniter: a hellion +5, a hellbat +12 to light targets; tectonic destabilizers: a tempest +40 to buildings). */
-	public static double extraDamage(Hive base, UnitKind attacker, UnitKind target) {
+	public static double extraDamage(Hive base, UnitKind attacker, java.util.Set<dev.starmine.entity.Trait> target) {
 		if (base == null || base.researched.isEmpty() || target == null) return 0;
-		if (!target.structure() && base.researched.contains(INFERNAL_PRE_IGNITER.id()))
+		if (target.contains(dev.starmine.entity.Trait.LIGHT) && base.researched.contains(INFERNAL_PRE_IGNITER.id()))
 			return attacker == UnitKind.HELLION ? 5 : attacker == UnitKind.HELLBAT ? 12 : 0;
-		if (attacker == UnitKind.TEMPEST && target.structure() && base.researched.contains(TECTONIC_DESTABILIZERS.id())) return 40;
+		if (attacker == UnitKind.TEMPEST && target.contains(dev.starmine.entity.Trait.STRUCTURE) && base.researched.contains(TECTONIC_DESTABILIZERS.id())) return 40;
 		return 0;
 	}
 
@@ -268,6 +273,7 @@ public enum Research {
 				GLIAL_RECONSTITUTION, TUNNELING_CLAWS, GROOVED_SPINES, MUSCULAR_AUGMENTS, RESONATING_GLAIVES, SHADOW_STRIDE, GRAVITIC_BOOSTERS,
 				GRAVITIC_DRIVE -> new int[] {100, 100};
 			case HYPERFLIGHT_ROTORS -> new int[] {125, 125};
+			case WEAPON_REFIT -> new int[] {150, 150};
 			case ADRENAL_GLANDS, PSIONIC_STORM -> new int[] {200, 200};
 			default -> new int[] {150, 150}; // neosteel, ballistics, cloaking, shockwaves, seismic spines, talons, neural, plating, synthesis, lance, vanes, crystals, destabilizers
 		};
@@ -291,7 +297,7 @@ public enum Research {
 			case BURROW -> 71 * 20;
 			case PERSONAL_CLOAKING -> 86 * 20;
 			case ADRENAL_GLANDS -> 93 * 20;
-			case NEOSTEEL_ARMOR, WARP_GATE_RESEARCH, RESONATING_GLAIVES, SHADOW_STRIDE, EXTENDED_THERMAL_LANCE, TECTONIC_DESTABILIZERS -> 100 * 20;
+			case NEOSTEEL_ARMOR, WEAPON_REFIT, WARP_GATE_RESEARCH, RESONATING_GLAIVES, SHADOW_STRIDE, EXTENDED_THERMAL_LANCE, TECTONIC_DESTABILIZERS -> 100 * 20;
 			case HYPERFLIGHT_ROTORS -> 121 * 20;
 			default -> 79 * 20;
 		};
@@ -357,15 +363,19 @@ public enum Research {
 			case SHADOW_STRIDE -> SHADOW_STRIDE;
 			case WARP_GATE -> WARP_GATE_RESEARCH;
 			case NEURAL_PARASITE -> NEURAL_PARASITE;
+			case YAMATO -> kind == UnitKind.BATTLECRUISER ? WEAPON_REFIT : null;
 			default -> null;
 		};
 	}
 
-	/** Whether this unit's base has the research (a unit with no base has it: a lone wild unit). */
+	/**
+	 * Whether this unit may use what the research opens: a player's unit when its base has it; the wild (a lone unit,
+	 * a wild base's) and Amun's always (owner 17.10: they need no research for their abilities).
+	 */
 	public static boolean has(dev.starmine.entity.StarUnit unit, Research research) {
-		if (research == null) return true;
+		if (research == null || dev.starmine.faction.Faction.amun(unit)) return true;
 		Hive base = dev.starmine.ability.Abilities.base(unit);
-		return base == null || base.researched.contains(research.id());
+		return base == null || base.owner == null || base.researched.contains(research.id());
 	}
 
 	public static Research byId(String id) {

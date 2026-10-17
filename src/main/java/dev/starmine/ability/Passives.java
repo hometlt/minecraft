@@ -40,10 +40,11 @@ public final class Passives {
 
 	/** SC2 bonus damage of the attacker's weapon against the target (Minecraft health), with the void ray's alignment. */
 	public static double bonus(StarUnit attacker, LivingEntity target) {
-		if (!(target instanceof StarUnit victim)) return 0;
-		double bonus = attacker.kind.bonusDamage(victim.kind);
-		if (attacker.kind == UnitKind.SIEGE_TANK && attacker.mode() == Modes.SIEGED) bonus = victim.kind.armored() ? 30 : 0;
-		if (Status.has(attacker, Status.PRISMATIC) && victim.kind.armored()) bonus += 10;
+		java.util.Set<dev.starmine.entity.Trait> traits = dev.starmine.entity.Trait.of(target); // units, players and creatures alike (owner 17.10)
+		boolean armored = traits.contains(dev.starmine.entity.Trait.ARMORED);
+		double bonus = attacker.kind.bonusDamage(traits);
+		if (attacker.kind == UnitKind.SIEGE_TANK && attacker.mode() == Modes.SIEGED) bonus = armored ? 30 : 0;
+		if (Status.has(attacker, Status.PRISMATIC) && armored) bonus += 10;
 		return bonus * UnitKind.SCALE;
 	}
 
@@ -57,7 +58,7 @@ public final class Passives {
 	/** Damage a unit takes, after its passives (in Minecraft health). */
 	public static float onHurt(StarUnit unit, DamageSource source, float amount) {
 		if (amount <= 0) return amount;
-		if (Status.has(unit, Status.STASIS)) return 0;
+		if (Status.has(unit, Status.STASIS) || Status.has(unit, Status.SHADE)) return 0;
 		if (Status.has(unit, Status.HALLUCINATION)) amount *= 2;
 		if (Status.has(unit, Status.GUARDED) && ranged(unit, source))
 			amount = (float) Math.max(0.5 * UnitKind.SCALE, amount - GUARDIAN_REDUCTION * UnitKind.SCALE);
@@ -132,6 +133,14 @@ public final class Passives {
 	}
 
 	static void tick(StarUnit unit, ServerLevel level) {
+		if (unit.kind.massive() && !unit.flying() && unit.tickCount % 4 == 0) { // SC2: a massive unit shatters a force field just by touching it
+			for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(net.minecraft.core.BlockPos.containing(unit.getBoundingBox().inflate(0.7).getMinPosition()),
+				net.minecraft.core.BlockPos.containing(unit.getBoundingBox().inflate(0.7).getMaxPosition())))
+				if (level.getBlockState(pos).is(dev.starmine.block.StarMineBlocks.FORCE_FIELD)) {
+					dev.starmine.block.ForceFieldBlock.shatter(level, pos);
+					break;
+				}
+		}
 		switch (unit.kind) {
 			case SENTRY -> {
 				if (Status.has(unit, Status.GUARDIAN) && unit.tickCount % 5 == 0) {

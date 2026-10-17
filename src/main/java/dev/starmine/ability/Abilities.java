@@ -72,7 +72,6 @@ public final class Abilities {
 		}
 		return switch (ability) {
 			case LOAD, UNLOAD -> unit.pilot() != null ? "message.starmine.pilot_transport" : Transport.refusal(unit, ability);
-			case MASS_RECALL -> base(unit) == null ? "message.starmine.no_base" : null;
 			case BLINK, SHADOW_STRIDE, CHARGE -> Status.has(unit, Status.ROOTED) ? "message.starmine.rooted" : null;
 			case ARCHON_WARP -> ProtossAbilities.partner(unit) == null ? "message.starmine.no_partner" : null;
 			case REPAIR, MULE -> base(unit) == null ? "message.starmine.no_base" : null;
@@ -89,6 +88,8 @@ public final class Abilities {
 		if (Modes.oneWay(ability)) return mode == Modes.NORMAL;
 		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE; // an add-on or upgrade keeps it down
 		if (mode == Modes.AIRBORNE) return false; // in the air a building only flies and lands
+		if (ability == Ability.SHADE_CANCEL || ability == Ability.PSIONIC_TRANSFER) // an adept with its shade out may call it off (shown both sides)
+			return (ability == Ability.SHADE_CANCEL) == ProtossAbilities.SHADING.equals(unit.disguise());
 		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP || mode == Modes.ORBITAL;
 	}
 
@@ -199,9 +200,10 @@ public final class Abilities {
 				&& !other.underConstruction();
 			case CHRONO_BOOST -> ally && other != null && other.kind.structure() && other.kind.race == UnitKind.Race.PROTOSS && !other.underConstruction();
 			case BATTERY_OVERCHARGE -> ally && other != null && other.kind == UnitKind.SHIELD_BATTERY;
-			case GRAVITON_BEAM -> !ally && !(other != null && (other.kind.massive() || other.kind.structure() || other.flying()));
-			case STEADY_TARGETING -> !ally && (other == null || other.kind.biological() || other.kind.race == UnitKind.Race.ZERG && !other.kind.structure());
-			case NEURAL_PARASITE -> !ally && !(target instanceof Player) && !(other != null && (other.kind.structure() || other.kind.massive()));
+			case GRAVITON_BEAM -> !ally && !(dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.MASSIVE) || other != null && (other.kind.structure() || other.flying()));
+			case STEADY_TARGETING -> !ally && dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.BIOLOGICAL) && !dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.STRUCTURE);
+			// SC2: anything but heroes and buildings (massive ones too); owner 17.10: never a player, but any creature
+			case NEURAL_PARASITE -> !ally && !(target instanceof Player) && !(other != null && other.kind.structure()) && !dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.HEROIC);
 			case ABDUCT -> target != unit && !(other != null && other.kind.structure());
 			case PARASITIC_BOMB -> !ally && (other == null ? !target.onGround() : other.flying());
 			case FEEDBACK -> !ally && other != null && other.maxEnergy() > 0;
@@ -244,7 +246,8 @@ public final class Abilities {
 			// protoss
 			case CHARGE -> ProtossAbilities.charge(unit, level, target);
 			case BLINK, SHADOW_STRIDE -> ProtossAbilities.blink(unit, level, point);
-			case PSIONIC_TRANSFER -> ProtossAbilities.blink(unit, level, point);
+			case PSIONIC_TRANSFER -> ProtossAbilities.shade(unit, level, point);
+			case SHADE_CANCEL -> ProtossAbilities.cancelShade(unit, level);
 			case FORCE_FIELD -> ProtossAbilities.forceField(unit, level, point);
 			case GUARDIAN_SHIELD -> Status.apply(unit, Status.GUARDIAN, ProtossAbilities.GUARDIAN_TICKS);
 			case HALLUCINATION -> ProtossAbilities.hallucination(unit, level);
@@ -257,7 +260,7 @@ public final class Abilities {
 			case REVELATION -> ProtossAbilities.revelation(unit, level, point);
 			case STASIS_WARD -> ProtossAbilities.stasisWard(unit, level, point);
 			case DISINTEGRATION -> ProtossAbilities.disintegration(unit, level, point);
-			case MASS_RECALL -> ProtossAbilities.massRecall(unit, level);
+			case MASS_RECALL -> ProtossAbilities.massRecall(unit, level, point);
 			case TIME_WARP -> ProtossAbilities.timeWarp(unit, level, point);
 			case CHRONO_BOOST -> {
 				if (target instanceof StarUnit building) Status.apply(building, Status.CHRONO, ProtossAbilities.CHRONO_TICKS);
@@ -394,7 +397,8 @@ public final class Abilities {
 	/** Living things within `radius` of a point (horizontally; a few blocks up and down), the caster's foes only or everyone. */
 	static List<LivingEntity> around(StarUnit caster, Vec3 centre, double radius, boolean foesOnly) {
 		Level level = caster.level();
-		AABB box = new AABB(centre, centre).inflate(radius, 3, radius);
+		// an area spell reaches the flyers over it too (SC2 storms, fungals and EMPs hit air): up to 12 blocks over the point
+		AABB box = new AABB(centre.x - radius, centre.y - 3, centre.z - radius, centre.x + radius, centre.y + 12, centre.z + radius);
 		return level.getEntitiesOfClass(LivingEntity.class, box, other -> other.isAlive() && horizontal(other.position(), centre) <= radius + other.getBbWidth() / 2
 			&& (!foesOnly || other != caster.body() && Faction.hostile(caster, other)));
 	}

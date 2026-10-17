@@ -192,8 +192,11 @@ final class AbilityAi {
 				yield hidden != null && cast(unit, level, ability, hidden.position());
 			}
 			case STASIS_WARD -> target != null && foesAround(unit, at, ProtossAbilities.WARD_RADIUS) >= 3 && cast(unit, level, ability, at);
-			case MASS_RECALL -> unit.getHealth() < unit.getMaxHealth() * 0.3f && unit.home() != null && unit.home().distSqr(unit.blockPosition()) > 48 * 48
-				&& cast(unit, level, ability);
+			case MASS_RECALL -> { // its own troops losing a fight far off come to it
+				StarUnit losing = nearestOwn(unit, unit.kind == UnitKind.NEXUS ? 96 : 48, other -> !other.kind.structure() && other != unit
+					&& other.distanceTo(unit) > 16 && other.getHealth() < other.getMaxHealth() * 0.4f && foeWithin(other, 10));
+				yield losing != null && cast(unit, level, ability, losing.position());
+			}
 			case TIME_WARP -> target != null && foesAround(unit, at, ProtossAbilities.TIME_WARP_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case CHRONO_BOOST -> {
 				StarUnit busy = nearestOwn(unit, 32, other -> other.kind.structure() && !other.queue().isEmpty() && !Status.has(other, Status.CHRONO));

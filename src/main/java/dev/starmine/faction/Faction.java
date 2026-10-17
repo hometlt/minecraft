@@ -56,6 +56,7 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	public static boolean hostile(StarUnit unit, LivingEntity other) {
 		if (!other.isAlive() || other instanceof ArmorStand || allied(unit, other)) return false;
 		if (other instanceof StarUnit changeling && changeling.kind == UnitKind.CHANGELING) return false; // SC2: nobody attacks a changeling unprovoked
+		if (other instanceof StarUnit shade && dev.starmine.ability.ProtossAbilities.SHADE.equals(shade.disguise())) return false; // an adept's shade cannot be hit
 		if (other instanceof Player player && (player.isCreative() || player.isSpectator())) return false;
 		Faction self = of(unit), them = of(other);
 		boolean wild = self == null || self.wild();

@@ -149,6 +149,7 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		StarMineBlocks.load();
+		dev.starmine.gear.TraitPotions.load();
 		dev.starmine.vespene.Vespene.load();
 		dev.starmine.colony.CommandPanel.load();
 		dev.starmine.colony.PlatformBlock.load();

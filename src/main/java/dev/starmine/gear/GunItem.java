@@ -97,7 +97,7 @@ public final class GunItem extends Item {
 		if (hit != null) {
 			stop = hit.getLocation();
 			Entity target = hit.getEntity();
-			float bonus = target instanceof dev.starmine.entity.StarUnit unit && unit.kind.light() ? lightBonus : 0;
+			float bonus = target instanceof net.minecraft.world.entity.LivingEntity living && dev.starmine.entity.Trait.has(living, dev.starmine.entity.Trait.LIGHT) ? lightBonus : 0;
 			target.hurt(shooter instanceof Player player ? level.damageSources().playerAttack(player) : level.damageSources().mobAttack(shooter), damage + bonus);
 		}
 		int steps = (int) Math.min(40, eye.distanceTo(stop) * 2);

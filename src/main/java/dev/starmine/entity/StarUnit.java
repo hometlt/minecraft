@@ -1813,7 +1813,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!(this.level() instanceof ServerLevel server) || what == null || !what.at(kind) || constructTicks > 0 || research != null || lifted()) return false;
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
 		if (hive == null || what.refusal(hive, kind) != null) return false;
-		if (what.at(UnitKind.BARRACKS) && mode() != dev.starmine.ability.Modes.TECHLAB) return false; // SC2: at the tech lab
+		if ((what.at(UnitKind.BARRACKS) || what.at(UnitKind.FACTORY) || what.at(UnitKind.STARPORT)) && mode() != dev.starmine.ability.Modes.TECHLAB)
+			return false; // SC2: at the tech lab
 		int level = what.nextLevel(hive);
 		hive.pay(what.price(level));
 		research = what.id();
@@ -2079,7 +2080,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		UnitKind by = source.getEntity() instanceof StarUnit attacker ? attacker.kind
 			: source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player ? dev.starmine.possess.Pilots.kindOf(player) : null;
 		if (source.getEntity() instanceof StarUnit attacker) // its base's damage upgrades (infernal pre-igniter, tectonic destabilizers)
-			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, kind) * UnitKind.SCALE);
+			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, Trait.of(this)) * UnitKind.SCALE);
 		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0)
 			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind));
 		if (armor <= 0) return amount;
@@ -2098,6 +2099,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public void knockback(double strength, double x, double z) {
 		if (!steady) super.knockback(strength, x, z);
+	}
+
+	/** Potions and effects do not take on buildings (owner 17.10: a thrown potion of attributes leaves them be). */
+	@Override
+	public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect) {
+		return !kind.structure() && super.canBeAffected(effect);
 	}
 
 	/** A lowered supply depot (SC2) lies flat in the ground: everyone walks over it, players too. */

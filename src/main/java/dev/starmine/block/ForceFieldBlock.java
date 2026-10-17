@@ -50,13 +50,32 @@ public class ForceFieldBlock extends Block {
 	/** Massive units pass (and break it, {@link #entityInside}); everyone else is stopped. */
 	@Override
 	protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-		if (context instanceof EntityCollisionContext entity && entity.getEntity() instanceof StarUnit unit && unit.kind.massive()) return Shapes.empty();
+		if (context instanceof EntityCollisionContext entity && entity.getEntity() instanceof net.minecraft.world.entity.LivingEntity living
+			&& dev.starmine.entity.Trait.has(living, dev.starmine.entity.Trait.MASSIVE)) return Shapes.empty(); // a massive unit, or a player made massive
 		return Shapes.block();
 	}
 
 	@Override
 	protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
-		if (!level.isClientSide && entity instanceof StarUnit unit && unit.kind.massive()) level.removeBlock(pos, false);
+		if (level instanceof ServerLevel server && entity instanceof net.minecraft.world.entity.LivingEntity living
+			&& dev.starmine.entity.Trait.has(living, dev.starmine.entity.Trait.MASSIVE)) shatter(server, pos);
+	}
+
+	/** The whole field the block is part of shatters (SC2: a massive unit touching it): its blocks go with a sound of breaking glass. */
+	public static void shatter(ServerLevel level, BlockPos touched) {
+		java.util.ArrayDeque<BlockPos> open = new java.util.ArrayDeque<>(java.util.List.of(touched.immutable()));
+		java.util.Set<BlockPos> seen = new java.util.HashSet<>(open);
+		while (!open.isEmpty() && seen.size() < 200) {
+			BlockPos at = open.poll();
+			if (!level.getBlockState(at).is(dev.starmine.block.StarMineBlocks.FORCE_FIELD)) continue;
+			level.removeBlock(at, false);
+			level.sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, 2, 0.3, 0.3, 0.3, 0.05);
+			for (Direction direction : Direction.values()) {
+				BlockPos next = at.relative(direction);
+				if (seen.add(next) && next.closerThan(touched, 6)) open.add(next);
+			}
+		}
+		level.playSound(null, touched, net.minecraft.sounds.SoundEvents.GLASS_BREAK, net.minecraft.sounds.SoundSource.BLOCKS, 2f, 0.7f);
 	}
 
 	@Override

@@ -189,6 +189,33 @@ public class ProtossAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 17.10: the adept stays while its shade runs; called off, the shade goes and the adept stays. */
+	@GameTest(template = ARENA, batch = "protossShadeCancel", timeoutTicks = 300)
+	public void aCancelledShadeLeavesTheAdept(GameTestHelper helper) {
+		clear(helper);
+		StarUnit adept = unit(helper, UnitKind.ADEPT, 10, 24, UUID.randomUUID());
+		adept.setNoAi(true);
+		ServerLevel level = helper.getLevel();
+		Vec3 to = point(helper, 30, 24);
+		java.util.concurrent.atomic.AtomicReference<Vec3> from = new java.util.concurrent.atomic.AtomicReference<>();
+		helper.runAfterDelay(2, () -> {
+			from.set(adept.position());
+			helper.assertTrue(Abilities.cast(adept, level, Ability.PSIONIC_TRANSFER, null, to), "no transfer");
+			helper.assertTrue(Abilities.available(adept, Ability.SHADE_CANCEL) && !Abilities.available(adept, Ability.PSIONIC_TRANSFER), "no cancel on the card");
+		});
+		helper.runAfterDelay(40, () -> {
+			List<StarUnit> shades = level.getEntitiesOfClass(StarUnit.class, adept.getBoundingBox().inflate(40), unit -> Status.has(unit, Status.SHADE));
+			helper.assertTrue(shades.size() == 1 && shades.get(0).distanceTo(adept) > 3, "no shade running: " + shades.size());
+			helper.assertTrue(adept.position().distanceTo(from.get()) < 0.5, "the adept moved with its shade");
+			helper.assertTrue(Abilities.cast(adept, level, Ability.SHADE_CANCEL, null, null), "no cancel");
+		});
+		helper.runAfterDelay(200, () -> {
+			helper.assertTrue(adept.position().distanceTo(from.get()) < 0.5, "the adept went to a cancelled shade");
+			helper.assertTrue(level.getEntitiesOfClass(StarUnit.class, adept.getBoundingBox().inflate(40), unit -> Status.has(unit, Status.SHADE)).isEmpty(), "the shade stayed");
+			helper.succeed();
+		});
+	}
+
 	@GameTest(template = ARENA, batch = "protossHallucination", timeoutTicks = 100)
 	public void hallucinationsDealNoDamage(GameTestHelper helper) {
 		clear(helper);
@@ -319,19 +346,24 @@ public class ProtossAbilityGameTests implements FabricGameTest {
 	}
 
 	@GameTest(template = ARENA, batch = "protossRecall", timeoutTicks = 100)
-	public void massRecallBringsTheArmyHome(GameTestHelper helper) {
+	public void strategicRecallBringsTheArmy(GameTestHelper helper) {
 		clear(helper);
 		StarUnit nexus = unit(helper, UnitKind.NEXUS, 36, 36, UUID.randomUUID());
 		ServerLevel level = helper.getLevel();
 		helper.runAfterDelay(5, () -> {
 			Hive base = TestArena.base(helper, nexus);
 			helper.assertTrue(base != null, "no base");
-			StarUnit mothership = TestArena.member(helper, base, UnitKind.MOTHERSHIP, 8, 8);
-			StarUnit zealot = TestArena.member(helper, base, UnitKind.ZEALOT, 10, 10);
-			helper.assertTrue(Abilities.cast(mothership, level, Ability.MASS_RECALL, null, null), "no recall");
-			// the mothership comes back at its hover height (20 blocks up): home is measured on the ground
-			helper.assertTrue(zealot.distanceTo(nexus) < 16 && Abilities.horizontal(mothership.position(), nexus.position()) < 20,
-				"not recalled: zealot " + zealot.distanceTo(nexus) + ", mothership " + Abilities.horizontal(mothership.position(), nexus.position()));
+			StarUnit mothership = TestArena.member(helper, base, UnitKind.MOTHERSHIP, 40, 8);
+			StarUnit zealot = TestArena.member(helper, base, UnitKind.ZEALOT, 8, 10);
+			StarUnit stalker = TestArena.member(helper, base, UnitKind.STALKER, 8, 40);
+			// the mothership calls the zealot's circle to itself; the stalker, outside it, stays
+			helper.assertTrue(Abilities.cast(mothership, level, Ability.MASS_RECALL, null, zealot.position()), "no recall: " + Abilities.refusal(mothership, Ability.MASS_RECALL));
+			helper.assertTrue(Abilities.horizontal(zealot.position(), mothership.position()) < 8, "the zealot was not recalled to the mothership: "
+				+ Abilities.horizontal(zealot.position(), mothership.position()));
+			helper.assertTrue(Abilities.horizontal(stalker.position(), point(helper, 8, 40)) < 1, "a stalker outside the circle was recalled");
+			// the nexus calls the stalker home
+			helper.assertTrue(Abilities.cast(nexus, level, Ability.MASS_RECALL, null, stalker.position()), "no nexus recall: " + Abilities.refusal(nexus, Ability.MASS_RECALL));
+			helper.assertTrue(stalker.distanceTo(nexus) < 12, "the stalker is not at the nexus: " + stalker.distanceTo(nexus));
 			helper.succeed();
 		});
 	}

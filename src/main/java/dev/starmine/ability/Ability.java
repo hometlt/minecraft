@@ -65,7 +65,8 @@ public enum Ability {
 	// ---- protoss ----
 	CHARGE(             "charge",              'C', Target.UNIT,    0,     7,       4,    0,      0),
 	BLINK(              "blink",               'B', Target.POINT,   0,     7,       8,    0,      0),
-	PSIONIC_TRANSFER(   "psionic_transfer",    'F', Target.POINT,   0,     11,      0,    0,      7),
+	PSIONIC_TRANSFER(   "psionic_transfer",    'F', Target.POINT,   0,     11,      0,    0,      0),
+	SHADE_CANCEL(       "shade_cancel",        'C', Target.NONE,    0,     0,       0,    0,      0),
 	FORCE_FIELD(        "force_field",         'F', Target.POINT,   50,    0,       9,    0,      0),
 	GUARDIAN_SHIELD(    "guardian_shield",     'G', Target.NONE,    75,    0,       0,    0,      0),
 	HALLUCINATION(      "hallucination",       'C', Target.NONE,    75,    0,       0,    0,      0),
@@ -81,7 +82,7 @@ public enum Ability {
 	REVELATION(         "revelation",          'R', Target.POINT,   25,    0,       9,    0,      0),
 	STASIS_WARD(        "stasis_ward",         'T', Target.POINT,   50,    0,       3,    0,      0),
 	DISINTEGRATION(     "disintegration",      'R', Target.POINT,   0,     43,      13,   0,      7),
-	MASS_RECALL(        "mass_recall",         'R', Target.NONE,    0,     130,     0,    0,      0),
+	MASS_RECALL(        "mass_recall",         'R', Target.POINT,   0,     130,     0,    0,      0),
 	TIME_WARP(          "time_warp",           'T', Target.POINT,   75,    0,       9,    0,      0),
 	CHRONO_BOOST(       "chrono_boost",        'C', Target.UNIT,    50,    0,       0,    0,      0),
 	BATTERY_OVERCHARGE( "battery_overcharge",  'B', Target.UNIT,    0,     60,      0,    0,      0),
@@ -166,7 +167,7 @@ public enum Ability {
 			case BUILD_TECHLAB, BUILD_REACTOR -> List.of(BARRACKS, FACTORY, STARPORT);
 			case CHARGE -> List.of(ZEALOT);
 			case BLINK -> List.of(STALKER);
-			case PSIONIC_TRANSFER -> List.of(ADEPT);
+			case PSIONIC_TRANSFER, SHADE_CANCEL -> List.of(ADEPT);
 			case FORCE_FIELD, GUARDIAN_SHIELD, HALLUCINATION -> List.of(SENTRY);
 			case PSIONIC_STORM -> List.of(HIGH_TEMPLAR, ARTANIS);
 			case FEEDBACK -> List.of(HIGH_TEMPLAR);
@@ -181,7 +182,8 @@ public enum Ability {
 			case PRISMATIC_ALIGNMENT -> List.of(VOID_RAY);
 			case PULSAR_BEAM, REVELATION, STASIS_WARD -> List.of(ORACLE);
 			case DISINTEGRATION -> List.of(TEMPEST);
-			case MASS_RECALL, TIME_WARP -> List.of(MOTHERSHIP);
+			case TIME_WARP -> List.of(MOTHERSHIP);
+			case MASS_RECALL -> List.of(MOTHERSHIP, NEXUS); // SC2 strategic recall, both
 			case CHRONO_BOOST, BATTERY_OVERCHARGE -> List.of(NEXUS);
 			case WARP_GATE -> List.of(GATEWAY);
 			case LOAD, UNLOAD -> List.of(MEDIVAC, WARP_PRISM, OVERLORD, BUNKER);

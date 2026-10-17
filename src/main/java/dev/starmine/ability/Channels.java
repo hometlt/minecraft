@@ -58,7 +58,8 @@ final class Channels {
 	private static void hold(StarUnit caster, ServerLevel level, Ability ability, LivingEntity target, int elapsed) {
 		switch (ability) {
 			case GRAVITON_BEAM -> {
-				Status.apply(target, Status.LIFTED, 3);
+				if (target instanceof StarUnit) Status.apply(target, Status.LIFTED, 3);
+				else hover(level, target); // a player or a creature: held 2.5 blocks up (levitation would carry it off into the sky)
 				if (caster.tickCount % 4 == 0) beam(level, caster, target, ParticleTypes.END_ROD);
 			}
 			case CAUSTIC_SPRAY -> {
@@ -84,6 +85,19 @@ final class Channels {
 			default -> {
 			}
 		}
+	}
+
+	/** Holds a player or a creature {@link Status#LIFT_HEIGHT} over the ground under it, helpless. */
+	static void hover(ServerLevel level, LivingEntity target) {
+		net.minecraft.core.BlockPos.MutableBlockPos at = target.blockPosition().mutable();
+		int floor = at.getY() - 8;
+		while (at.getY() > floor && level.getBlockState(at.below()).getCollisionShape(level, at.below()).isEmpty()) at.move(0, -1, 0);
+		double height = at.getY() + Status.LIFT_HEIGHT;
+		Vec3 motion = target.getDeltaMovement();
+		target.setDeltaMovement(motion.x * 0.3, target.getY() < height ? 0.12 : target.getY() > height + 0.3 ? -0.05 : 0.0, motion.z * 0.3);
+		target.fallDistance = 0;
+		target.hurtMarked = true; // a player's client takes the motion
+		if (target instanceof Mob mob) mob.getNavigation().stop();
 	}
 
 	/** A line of particles from the caster to the target. */

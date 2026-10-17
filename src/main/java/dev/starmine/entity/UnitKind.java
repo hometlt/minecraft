@@ -324,6 +324,19 @@ public enum UnitKind {
 		return this == KERRIGAN || this == RAYNOR || this == ARTANIS || guardian();
 	}
 
+	/** SC2 psionic: the templar, the archon, the sentry, the ghost, the queen, the infestor, the viper, the oracle, the mothership, the heroes. */
+	public boolean psionic() {
+		return switch (this) {
+			case HIGH_TEMPLAR, DARK_TEMPLAR, ARCHON, SENTRY, GHOST, QUEEN, INFESTOR, VIPER, ORACLE, MOTHERSHIP -> true;
+			default -> heroic();
+		};
+	}
+
+	/** SC2 heroic: the heroes (no neural parasite, abduct or graviton beam takes them). */
+	public boolean heroic() {
+		return boss();
+	}
+
 	/** Owner 17.10: the heroes guarding the main bases in the overworld — Abathur, Swann, Karax. */
 	public boolean guardian() {
 		return this == ABATHUR || this == SWANN || this == KARAX;
@@ -620,7 +633,12 @@ public enum UnitKind {
 	 * marines…) come from it. Applied with every hit ({@link dev.starmine.ability.Passives#bonus}).
 	 */
 	public double bonusDamage(UnitKind target) {
-		boolean armored = target.armored(), light = target.light();
+		return bonusDamage(Trait.of(target));
+	}
+
+	/** {@link #bonusDamage(UnitKind)} against anyone's attributes (owner 17.10: players and creatures have theirs, {@link Trait#of(net.minecraft.world.entity.LivingEntity)}). */
+	public double bonusDamage(java.util.Set<Trait> target) {
+		boolean armored = target.contains(Trait.ARMORED), light = target.contains(Trait.LIGHT);
 		return switch (this) {
 			case MARAUDER -> armored ? 10 : 0;
 			case STALKER -> armored ? 5 : 0;
@@ -630,13 +648,14 @@ public enum UnitKind {
 			case SPINE_CRAWLER -> armored ? 5 : 0;
 			case ADEPT, HELLION -> light ? (this == ADEPT ? 12 : 6) : 0;
 			case HELLBAT -> light ? 12 : 0;
-			case VIKING_ASSAULT -> target.mechanical() ? 8 : 0;
+			case VIKING_ASSAULT -> target.contains(Trait.MECHANICAL) ? 8 : 0;
 			case BANELING -> light ? 15 : 0;
 			case COLOSSUS -> light ? 10 : 0;
 			case GHOST, PHOENIX -> light ? (this == GHOST ? 10 : 5) : 0;
 			case ORACLE -> light ? 7 : 0;
-			case ARCHON -> target.biological() ? 10 : 0;
-			case CORRUPTOR -> target.massive() ? 6 : 0;
+			case ARCHON -> target.contains(Trait.BIOLOGICAL) ? 10 : 0;
+			case CORRUPTOR -> target.contains(Trait.MASSIVE) ? 6 : 0;
+			case TEMPEST -> target.contains(Trait.MASSIVE) ? 22 : 0; // its anti-air: +22 against massive
 			default -> 0;
 		};
 	}

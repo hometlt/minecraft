@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Chrono Boost$(): A building works 50 % faster for 20 s$(br2)$(l)Battery Overcharge$(): A shield battery restores twice as fast for 14 s"
+			"text": "$(l)Strategic Recall$(): Your units in the circle at the point teleport to the caster (the mothership or a nexus)$(br2)$(l)Chrono Boost$(): A building works 50 % faster for 20 s$(br2)$(l)Battery Overcharge$(): A shield battery restores twice as fast for 14 s"
 		}
 	]
 }

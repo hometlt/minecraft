@@ -46,7 +46,8 @@ public final class Changeling {
 		LivingEntity spied = spied(unit, level);
 		if (spied == null && unit.disguise().isEmpty()) {
 			spied = firstSeen(unit, level);
-			if (spied != null) unit.setDisguise(spied instanceof Player ? spied.getUUID().toString() : VILLAGER);
+			if (spied != null) unit.setDisguise(spied instanceof Player ? spied.getUUID().toString()
+				: spied instanceof StarUnit soldier ? KIND + basic(soldier.kind.race).name() : VILLAGER);
 		}
 		unit.abilities.spied = spied == null ? null : spied.getUUID();
 		if (spied == null) return;
@@ -65,6 +66,12 @@ public final class Changeling {
 		String look = unit.disguise();
 		if (look.isEmpty()) return null;
 		if (look.equals(VILLAGER)) return nearest(unit, level.getEntitiesOfClass(AbstractVillager.class, unit.getBoundingBox().inflate(SIGHT), Entity::isAlive));
+		if (look.startsWith(KIND)) { // among the troops of the race it looks like
+			UnitKind as = disguisedAs(unit);
+			return as == null ? null : nearest(unit, level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(SIGHT * 2),
+				other -> other.isAlive() && other.kind.race == as.race && other.kind != UnitKind.CHANGELING && !other.kind.structure()
+					&& !dev.starmine.faction.Faction.allied(other, unit)));
+		}
 		try {
 			Player player = level.getPlayerByUUID(UUID.fromString(look));
 			return player != null && player.isAlive() && player.distanceTo(unit) < SIGHT * 2 ? player : null;
@@ -73,12 +80,42 @@ public final class Changeling {
 		}
 	}
 
-	/** The nearest villager or player (not a spectator) it sees. */
+	/**
+	 * The nearest villager or player (not a spectator) it sees; with none, the nearest troops of another side
+	 * (owner 17.10, SC2: it takes the look of their race's basic soldier — a marine, a zealot, a zergling — and walks among them).
+	 */
 	private static @Nullable LivingEntity firstSeen(StarUnit unit, ServerLevel level) {
 		List<LivingEntity> seen = level.getEntitiesOfClass(LivingEntity.class, unit.getBoundingBox().inflate(SIGHT),
 			other -> other.isAlive() && (other instanceof AbstractVillager || other instanceof Player player && !player.isSpectator())
 				&& unit.hasLineOfSight(other));
-		return nearest(unit, seen);
+		LivingEntity found = nearest(unit, seen);
+		if (found != null || unit.tickCount < 60) return found; // villagers and players first: a few seconds to see them
+		return nearest(unit, level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(SIGHT),
+			other -> other.isAlive() && other != unit && other.kind != UnitKind.CHANGELING && !other.kind.structure()
+				&& !dev.starmine.faction.Faction.allied(other, unit) && unit.hasLineOfSight(other)));
+	}
+
+	/** The look of another race's soldier: "kind:MARINE". */
+	public static final String KIND = "kind:";
+
+	/** A race's basic soldier, whose look a changeling takes among that race's troops. */
+	public static UnitKind basic(UnitKind.Race race) {
+		return switch (race) {
+			case ZERG -> UnitKind.ZERGLING;
+			case TERRAN -> UnitKind.MARINE;
+			case PROTOSS -> UnitKind.ZEALOT;
+		};
+	}
+
+	/** The kind it looks like (null: none, a villager or a player). */
+	public static @Nullable UnitKind disguisedAs(StarUnit unit) {
+		String look = unit.disguise();
+		if (!look.startsWith(KIND)) return null;
+		try {
+			return UnitKind.valueOf(look.substring(KIND.length()));
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 
 	private static <T extends LivingEntity> @Nullable T nearest(StarUnit unit, List<T> list) {
