@@ -1,6 +1,6 @@
 {
 	"name": "Опухоли слизи",
-	"icon": "starmine:creep_tumor",
+	"icon": "starmine:module_creep_tumor",
 	"category": "starmine:zerg_general",
 	"sortnum": 1,
 	"pages": [
