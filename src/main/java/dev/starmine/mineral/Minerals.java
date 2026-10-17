@@ -62,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
  * ({@link #EARTH}) that cannot be broken while the crystal stands; it turns to dirt when the crystal is gone.
  * No main building may stand within {@link #KEEP_OFF} blocks of a crystal (SC2: they stand off the field).
  * A laid-over map's crystals are 3 x 3 x 3 (owner 17.10: one SC2 mineral field, one crystal; the
- * core keeps its size), and the rest of their field is {@link #WARD}: nothing passes or is built over it.
+ * core keeps its size), and the block over them is {@link #WARD}: nothing climbs over them.
  */
 public final class Minerals {
 	public static final int AMOUNT = 500, PER_TRIP = 5, KEEP_OFF = 16;
@@ -77,9 +77,9 @@ public final class Minerals {
 			.sound(SoundType.AMETHYST).lightLevel(state -> 6).noOcclusion().pushReaction(PushReaction.BLOCK)
 			.isValidSpawn((state, level, pos, type) -> false)));
 	/**
-	 * Over a map's mineral field where its crystal does not stand (owner 17.10: SC2's mineral walls hold
-	 * units back): unseen, a fence's height to walk into, a fence to a path finder, nothing to build on.
-	 * It goes with the field's crystals ({@link #deplete}).
+	 * The block over a map's crystal (owner 17.10: SC2's mineral walls hold units back, none climbs over
+	 * a crystal): unseen, a fence's height to walk into, a fence to a path finder. It goes with the
+	 * crystal ({@link #deplete}).
 	 */
 	public static final Block WARD = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("mineral_ward"),
 		new Ward(BlockBehaviour.Properties.of().mapColor(MapColor.NONE).strength(-1f, 3_600_000f).noLootTable().noOcclusion()

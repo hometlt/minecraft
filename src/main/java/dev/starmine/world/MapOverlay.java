@@ -287,7 +287,9 @@ public final class MapOverlay {
 	/**
 	 * A tree of the game's own for a map's tree: by its foliage colour (pink or violet: cherry, orange:
 	 * acacia, blue-green: spruce, pale: birch, dark: dark oak, saturated green: jungle, else oak) and its
-	 * size (five blocks across or more, or 14 high: the large form of the kind, where it has one).
+	 * size (five blocks across or more, or 14 high: the large form of the kind, where it has one). It
+	 * stands on soil (owner 17.10): grass under its trunk and round it, dirt down to firm ground, so
+	 * no tree hangs over a drop.
 	 */
 	private static void tree(WorldGenLevel level, ChunkGenerator generator, Marker marker) {
 		int rgb = marker.colour() < 0 ? 0x507030 : marker.colour();
@@ -303,7 +305,23 @@ public final class MapOverlay {
 		else if (saturation > 0.45f) key = large ? TreeFeatures.MEGA_JUNGLE_TREE : TreeFeatures.JUNGLE_TREE_NO_VINE;
 		else key = large ? TreeFeatures.FANCY_OAK : TreeFeatures.OAK;
 		ConfiguredFeature<?, ?> feature = level.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).get(key);
-		if (feature != null) feature.place(level, generator, RandomSource.create(marker.pos().asLong()), marker.pos());
+		if (feature == null) return;
+		int reach = large ? 2 : 1;
+		BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
+		for (int dx = -reach; dx <= reach + (large ? 1 : 0); dx++)
+			for (int dz = -reach; dz <= reach + (large ? 1 : 0); dz++) {
+				if (Math.abs(dx) == reach + (large && dx > 0 ? 1 : 0) && Math.abs(dz) == reach + (large && dz > 0 ? 1 : 0)) continue; // round corners
+				at.set(marker.pos().getX() + dx, marker.pos().getY() - 1, marker.pos().getZ() + dz);
+				if (ours(level.getBlockState(at))) continue;
+				level.setBlock(at, Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+				for (int depth = 0; depth < 12; depth++) {
+					at.move(net.minecraft.core.Direction.DOWN);
+					BlockState below = level.getBlockState(at);
+					if (below.isFaceSturdy(level, at, net.minecraft.core.Direction.UP) && below.getFluidState().isEmpty()) break;
+					level.setBlock(at, Blocks.DIRT.defaultBlockState(), Block.UPDATE_CLIENTS);
+				}
+			}
+		feature.place(level, generator, RandomSource.create(marker.pos().asLong()), marker.pos());
 	}
 
 	// ---- loading ----
@@ -444,7 +462,7 @@ public final class MapOverlay {
 			return;
 		}
 		if (!kind.contains("mineral") && !kind.contains("crystal")) return;
-		// one mineral field, one crystal (3 x 3 x 3) in its middle, the rest of the field warded (owner 17.10)
+		// one mineral field, one crystal (3 x 3 x 3) in its middle (owner 17.10)
 		int amount = switch (marker.state() == null ? "full" : marker.state()) {
 			case "reduced" -> Minerals.AMOUNT * 3 / 5;
 			case "depleted" -> Minerals.AMOUNT * 3 / 10;
@@ -460,15 +478,12 @@ public final class MapOverlay {
 			entity.setAmount(amount);
 			entity.setSize(3);
 		}
-		BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
-		for (int wx = marker.minX(); wx <= marker.maxX(); wx++)
-			for (int wz = marker.minZ(); wz <= marker.maxZ(); wz++) {
-				int ground = overlay.ground(wx, wz);
-				if (ground == NONE) continue;
-				BlockState there = level.getBlockState(at.set(wx, ground, wz));
-				if (there.isAir() || there.canBeReplaced() && there.getFluidState().isEmpty())
-					level.setBlock(at, Minerals.WARD.defaultBlockState(), Block.UPDATE_CLIENTS);
-			}
+		// the block over the crystal is warded (owner 17.10: nothing climbs over it, the ground round it stays free)
+		for (BlockPos pos : BlockPos.betweenClosed(core.offset(0, 3, 0), core.offset(2, 3, 2))) {
+			BlockState there = level.getBlockState(pos);
+			if (there.isAir() || there.canBeReplaced() && there.getFluidState().isEmpty())
+				level.setBlock(pos, Minerals.WARD.defaultBlockState(), Block.UPDATE_CLIENTS);
+		}
 	}
 
 	/** The starts become the bases' sites, once per world; the world spawn goes to a free start or the map's centre. */

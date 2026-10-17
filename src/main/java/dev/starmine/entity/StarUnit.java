@@ -266,8 +266,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			.add(Attributes.ATTACK_DAMAGE, Math.max(0.5, kind.damage))
 			.add(Attributes.FOLLOW_RANGE, kind.worker() ? 64.0 : kind.race != UnitKind.Race.ZERG ? kind.sight() + 4 : 32.0)
 			.add(Attributes.KNOCKBACK_RESISTANCE, Math.min(1.0, kind.health / 150))
-			// SC2 cliff walkers: the colossus strides and the reaper jumps up to 8 blocks (owner 17.10: one SC2 cliff level of a laid-over map); zerglings leap 2 (owner)
-			.add(Attributes.STEP_HEIGHT, kind == UnitKind.COLOSSUS || kind == UnitKind.REAPER ? 8.0 : kind == UnitKind.ZERGLING ? 2.0 : 1.0)
+			// SC2 cliff walkers: the colossus strides and the reaper jumps up to 9 blocks (owner 17.10: one SC2 cliff level of a laid-over map, 8, and its rim); zerglings leap 2 (owner)
+			.add(Attributes.STEP_HEIGHT, kind == UnitKind.COLOSSUS || kind == UnitKind.REAPER ? 9.0 : kind == UnitKind.ZERGLING ? 2.0 : 1.0)
 			.add(Attributes.JUMP_STRENGTH, kind == UnitKind.ZERGLING ? 0.62 : 0.42);
 	}
 
