@@ -78,7 +78,7 @@ public class MapOverlayGameTests implements FabricGameTest {
 				crystals++;
 				helper.assertTrue(core.amount() == Minerals.AMOUNT * 3 / 5 * 3 / 2, "a rich reduced field holds " + core.amount());
 			}
-		helper.assertTrue(crystals == 2, "a 6-block field made " + crystals + " crystals, not 2");
+		helper.assertTrue(crystals == 1, "a field made " + crystals + " crystals, not one (owner 17.10: one SC2 mineral, one crystal)");
 		helper.succeed();
 	}
 }

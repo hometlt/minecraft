@@ -39,6 +39,8 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 		float left = 0.5f + 0.5f * Math.max(0, core.amount()) / Minerals.AMOUNT;
 		int glow = Math.max(light, GLOW);
 		int shards = 6 + random.nextInt(3);
+		pose.pushPose();
+		pose.scale(core.size() / 2f, core.size() / 2f, core.size() / 2f); // drawn for 2 x 2 x 2
 		for (int i = 0; i < shards; i++) {
 			float x, z, height, width;
 			if (i == 0) { // the tallest in the middle
@@ -62,6 +64,7 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 			shard(pose.last(), out, width, height * left, overlay, glow, i == 0 ? 255 : 220 + random.nextInt(36), core.rich());
 			pose.popPose();
 		}
+		pose.popPose();
 	}
 
 	/** A six-sided prism `width` across rising to 70 % of `height`, then a point. */

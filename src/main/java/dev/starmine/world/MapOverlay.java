@@ -2,6 +2,7 @@ package dev.starmine.world;
 
 import com.mojang.serialization.Codec;
 import dev.starmine.StarMine;
+import dev.starmine.block.StarMineBlocks;
 import dev.starmine.entity.UnitKind;
 import dev.starmine.hive.HiveSavedData;
 import dev.starmine.mineral.Minerals;
@@ -43,7 +44,10 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.data.worldgen.features.TreeFeatures;
 import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,16 +65,23 @@ import org.slf4j.LoggerFactory;
  * A map laid over the world (owner 17.10): a StarCraft II map (or any world Modkit exports) as a
  * Modkit world overlay — a data pack with `data/<namespace>/world_overlay/<name>.nbt`, format
  * "modkit-world-overlay" 1, written by Modkit's Minecraft extension (`minecraft-world-overlay`).
- * The world generates as always; in the chunks the map covers this feature (last decoration step)
- * builds the map's land over it: each column's ground top block and three blocks of its under
- * block at the map's height, rock filling caves and gaps for 20 blocks under that, nothing of the
- * world above it (StarMine blocks are kept), the map's water or lava, and the voxels of its objects
- * (rocks, trees, cliffs). Everything deeper than that is the world's own: caves, ores, bedrock.
+ * The world's own relief rises or sinks to the map's ground under the map ({@link MapOverlayDensity}:
+ * the overworld's depth, factor and jaggedness follow the map's columns in proportion to each
+ * column's weight, `Blend`: full over the map, falling to none at its edge), so under the map lie
+ * the world's own stone, caves and aquifers, no gap or sea, and round it the world's hills and
+ * coasts flow into the map's. Then, in the chunks the map covers, this feature (last decoration
+ * step) builds the map's land on the columns of full weight (the others are the world's own): each column's ground top block and three
+ * blocks of its under block at the map's height, rock filling caves and gaps for {@link #FILL}
+ * blocks under that, nothing of the world above it (StarMine blocks are kept), the map's water or
+ * lava, the voxels of its objects (rocks, cliffs), its trees (the game's own, chosen by size and
+ * foliage colour, {@link #tree}), its lamps ({@link StarMineBlocks#MAP_LAMP}) and its sight blockers
+ * ({@link VisionBlocker}). Under ground units walk on there are no ores for {@link #NO_ORES} blocks.
  *
  * The map's markers become StarMine's: once their chunk and its neighbours are loaded, a mineral
- * field becomes crystals ({@link Minerals#place}) along its outline, a geyser a vespene vein from the
- * bedrock up to a geyser ({@link VespeneVeinFeature#build}). The natural mineral fields and veins
- * keep out of the map. The start locations are the bases' sites: the first the terran base, the
+ * field becomes one crystal ({@link Minerals#place}) in its middle, a geyser a vespene vein from the
+ * bedrock up to a geyser ({@link VespeneVeinFeature#build}). The natural mineral fields, veins,
+ * wild packs and small dungeons keep out of the map; no monster spawns on the ground units walk
+ * ({@link #walked}). The start locations are the bases' sites: the first the terran base, the
  * second the protoss base, the third the zerg lair ({@link RaceBases}, {@link dev.starmine.hive.HiveStructure}),
  * built as the player nears; the world spawn is a fourth start, else the map's centre.
  */
@@ -78,20 +89,28 @@ public final class MapOverlay {
 	private static final Logger LOG = LoggerFactory.getLogger("StarMine");
 	public static final String FORMAT = "modkit-world-overlay";
 	public static final int NONE = Integer.MIN_VALUE;
-	/** How deep under a column's ground caves and gaps are filled with rock. */
-	static final int FILL = 20;
+	/** How deep under a column's ground caves and gaps are filled with rock (a crust over the world's caves). */
+	static final int FILL = 4;
+	/** How deep under ground units walk on the world's ores are turned back to rock (owner 17.10). */
+	static final int NO_ORES = 20;
 
 	public record Marker(int index, String role, @Nullable String kind, @Nullable String variant, @Nullable String state,
-		BlockPos pos, int minX, int minZ, int maxX, int maxZ) {
+		BlockPos pos, int minX, int minZ, int maxX, int maxZ, int colour, int height) {
 	}
 
 	final String name;
 	final int minX, minZ, sizeX, sizeZ, baseY;
 	final BlockState[] palette;
 	final int[] top, topBlock, under, water, fluid;
+	/** Per column: 1 where units walk (the map's pathing), all 1 without it. */
+	final byte[] walk;
+	/** Per column: the map's weight over the world's relief, 0–255 (255 where the map is built). */
+	final byte[] blend;
 	/** Chunk (ChunkPos long) → positions `(y + 4096) << 8 | z << 4 | x` and palette indices. */
 	final Map<Long, int[][]> chunks = new HashMap<>();
 	final List<Marker> markers = new ArrayList<>();
+	/** Chunk (ChunkPos long) → the trees, lamps and sight blockers built with it. */
+	final Map<Long, List<Marker>> built = new HashMap<>();
 
 	private static volatile List<MapOverlay> loaded = List.of();
 
@@ -119,6 +138,12 @@ public final class MapOverlay {
 		water = tag.getIntArray("Water");
 		fluid = tag.getIntArray("Fluid");
 		int columns = sizeX * sizeZ;
+		byte[] walked = tag.getByteArray("Walk");
+		if (walked.length != columns) java.util.Arrays.fill(walked = new byte[columns], (byte) 1);
+		walk = walked;
+		byte[] weights = tag.getByteArray("Blend");
+		if (weights.length != columns) java.util.Arrays.fill(weights = new byte[columns], (byte) -1);
+		blend = weights;
 		if (sizeX <= 0 || sizeZ <= 0 || top.length != columns || topBlock.length != columns || under.length != columns
 			|| water.length != columns || fluid.length != columns)
 			throw new IllegalArgumentException("columns do not match SizeX × SizeZ");
@@ -130,8 +155,12 @@ public final class MapOverlay {
 		ListTag list = tag.getList("Markers", Tag.TAG_COMPOUND);
 		for (int i = 0; i < list.size(); i++) {
 			CompoundTag m = list.getCompound(i);
-			markers.add(new Marker(i, m.getString("Role"), text(m, "Kind"), text(m, "Variant"), text(m, "State"),
-				new BlockPos(m.getInt("X"), m.getInt("Y"), m.getInt("Z")), m.getInt("MinX"), m.getInt("MinZ"), m.getInt("MaxX"), m.getInt("MaxZ")));
+			Marker marker = new Marker(i, m.getString("Role"), text(m, "Kind"), text(m, "Variant"), text(m, "State"),
+				new BlockPos(m.getInt("X"), m.getInt("Y"), m.getInt("Z")), m.getInt("MinX"), m.getInt("MinZ"), m.getInt("MaxX"), m.getInt("MaxZ"),
+				m.contains("Colour") ? m.getInt("Colour") : -1, m.getInt("Height"));
+			markers.add(marker);
+			if (marker.role().equals("tree") || marker.role().equals("light") || marker.role().equals("vision"))
+				built.computeIfAbsent(ChunkPos.asLong(marker.pos().getX() >> 4, marker.pos().getZ() >> 4), key -> new ArrayList<>()).add(marker);
 		}
 	}
 
@@ -154,6 +183,35 @@ public final class MapOverlay {
 		return false;
 	}
 
+	/** Whether the block at `pos` is on or over ground units walk on, in a laid-over map. */
+	public static boolean walked(BlockPos pos) {
+		for (MapOverlay overlay : loaded) {
+			int i = overlay.column(pos.getX(), pos.getZ());
+			if (i >= 0 && overlay.walk[i] == 1 && pos.getY() > overlay.top[i] - 2) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * The map's ground at a column, for the world's relief ({@link MapOverlayDensity}): its top and
+	 * the map's weight there (0–1); null outside every map.
+	 */
+	static double @Nullable [] relief(int x, int z) {
+		for (MapOverlay overlay : loaded) {
+			int dx = x - overlay.minX, dz = z - overlay.minZ;
+			if (dx < 0 || dz < 0 || dx >= overlay.sizeX || dz >= overlay.sizeZ) continue;
+			int i = dz * overlay.sizeX + dx;
+			if (overlay.top[i] == NONE || overlay.blend[i] == 0) continue;
+			return new double[] {overlay.top[i], (overlay.blend[i] & 255) / 255.0};
+		}
+		return null;
+	}
+
+	private static boolean ore(BlockState state) {
+		String path = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
+		return path.endsWith("_ore") || path.equals("ancient_debris") || path.startsWith("raw_") && path.endsWith("_block");
+	}
+
 	/** The column's index, -1 outside the map or where it has no ground. */
 	int column(int x, int z) {
 		int dx = x - minX, dz = z - minZ;
@@ -173,7 +231,7 @@ public final class MapOverlay {
 	}
 
 	/** Builds the map's land in one chunk being generated. */
-	void paint(WorldGenLevel level, ChunkPos chunk) {
+	void paint(WorldGenLevel level, ChunkPos chunk, ChunkGenerator generator) {
 		BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
 		BlockState air = Blocks.AIR.defaultBlockState(), stone = Blocks.STONE.defaultBlockState(), deepslate = Blocks.DEEPSLATE.defaultBlockState();
 		int bottom = level.getMinBuildHeight() + 1;
@@ -181,7 +239,7 @@ public final class MapOverlay {
 			for (int lx = 0; lx < 16; lx++) {
 				int x = chunk.getMinBlockX() + lx, z = chunk.getMinBlockZ() + lz;
 				int i = column(x, z);
-				if (i < 0) continue;
+				if (i < 0 || blend[i] != -1) continue; // the edge is the world's own
 				int t = top[i];
 				int surface = Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z), t + 1);
 				for (int y = t + 1; y <= surface + 1; y++) {
@@ -197,6 +255,11 @@ public final class MapOverlay {
 				}
 				if (water[i] != NONE)
 					for (int y = t + 1; y <= water[i]; y++) level.setBlock(at.set(x, y, z), palette[fluid[i]], Block.UPDATE_CLIENTS);
+				if (walk[i] == 1)
+					for (int y = t - 4; y >= Math.max(bottom, t - NO_ORES); y--) {
+						BlockState there = level.getBlockState(at.set(x, y, z));
+						if (ore(there)) level.setBlock(at, BuiltInRegistries.BLOCK.getKey(there.getBlock()).getPath().startsWith("deepslate") || y < 0 ? deepslate : stone, Block.UPDATE_CLIENTS);
+					}
 			}
 		int[][] voxels = chunks.get(chunk.toLong());
 		if (voxels != null)
@@ -206,6 +269,41 @@ public final class MapOverlay {
 				if (at.getY() < bottom || at.getY() >= level.getMaxBuildHeight() || ours(level.getBlockState(at))) continue;
 				level.setBlock(at, palette[voxels[1][k]], Block.UPDATE_CLIENTS);
 			}
+		for (Marker marker : built.getOrDefault(chunk.toLong(), List.of()))
+			switch (marker.role()) {
+				case "light" -> level.setBlock(marker.pos(), StarMineBlocks.MAP_LAMP.defaultBlockState(), Block.UPDATE_CLIENTS);
+				case "tree" -> tree(level, generator, marker);
+				case "vision" -> {
+					VisionBlocker blocker = new VisionBlocker(VisionBlocker.TYPE, level.getLevel());
+					blocker.span(marker.maxX() - marker.minX() + 1, marker.maxZ() - marker.minZ() + 1, Math.max(2, marker.height()));
+					blocker.moveTo(marker.minX(), marker.pos().getY(), marker.minZ(), 0, 0);
+					level.addFreshEntity(blocker);
+				}
+				default -> {
+				}
+			}
+	}
+
+	/**
+	 * A tree of the game's own for a map's tree: by its foliage colour (pink or violet: cherry, orange:
+	 * acacia, blue-green: spruce, pale: birch, dark: dark oak, saturated green: jungle, else oak) and its
+	 * size (five blocks across or more, or 14 high: the large form of the kind, where it has one).
+	 */
+	private static void tree(WorldGenLevel level, ChunkGenerator generator, Marker marker) {
+		int rgb = marker.colour() < 0 ? 0x507030 : marker.colour();
+		float[] hsb = java.awt.Color.RGBtoHSB((rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255, null);
+		float hue = hsb[0] * 360, saturation = hsb[1], brightness = hsb[2];
+		boolean large = marker.maxX() - marker.minX() + 1 >= 5 || marker.height() >= 14;
+		ResourceKey<ConfiguredFeature<?, ?>> key;
+		if (saturation > 0.2f && (hue >= 260 || hue < 10)) key = TreeFeatures.CHERRY;
+		else if (saturation > 0.3f && hue >= 15 && hue < 50) key = TreeFeatures.ACACIA;
+		else if (hue >= 150 && hue < 220) key = large ? TreeFeatures.MEGA_SPRUCE : TreeFeatures.SPRUCE;
+		else if (saturation < 0.2f && brightness > 0.6f) key = large ? TreeFeatures.SUPER_BIRCH_BEES_0002 : TreeFeatures.BIRCH;
+		else if (brightness < 0.3f) key = TreeFeatures.DARK_OAK;
+		else if (saturation > 0.45f) key = large ? TreeFeatures.MEGA_JUNGLE_TREE : TreeFeatures.JUNGLE_TREE_NO_VINE;
+		else key = large ? TreeFeatures.FANCY_OAK : TreeFeatures.OAK;
+		ConfiguredFeature<?, ?> feature = level.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).get(key);
+		if (feature != null) feature.place(level, generator, RandomSource.create(marker.pos().asLong()), marker.pos());
 	}
 
 	// ---- loading ----
@@ -252,7 +350,7 @@ public final class MapOverlay {
 			for (MapOverlay overlay : loaded) {
 				if (chunk.getMaxBlockX() < overlay.minX || chunk.getMinBlockX() >= overlay.minX + overlay.sizeX
 					|| chunk.getMaxBlockZ() < overlay.minZ || chunk.getMinBlockZ() >= overlay.minZ + overlay.sizeZ) continue;
-				overlay.paint(context.level(), chunk);
+				overlay.paint(context.level(), chunk, context.chunkGenerator());
 				any = true;
 			}
 			return any;
@@ -346,26 +444,31 @@ public final class MapOverlay {
 			return;
 		}
 		if (!kind.contains("mineral") && !kind.contains("crystal")) return;
-		// crystals (2 x 2) along the field's longer side, two blocks apart
-		int width = marker.maxX() - marker.minX() + 1, depth = marker.maxZ() - marker.minZ() + 1;
-		boolean alongX = width >= depth;
-		int length = Math.max(width, depth), across = Math.min(width, depth);
-		int count = Math.max(1, (length + 1) / 3);
+		// one mineral field, one crystal (3 x 3 x 3) in its middle, the rest of the field warded (owner 17.10)
 		int amount = switch (marker.state() == null ? "full" : marker.state()) {
 			case "reduced" -> Minerals.AMOUNT * 3 / 5;
 			case "depleted" -> Minerals.AMOUNT * 3 / 10;
 			default -> Minerals.AMOUNT;
 		};
 		if ("rich".equals(marker.variant())) amount = amount * 3 / 2;
-		for (int k = 0; k < count; k++) {
-			int along = (int) Math.round((k + 0.5) * length / count) - 1, side = Math.max(0, (across - 2) / 2);
-			int x = marker.minX() + (alongX ? along : side), z = marker.minZ() + (alongX ? side : along);
-			int y = overlay.ground(x, z);
-			if (y == NONE) y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-			BlockPos core = new BlockPos(x, y, z);
-			if (Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS))
-				&& level.getBlockEntity(core) instanceof Minerals.Core entity) entity.setAmount(amount);
+		int x = (marker.minX() + marker.maxX()) / 2 - 1, z = (marker.minZ() + marker.maxZ()) / 2 - 1;
+		int y = overlay.ground(x + 1, z + 1);
+		if (y == NONE) y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x + 1, z + 1);
+		BlockPos core = new BlockPos(x, y, z);
+		if (!Minerals.place(level, core, 3, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS))) return;
+		if (level.getBlockEntity(core) instanceof Minerals.Core entity) {
+			entity.setAmount(amount);
+			entity.setSize(3);
 		}
+		BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
+		for (int wx = marker.minX(); wx <= marker.maxX(); wx++)
+			for (int wz = marker.minZ(); wz <= marker.maxZ(); wz++) {
+				int ground = overlay.ground(wx, wz);
+				if (ground == NONE) continue;
+				BlockState there = level.getBlockState(at.set(wx, ground, wz));
+				if (there.isAir() || there.canBeReplaced() && there.getFluidState().isEmpty())
+					level.setBlock(at, Minerals.WARD.defaultBlockState(), Block.UPDATE_CLIENTS);
+			}
 	}
 
 	/** The starts become the bases' sites, once per world; the world spawn goes to a free start or the map's centre. */
@@ -404,6 +507,8 @@ public final class MapOverlay {
 	}
 
 	public static void load() {
+		VisionBlocker.load();
+		MapOverlayDensity.load();
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new Loader());
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.TOP_LAYER_MODIFICATION,
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("map_overlay")));
