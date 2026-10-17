@@ -67,6 +67,18 @@ public final class Commands {
 				else formation(mobile, StarUnit.Order.ATTACK_MOVE, at);
 			}
 			case "gather" -> workers.forEach(unit -> unit.commandWork(StarUnit.Work.GATHER, BlockPos.containing(at)));
+			case "gather_area" -> { // owner 17.10: mining an area — `at` one corner, the arg the other (x,y,z); at most 32 across, 6 up and down
+				String[] other = command.arg().split(",");
+				if (other.length == 3) try {
+					BlockPos a = BlockPos.containing(at), b = new BlockPos(Integer.parseInt(other[0]), Integer.parseInt(other[1]), Integer.parseInt(other[2]));
+					int x0 = Math.min(a.getX(), b.getX()), z0 = Math.min(a.getZ(), b.getZ()), y0 = Math.min(a.getY(), b.getY()) - 6;
+					var area = new net.minecraft.world.level.levelgen.structure.BoundingBox(x0, y0, z0, Math.min(x0 + 31, Math.max(a.getX(), b.getX())),
+						Math.max(a.getY(), b.getY()) + 6, Math.min(z0 + 31, Math.max(a.getZ(), b.getZ())));
+					workers.forEach(unit -> unit.commandArea(area));
+				} catch (NumberFormatException bad) {
+					// not a corner: nothing
+				}
+			}
 			case "return" -> workers.forEach(unit -> unit.commandWork(StarUnit.Work.RETURN, null));
 			case "build" -> build(level, base, workers, kind(command.arg()), at);
 			case "train" -> train(level, base, units, kind(command.arg()));

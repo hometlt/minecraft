@@ -63,4 +63,15 @@ public class CommanderEyeGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 17.10: a unit attacks whatever creature it is ordered to — an animal too, not only another side's units. */
+	@GameTest(template = ARENA, batch = "attackAnything", timeoutTicks = 400)
+	public void unitsAttackAnyCreature(GameTestHelper helper) {
+		TestArena.clear(helper);
+		StarUnit marine = TestArena.unit(helper, UnitKind.MARINE, 10, 24, java.util.UUID.randomUUID());
+		net.minecraft.world.entity.animal.Cow cow = helper.spawn(net.minecraft.world.entity.EntityType.COW, new BlockPos(20, 2, 24));
+		cow.setNoAi(true);
+		helper.runAfterDelay(2, () -> marine.commandAttack(cow));
+		helper.succeedWhen(() -> helper.assertTrue(!cow.isAlive(), "the cow lives: " + cow.getHealth()));
+	}
 }

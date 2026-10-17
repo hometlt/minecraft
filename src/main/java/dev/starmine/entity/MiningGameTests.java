@@ -149,4 +149,34 @@ public class MiningGameTests implements FabricGameTest {
 			dev.starmine.hive.HiveSavedData.get(helper.getLevel().getServer()).remove(base.id);
 		});
 	}
+
+	/**
+	 * Owner 17.10: a player's workers mine an area — the ore in it, nearest first, and nothing outside it; with the
+	 * area empty the order is done. What the worker mines is shown to its player (its area and its block).
+	 */
+	@GameTest(template = ARENA, batch = "miningArea", timeoutTicks = 1600)
+	public void aWorkerMinesItsArea(GameTestHelper helper) {
+		TestArena.clear(helper);
+		StarUnit cc = TestArena.unit(helper, UnitKind.COMMAND_CENTER, 10, 10, java.util.UUID.randomUUID());
+		for (int z = 30; z <= 32; z++) helper.setBlock(new BlockPos(30, 2, z), net.minecraft.world.level.block.Blocks.IRON_ORE);
+		helper.setBlock(new BlockPos(36, 2, 40), net.minecraft.world.level.block.Blocks.IRON_ORE); // outside the area
+		StarUnit[] scv = new StarUnit[1];
+		boolean[] shown = new boolean[1];
+		TestArena.Timeline.of(helper).at(10, () -> {
+			dev.starmine.hive.Hive base = TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			scv[0] = TestArena.member(helper, base, UnitKind.SCV, 26, 26);
+			BlockPos a = helper.absolutePos(new BlockPos(28, 2, 28)), b = helper.absolutePos(new BlockPos(32, 2, 34));
+			scv[0].commandArea(net.minecraft.world.level.levelgen.structure.BoundingBox.fromCorners(a, b));
+		}).every(() -> {
+			if (scv[0] != null && scv[0].shownArea() != null) shown[0] = true;
+		});
+		helper.succeedWhen(() -> {
+			helper.assertTrue(scv[0] != null, "no SCV yet");
+			for (int z = 30; z <= 32; z++) helper.assertBlockNotPresent(net.minecraft.world.level.block.Blocks.IRON_ORE, new BlockPos(30, 2, z));
+			helper.assertBlockPresent(net.minecraft.world.level.block.Blocks.IRON_ORE, new BlockPos(36, 2, 40));
+			helper.assertTrue(shown[0], "the area was never shown");
+			helper.assertTrue(scv[0].workArea() == null, "the empty area is still its order");
+		});
+	}
 }

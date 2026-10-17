@@ -104,8 +104,9 @@ final class AbilityAi {
 			}
 			case VIKING_LAND -> {
 				boolean airFoes = flyingFoeWithin(unit, 14);
-				boolean groundTarget = target != null && !(target instanceof StarUnit star && star.flying());
-				yield !on && groundTarget && !airFoes || on && (airFoes || calm) ? cast(unit, level, ability) : false;
+				// in the air a viking cannot fire at the ground (SC2): foes there and none in the air, it lands
+				boolean groundFoes = foeWithin(unit, 14) && !airFoes;
+				yield !on && groundFoes || on && (airFoes || calm) ? cast(unit, level, ability) : false;
 			}
 			case AFTERBURNERS -> unit.getHealth() < unit.getMaxHealth() * 0.5f && foeWithin(unit, 10) && cast(unit, level, ability);
 			case REPAIR -> {

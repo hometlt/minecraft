@@ -78,6 +78,8 @@ public final class CommandScreen extends Screen {
 	private String targeting;
 	private double dragX, dragY;
 	private boolean dragging;
+	/** The gather command's press: a click mines a block, a drag a whole area. */
+	private boolean gatherPress;
 	private long lastClick;
 	private boolean up, down, left, right, turnLeft, turnRight;
 	private static final Map<Integer, List<Integer>> GROUPS = new HashMap<>();
@@ -678,7 +680,7 @@ public final class CommandScreen extends Screen {
 			CommandView.lookAt(CommandView.targetX + (cos * dragX - sin * dragY) * step, CommandView.targetZ + (sin * dragX + cos * dragY) * step);
 			return true;
 		}
-		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && !dragging && CommandView.placing == null && targeting == null
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && !dragging && CommandView.placing == null && (targeting == null || gatherPress)
 			&& Math.abs(mouseX - this.dragX) + Math.abs(mouseY - this.dragY) > 4 && !onPanel(this.dragX, this.dragY)) dragging = true;
 		return true;
 	}
@@ -744,6 +746,13 @@ public final class CommandScreen extends Screen {
 				}
 				return true;
 			}
+			if ("gather".equals(targeting) && !CommandView.heroSelected()) { // a click mines that block, a box mines the area (owner 17.10)
+				gatherPress = true;
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
+				return true;
+			}
 			if (targeting != null) {
 				target(targeting, mouseX, mouseY);
 				if (!hasShiftDown()) targeting = null;
@@ -779,6 +788,19 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && gatherPress) {
+			gatherPress = false;
+			if (dragging) {
+				BlockHitResult a = CommandView.block(dragX, dragY, width, height), b = CommandView.block(mouseX, mouseY, width, height);
+				if (a != null && b != null) {
+					net.minecraft.core.BlockPos other = b.getBlockPos();
+					CommandView.send("gather_area", Vec3.atCenterOf(a.getBlockPos()), -1, other.getX() + "," + other.getY() + "," + other.getZ());
+				}
+			} else target("gather", mouseX, mouseY);
+			dragging = false;
+			if (!hasShiftDown()) targeting = null;
+			return true;
+		}
 		if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || CommandView.placing != null || targeting != null || onPanel(dragX, dragY) && !dragging) return true;
 		if (dragging) {
 			boxSelect(dragX, dragY, mouseX, mouseY);
@@ -857,8 +879,13 @@ public final class CommandScreen extends Screen {
 			CommandView.send("ability", at, unit != null ? unit.getId() : -1, action.substring(8));
 			return;
 		}
+		net.minecraft.world.entity.LivingEntity creature = unit == null ? CommandView.creature(mouseX, mouseY, width, height) : null;
 		switch (action) {
-			case "attack" -> CommandView.send(unit != null && !CommandView.own(unit) ? "attack" : "attack_move", at, unit != null ? unit.getId() : -1, null);
+			case "attack" -> { // owner 17.10: any creature — a unit of another side, a monster, an animal, a villager
+				if (unit != null && !CommandView.own(unit)) CommandView.send("attack", at, unit.getId(), null);
+				else if (creature != null) CommandView.send("attack", creature.position(), creature.getId(), null);
+				else CommandView.send("attack_move", at, -1, null);
+			}
 			case "gather" -> {
 				if (block != null) CommandView.send("gather", Vec3.atCenterOf(block.getBlockPos()), -1, null);
 			}
@@ -886,8 +913,11 @@ public final class CommandScreen extends Screen {
 			return;
 		}
 		boolean workers = own.stream().anyMatch(u -> u.kind.worker());
+		net.minecraft.world.entity.LivingEntity monster = unit == null ? CommandView.creature(mouseX, mouseY, width, height) : null;
 		if (unit != null && !CommandView.own(unit)) { // not the player's: attack it
 			CommandView.send("attack", at, unit.getId(), null);
+		} else if (monster instanceof net.minecraft.world.entity.monster.Enemy) { // a monster: attack it (owner 17.10)
+			CommandView.send("attack", monster.position(), monster.getId(), null);
 		} else if (unit != null && workers && unit.kind == UnitKind.COMMAND_CENTER && CommandView.own(unit)) {
 			CommandView.send("return", at, -1, null);
 		} else if (unit != null && workers && unit.kind.gas() && CommandView.own(unit)) {
@@ -924,6 +954,7 @@ public final class CommandScreen extends Screen {
 
 	/** Ores and vein outlets (what workers gather; the server's resources.json decides what ores yield). */
 	private static boolean resource(BlockState state) {
+		if (dev.starmine.mineral.Minerals.isCrystal(state)) return true; // owner 17.10: a right click on minerals mines them
 		String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
 		return path.endsWith("_ore") || path.equals("ancient_debris") || dev.starmine.vespene.Vespene.isOutlet(state);
 	}

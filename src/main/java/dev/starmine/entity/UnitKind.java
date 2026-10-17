@@ -104,7 +104,9 @@ public enum UnitKind {
 	DARK_TEMPLAR(     Race.PROTOSS, 40,  80,   3.94,  false, Attack.MELEE,  45,  1.21,  0,    true,  1.0f, 1.8f,  0x403050, 0x80ff80),
 	ARCHON(           Race.PROTOSS, 10,  350,  3.94,  false, Attack.RANGED, 25,  1.25,  3,    true,  2.0f, 2.9f,  0xa0c0ff, 0xffffff),
 	IMMORTAL(         Race.PROTOSS, 200, 100,  3.15,  false, Attack.RANGED, 20,  1.04,  6,    true,  2.0f, 2.4f,  0xc8a030, 0xe0e0e0),
-	COLOSSUS(         Race.PROTOSS, 200, 150,  3.15,  false, Attack.LINE,   20,  1.07,  7,    true,  3.5f, 7.4f,  0xc8a030, 0xff6060),
+	// owner 17.10: the colossus could not move — its body (7 wide, 15 tall) found no way among trees and hills; its
+	// hitbox is now its legs (2.4 wide, 4 tall), it steps over what is under its body (StarUnit#stilts)
+	COLOSSUS(         Race.PROTOSS, 200, 150,  3.15,  false, Attack.LINE,   20,  1.07,  7,    true,  1.2f, 2.0f,  0xc8a030, 0xff6060),
 	DISRUPTOR(        Race.PROTOSS, 100, 100,  3.15,  false, Attack.NONE,   0,   0,     0,    false, 1.9f, 1.1f,  0xc8a030, 0xd0a0ff),
 	OBSERVER(         Race.PROTOSS, 40,  20,   2.63,  true,  Attack.NONE,   0,   0,     0,    false, 1.2f, 1.4f,  0xc8a030, 0x404040),
 	WARP_PRISM(       Race.PROTOSS, 80,  100,  4.13,  true,  Attack.NONE,   0,   0,     0,    false, 3.0f, 3.5f,  0xc8a030, 0xa0a0ff),
@@ -278,7 +280,7 @@ public enum UnitKind {
 			case VIKING, LIBERATOR, PHOENIX -> new float[] {0.6f * side, 0.4f, 0.6f};
 			case VIKING_ASSAULT -> new float[] {0.5f * side, 0.6f, 0.7f};
 			case BANSHEE, BATTLECRUISER, IMMORTAL -> new float[] {0.5f * side, 0.6f, 0.9f};
-			case COLOSSUS -> new float[] {0.35f * side, 0.92f, 0.5f};
+			case COLOSSUS -> new float[] {1.2f * side, 3.4f, 0.8f}; // its lances high over its legs (the hitbox is the legs)
 			case MISSILE_TURRET, PHOTON_CANNON, COMMAND_CENTER -> new float[] {0, 0.9f, 0.3f};
 			case BUNKER -> new float[] {0, 0.7f, 0.8f};
 			case STALKER -> new float[] {0, 0.72f, 0.8f};
@@ -612,6 +614,28 @@ public enum UnitKind {
 			case ARCHON -> target.biological() ? 10 : 0;
 			case CORRUPTOR -> target.massive() ? 6 : 0;
 			default -> 0;
+		};
+	}
+
+	/**
+	 * Whether its weapon reaches flying foes (SC2, owner 17.10: the attacks audited against SC2): the zerg and
+	 * terran ground melee, tanks, hellions, marauders, the colossus, immortals, banshees, brood lords and the like
+	 * hit only the ground.
+	 */
+	public boolean hitsAir() {
+		if (attack == Attack.MELEE || attack == Attack.SPLASH || attack == Attack.EXPLODE || attack == Attack.LINE) return false;
+		return switch (this) {
+			case ROACH, RAVAGER, LURKER, BROOD_LORD, SWARM_HOST, SPINE_CRAWLER, MARAUDER, REAPER, SIEGE_TANK, BANSHEE, VIKING_ASSAULT,
+				ADEPT, IMMORTAL, ORACLE, DISRUPTOR, KERRIGAN, ARTANIS -> false;
+			default -> true;
+		};
+	}
+
+	/** Whether its weapon reaches ground foes (SC2): vikings in the air, corruptors, phoenixes and the anti-air buildings do not. */
+	public boolean hitsGround() {
+		return switch (this) {
+			case VIKING, CORRUPTOR, PHOENIX, SPORE_CRAWLER, MISSILE_TURRET -> false;
+			default -> true;
 		};
 	}
 

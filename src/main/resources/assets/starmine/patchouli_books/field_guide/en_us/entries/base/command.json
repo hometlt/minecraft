@@ -15,6 +15,10 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "Workers: G and a click mine that block; G and a drag mine the whole area (up to 32 by 32) — minerals first — until it is empty. Selected workers show their area and the block they mine. A and a click on any creature — a monster, an animal — attacks it. As in SC2, some weapons hit only the air (a flying viking, corruptor, phoenix) or only the ground (a tank, a colossus, a banshee)."
+		},
+		{
+			"type": "patchouli:text",
 			"text": "The camera goes anywhere — keys, screen edges, a click on the minimap — however far you stand: the world round it is loaded for you. A cyan arrow on the minimap is you, pointing where you look.$(br2)$(l)F4$() or the ☺ button selects YOU as a hero: you carry out move, stop, hold, patrol and attack orders yourself, striking with what is in your right hand. The card then shows your hotbar: click an item to take it in hand, again to use it. The command panel used on one of your units takes control of it."
 		}
 	]

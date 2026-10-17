@@ -204,6 +204,8 @@ final class DroneWork extends Goal {
 			return;
 		}
 		boolean griefing = level.getGameRules().getBoolean(StarMine.HIVE_GRIEFING);
+		if (commanded() && stateTicks % 10 == 0) // owner 17.10: what it works, shown in its player's command view
+			drone.showWork(state == State.MINE ? mineTarget : state == State.GAS ? gasOutlet : null);
 		if (commanded()) takeOrder(level);
 		if (drone.fleeing()) {
 			flee(level);
@@ -538,6 +540,12 @@ final class DroneWork extends Goal {
 	BlockPos oreNear(ServerLevel level) {
 		long now = level.getGameTime();
 		unreachable.values().removeIf(until -> until < now);
+		var area = drone.workArea();
+		if (area != null) { // a player's mining area: only in it; none left, the order is done
+			BlockPos found = inArea(level, area);
+			if (found == null) drone.commandArea(null);
+			return found;
+		}
 		BlockPos crystal = crystalNear(level);
 		if (crystal != null) return crystal;
 		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID(), unreachable.keySet());
@@ -555,6 +563,29 @@ final class DroneWork extends Goal {
 		if (main == null) return null;
 		ore = findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID(), unreachable.keySet());
 		return ore != null ? ore : farOre(level, main);
+	}
+
+	/** The nearest crystal or ore in a mining area this worker can still reach (minerals first, as everywhere). */
+	private BlockPos inArea(ServerLevel level, net.minecraft.world.level.levelgen.structure.BoundingBox area) {
+		BlockPos best = null, bestCrystal = null;
+		double bestDistance = Double.MAX_VALUE, crystalDistance = Double.MAX_VALUE;
+		for (BlockPos at : BlockPos.betweenClosed(area.minX(), area.minY(), area.minZ(), area.maxX(), area.maxY(), area.maxZ())) {
+			if (unreachable.containsKey(at)) continue;
+			BlockState state = level.getBlockState(at);
+			boolean crystal = dev.starmine.mineral.Minerals.isCrystal(state);
+			if (!crystal && !HiveResources.isOre(state)) continue;
+			double d = at.distSqr(drone.blockPosition());
+			if (crystal ? d < crystalDistance : d < bestDistance) {
+				if (crystal) {
+					crystalDistance = d;
+					bestCrystal = at.immutable();
+				} else {
+					bestDistance = d;
+					best = at.immutable();
+				}
+			}
+		}
+		return bestCrystal != null ? bestCrystal : best;
 	}
 
 	/** How far from its base (or itself) a worker looks for mineral crystals first. */

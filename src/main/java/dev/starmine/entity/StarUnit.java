@@ -150,6 +150,44 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	private Work work = Work.NONE;
 	private BlockPos workPos;
+	/** A player's mining area for this worker (owner 17.10): it takes ore and minerals only in it, nearest first, until none is left. */
+	private @org.jetbrains.annotations.Nullable net.minecraft.world.level.levelgen.structure.BoundingBox workArea;
+
+	public @org.jetbrains.annotations.Nullable net.minecraft.world.level.levelgen.structure.BoundingBox workArea() {
+		return workArea;
+	}
+
+	/** Shows (server side) what the worker works now: its area and the block it mines or the outlet it draws. */
+	void showWork(@org.jetbrains.annotations.Nullable BlockPos at) {
+		var area = workArea;
+		String shown = (area == null ? "" : area.minX() + "," + area.minY() + "," + area.minZ() + "," + area.maxX() + "," + area.maxY() + "," + area.maxZ())
+			+ ";" + (at == null ? "" : at.getX() + "," + at.getY() + "," + at.getZ());
+		if (!shown.equals(this.entityData.get(WORK_SHOWN))) this.entityData.set(WORK_SHOWN, shown);
+	}
+
+	/** Its mining area as the client knows it, or null. */
+	public @org.jetbrains.annotations.Nullable net.minecraft.world.phys.AABB shownArea() {
+		String[] parts = this.entityData.get(WORK_SHOWN).split(";", -1);
+		if (parts.length < 1 || parts[0].isEmpty()) return null;
+		String[] n = parts[0].split(",");
+		if (n.length != 6) return null;
+		return new net.minecraft.world.phys.AABB(Integer.parseInt(n[0]), Integer.parseInt(n[1]), Integer.parseInt(n[2]),
+			Integer.parseInt(n[3]) + 1, Integer.parseInt(n[4]) + 1, Integer.parseInt(n[5]) + 1);
+	}
+
+	/** The block it works now as the client knows it, or null. */
+	public @org.jetbrains.annotations.Nullable BlockPos shownTarget() {
+		String[] parts = this.entityData.get(WORK_SHOWN).split(";", -1);
+		if (parts.length < 2 || parts[1].isEmpty()) return null;
+		String[] n = parts[1].split(",");
+		return n.length != 3 ? null : new BlockPos(Integer.parseInt(n[0]), Integer.parseInt(n[1]), Integer.parseInt(n[2]));
+	}
+
+	/** Sends a worker to mine an area (null: anywhere again). */
+	public void commandArea(@org.jetbrains.annotations.Nullable net.minecraft.world.level.levelgen.structure.BoundingBox area) {
+		commandWork(Work.NONE, null);
+		this.workArea = area;
+	}
 	/** An SCV building this building (its UUID), and whether a building had a builder at its last check. */
 	private UUID constructing;
 	private boolean builderNear;
@@ -188,6 +226,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<String> DISGUISE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** A worker's building on its way to the site ("KIND x y z", or empty): its player sees the site's ghost. */
 	private static final EntityDataAccessor<String> BUILD_PLAN = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
+	/** A worker's work shown in the command view (owner 17.10): its mining area and the block it works, "x0,y0,z0,x1,y1,z1;x,y,z" (parts may be empty). */
+	private static final EntityDataAccessor<String> WORK_SHOWN = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** Cooldowns, channels, mode changes, unloading (server). */
 	public final dev.starmine.ability.AbilityState abilities = new dev.starmine.ability.AbilityState();
 	/**
@@ -294,7 +334,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	@Override
 	public void aiStep() {
+		if (kind == UnitKind.COLOSSUS) this.noPhysics = this.isAlive() && !this.isPassenger();
 		super.aiStep();
+		if (kind == UnitKind.COLOSSUS && this.isAlive() && !this.isPassenger()) stilts();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;
 		holdPlace();
 		if (kind.platform() && this.tickCount % 20 == 0) dev.starmine.colony.Storage.tickPlatform(this, server);
@@ -812,6 +854,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(MODE, 0);
 		builder.define(DISGUISE, "");
 		builder.define(BUILD_PLAN, "");
+		builder.define(WORK_SHOWN, "");
 	}
 
 	@Override
@@ -1144,6 +1187,31 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return !kind.structure() && mode() != dev.starmine.ability.Modes.BURROWED && !inLiquidCreep() && super.isPushable();
 	}
 
+	/**
+	 * A walker by water is not shoved by the units round it (CLOUD_TASK_2 stage 4, ground units never get wet:
+	 * a marauder on a bridge being built was pushed off its edge by the thor behind it and into the river).
+	 */
+	@Override
+	public void push(Entity pusher) {
+		if (!flying() && pusher instanceof StarUnit && waterBeside()) return;
+		super.push(pusher);
+	}
+
+	private boolean waterBeside() {
+		net.minecraft.core.BlockPos feet = this.blockPosition();
+		int reach = (int) Math.ceil(this.getBbWidth() / 2 + 1);
+		for (net.minecraft.core.BlockPos at : net.minecraft.core.BlockPos.betweenClosed(feet.offset(-reach, -1, -reach), feet.offset(reach, 0, reach)))
+			if (!this.level().getFluidState(at).isEmpty()) return true;
+		return false;
+	}
+
+	/** Flyers pass one another (SC2: air units stack and spread, they do not shove each other off their ways). */
+	@Override
+	protected void doPush(Entity other) {
+		if (flying() && other instanceof StarUnit unit && unit.flying()) return;
+		super.doPush(other);
+	}
+
 	/** Game time until which this zerg counts as in liquid creep (it passes through creatures there, owner 16.10). */
 	private long liquidCreepUntil;
 
@@ -1436,6 +1504,48 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			server.sendParticles(kind.race == UnitKind.Race.ZERG ? ParticleTypes.SQUID_INK : ParticleTypes.LARGE_SMOKE, x, y, z, 2, w / 3, h / 4, w / 3, 0.01);
 	}
 
+	/**
+	 * The colossus walks on stilts (SC2: it steps over cliffs and small things): nothing round its tall body stops
+	 * it, its feet keep to the ground under its middle — up a cliff of up to {@link #STILT_STEP} blocks a step at a
+	 * time, down at falling speed. Its way is planned for its legs ({@link UnitNavigation}).
+	 */
+	private void stilts() {
+		// the highest ground under its feet (its middle and the corners of its legs' box): a leg on a ledge lifts it
+		double ground = Double.NaN, half = this.getBbWidth() / 2 - 0.1;
+		for (double[] foot : new double[][] {{0, 0}, {-half, -half}, {half, -half}, {-half, half}, {half, half}}) {
+			double under = groundUnder(this.getX() + foot[0], this.getZ() + foot[1]);
+			if (!Double.isNaN(under) && (Double.isNaN(ground) || under > ground)) ground = under;
+		}
+		net.minecraft.world.phys.Vec3 motion = this.getDeltaMovement();
+		if (Double.isNaN(ground)) { // over water or a deep hole: no stilts, it falls like anything else
+			this.noPhysics = false;
+			return;
+		}
+		double y = ground > this.getY() ? Math.min(ground, this.getY() + 0.6) : Math.max(ground, this.getY() - 0.6);
+		this.setPos(this.getX(), y, this.getZ());
+		this.setDeltaMovement(motion.x, 0, motion.z);
+		this.setOnGround(true);
+		this.fallDistance = 0;
+	}
+
+	/** The top of the ground under a column within a stride up or down, NaN over water or a deep hole; tree tops do not count. */
+	private double groundUnder(double px, double pz) {
+		net.minecraft.core.BlockPos.MutableBlockPos at = new net.minecraft.core.BlockPos.MutableBlockPos();
+		int x = net.minecraft.util.Mth.floor(px), z = net.minecraft.util.Mth.floor(pz);
+		for (int y = net.minecraft.util.Mth.floor(this.getY() + STILT_STEP); y >= net.minecraft.util.Mth.floor(this.getY()) - 12; y--) {
+			at.set(x, y, z);
+			BlockState state = this.level().getBlockState(at);
+			if (state.getFluidState().isSource() && !state.isSolid()) return Double.NaN; // it does not wade
+			var shape = state.getCollisionShape(this.level(), at);
+			if (shape.isEmpty() || state.is(net.minecraft.tags.BlockTags.LEAVES)) continue; // it steps through tree tops
+			return y + shape.max(net.minecraft.core.Direction.Axis.Y);
+		}
+		return Double.NaN;
+	}
+
+	/** The highest step a colossus takes (SC2: cliffs). */
+	static final double STILT_STEP = 4.5;
+
 	@Override
 	public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {
 		return !flying() && super.causeFallDamage(distance, multiplier, source);
@@ -1530,6 +1640,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** A worker's order: gather at a block, or bring the cargo home. */
 	public void commandWork(Work work, BlockPos pos) {
 		command(Order.NONE, null);
+		this.workArea = null;
 		this.work = work;
 		this.workPos = pos == null ? null : pos.immutable();
 	}
@@ -1809,14 +1920,16 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	/**
-	 * Whether its weapon can hit this target (SC2): a liberator hits only flying foes, and in defender mode
-	 * only ground ones; the rest hit both.
+	 * Whether its weapon can hit this target (SC2, {@link UnitKind#hitsAir}, {@link UnitKind#hitsGround}): a viking hits
+	 * only flyers (and the colossus), a tank only the ground; a liberator flyers, in defender mode the ground.
 	 */
 	public boolean canTarget(LivingEntity other) {
-		if (kind != UnitKind.LIBERATOR) return true;
-		boolean air = other instanceof StarUnit unit ? unit.flying() || unit.kind.hitByAntiAir()
-			: other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying() || !other.onGround() && other.getY() > this.getY() - 1;
-		return mode() == dev.starmine.ability.Modes.DEFENDER ? !air : air;
+		boolean air = other instanceof StarUnit unit ? unit.flying() : other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
+			|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Vex;
+		boolean both = other instanceof StarUnit unit && unit.kind.hitByAntiAir() && !unit.flying(); // a colossus: hit from the air and the ground
+		if (kind == UnitKind.LIBERATOR) return mode() == dev.starmine.ability.Modes.DEFENDER ? !air : air || both;
+		if (pilot != null) return true; // a player plays it: they aim
+		return air ? kind.hitsAir() : kind.hitsGround() || both && kind.hitsAir();
 	}
 
 	/** SC2 energy it holds at most: its kind's, or an orbital command's 200. */

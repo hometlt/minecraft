@@ -289,7 +289,7 @@ public final class UnitGoals {
 				stuck = 0;
 			} else if (moving) {
 				stuck = Math.max(0, stuck - 1);
-			} else if ((stuck += crowded() ? (unit.tickCount % 4 == 0 ? 1 : 0) : 1) > PATIENCE) {
+			} else if (!unit.flying() && (stuck += crowded() ? (unit.tickCount % 4 == 0 ? 1 : 0) : 1) > PATIENCE) { // a flyer never gives up (SC2)
 				unit.finishOrder();
 				return;
 			}

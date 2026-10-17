@@ -458,6 +458,23 @@ public final class CommandView {
 		VertexConsumer lines = buffers.getBuffer(RenderType.lines());
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
 		if (heroSelected() && mc.player != null) ring(pose, lines, mc.player, 0xFF40E0FF);
+		// owner 17.10: what the selected workers mine — their area (yellow) and the block each works (a line to it, its outline)
+		for (StarUnit unit : selected()) {
+			if (!own(unit) || !unit.kind.worker()) continue;
+			AABB area = unit.shownArea();
+			if (area != null) net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, lines, area, 1f, 0.85f, 0.2f, 1f);
+			BlockPos target = unit.shownTarget();
+			if (target != null) {
+				boolean crystal = dev.starmine.mineral.Minerals.isCrystal(mc.level.getBlockState(target));
+				float r = crystal ? 0.3f : 1f, g = crystal ? 0.8f : 0.8f, b = crystal ? 1f : 0.3f;
+				net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, lines, new AABB(target).inflate(0.02), r, g, b, 1f);
+				Vec3 from = unit.position().add(0, unit.getBbHeight() / 2, 0), to = Vec3.atCenterOf(target);
+				PoseStack.Pose last = pose.last();
+				Vec3 d = to.subtract(from).normalize();
+				lines.addVertex(last, (float) from.x, (float) from.y, (float) from.z).setColor(r, g, b, 0.8f).setNormal(last, (float) d.x, (float) d.y, (float) d.z);
+				lines.addVertex(last, (float) to.x, (float) to.y, (float) to.z).setColor(r, g, b, 0.8f).setNormal(last, (float) d.x, (float) d.y, (float) d.z);
+			}
+		}
 		Orders.render(pose, lines, context.tickCounter().getGameTimeDeltaPartialTick(false));
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
 		if (placing != null && ghostSite != null) drawGhost(pose, buffers, placing, ghostSite, ghostValid ? GHOST_GOOD : GHOST_BAD);

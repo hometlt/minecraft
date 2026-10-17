@@ -49,7 +49,7 @@ final class UnitNavigation extends GroundPathNavigation {
 	 */
 	@Override
 	protected void followThePath() {
-		if (this.mob.getBbWidth() <= BIG) {
+		if (this.mob.getBbWidth() <= BIG || this.mob instanceof StarUnit unit && unit.kind == UnitKind.COLOSSUS) { // a colossus strides up cliffs
 			super.followThePath();
 			return;
 		}

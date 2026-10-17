@@ -379,9 +379,11 @@ public class PathfindingGameTests implements FabricGameTest {
 		UUID player = UUID.randomUUID();
 		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
 		Vec3 end = point(helper, 44, 31);
-		goals.put(unit(helper, UnitKind.ZERGLING, 3, 23, player), end);
-		goals.put(unit(helper, UnitKind.ROACH, 5, 23, player), end);
-		goals.put(unit(helper, UnitKind.DRONE, 8, 23, player), end);
+		// the drone last: done, an idle worker goes exploring, back down the tunnel (a roach behind it met it head on
+		// in the 3-wide tunnel and stood)
+		goals.put(unit(helper, UnitKind.DRONE, 3, 23, player), end);
+		goals.put(unit(helper, UnitKind.ZERGLING, 5, 23, player), end);
+		goals.put(unit(helper, UnitKind.ROACH, 8, 23, player), end);
 		race(helper, "winding 3x3 tunnel", goals, 2.5, 800);
 	}
 
@@ -405,6 +407,26 @@ public class PathfindingGameTests implements FabricGameTest {
 			goals.put(unit(helper, kinds[i], 6, z, player), point(helper, 42, z));
 		}
 		race(helper, "forest", goals, 2, 800);
+	}
+
+	/**
+	 * Owner 17.10: the colossus could not move at all. It walks on stilts: through low trees whose crowns hang
+	 * across its body (5 up, a trunk every 5 blocks), and up a cliff 4 high with no ramp.
+	 */
+	@GameTest(template = ARENA, batch = "pathColossus", timeoutTicks = 900)
+	public void theColossusStepsOverTreesAndCliffs(GameTestHelper helper) {
+		clear(helper);
+		for (int x = 14; x <= 22; x += 5)
+			for (int z = 2; z <= 46; z += 5) {
+				fill(helper, x - 2, 6, z - 2, x + 2, 8, z + 2, Blocks.OAK_LEAVES.defaultBlockState()
+					.setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true));
+				fill(helper, x, 2, z, x, 6, z, Blocks.OAK_LOG.defaultBlockState());
+			}
+		fill(helper, 30, 2, 0, 47, 5, 47, Blocks.STONE.defaultBlockState()); // the cliff
+		UUID player = UUID.randomUUID();
+		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
+		goals.put(unit(helper, UnitKind.COLOSSUS, 6, 24.5, player), point(helper, 40, 24.5).add(0, 4, 0));
+		race(helper, "colossus: trees and a cliff", goals, 2, 800);
 	}
 
 	@GameTest(template = ARENA, batch = "pathFlyMountain", timeoutTicks = 1400)
