@@ -15,7 +15,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 
-/** A laid-over map (owner 17.10): its columns, and its mineral fields made into crystals. */
+/** A laid-over map (owner 17.10): its columns, its mineral fields made into crystals, its walk-through decor. */
 public class MapOverlayGameTests implements FabricGameTest {
 	/** A 16 x 16 map at `origin` whose ground top is a block under `origin`, with one mineral field marker. */
 	private static MapOverlay overlay(BlockPos origin, String state, String variant) {
@@ -79,6 +79,22 @@ public class MapOverlayGameTests implements FabricGameTest {
 				helper.assertTrue(core.amount() == Minerals.AMOUNT * 3 / 5 * 3 / 2, "a rich reduced field holds " + core.amount());
 			}
 		helper.assertTrue(crystals == 1, "a field made " + crystals + " crystals, not one (owner 17.10: one SC2 mineral, one crystal)");
+		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "map_overlay", timeoutTicks = 100)
+	public void walkThroughDecorLooksLikeItsBlockWithoutABody(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos at = helper.absolutePos(new BlockPos(8, 3, 8));
+		MapDecor.put(level, at, Blocks.STONE_BRICKS.defaultBlockState());
+		net.minecraft.world.level.block.state.BlockState decor = level.getBlockState(at);
+		helper.assertTrue(decor.is(MapDecor.BLOCK), "no decor block was placed");
+		helper.assertTrue(level.getBlockEntity(at) instanceof MapDecor.Look look && look.getRenderData() == Blocks.STONE_BRICKS.defaultBlockState(),
+			"the decor does not keep the block it looks like");
+		helper.assertTrue(decor.getCollisionShape(level, at).isEmpty(), "the decor has a body");
+		helper.assertTrue(decor.isPathfindable(net.minecraft.world.level.pathfinder.PathComputationType.LAND), "a path finder does not go through the decor");
+		helper.assertTrue(decor.canBeReplaced(), "building there does not replace the decor");
 		helper.succeed();
 	}
 }

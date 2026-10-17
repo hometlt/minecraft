@@ -104,6 +104,10 @@ public final class StarMineClient implements ClientModInitializer {
 		BlockRenderLayerMap.INSTANCE.putFluids(RenderType.translucent(), dev.starmine.vespene.Vespene.SOURCE, dev.starmine.vespene.Vespene.FLOWING,
 			StarMineBlocks.LIQUID_CREEP_SOURCE, StarMineBlocks.LIQUID_CREEP_FLOWING);
 		BlockRenderLayerMap.INSTANCE.putBlock(StarMineBlocks.FORCE_FIELD, RenderType.translucent());
+		// a laid-over map's walk-through decor draws the block it looks like, in the chunk's mesh
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.MapDecor.BLOCK, RenderType.cutout());
+		net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin.register(context -> context.modifyModelAfterBake().register((model, at) ->
+			at.topLevelId() != null && at.topLevelId().id().equals(StarMine.id("map_decor")) ? new MapDecorModel(model) : model));
 		// a spawn egg shows its SC2 icon (textures/item/sc2/<kind>.png, imported by Modkit) when there is one,
 		// drawn untinted; without it the plain two-colour egg
 		net.fabricmc.fabric.api.client.model.loading.v1.PreparableModelLoadingPlugin.register(

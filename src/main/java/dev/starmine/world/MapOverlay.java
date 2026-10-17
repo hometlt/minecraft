@@ -73,7 +73,8 @@ import org.slf4j.LoggerFactory;
  * step) builds the map's land on the columns of full weight (the others are the world's own): each column's ground top block and three
  * blocks of its under block at the map's height, rock filling caves and gaps for {@link #FILL}
  * blocks under that, nothing of the world above it (StarMine blocks are kept), the map's water or
- * lava, the voxels of its objects (rocks, cliffs), its trees (the game's own, chosen by size and
+ * lava, the voxels of its objects (rocks, cliffs), the walk-through decor over walked ground
+ * ({@link MapDecor}: SC2's decorations there, seen but without a body), its trees (the game's own, chosen by size and
  * foliage colour, {@link #tree}), its lamps ({@link StarMineBlocks#MAP_LAMP}) and its sight blockers
  * ({@link VisionBlocker}). Under ground units walk on there are no ores for {@link #NO_ORES} blocks.
  *
@@ -108,6 +109,8 @@ public final class MapOverlay {
 	final byte[] blend;
 	/** Chunk (ChunkPos long) → positions `(y + 4096) << 8 | z << 4 | x` and palette indices. */
 	final Map<Long, int[][]> chunks = new HashMap<>();
+	/** Chunk (ChunkPos long) → the walk-through decor, packed the same ({@link MapDecor}). */
+	final Map<Long, int[][]> ghosts = new HashMap<>();
 	final List<Marker> markers = new ArrayList<>();
 	/** Chunk (ChunkPos long) → the trees, lamps and sight blockers built with it. */
 	final Map<Long, List<Marker>> built = new HashMap<>();
@@ -150,7 +153,10 @@ public final class MapOverlay {
 		for (Tag item : tag.getList("Chunks", Tag.TAG_COMPOUND)) {
 			CompoundTag chunk = (CompoundTag) item;
 			int[] pos = chunk.getIntArray("Pos"), state = chunk.getIntArray("State");
-			if (pos.length == state.length) chunks.put(ChunkPos.asLong(chunk.getInt("X"), chunk.getInt("Z")), new int[][] {pos, state});
+			long key = ChunkPos.asLong(chunk.getInt("X"), chunk.getInt("Z"));
+			if (pos.length == state.length) chunks.put(key, new int[][] {pos, state});
+			int[] ghostPos = chunk.getIntArray("GhostPos"), ghostState = chunk.getIntArray("GhostState");
+			if (ghostPos.length > 0 && ghostPos.length == ghostState.length) ghosts.put(key, new int[][] {ghostPos, ghostState});
 		}
 		ListTag list = tag.getList("Markers", Tag.TAG_COMPOUND);
 		for (int i = 0; i < list.size(); i++) {
@@ -268,6 +274,14 @@ public final class MapOverlay {
 				at.set(chunk.getMinBlockX() + (p & 15), (p >>> 8) - 4096, chunk.getMinBlockZ() + ((p >> 4) & 15));
 				if (at.getY() < bottom || at.getY() >= level.getMaxBuildHeight() || ours(level.getBlockState(at))) continue;
 				level.setBlock(at, palette[voxels[1][k]], Block.UPDATE_CLIENTS);
+			}
+		int[][] decor = ghosts.get(chunk.toLong());
+		if (decor != null)
+			for (int k = 0; k < decor[0].length; k++) {
+				int p = decor[0][k];
+				at.set(chunk.getMinBlockX() + (p & 15), (p >>> 8) - 4096, chunk.getMinBlockZ() + ((p >> 4) & 15));
+				if (at.getY() < bottom || at.getY() >= level.getMaxBuildHeight() || !level.getBlockState(at).isAir()) continue;
+				MapDecor.put(level, at.immutable(), palette[decor[1][k]]);
 			}
 		for (Marker marker : built.getOrDefault(chunk.toLong(), List.of()))
 			switch (marker.role()) {
@@ -523,6 +537,7 @@ public final class MapOverlay {
 
 	public static void load() {
 		VisionBlocker.load();
+		MapDecor.load();
 		MapOverlayDensity.load();
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new Loader());
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.TOP_LAYER_MODIFICATION,
