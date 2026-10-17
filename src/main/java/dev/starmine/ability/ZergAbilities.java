@@ -81,7 +81,7 @@ public final class ZergAbilities {
 		if (point == null) return;
 		BlockPos at = BlockPos.containing(point);
 		for (BlockPos pos : BlockPos.betweenClosed(at.offset(-1, -1, -1), at.offset(1, 1, 1)))
-			if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepGrowth.placeTumor(level, pos.immutable(), 1)) {
+			if (level.getBlockState(pos).is(StarMineBlocks.CREEP) && CreepGrowth.placeTumor(level, pos.immutable(), 1, unit.owner().orElse(null))) {
 				unit.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 				return;
 			}

@@ -1,0 +1,12 @@
+{
+	"name": "Creep Tumors",
+	"icon": "starmine:creep_tumor",
+	"category": "starmine:zerg_general",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A creep tumor shows for its first 5 seconds, then burrows: only its own side and $(l)detectors$() see it — a raven, an observer, an overseer, a turret, a cannon, a spore crawler, a detector potion. Soon after it plants one new tumor at the edge of its creep, as in SC2. It has 50 hit points: arrows and shots wound it, and units that see a foe's tumor within reach shoot it down themselves."
+		}
+	]
+}

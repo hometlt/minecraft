@@ -2,7 +2,7 @@
 	"name": "Левиафан",
 	"icon": "starmine:glowing_zerg_flesh",
 	"category": "starmine:zerg_general",
-	"sortnum": 1,
+	"sortnum": 2,
 	"pages": [
 		{
 			"type": "patchouli:text",

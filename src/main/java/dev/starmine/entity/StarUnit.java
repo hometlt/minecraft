@@ -370,6 +370,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 3 == 0 && badlyDamaged()) damagedEffects(server);
 		if (this.tickCount % 100 == 7 && hiveId != null && (!kind.structure() || kind.shields > 0 || weapon().damage() > 0)) applyUpgrades(server);
+		if (this.tickCount % 20 == 13 && weapon().damage() > 0 && !kind.worker() && dev.starmine.creep.CreepSources.tumors(server).size() > 0)
+			dev.starmine.creep.CreepTumors.attackNear(this, server); // owner 17.10: foes' tumors it sees, it shoots
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && flying() && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE))

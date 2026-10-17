@@ -241,6 +241,11 @@ public final class CreepGrowth {
 	 * `min` from every other source, standing on the face its creep lies on.
 	 */
 	public static boolean spawnTumor(ServerLevel level, BlockPos from, int min, int max) {
+		return spawnTumor(level, from, min, max, null);
+	}
+
+	/** {@link #spawnTumor(ServerLevel, BlockPos, int, int)} for a side: the new tumor is its player's (null: the wild's). */
+	public static boolean spawnTumor(ServerLevel level, BlockPos from, int min, int max, @org.jetbrains.annotations.Nullable java.util.UUID owner) {
 		if (CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
 		Source s = SOURCES.get(new Key(level.dimension(), from.asLong()));
 		if (s == null || s.cells.isEmpty()) return false;
@@ -248,7 +253,7 @@ public final class CreepGrowth {
 			BlockPos cell = s.cells.get(level.random.nextInt(s.cells.size()));
 			double distance = Math.sqrt(cell.distSqr(from));
 			if (distance < min || distance > max || !atEdge(level, cell)) continue;
-			if (placeTumor(level, cell, min)) {
+			if (placeTumor(level, cell, min, owner)) {
 				slimeTrail(level, from, cell);
 				return true;
 			}
@@ -278,6 +283,11 @@ public final class CreepGrowth {
 
 	/** Puts a tumor on a creep cell (any face); false when it cannot stand there. */
 	public static boolean placeTumor(ServerLevel level, BlockPos cell, int spacing) {
+		return placeTumor(level, cell, spacing, null);
+	}
+
+	/** {@link #placeTumor(ServerLevel, BlockPos, int)} for a side: the tumor is its player's (null: the wild's). */
+	public static boolean placeTumor(ServerLevel level, BlockPos cell, int spacing, @org.jetbrains.annotations.Nullable java.util.UUID owner) {
 		BlockState state = level.getBlockState(cell);
 		if (!state.is(StarMineBlocks.CREEP) || CreepSources.nearestTumor(level, cell) < spacing
 			|| CreepSources.tumors(level).size() >= CreepSources.MAX_TUMORS) return false;
@@ -287,6 +297,7 @@ public final class CreepGrowth {
 		BlockState tumor = StarMineBlocks.CREEP_TUMOR.defaultBlockState().setValue(CreepTumorBlock.FACING, face.getOpposite());
 		if (!tumor.canSurvive(level, cell)) return false;
 		level.setBlockAndUpdate(cell, tumor);
+		if (owner != null && level.getBlockEntity(cell) instanceof dev.starmine.block.CreepTumorBlockEntity planted) planted.setOwner(owner);
 		return true;
 	}
 

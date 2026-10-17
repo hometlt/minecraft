@@ -2,7 +2,7 @@
 	"name": "Upgrades",
 	"icon": "starmine:evolutionchamber_spawn_egg",
 	"category": "starmine:zerg_general",
-	"sortnum": 2,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:text",
