@@ -11,6 +11,27 @@
 		{
 			"type": "patchouli:text",
 			"text": "Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit's levels."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Metabolic Boost$() (Spawning Pool): Zerglings run faster (6.58 instead of 4.13)$(br2)$(l)Centrifugal Hooks$() (Baneling Nest): Banelings roll faster (4.13 instead of 3.5)$(br2)$(l)Burrow$() (Hatchery): Opens burrow for every zerg unit (the lurker burrows without it)",
+			"title": "Unit Upgrades"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Pneumatized Carapace$() (Hatchery): Overlords fly faster (2.63 instead of 0.9)$(br2)$(l)Adrenal Glands$() (Spawning Pool): Zerglings attack 40% faster (needs a hive)$(br2)$(l)Glial Reconstitution$() (Roach Warren): Roaches run faster (4.2 instead of 3.15; needs a lair)"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Tunneling Claws$() (Roach Warren): Burrowed roaches move (needs a lair)$(br2)$(l)Grooved Spines$() (Hydralisk Den): Hydralisks: +1 range$(br2)$(l)Muscular Augments$() (Hydralisk Den): Hydralisks run faster (3.94 instead of 3.15)"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Seismic Spines$() (Hydralisk Den): Lurkers: +2 range$(br2)$(l)Adaptive Talons$() (Hydralisk Den): Lurkers burrow half as fast again$(br2)$(l)Neural Parasite$() (Infestation Pit): Opens the infestors' neural parasite"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Chitinous Plating$() (Ultralisk Cavern): Ultralisks: +2 armor$(br2)$(l)Anabolic Synthesis$() (Ultralisk Cavern): Ultralisks run faster (4.95 instead of 4.13)"
 		}
 	]
 }

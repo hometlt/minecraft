@@ -33,6 +33,10 @@ import org.jetbrains.annotations.Nullable;
 final class AbilityAi {
 	private static final int CALM = 200;
 
+	/** What a wild sentry fakes (owner 17.10): the army's heavy hitters. */
+	private static final List<UnitKind> HALLUCINATED = List.of(UnitKind.STALKER, UnitKind.IMMORTAL, UnitKind.ARCHON, UnitKind.COLOSSUS, UnitKind.VOID_RAY,
+		UnitKind.PHOENIX);
+
 	private AbilityAi() {
 	}
 
@@ -133,8 +137,12 @@ final class AbilityAi {
 				yield base != null && base.minerals >= 200 && base.vespene >= 75 && reactor == (ability == Ability.BUILD_REACTOR)
 					&& unit.queue().isEmpty() && cast(unit, level, ability);
 			}
-			case LOAD -> unit.kind == UnitKind.BUNKER && foeWithin(unit, 12) && cast(unit, level, ability);
-			case UNLOAD -> unit.kind == UnitKind.BUNKER && calm && cast(unit, level, ability, unit.position());
+			case LOAD -> unit.kind == UnitKind.BUNKER ? foeWithin(unit, 12) && cast(unit, level, ability)
+				// a flying transport takes up the badly wounded out of a fight
+				: foeWithin(unit, 12) && nearestOwn(unit, 6, other -> !other.flying() && !other.kind.structure() && !other.isPassenger()
+					&& other.kind.race == unit.kind.race && other.getHealth() < other.getMaxHealth() * 0.3f) != null && cast(unit, level, ability);
+			case UNLOAD -> !unit.getPassengers().isEmpty() && (calm || unit.kind != UnitKind.BUNKER && unit.getHealth() < unit.getMaxHealth() * 0.25f)
+				&& cast(unit, level, ability, unit.position());
 			case CHARGE -> target != null && reach > 2 && cast(unit, level, ability, target);
 			// the heroes: Kerrigan leaps at a foe a little off and shifts through a group; Raynor calls the Hyperion on a strong
 			// foe (not a player: 600 damage would end anyone at once); Artanis dashes at a foe
@@ -150,13 +158,31 @@ final class AbilityAi {
 			case FORCE_FIELD -> target != null && target.distanceTo(unit) < 7 && target.distanceTo(unit) > 3
 				&& cast(unit, level, ability, unit.position().lerp(target.position(), 0.6));
 			case GUARDIAN_SHIELD -> foesAround(unit, unit.position(), 9) >= 2 && cast(unit, level, ability);
-			case HALLUCINATION -> target != null && unit.energy() >= 150 && cast(unit, level, ability);
+			case HALLUCINATION -> {
+				if (target == null || unit.energy() < 150) yield false;
+				unit.abilities.hallucinate = HALLUCINATED.get(level.random.nextInt(HALLUCINATED.size())); // owner 17.10: what to fake, its pick
+				yield cast(unit, level, ability);
+			}
+			// owner 17.10: the AI uses every ability
+			case CREEP_TUMOR -> calm && unit.energy() >= 50 && cast(unit, level, ability,
+				unit.position().add(level.random.nextGaussian() * 5, 0, level.random.nextGaussian() * 5));
+			case ABDUCT -> target instanceof StarUnit foe && !foe.kind.structure() && foe.getMaxHealth() >= 30 && reach > 4 && reach < ability.range
+				&& cast(unit, level, ability, target);
+			case LIFT_OFF -> {
+				boolean hurt = unit.getLastHurtByMob() != null && unit.tickCount - unit.getLastHurtByMobTimestamp() < 60
+					&& !(unit.getLastHurtByMob() instanceof StarUnit flyer && flyer.flying());
+				yield !on && hurt && unit.getHealth() < unit.getMaxHealth() * 0.3f && unit.queue().isEmpty() || on && calm ? cast(unit, level, ability) : false;
+			}
+			case PHASING_MODE -> !on && target == null && unit.order() != StarUnit.Order.MOVE && alliesAround(unit, unit.position(), 10) >= 3
+				|| on && (foeWithin(unit, 10) || unit.order() == StarUnit.Order.MOVE) ? cast(unit, level, ability) : false;
+			case WARP_GATE -> !on && unit.queue().isEmpty() && cast(unit, level, ability);
 			case PSIONIC_STORM -> target != null && foesAround(unit, at, ProtossAbilities.STORM_RADIUS) >= 3
 				&& alliesAround(unit, at, ProtossAbilities.STORM_RADIUS + 1) == 0 && cast(unit, level, ability, at);
 			case PURIFICATION_NOVA -> target != null && foesAround(unit, at, ProtossAbilities.NOVA_RADIUS) >= 2
 				&& alliesAround(unit, at, ProtossAbilities.NOVA_RADIUS + 1) == 0 && cast(unit, level, ability, at);
 			case FEEDBACK -> target instanceof StarUnit caster && caster.energy() >= 50 && cast(unit, level, ability, target);
-			case ARCHON_WARP -> unit.kind == UnitKind.HIGH_TEMPLAR && calm && unit.energy() < 50 && cast(unit, level, ability);
+			case ARCHON_WARP -> (unit.kind == UnitKind.HIGH_TEMPLAR ? calm && unit.energy() < 50 : calm && unit.getHealth() < unit.getMaxHealth() * 0.5f)
+				&& cast(unit, level, ability); // a dark templar badly hurt merges too
 			case GRAVITON_BEAM -> target != null && cast(unit, level, ability, target);
 			case PRISMATIC_ALIGNMENT -> target instanceof StarUnit armored && armored.kind.armored() && reach < unit.weapon().range() + 2
 				&& cast(unit, level, ability);
@@ -188,9 +214,9 @@ final class AbilityAi {
 			return !on && target != null && unit.distanceTo(target) <= range || on && calm ? cast(unit, level, Ability.BURROW) : false;
 		}
 		if (unit.kind == UnitKind.WIDOW_MINE) return !on && cast(unit, level, Ability.BURROW); // a wild mine lies in wait
-		if (unit.kind != UnitKind.ROACH) return false; // the others burrow on their player's command only
-		float health = unit.getHealth() / unit.getMaxHealth();
-		if (!on) return health < 0.35f && !foeDetectorWithin(unit, 14) && cast(unit, level, Ability.BURROW);
+		if (unit.kind.race != UnitKind.Race.ZERG || unit.flying()) return false;
+		float health = unit.getHealth() / unit.getMaxHealth(); // owner 17.10: every zerg hides underground when badly hurt (a roach sooner: it heals fast there)
+		if (!on) return health < (unit.kind == UnitKind.ROACH ? 0.35f : 0.25f) && !foeDetectorWithin(unit, 14) && cast(unit, level, Ability.BURROW);
 		return health > 0.85f || unit.revealed() ? cast(unit, level, Ability.BURROW) : false;
 	}
 

@@ -151,11 +151,15 @@ public final class ProtossAbilities {
 	/** Hallucination: two illusory zealots of the sentry's side for 43 s (no damage dealt, double taken). */
 	static void hallucination(StarUnit unit, ServerLevel level) {
 		Entity body = unit.body();
-		for (int i = 0; i < 2; i++) {
-			StarUnit copy = StarMine.type(UnitKind.ZEALOT).create(level);
+		UnitKind kind = unit.abilities.hallucinate != null && Ability.HALLUCINATIONS.contains(unit.abilities.hallucinate) ? unit.abilities.hallucinate : UnitKind.ZEALOT;
+		unit.abilities.hallucinate = null;
+		int count = kind == UnitKind.PROBE ? 4 : kind == UnitKind.ZEALOT || kind == UnitKind.STALKER || kind == UnitKind.ADEPT ? 2 : 1;
+		for (int i = 0; i < count; i++) {
+			StarUnit copy = StarMine.type(kind).create(level);
 			if (copy == null) return;
 			double angle = level.random.nextDouble() * Math.PI * 2;
-			copy.moveTo(body.getX() + Math.cos(angle) * 1.5, body.getY(), body.getZ() + Math.sin(angle) * 1.5, body.getYRot(), 0);
+			double y = kind.flying ? body.getY() + 3 : body.getY();
+			copy.moveTo(body.getX() + Math.cos(angle) * 1.5, y, body.getZ() + Math.sin(angle) * 1.5, body.getYRot(), 0);
 			ZergAbilities.summon(unit, copy, level);
 			Status.apply(copy, Status.HALLUCINATION, HALLUCINATION_TICKS);
 			level.addFreshEntity(copy);

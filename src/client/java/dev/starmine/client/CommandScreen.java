@@ -43,13 +43,13 @@ import org.lwjgl.glfw.GLFW;
  * or ore, return cargo at a command center, otherwise move; for buildings, the rally point). Commands
  * that need a target (move, patrol, attack, gather, rally) take the next left click. Ctrl+1..9 saves a
  * group, 1..9 selects it. Arrows and the screen edges pan (WASD too, unless the letter is a hotkey of
- * the card), the wheel zooms, Q/E turn the isometric view by a quarter, the middle button pans; the
+ * the card), the wheel zooms, Q/E turn the isometric view by a quarter, the middle button pans (held on the minimap it drags the map); the
  * minimap (bottom left) moves the view with a left click and sends the selection with a right click. Esc steps back: cancels placing or
  * targeting, leaves a build page, clears the selection, and finally leaves the view.
  */
 public final class CommandScreen extends Screen {
 	private static final int CELL = 34, GAP = 2;
-	private enum Page { MAIN, BUILD, ADVANCED }
+	private enum Page { MAIN, BUILD, ADVANCED, HALLUCINATION }
 
 	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon,
 			ItemStack item) {
@@ -74,6 +74,8 @@ public final class CommandScreen extends Screen {
 	}
 
 	private Page page = Page.MAIN;
+	/** The middle button went down on the minimap: its drag moves the map ({@link #mouseDragged}). */
+	private boolean mapGrab;
 	/** A command waiting for its target click (move, patrol, attack, gather, rally). */
 	private String targeting;
 	private double dragX, dragY;
@@ -464,6 +466,23 @@ public final class CommandScreen extends Screen {
 				List.of(Component.translatable("command.starmine.back")), () -> page = Page.MAIN, Sc2Buttons.command("back", race)));
 			return buttons;
 		}
+		if (page == Page.HALLUCINATION && mobile.stream().anyMatch(unit -> unit.kind == UnitKind.SENTRY)) { // owner 17.10: what to hallucinate
+			List<UnitKind> kinds = dev.starmine.ability.Ability.HALLUCINATIONS;
+			for (int i = 0; i < kinds.size(); i++) {
+				UnitKind kind = kinds.get(i);
+				char key = dev.starmine.ability.Ability.HALLUCINATION_KEYS.charAt(i);
+				buttons.add(new Button(i < 10 ? i : i + 1, name(kind), key, kind, true,
+					List.of(Component.translatable("command.starmine.hallucinate", name(kind)).append(" (" + key + ")"),
+						Component.translatable("ability.starmine.hallucination.tip").withColor(0xFFC0C0C0)),
+					() -> {
+						CommandView.send("ability", Vec3.ZERO, -1, dev.starmine.ability.Ability.HALLUCINATION.id + ":" + kind.name());
+						page = Page.MAIN;
+					}, null));
+			}
+			buttons.add(new Button(14, Component.translatable("command.starmine.back"), GLFW.GLFW_KEY_ESCAPE, null, true,
+				List.of(Component.translatable("command.starmine.back")), () -> page = Page.MAIN, Sc2Buttons.command("back", race)));
+			return buttons;
+		}
 		page = Page.MAIN;
 		if (!mobile.isEmpty()) {
 			buttons.add(simple(0, "move", race, 'M', () -> targeting = "move"));
@@ -559,7 +578,7 @@ public final class CommandScreen extends Screen {
 		tooltip.add(Component.translatable("ability.starmine." + ability.id + ".tip").withColor(0xFFC0C0C0));
 		if (ability.energy > 0) tooltip.add(Component.translatable("command.starmine.energy_cost", ability.energy).withColor(0xFFC080FF));
 		if (ability.cooldownTicks > 0) tooltip.add(Component.translatable("command.starmine.cooldown", ability.cooldownTicks / 20));
-		Runnable run = switch (ability.target) {
+		Runnable run = ability == dev.starmine.ability.Ability.HALLUCINATION ? () -> page = Page.HALLUCINATION : switch (ability.target) { // a sentry chooses what
 			case NONE, TOGGLE -> () -> CommandView.send("ability", Vec3.ZERO, -1, ability.id);
 			case UNIT, POINT -> () -> targeting = "ability:" + ability.id;
 		};
@@ -591,16 +610,25 @@ public final class CommandScreen extends Screen {
 			case HIVE -> UnitKind.INFESTATION_PIT;
 			default -> null;
 		};
-		boolean done = what.once() ? status.counts().getOrDefault("research:" + what.id(), 0) > 0
+		boolean done = what == Research.NUKE ? status.counts().getOrDefault("level:nuke", 0) >= Math.max(1, status.counts().getOrDefault(UnitKind.GHOST_ACADEMY.name(), 0))
+			: what.once() ? status.counts().getOrDefault("research:" + what.id(), 0) > 0
 			: what == Research.LAIR ? tier >= 2 : what == Research.HIVE ? tier >= 3 : level > 3;
-		boolean tech = (need == null || status.counts().getOrDefault(need.name(), 0) > 0)
+		int needTier = switch (what) {
+			case CENTRIFUGAL_HOOKS, GLIAL_RECONSTITUTION, TUNNELING_CLAWS -> 2;
+			case ADRENAL_GLANDS -> 3;
+			default -> 1;
+		};
+		boolean tech = (need == null || status.counts().getOrDefault(need.name(), 0) > 0) && tier >= needTier
 			&& (building.race != UnitKind.Race.ZERG || what == Research.LAIR || what.once() || tier >= level);
 		int[] cost = what.cost(level);
 		boolean enabled = !done && tech && status.minerals() >= cost[0] && status.vespene() >= cost[1];
-		Component label = Component.translatable("command.starmine." + what.id());
+		String key = "command.starmine." + (what == Research.SHIELDS ? "shields_upgrade" : what.id()); // command.starmine.shields is the shields readout
+		Component label = Component.translatable(key);
 		List<Component> tooltip = new ArrayList<>();
 		tooltip.add(label.copy().append((what.leveled() ? " " + Math.min(level, 3) : "") + " (" + what.hotkey + ")"));
 		tooltip.add(Component.translatable("command.starmine.cost", cost[0], cost[1]));
+		tooltip.add(Component.translatable(key + ".tip").withColor(0xFFC0C0C0));
+		if (what == Research.NUKE) tooltip.add(Component.translatable("command.starmine.nukes", status.counts().getOrDefault("level:nuke", 0)).withColor(0xFFFF8060));
 		if (need != null && status.counts().getOrDefault(need.name(), 0) == 0) tooltip.add(Component.translatable("command.starmine.requires", name(need)).withColor(0xFF6060));
 		return new Button(slot, label, what.hotkey, null, enabled, tooltip, () -> CommandView.send("research", Vec3.ZERO, -1, what.id()),
 			Sc2Buttons.research(what, building.race, level));
@@ -729,6 +757,11 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && mapGrab) { // the map follows the hand: the camera goes the other way, at the map's scale
+			double scale = 2.0 * CommandMinimap.RADIUS / CommandMinimap.SIZE;
+			CommandView.lookAt(CommandView.targetX - dragX * scale, CommandView.targetZ - dragY * scale);
+			return true;
+		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) { // the view is isometric: dragging pans it
 			double step = 0.02 + CommandView.zoom() * 0.004;
 			double sin = Math.sin(Math.toRadians(CommandView.yaw)), cos = Math.cos(Math.toRadians(CommandView.yaw));
@@ -742,6 +775,10 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) { // owner 17.10: held on the minimap, the middle button drags the map
+			mapGrab = CommandMinimap.contains(mouseX, mouseY, height);
+			return true;
+		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 			if (onCard(mouseX, mouseY)) {
 				// the release must not select in the world under the card (owner 16.10: it cleared the selection and

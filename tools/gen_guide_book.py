@@ -78,6 +78,8 @@ CATEGORIES = [
                  'Рабочие: G и клик — добывать этот блок; G и рамка — всю обведённую область (до 32 на 32), сначала минералы, пока не опустеет. У выделенных рабочих видны их область и добываемый блок. A и клик по любому существу — монстру, животному — атака. Как в SC2, одно оружие бьёт только по воздуху (викинг в полёте, корруптор, феникс), другое только по земле (танк, колосс, баньши).'),
             text('The camera goes anywhere — keys, screen edges, a click on the minimap — however far you stand: the world round it is loaded for you. A cyan arrow on the minimap is you, pointing where you look.$(br2)$(l)F4$() or the ☺ button selects YOU as a hero: you carry out move, stop, hold, patrol and attack orders yourself, striking with what is in your right hand. The card then shows your hotbar: click an item to take it in hand, again to use it. The command panel used on one of your units takes control of it.',
                  'Камера уходит куда угодно — клавишами, краями экрана, кликом по миникарте, — как бы далеко вы ни стояли: мир вокруг неё загружается для вас. Голубая стрелка на миникарте — это вы, она смотрит туда же, куда вы.$(br2)$(l)F4$() или кнопка ☺ выделяет ВАС как героя: приказы движения, стопа, удержания, патруля и атаки вы выполняете сами и бьёте тем, что в правой руке. Карточка тогда показывает панель быстрого доступа: клик по предмету берёт его в руку, второй — применяет. Командная панель, применённая к своему юниту, даёт управлять им.'),
+            text('The $(l)middle button$() held and dragged pans the view; held on the $(l)minimap$() it drags the map itself. Terran barracks, factories, starports and command centers $(l)lift off$() (L), fly where they are sent and land again (L). Units that change form — siege mode, burrow, phasing, defender mode, a hellion into a hellbat — play their $(l)morph$() and look different after; the AI uses every ability its units have.',
+                 '$(l)Средняя кнопка$(), зажатая и протянутая, двигает вид; зажатая на $(l)миникарте$() — тянет саму карту. Казармы, заводы, космопорты и командные центры терранов $(l)взлетают$() (L), летят, куда посланы, и снова садятся (L). Юниты, меняющие форму — осадный режим, закапывание, фаза, режим защитника, геллион в геллбата, — показывают $(l)морфинг$() и после выглядят иначе; ИИ пользуется всеми способностями своих юнитов.'),
         ]),
         ('resources', t('Minerals and Vespene', 'Минералы и веспен'), 'starmine:mineral_shard', [
             spot('starmine:mineral_shard', 'Workers mine ores and valuable blocks and carry them home. Blue mineral crystals hold 500 each, 5 a trip; a crystal stands on mineralized earth and cannot be broken — your hand takes a shard.',
@@ -144,6 +146,14 @@ CATEGORIES = [
                  'Кроме первых трёх баз у места появления, по всему миру лежат $(l)дальние базы$() рас: примерно в каждой второй области 1536 на 1536 блоков, не ближе 1000 блоков к спавну, — база терранов над технолабиринтом, база протоссов над древними храмами или логово зергов с туннелями. Они строятся, когда вы подходите на 128 блоков; корабли и герои — только над первыми тремя.$(br2)Монстры не появляются в 30 блоках от любого юнита или здания любой расы.'),
             text('The races are always foes and keep apart: a pack, a claim or a nydus worm of one race never appears within 96 blocks of another race\'s wild.',
                  'Расы всегда враждебны и не селятся рядом: стая, захват или нидусов червь одной расы не появляется ближе 96 блоков к дикому другой.'),
+        ]),
+        ('blocks', t('Blocks and Items', 'Блоки и предметы'), 'starmine:terrazine_bucket', [
+            spot('starmine:terrazine_bucket', 'Terrazine: a violet liquid of the Void\'s rich islands, worth twice vespene; a gas building on its outlet or a bucket takes it. Liquid creep (a bucket of it too) lies in zerg tunnels: zerg run four times as fast in it.',
+                 'Терразин — фиолетовая жидкость богатых островов Пустоты, вдвое ценнее веспена; его берёт газовое здание на выходе или ведро. Жидкая слизь (и ведро с ней) лежит в туннелях зергов: зерги бегут в ней вчетверо быстрее.'),
+            spot('starmine:void_stone_bricks', 'Void stone, its bricks and void crystals build the islands of the Void; the crystals glow. The race portals and the nydus orifice belong to the bases: a portal leads into its race\'s sky ship while its guards live; a nydus worm comes out of an orifice.',
+                 'Камень Пустоты, его кирпичи и кристаллы Пустоты слагают острова Пустоты; кристаллы светятся. Порталы рас и отверстие нидуса — части баз: портал ведёт в корабль своей расы, пока живы его стражи; из отверстия выходит нидусов червь.'),
+            text('The $(l)nuclear missile$() is a thing of its own: it rises out of a ghost academy, flies out of sight and comes down on the ghost\'s red dot. You can shoot it down. Larvae wait by hatcheries for the card to turn them into eggs; an egg hatches its unit when its time is up.',
+                 '$(l)Ядерная ракета$() — отдельный объект: она взлетает из академии призраков, уходит из виду и падает на красную точку призрака. Её можно сбить. Личинки ждут у инкубаторов, пока карточка не превратит их в яйца; яйцо выводит свой юнит, когда выйдет срок.'),
         ]),
     ]),
     ('endgame', t('Bosses, Artifact, Void', 'Боссы, артефакт, Пустота'), t('The heroes, their helmets, the xel\'naga artifact, the stratosphere and the Void.', 'Герои, их шлемы, артефакт зел-нага, стратосфера и Пустота.'), 'starmine:artifact_pedestal', [
@@ -309,6 +319,14 @@ SUB_ICON = {('ZERG', 'units'): 'zergling', ('ZERG', 'buildings'): 'spawningpool'
 HEROES = {'KERRIGAN', 'RAYNOR', 'ARTANIS', 'ABATHUR', 'SWANN', 'KARAX'}
 # what a troop does that its numbers do not say (owner 17.10)
 NOTES = {
+    'GHOST': t('$(l)Nuke$() (N): arm a nuclear missile in a ghost academy\'s silo first (100/100, one an academy). The ghost then points a red laser at a place for 10 s while the missile rises out of the academy and falls on the red dot: huge damage round it, a shallow crater. An order to the ghost, or its death, lets the missile go: it blows up small in the air; shot down or striking something on its way, it does the same.',
+               '$(l)Ядерный удар$() (N): сначала зарядите ракету в шахте академии призраков (100/100, по одной на академию). Затем призрак 10 с держит красный лазер на месте удара, а ракета взлетает из академии и падает на красную точку: огромный урон вокруг, неглубокая воронка. Приказ призраку или его смерть отпускают ракету: она взрывается в воздухе небольшим взрывом; сбитая или налетевшая на препятствие — тоже.'),
+    'BATTLECRUISER': t('$(l)Tactical Jump$() (T): 4 s of charging — the cruiser holds still and holds fire while blue sparks gather round it and a shimmer marks the place — then it jumps anywhere. $(l)Yamato$() (Y): 240 to one target after 2 s.',
+                       '$(l)Тактический прыжок$() (T): 4 с подготовки — крейсер стоит и не стреляет, вокруг собираются синие искры, место выхода мерцает, — затем прыжок в любую точку. $(l)«Ямато»$() (Y): 240 урона по одной цели через 2 с.'),
+    'SENTRY': t('$(l)Hallucination$() (C) opens a choice: a probe (four), a zealot, adept or stalker (two), an immortal, archon, colossus, disruptor, warp prism, phoenix, void ray or oracle (one). The illusions last 43 s, deal no damage and take double.',
+                '$(l)Галлюцинация$() (C) открывает выбор: зонд (четыре), фанатик, адепт или сталкер (по два), бессмертный, архонт, колосс, разрушитель, призма искривления, феникс, луч пустоты или оракул (по одному). Иллюзии живут 43 с, не наносят урона и получают двойной.'),
+    'GHOST_ACADEMY': t('Researches personal cloaking and enhanced shockwaves, and $(l)arms its silo with a nuke$() (100/100, 43 s): one missile an academy, launched by a ghost.',
+                       'Исследует личную маскировку и усиленные ударные волны и $(l)заряжает шахту ядерной ракетой$() (100/100, 43 с): по одной ракете на академию, запускает её призрак.'),
     'HELLBAT': t('A unit of its own: trained at a factory once there is an armory, or a hellion turned into one (Hellbat Mode, and back). Biological and mechanical: a medivac heals it, an SCV repairs it. Its flames set foes alight; +12 against light.',
                  'Отдельный юнит: тренируется на заводе, когда есть оружейная, или геллион превращается в него (режим геллбата и обратно). Биологический и механический: медэвак лечит, КСМ чинит. Огонь поджигает врагов; +12 по лёгким.'),
     'WIDOW_MINE': t('Burrow it (R): hidden in the ground, it fires a $(l)sentinel missile$() at the first foe within 5, on the ground or in the air — 125 (+35 to shields), 40 to the foes around — then rearms for 29 s. Unburrowed it has no attack. Detectors see it.',
@@ -393,6 +411,34 @@ def stats(k, eco, lang):
     if eco and eco[4]: lines.append(f"$(l){L['gives']}$(): {eco[4]}")
     return '$(br)'.join(lines) + '$(br2)$(o)' + L['sc2'] + '$()'
 
+def researches():
+    """Each research: the buildings it is done at (from race/Research.at)."""
+    src = read(os.path.join(JAVA, 'race/Research.java'))
+    body = src[src.index('public boolean at(UnitKind building)'):]
+    body = body[:body.index('\n\t}')]
+    out = {}
+    for cases, rest in re.findall(r'case ([A-Z_, ]+) -> (building == [^;]+);', body):
+        places = re.findall(r'UnitKind\.([A-Z_]+)', rest)
+        for case in cases.split(','): out[case.strip()] = places
+    return out
+
+def research_pages(race, table):
+    """Pages listing the race's unit upgrades done once (owner 17.10: every SC2 upgrade in the guide)."""
+    leveled = {'WEAPONS', 'ARMOR', 'MELEE', 'VEHICLE_WEAPONS', 'SHIP_WEAPONS', 'PLATING', 'FLYER_ATTACKS', 'FLYER_CARAPACE', 'SHIELDS', 'AIR_WEAPONS', 'AIR_ARMOR', 'LAIR', 'HIVE'}
+    items = [(r, places) for r, places in researches().items() if r not in leveled and any(table.get(b, {}).get('race') == race for b in places)]
+    pages = {lang: [] for lang in LANG}
+    for lang in LANG:
+        lines = []
+        for r, places in items:
+            key = 'command.starmine.' + r.lower()
+            where = ', '.join(LANG[lang].get('entity.starmine.' + b.lower().replace('_', ''), b) for b in places)
+            lines.append(f"$(l){LANG[lang].get(key, r)}$() ({where}): {LANG[lang].get(key + '.tip', '')}")
+        for i in range(0, len(lines), 3):
+            page = {'type': 'patchouli:text', 'text': '$(br2)'.join(lines[i:i + 3])}
+            if i == 0: page['title'] = {'en_us': 'Unit Upgrades', 'ru_ru': 'Улучшения юнитов'}[lang]
+            pages[lang].append(page)
+    return pages
+
 def race_categories():
     """Per race: a category with an icon and description, its troops, buildings and general information under it."""
     table, eco, built, users = kinds(), economies(), buildings(), abilities()
@@ -406,6 +452,10 @@ def race_categories():
         out.append(dict(id=r, name=name, desc=desc, icon=icon, sort=10 + ri, parent=None, entries=[]))
         for si, (sub, sub_name) in enumerate(SUB):
             entries = list(GENERAL[race]) if sub == 'general' else []
+            if sub == 'general': # the upgrades entry: its pages, then every unit upgrade of the race
+                extra = research_pages(race, table)
+                entries = [(eid, ename, eicon, {lang: [pick(p, lang) for p in pages] + extra[lang] for lang in LANG}) if eid == 'upgrades' else (eid, ename, eicon, pages)
+                           for eid, ename, eicon, pages in entries]
             if sub != 'general':
                 for kind, k in table.items():
                     if k['race'] != race or kind in HEROES or kind in ('LARVA', 'EGG'): continue

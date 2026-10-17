@@ -91,7 +91,12 @@ public final class Commands {
 				formation(lifted, StarUnit.Order.MOVE, at);
 			}
 			case "ability" -> { // dev.starmine.ability: toggles and plain ones on all, aimed ones by the nearest able unit
-				dev.starmine.ability.Ability ability = dev.starmine.ability.Ability.byId(command.arg());
+				String arg = command.arg() == null ? "" : command.arg();
+				int colon = arg.indexOf(':'); // a choice with it: "hallucination:STALKER"
+				dev.starmine.ability.Ability ability = dev.starmine.ability.Ability.byId(colon < 0 ? arg : arg.substring(0, colon));
+				UnitKind choice = colon < 0 ? null : kind(arg.substring(colon + 1));
+				if (ability == dev.starmine.ability.Ability.HALLUCINATION && choice != null && dev.starmine.ability.Ability.HALLUCINATIONS.contains(choice))
+					for (StarUnit unit : units) unit.abilities.hallucinate = choice;
 				LivingEntity target = level.getEntity(command.target()) instanceof LivingEntity living && living.isAlive() ? living : null;
 				if (ability != null && !dev.starmine.ability.Abilities.order(level, units, ability, target, at)) {
 					String why = units.stream().filter(unit -> ability.users().contains(unit.kind))

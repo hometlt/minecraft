@@ -222,6 +222,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<Boolean> CLOAKED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Boolean> REVEALED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
 	private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	/** A change under way (owner 17.10, drawn as a morph): the mode it goes to + 1, or the kind it becomes + 1000; 0 none. And its length in ticks. */
+	private static final EntityDataAccessor<Integer> CHANGE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Integer> CHANGE_TICKS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** A changeling's look (dev.starmine.ability.Changeling): "" its own, "villager", or a player's UUID. */
 	private static final EntityDataAccessor<String> DISGUISE = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** A worker's building on its way to the site ("KIND x y z", or empty): its player sees the site's ghost. */
@@ -366,7 +369,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
 		if (this.tickCount % 3 == 0 && badlyDamaged()) damagedEffects(server);
-		if (this.tickCount % 100 == 7 && hiveId != null && (!kind.structure() || kind.shields > 0)) applyUpgrades(server);
+		if (this.tickCount % 100 == 7 && hiveId != null && (!kind.structure() || kind.shields > 0 || weapon().damage() > 0)) applyUpgrades(server);
 		if (kind == UnitKind.EGG && nest != null && cocoonTicks > DORMANT / 2 && this.tickCount % 20 == 0) wakeNestEgg(server);
 		if (kind == UnitKind.EGG && cocoonKind != null && --cocoonTicks <= 0) hatchCocoon(server);
 		if (kind.hoverHeight() > 0 && flying() && !isPassenger() && (this.getTarget() == null || kind.attack == UnitKind.Attack.NONE))
@@ -675,6 +678,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		// unit upgrades (dev.starmine.race.Research): speed and health
 		double speed = dev.starmine.race.Research.speedFactor(hive, kind) - 1;
 		modifier(Attributes.MOVEMENT_SPEED, UPGRADE_SPEED, speed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+		if (weapon().damage() > 0) refreshWeapon(); // range and pace upgrades
 		double health = dev.starmine.race.Research.extraHealth(hive, kind) * UnitKind.SCALE;
 		AttributeInstance max = this.getAttribute(Attributes.MAX_HEALTH);
 		if (max != null && (max.getModifier(UPGRADE_HEALTH) == null ? 0 : max.getModifier(UPGRADE_HEALTH).amount()) != health) {
@@ -853,6 +857,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(CLOAKED, false);
 		builder.define(REVEALED, false);
 		builder.define(MODE, 0);
+		builder.define(CHANGE, 0);
+		builder.define(CHANGE_TICKS, 0);
 		builder.define(DISGUISE, "");
 		builder.define(BUILD_PLAN, "");
 		builder.define(WORK_SHOWN, "");
@@ -1625,6 +1631,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** A player's order: move, attack-move, patrol (from here to `pos` and back), hold, stop. */
 	public void command(Order order, Vec3 pos) {
+		if (owner().isPresent()) abilities.cancelChannel(); // a player's order breaks a channel (a nuke falls dead)
 		this.work = Work.NONE;
 		this.order = order;
 		this.orderPos = pos;
@@ -1862,6 +1869,40 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.entityData.set(MODE, mode);
 	}
 
+	/** Shows a change starting (to a mode, or `into` another kind) of `ticks`, or none (`ticks` 0). */
+	public void showChange(int mode, @org.jetbrains.annotations.Nullable UnitKind into, int ticks) {
+		this.entityData.set(CHANGE_TICKS, ticks);
+		this.entityData.set(CHANGE, ticks <= 0 ? 0 : into != null ? 1000 + into.ordinal() : mode + 1);
+	}
+
+	/** The mode a change under way goes to (-1: none, or a change into another kind). */
+	public int changingTo() {
+		int change = this.entityData.get(CHANGE);
+		return change > 0 && change < 1000 ? change - 1 : -1;
+	}
+
+	/** The kind a change under way makes it (null: none, or a change of mode). */
+	public @org.jetbrains.annotations.Nullable UnitKind changingInto() {
+		int change = this.entityData.get(CHANGE);
+		return change >= 1000 && change - 1000 < UnitKind.values().length ? UnitKind.values()[change - 1000] : null;
+	}
+
+	/** How far a change under way has got (0..1; 0 none), counted on this side from when it was seen to start. */
+	public float changeProgress(float partialTick) {
+		int ticks = this.entityData.get(CHANGE_TICKS);
+		if (ticks <= 0 || this.entityData.get(CHANGE) == 0) return 0;
+		return net.minecraft.util.Mth.clamp((this.tickCount - changeSeen + partialTick) / ticks, 0, 1);
+	}
+
+	/** This side's tick when the change under way was seen to start. */
+	private int changeSeen;
+
+	@Override
+	public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+		super.onSyncedDataUpdated(key);
+		if (key == CHANGE) changeSeen = this.tickCount;
+	}
+
 	/** A changeling's look: "" its own, "villager", or the UUID of the player it copied (both sides: the client draws it). */
 	public String disguise() {
 		return this.entityData.get(DISGUISE);
@@ -1901,7 +1942,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Rebuilds its weapon and speed from its mode and timed states (dev.starmine.ability.Status); not while a mode change is under way. */
 	public void refreshWeapon() {
 		if (abilities.changingMode()) return;
-		applyWeapon(dev.starmine.ability.Status.adjust(this, dev.starmine.ability.Modes.weapon(kind, mode())));
+		applyWeapon(dev.starmine.race.Research.adjust(this, dev.starmine.ability.Status.adjust(this, dev.starmine.ability.Modes.weapon(kind, mode()))));
 	}
 
 	/**
@@ -2035,10 +2076,13 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	 * 5, not 3.) Spells count as one strike.
 	 */
 	private float armored(DamageSource source, float amount) {
-		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0);
-		if (armor <= 0) return amount;
 		UnitKind by = source.getEntity() instanceof StarUnit attacker ? attacker.kind
 			: source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player ? dev.starmine.possess.Pilots.kindOf(player) : null;
+		if (source.getEntity() instanceof StarUnit attacker) // its base's damage upgrades (infernal pre-igniter, tectonic destabilizers)
+			amount += (float) (dev.starmine.race.Research.extraDamage(dev.starmine.ability.Abilities.base(attacker), attacker.kind, kind) * UnitKind.SCALE);
+		int armor = kind.armor() + armorUpgrade() + (mode() == dev.starmine.ability.Modes.PLANETARY ? 2 : 0)
+			+ (hiveId == null ? 0 : dev.starmine.race.Research.extraArmor(dev.starmine.ability.Abilities.base(this), kind));
+		if (armor <= 0) return amount;
 		int strikes = by == null ? 1 : by.strikes();
 		return (float) Math.max(0.5 * strikes * UnitKind.SCALE, amount - armor * strikes * UnitKind.SCALE);
 	}

@@ -41,6 +41,12 @@ public final class Abilities {
 	private Abilities() {
 	}
 
+	/** Whether the unit's base has a research (a unit with no base has none of the optional ones). */
+	public static boolean researched(StarUnit unit, dev.starmine.race.Research research) {
+		Hive base = base(unit);
+		return base != null && base.researched.contains(research.id());
+	}
+
 	/** Why `unit` cannot cast `ability` now (a lang key), or null. A toggle that is on can always be turned off. */
 	public static @Nullable String refusal(StarUnit unit, Ability ability) {
 		if (!ability.users().contains(unit.kind) || !unit.isAlive()) return "message.starmine.no_ability";
@@ -50,7 +56,8 @@ public final class Abilities {
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
 		if (ability == Ability.LIFT_OFF && LiftOff.refusal(unit) != null) return LiftOff.refusal(unit); // idle to lift, room to land
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
-		if (!dev.starmine.race.Research.has(unit, dev.starmine.race.Research.of(ability))) return "message.starmine.need_research";
+		if (!dev.starmine.race.Research.has(unit, dev.starmine.race.Research.of(ability, unit.kind))) return "message.starmine.need_research";
+		if (ability == Ability.NUKE && base(unit) != null && dev.starmine.race.Research.nukes(base(unit)) <= 0) return "message.starmine.no_nuke";
 		long now = unit.level().getGameTime();
 		if (unit.abilities.cooldownLeft(ability, now) > 0) return "message.starmine.cooldown";
 		if (unit.energy() < ability.energy) return "message.starmine.need_energy";
@@ -139,14 +146,14 @@ public final class Abilities {
 		}
 		UnitKind morph = Morphs.target(unit.kind, ability);
 		if (morph != null) { // into another kind (a hellbat, a landed viking): its SC2 time, then the new unit
-			Morphs.begin(unit, morph, Modes.changeTicks(ability, Modes.NORMAL));
+			Morphs.begin(unit, morph, (int) Math.round(Modes.changeTicks(ability, Modes.NORMAL) / dev.starmine.race.Research.changeFactor(base(unit), unit.kind)));
 			return true;
 		}
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)
 			int to = turningOff ? Modes.NORMAL : mode;
 			if (ability == Ability.LIFT_OFF && !turningOff) unit.abilities.liftedFrom = unit.position();
-			Modes.change(unit, to, Modes.changeTicks(ability, to));
+			Modes.change(unit, to, (int) Math.round(Modes.changeTicks(ability, to) / dev.starmine.race.Research.changeFactor(base(unit), unit.kind)));
 			return true;
 		}
 		if (ability.channelTicks > 0) {
@@ -156,9 +163,18 @@ public final class Abilities {
 			state.channelPoint = point;
 			state.channelTicks = ability.channelTicks;
 			unit.getNavigation().stop();
-			if (ability == Ability.NUKE && point != null) TerranAbilities.nukeMark(level, point);
+			if (ability == Ability.NUKE && point != null) { // owner 17.10: the academy's missile flies; the ghost guides it in
+				Hive base = base(unit);
+				if (base != null) {
+					base.levels.merge(dev.starmine.race.Research.NUKE.id(), -1, Integer::sum);
+					HiveSavedData.get(level.getServer()).setDirty();
+				}
+				TerranAbilities.nukeMark(level, point);
+				NukeMissile.launch(level, unit, point, ability.channelTicks);
+			}
 			return true;
 		}
+		if (ability == Ability.TACTICAL_JUMP && point != null) TerranAbilities.jumpCharge(level, unit, point, ability.delayTicks);
 		if (ability.delayTicks > 0) {
 			Delayed.after(level, ability.delayTicks, () -> {
 				if (unit.isAlive() || unit.pilot() != null) effect(unit, level, ability, target, point);
@@ -218,7 +234,7 @@ public final class Abilities {
 			case KD8_CHARGE -> TerranAbilities.kd8(unit, level, point);
 			case EMP -> TerranAbilities.emp(unit, level, point);
 			case STEADY_TARGETING -> TerranAbilities.steadyTargeting(unit, level, target);
-			case NUKE -> TerranAbilities.nuke(unit, level, point);
+			case NUKE -> { } // the missile lands by itself (NukeMissile)
 			case AFTERBURNERS -> Status.apply(unit, Status.AFTERBURNERS, TerranAbilities.AFTERBURNER_TICKS);
 			case YAMATO -> TerranAbilities.yamato(unit, level, target);
 			case TACTICAL_JUMP -> TerranAbilities.tacticalJump(unit, level, point);
@@ -280,7 +296,7 @@ public final class Abilities {
 		}
 		int max = unit.maxEnergy();
 		if (max > 0 && unit.energy() < max && !(unit.kind == UnitKind.SHIELD_BATTERY && !unit.kind.race.rules().powered(unit)))
-			unit.setEnergy(Math.min(max, unit.energy() + ENERGY_PER_TICK));
+			unit.setEnergy(Math.min(max, unit.energy() + ENERGY_PER_TICK * (unit.kind == UnitKind.MEDIVAC && researched(unit, dev.starmine.race.Research.CADUCEUS_REACTOR) ? 2 : 1)));
 		Status.tick(unit, level);
 		if (!unit.isAlive() && unit.pilot() == null) return;
 		Cloak.tick(unit, level);
@@ -305,6 +321,7 @@ public final class Abilities {
 		}
 		unit.getNavigation().stop();
 		if (target != null) unit.getLookControl().setLookAt(target);
+		if (ability == Ability.NUKE && state.channelPoint != null && unit.tickCount % 2 == 0) TerranAbilities.nukeLaser(level, unit, state.channelPoint);
 		if (unit.tickCount % 4 == 0) {
 			Entity body = unit.body();
 			Vec3 at = body.position().add(body.getLookAngle().scale(unit.getBbWidth() / 2)).add(0, unit.getBbHeight() / 2, 0);

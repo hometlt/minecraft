@@ -17,8 +17,12 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "$(l)Tactical Jump$() (T): 4 s of charging — the cruiser holds still and holds fire while blue sparks gather round it and a shimmer marks the place — then it jumps anywhere. $(l)Yamato$() (Y): 240 to one target after 2 s."
+		},
+		{
+			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Yamato Cannon$(): After 2 s: 240 damage to one target$(br2)$(l)Tactical Jump$(): After 4 s: jumps to any point"
+			"text": "$(l)Yamato Cannon$(): After 2 s: 240 damage to one target$(br2)$(l)Tactical Jump$(): 4 s of charging, holding still and fire; then a jump to any point"
 		}
 	]
 }

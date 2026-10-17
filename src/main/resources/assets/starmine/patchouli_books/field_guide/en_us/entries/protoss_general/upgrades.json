@@ -11,6 +11,23 @@
 		{
 			"type": "patchouli:text",
 			"text": "Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit's levels."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Charge$() (Twilight Council): Opens the zealots' charge$(br2)$(l)Blink$() (Twilight Council): Opens the stalkers' blink$(br2)$(l)Warp Gate$() (Cybernetics Core): Opens the change of gateways into warp gates",
+			"title": "Unit Upgrades"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Resonating Glaives$() (Twilight Council): Adepts attack 45% faster$(br2)$(l)Psionic Storm$() (Templar Archives): Opens the high templars' psionic storm$(br2)$(l)Shadow Stride$() (Dark Shrine): Opens the dark templars' blink"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Extended Thermal Lance$() (Robotics Bay): Colossi: +2 range$(br2)$(l)Gravitic Boosters$() (Robotics Bay): Observers fly faster (3.94 instead of 2.63)$(br2)$(l)Gravitic Drive$() (Robotics Bay): Warp prisms fly faster (4.13 instead of 2.95)"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Flux Vanes$() (Fleet Beacon): Void rays fly faster (4.65 instead of 3.85)$(br2)$(l)Anion Pulse-Crystals$() (Fleet Beacon): Phoenixes: +2 range$(br2)$(l)Tectonic Destabilizers$() (Fleet Beacon): Tempests: +40 damage to buildings"
 		}
 	]
 }

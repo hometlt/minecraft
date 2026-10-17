@@ -44,7 +44,7 @@ public enum Ability {
 	CLOAK(              "cloak",               'C', Target.TOGGLE,  25,    0,       0,    0,      0),
 	EMP(                "emp",                 'E', Target.POINT,   75,    0,       10,   0,      0),
 	STEADY_TARGETING(   "steady_targeting",    'R', Target.UNIT,    50,    0,       10,   1.43,   0),
-	NUKE(               "nuke",                'N', Target.POINT,   0,     60,      12,   14,     0),
+	NUKE(               "nuke",                'N', Target.POINT,   0,     20,      12,   10,     0),
 	HELLBAT(            "hellbat",             'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	SIEGE_MODE(         "siege_mode",          'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	HIGH_IMPACT(        "high_impact",         'E', Target.TOGGLE,  0,     0,       0,    0,      0),
@@ -95,6 +95,11 @@ public enum Ability {
 	LOAD(               "load",                'L', Target.NONE,    0,     0,       0,    0,      0),
 	UNLOAD(             "unload",              'D', Target.POINT,   0,     0,       0,    0,      0);
 
+	/** What a sentry may hallucinate (SC2 LotV), with the card's hotkeys; the small ones come in pairs ({@link ProtossAbilities#hallucination}). */
+	public static final java.util.List<UnitKind> HALLUCINATIONS = java.util.List.of(UnitKind.PROBE, UnitKind.ZEALOT, UnitKind.ADEPT, UnitKind.STALKER,
+		UnitKind.IMMORTAL, UnitKind.ARCHON, UnitKind.COLOSSUS, UnitKind.DISRUPTOR, UnitKind.WARP_PRISM, UnitKind.PHOENIX, UnitKind.VOID_RAY, UnitKind.ORACLE);
+	public static final String HALLUCINATION_KEYS = "PZDSIACRWNVO";
+
 	/** How it is aimed: nothing (at once), a toggle (on/off), a unit, a point. */
 	public enum Target { NONE, TOGGLE, UNIT, POINT }
 
@@ -108,8 +113,6 @@ public enum Ability {
 	public int minerals, vespene;
 
 	static {
-		NUKE.minerals = 100; // SC2: armed at the ghost academy
-		NUKE.vespene = 100;
 		ORBITAL_COMMAND.minerals = 150;
 		PLANETARY_FORTRESS.minerals = 150;
 		PLANETARY_FORTRESS.vespene = 150;

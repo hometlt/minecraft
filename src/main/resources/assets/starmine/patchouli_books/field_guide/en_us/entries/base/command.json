@@ -20,6 +20,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "The camera goes anywhere — keys, screen edges, a click on the minimap — however far you stand: the world round it is loaded for you. A cyan arrow on the minimap is you, pointing where you look.$(br2)$(l)F4$() or the ☺ button selects YOU as a hero: you carry out move, stop, hold, patrol and attack orders yourself, striking with what is in your right hand. The card then shows your hotbar: click an item to take it in hand, again to use it. The command panel used on one of your units takes control of it."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The $(l)middle button$() held and dragged pans the view; held on the $(l)minimap$() it drags the map itself. Terran barracks, factories, starports and command centers $(l)lift off$() (L), fly where they are sent and land again (L). Units that change form — siege mode, burrow, phasing, defender mode, a hellion into a hellbat — play their $(l)morph$() and look different after; the AI uses every ability its units have."
 		}
 	]
 }

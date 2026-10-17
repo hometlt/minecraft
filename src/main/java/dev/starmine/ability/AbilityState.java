@@ -18,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 public final class AbilityState {
 	final Map<Ability, Long> readyAt = new EnumMap<>(Ability.class);
 	@Nullable Ability channel;
+	/** What its next hallucination will be (owner 17.10: the sentry's choice; null: zealots). */
+	public @Nullable dev.starmine.entity.UnitKind hallucinate;
 	@Nullable UUID channelTarget;
 	@Nullable Vec3 channelPoint;
 	int channelTicks;
@@ -76,6 +78,12 @@ public final class AbilityState {
 
 	public boolean channelling() {
 		return channel != null;
+	}
+
+	/** A new order stops a channel (SC2): a ghost given an order lets its nuke go. */
+	public void cancelChannel() {
+		channel = null;
+		channelTicks = 0;
 	}
 
 	public boolean changingMode() {

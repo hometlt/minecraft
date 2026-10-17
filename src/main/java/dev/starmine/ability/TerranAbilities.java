@@ -85,9 +85,10 @@ public final class TerranAbilities {
 	/** EMP: everyone in the area loses up to 100 shields and 100 energy (SC2 hits its own side too). */
 	static void emp(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
-		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y + 0.8, point.z, 60, EMP_RADIUS / 2, 0.6, EMP_RADIUS / 2, 0.3);
-		Abilities.ring(level, point, EMP_RADIUS, ParticleTypes.ELECTRIC_SPARK);
-		for (LivingEntity other : Abilities.around(unit, point, EMP_RADIUS, false)) {
+		double radius = Abilities.researched(unit, dev.starmine.race.Research.ENHANCED_SHOCKWAVES) ? EMP_RADIUS + 0.5 * BLOCKS_PER_UNIT : EMP_RADIUS; // SC2 enhanced shockwaves: 2
+		level.sendParticles(ParticleTypes.ELECTRIC_SPARK, point.x, point.y + 0.8, point.z, 60, radius / 2, 0.6, radius / 2, 0.3);
+		Abilities.ring(level, point, radius, ParticleTypes.ELECTRIC_SPARK);
+		for (LivingEntity other : Abilities.around(unit, point, radius, false)) {
 			StarUnit victim = other instanceof StarUnit star ? star : other instanceof ServerPlayer player ? dev.starmine.possess.Possession.puppet(player) : null;
 			if (victim == null) continue;
 			victim.setEnergy((float) Math.max(0, victim.energy() - EMP_DRAIN));
@@ -103,16 +104,28 @@ public final class TerranAbilities {
 		target.hurt(unit.attackSource(), (float) (STEADY_DAMAGE * SCALE));
 	}
 
-	/** The nuke's red dot while the ghost guides it (14 s). */
+	/** The nuke is called: a warning heard round the red dot ({@link #nukeLaser} draws it while the ghost guides). */
 	static void nukeMark(ServerLevel level, Vec3 point) {
-		DustParticleOptions red = new DustParticleOptions(new Vector3f(1, 0, 0), 1.5f);
-		Delayed.repeat(level, 10, 28, n -> level.sendParticles(red, point.x, point.y + 0.1, point.z, 3, 0.05, 0, 0.05, 0));
 		level.playSound(null, point.x, point.y, point.z, SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.HOSTILE, 2f, 0.5f);
 	}
 
+	/** The ghost's guiding laser (owner 17.10): a thin red beam from its eyes to the red dot where the nuke will land. */
+	static void nukeLaser(ServerLevel level, StarUnit unit, Vec3 point) {
+		DustParticleOptions beam = new DustParticleOptions(new Vector3f(1, 0.05f, 0.05f), 0.6f);
+		DustParticleOptions dot = new DustParticleOptions(new Vector3f(1, 0, 0), 1.8f);
+		Vec3 eyes = unit.body().getEyePosition(), to = point.add(0, 0.1, 0);
+		double length = eyes.distanceTo(to);
+		for (double step = 0; step <= length; step += 0.6) {
+			Vec3 at = eyes.lerp(to, step / length);
+			level.sendParticles(beam, at.x, at.y, at.z, 1, 0, 0, 0, 0);
+		}
+		level.sendParticles(dot, to.x, to.y, to.z, 3, 0.05, 0, 0.05, 0);
+		if (unit.tickCount % 20 == 0) level.playSound(null, to.x, to.y, to.z, SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.HOSTILE, 1.5f, 1.6f);
+	}
+
 	/**
-	 * The nuke lands: SC2 300 (+200 to buildings) near the middle, less further out, to everyone; blocks
-	 * break only under the game rule `starmineNukeGriefing` (off by default).
+	 * The nuke lands: SC2 300 (+200 to buildings) near the middle, less further out, to everyone; a shallow crater
+	 * under the game rule `starmineNukeGriefing` (on by default).
 	 */
 	static void nuke(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
@@ -125,8 +138,9 @@ public final class TerranAbilities {
 			double damage = NUKE_DAMAGE + (other instanceof StarUnit star && star.kind.structure() ? NUKE_STRUCTURE : 0);
 			other.hurt(unit.attackSource(), (float) (damage * share * SCALE));
 		}
-		if (level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING))
-			level.explode(unit, point.x, point.y + 0.5, point.z, 6f, Level.ExplosionInteraction.TNT);
+		// owner 17.10: the land is only scarred (a shallow crater), the living suffer; the game rule off leaves the land be
+		level.explode(unit, point.x, point.y + 0.5, point.z, 3f,
+			level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE);
 	}
 
 	/** After its 2 s channel, the Yamato cannon hits the target: a bolt of light and 240 SC2 damage. */
@@ -144,6 +158,31 @@ public final class TerranAbilities {
 	}
 
 	/** After its 4 s warning, the battlecruiser jumps to the point (over the ground there). */
+	/**
+	 * The battlecruiser charges its jump (owner 17.10): it stops, holds fire and does not move ({@link Status#WARPING});
+	 * blue sparks gather round its hull and swirl faster, and a shimmer marks where it will come out.
+	 */
+	static void jumpCharge(ServerLevel level, StarUnit unit, Vec3 point, int ticks) {
+		unit.getNavigation().stop();
+		unit.setTarget(null);
+		Status.apply(unit, Status.WARPING, ticks);
+		DustParticleOptions blue = new DustParticleOptions(new Vector3f(0.35f, 0.7f, 1f), 1.4f);
+		level.playSound(null, unit.getX(), unit.getY(), unit.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 3f, 0.6f);
+		Delayed.repeat(level, 2, ticks / 2, n -> {
+			if (!unit.isAlive()) return;
+			var body = unit.body();
+			double share = n * 2.0 / ticks, radius = (body.getBbWidth() / 2 + 1.5) * (1.2 - share * 0.8);
+			for (int k = 0; k < 10; k++) {
+				double angle = k * Math.PI / 5 + n * (0.2 + share * 0.6);
+				level.sendParticles(blue, body.getX() + Math.cos(angle) * radius, body.getY() + body.getBbHeight() * (0.2 + 0.6 * ((k + n) % 5) / 4.0),
+					body.getZ() + Math.sin(angle) * radius, 1, 0, 0, 0, 0);
+			}
+			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, body.getX(), body.getY() + body.getBbHeight() / 2, body.getZ(), 4,
+				body.getBbWidth() / 2, body.getBbHeight() / 3, body.getBbWidth() / 2, 0.2);
+			if (n % 5 == 0) level.sendParticles(ParticleTypes.REVERSE_PORTAL, point.x, point.y + 2, point.z, 20, 1.5, 1, 1.5, 0.05);
+		});
+	}
+
 	static void tacticalJump(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
 		var body = unit.body();

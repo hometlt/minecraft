@@ -17,8 +17,12 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "$(l)Hallucination$() (C) opens a choice: a probe (four), a zealot, adept or stalker (two), an immortal, archon, colossus, disruptor, warp prism, phoenix, void ray or oracle (one). The illusions last 43 s, deal no damage and take double."
+		},
+		{
+			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Force Field$(): A wall of force for 11 s$(br2)$(l)Guardian Shield$(): Allies around take less damage from ranged attacks$(br2)$(l)Hallucination$(): Creates a harmless illusion for 43 s"
+			"text": "$(l)Force Field$(): A wall of force for 11 s$(br2)$(l)Guardian Shield$(): Allies around take less damage from ranged attacks$(br2)$(l)Hallucination$(): Choose a unit: a harmless illusion of it (two of a small one, four probes) for 43 s; it deals no damage and takes double"
 		}
 	]
 }

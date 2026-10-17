@@ -11,6 +11,27 @@
 		{
 			"type": "patchouli:text",
 			"text": "Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit's levels."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Combat Shield$() (Barracks): Marines get +10 health$(br2)$(l)Stimpack$() (Barracks): Opens the stimpack of marines and marauders$(br2)$(l)Concussive Shells$() (Barracks): Marauders slow what they hit",
+			"title": "Unit Upgrades"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Hi-Sec Auto Tracking$() (Engineering Bay): Missile turrets, bunkers and planetary fortresses: +1 range$(br2)$(l)Neosteel Armor$() (Engineering Bay): Terran buildings: +2 armor$(br2)$(l)Infernal Pre-Igniter$() (Factory): Hellions +5, hellbats +12 damage to units"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Drilling Claws$() (Factory): Widow mines burrow three times faster$(br2)$(l)Smart Servos$() (Factory): Hellions, vikings and thors change mode half as fast again$(br2)$(l)Cloaking Field$() (Starport): Opens the banshees' cloak"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Hyperflight Rotors$() (Starport): Banshees fly faster (5.25 instead of 3.85)$(br2)$(l)Advanced Ballistics$() (Fusion Core): Liberators in defender mode: +2 range$(br2)$(l)Caduceus Reactor$() (Fusion Core): Medivacs regain energy twice as fast"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Personal Cloaking$() (Ghost Academy): Opens the ghosts' cloak$(br2)$(l)Enhanced Shockwaves$() (Ghost Academy): EMP covers a wider circle (2 instead of 1.5)$(br2)$(l)Arm Silo with Nuke$() (Ghost Academy): Builds a nuclear missile in the academy's silo (one an academy); a ghost launches it"
 		}
 	]
 }

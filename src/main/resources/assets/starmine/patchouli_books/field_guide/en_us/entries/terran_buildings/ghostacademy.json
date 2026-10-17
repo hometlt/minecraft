@@ -14,6 +14,10 @@
 			"type": "patchouli:text",
 			"title": "Ghost Academy",
 			"text": "$(l)Health$(): 1250$(br)No attack$(br)$(l)Cost$(): 150 minerals, 50 vespene$(br)$(l)Build time$(): 29 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Researches personal cloaking and enhanced shockwaves, and $(l)arms its silo with a nuke$() (100/100, 43 s): one missile an academy, launched by a ghost."
 		}
 	]
 }

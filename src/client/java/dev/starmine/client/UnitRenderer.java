@@ -68,6 +68,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			&& !(net.minecraft.client.Minecraft.getInstance().player != null && dev.starmine.faction.Faction.allied(entity, net.minecraft.client.Minecraft.getInstance().player))
 			&& Disguises.render(entity, partialTick, poseStack, buffers, packedLight)) return;
 		SkinnedModel model = StarMineModels.get(shown(entity.kind).id);
+		if (model != null && entity.deathTime == 0) model = ModeLook.model(entity, model, shown(entity.kind).id); // its own model for the mode, if any
 		float sink = 0f, fall = 0f, shake = 0f;
 		boolean visible = model != null;
 		boolean imported = model != null;
@@ -88,9 +89,10 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		}
 		float drop = groundGap(entity, partialTick); // a wide body resting on a ledge: its feet drawn on the ground under it
 		if (drop > 0f) sink += drop;
-		if (entity.lowered() && entity.deathTime == 0) sink = entity.kind.height * 0.85f; // a lowered depot: its roof level with the ground
-		if (entity.mode() == dev.starmine.ability.Modes.BURROWED && entity.deathTime == 0)
-			sink = entity.kind.height * 0.8f; // burrowed (dev.starmine.ability.Modes): only the back shows above the ground
+		if (entity.kind == UnitKind.SUPPLY_DEPOT && entity.deathTime == 0) // a lowered depot: its roof level with the ground (it eases down and up)
+			sink = Math.max(sink, entity.kind.height * 0.85f * ModeLook.sunk(entity, partialTick, dev.starmine.ability.Modes.LOWERED));
+		if (entity.deathTime == 0) // burrowed (dev.starmine.ability.Modes): only the back shows above the ground; it digs in and comes up over its change
+			sink = Math.max(sink, entity.kind.height * 0.8f * ModeLook.sunk(entity, partialTick, dev.starmine.ability.Modes.BURROWED));
 		if (visible) {
 			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			choosePose(model, entity, partialTick);
@@ -99,6 +101,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+			if (entity.deathTime == 0) ModeLook.shape(entity, partialTick, poseStack, ModeLook.clipped(model, entity)); // its mode's look, and the morph
 			if (shake > 0f) poseStack.translate((Math.random() - 0.5) * shake, 0, (Math.random() - 0.5) * shake);
 			if (fall > 0f) { // over onto its side (a flyer nose first), round its feet
 				float half = entity.kind.flying ? 0 : entity.kind.width / 2;
@@ -127,6 +130,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			poseStack.pushPose();
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot)));
+			if (entity.deathTime == 0) ModeLook.shape(entity, partialTick, poseStack, false);
 			if (shake > 0f) poseStack.translate((Math.random() - 0.5) * shake, 0, (Math.random() - 0.5) * shake);
 			if (fall > 0f) {
 				float half = entity.kind.flying ? 0 : entity.kind.width / 2;
@@ -200,6 +204,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		if (stand == null) stand = model.clips.values().iterator().next();
 		if (stand == null) return;
 		model.pose(stand, time, palette);
+		ModeLook.pose(model, entity, partialTick, time, palette); // a morph under way, or the mode's stand
 		SkinnedModel.Clip walk = model.clips.get("walk");
 		float moving = entity.kind.flying
 			? (float) entity.getDeltaMovement().horizontalDistance() * 6f

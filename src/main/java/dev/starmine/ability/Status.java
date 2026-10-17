@@ -75,7 +75,9 @@ public enum Status {
 	/** A hallucination: deals no damage, takes double, vanishes when it ends (SC2 43 s). */
 	HALLUCINATION(  1,     1,    false),
 	/** Stunned (Artanis's lightning dash, SC2 2 s): neither moves nor fights. */
-	STUNNED(        0,     1,    true);
+	STUNNED(        0,     1,    true),
+	/** A battlecruiser charging its tactical jump (owner 17.10, SC2 4 s): neither moves nor fights. */
+	WARPING(        0,     1,    true);
 
 	public final double speed, pace;
 	public final boolean disarms;

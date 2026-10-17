@@ -17,8 +17,12 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "$(l)Nuke$() (N): arm a nuclear missile in a ghost academy's silo first (100/100, one an academy). The ghost then points a red laser at a place for 10 s while the missile rises out of the academy and falls on the red dot: huge damage round it, a shallow crater. An order to the ghost, or its death, lets the missile go: it blows up small in the air; shot down or striking something on its way, it does the same."
+		},
+		{
+			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second$(br2)$(l)EMP Round$(): Removes shields and energy in the area$(br2)$(l)Steady Targeting$(): After aiming 1.4 s: 170 damage to a biological unit$(br2)$(l)Tactical Nuke$(): The ghost guides it 14 s: a huge blast at the point"
+			"text": "$(l)Cloak$(): Invisible to foes without a detector; 25 energy, then 0.9 a second$(br2)$(l)EMP Round$(): Removes shields and energy in the area$(br2)$(l)Steady Targeting$(): After aiming 1.4 s: 170 damage to a biological unit$(br2)$(l)Tactical Nuke$(): Needs a nuke armed at a ghost academy. The ghost lasers the point for 10 s; the missile rises from the academy and falls there: a huge blast. An order or the ghost's death loses it"
 		}
 	]
 }

@@ -89,7 +89,7 @@ public final class ShotRenderer extends EntityRenderer<ZergSpit> {
 	}
 
 	/** A prism along x from x0 to x1, `sides` sided, radius r. */
-	private static void prism(PoseStack.Pose last, VertexConsumer out, float x0, float x1, float r, int sides, int colour, int light) {
+	static void prism(PoseStack.Pose last, VertexConsumer out, float x0, float x1, float r, int sides, int colour, int light) {
 		for (int k = 0; k < sides; k++) {
 			double a = k * Math.PI * 2 / sides, b = (k + 1) * Math.PI * 2 / sides;
 			float ay = (float) Math.cos(a) * r, az = (float) Math.sin(a) * r, by = (float) Math.cos(b) * r, bz = (float) Math.sin(b) * r;
@@ -98,7 +98,7 @@ public final class ShotRenderer extends EntityRenderer<ZergSpit> {
 	}
 
 	/** A cone along x: base of radius r at x0, point at x1. */
-	private static void cone(PoseStack.Pose last, VertexConsumer out, float x0, float x1, float r, int sides, int colour, int light) {
+	static void cone(PoseStack.Pose last, VertexConsumer out, float x0, float x1, float r, int sides, int colour, int light) {
 		for (int k = 0; k < sides; k++) {
 			double a = k * Math.PI * 2 / sides, b = (k + 1) * Math.PI * 2 / sides;
 			Vector3f tip = new Vector3f(x1, 0, 0);
@@ -108,7 +108,7 @@ public final class ShotRenderer extends EntityRenderer<ZergSpit> {
 	}
 
 	/** An eight-faced crystal: `length` along x, `width` across. */
-	private static void crystal(PoseStack.Pose last, VertexConsumer out, float length, float width, int colour, int light) {
+	static void crystal(PoseStack.Pose last, VertexConsumer out, float length, float width, int colour, int light) {
 		Vector3f front = new Vector3f(length / 2, 0, 0), back = new Vector3f(-length / 2, 0, 0);
 		Vector3f[] ring = {new Vector3f(0, width, 0), new Vector3f(0, 0, width), new Vector3f(0, -width, 0), new Vector3f(0, 0, -width)};
 		for (int k = 0; k < 4; k++) {
@@ -118,7 +118,7 @@ public final class ShotRenderer extends EntityRenderer<ZergSpit> {
 		}
 	}
 
-	private static void quad(PoseStack.Pose last, VertexConsumer out, Vector3f a, Vector3f b, Vector3f c, Vector3f d, int colour, int light) {
+	static void quad(PoseStack.Pose last, VertexConsumer out, Vector3f a, Vector3f b, Vector3f c, Vector3f d, int colour, int light) {
 		Vector3f normal = new Vector3f(b).sub(a).cross(new Vector3f(c).sub(a));
 		if (normal.lengthSquared() < 1e-8) normal = new Vector3f(new Vector3f(c).sub(b)).cross(new Vector3f(d).sub(b));
 		if (normal.lengthSquared() < 1e-8) normal.set(0, 1, 0);

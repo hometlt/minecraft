@@ -18,7 +18,8 @@ import static dev.starmine.entity.UnitKind.SCALE;
  * fights; then its weapon, speed and body follow the new mode ({@link #weapon}, {@link #speedFactor},
  * applied by {@link StarUnit#refreshWeapon} and {@link StarUnit#applyModeBody}). Toggles go back and
  * forth; the add-ons, the orbital command and the planetary fortress are for good ({@link #oneWay}).
- * The model is the same in every mode for now.
+ * Each change is drawn (owner 17.10, client `ModeLook`): the model's morph clip when it has one, and its body
+ * eases into the look of the new mode (a sieged tank low and wide, a liberator nose down, a phasing prism spread…).
  */
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
@@ -123,11 +124,13 @@ public final class Modes {
 			return;
 		}
 		state.modeTicks = ticks;
+		unit.showChange(mode, state.morphTo, ticks); // drawn as a morph (client UnitRenderer)
 		unit.applyWeapon(new Weapon(0, 0, 0, 0, 0, false)); // nothing while it changes
 	}
 
 	static void finish(StarUnit unit) {
 		unit.abilities.modeTicks = 0;
+		unit.showChange(0, null, 0);
 		if (unit.abilities.morphTo != null) { // a change into another kind (Morphs)
 			dev.starmine.entity.UnitKind to = unit.abilities.morphTo;
 			unit.abilities.morphTo = null;

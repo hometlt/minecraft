@@ -267,22 +267,81 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		ServerLevel level = helper.getLevel();
 		// out of the crawler's reach (SC2 7, 17 blocks now): the ghost guides the nuke from 24 blocks off
 		StarUnit crawler = unit(helper, UnitKind.SPINE_CRAWLER, 30, 10, null);
+		java.util.concurrent.atomic.AtomicReference<NukeMissile> missile = new java.util.concurrent.atomic.AtomicReference<>();
+		level.getGameRules().getRule(dev.starmine.StarMine.NUKE_GRIEFING).set(false, level.getServer()); // the arena's floor stays
 		helper.runAfterDelay(5, () -> {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");
-			base.minerals = 1000;
-			base.vespene = 1000;
 			// the base's SCVs stand round its command center (15 wide now), within the crawler's reach: they would fight it
 			for (StarUnit scv : level.getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(40), unit -> unit.kind == UnitKind.SCV)) scv.discard();
 			StarUnit ghost = TestArena.member(helper, base, UnitKind.GHOST, 6, 10);
 			ghost.setNoAi(true);
+			helper.assertTrue("message.starmine.no_nuke".equals(Abilities.refusal(ghost, Ability.NUKE)), "a nuke with none armed: " + Abilities.refusal(ghost, Ability.NUKE));
+			dev.starmine.race.Research.NUKE.apply(base); // armed at an academy
 			helper.assertTrue(Abilities.cast(ghost, level, Ability.NUKE, null, crawler.position()), "no nuke: " + Abilities.refusal(ghost, Ability.NUKE));
-			helper.assertTrue(base.minerals == 900 && base.vespene == 900, "the nuke is not paid");
+			helper.assertTrue(dev.starmine.race.Research.nukes(base) == 0, "the armed nuke is not spent");
+			List<NukeMissile> flying = level.getEntitiesOfClass(NukeMissile.class, ghost.getBoundingBox().inflate(80));
+			helper.assertTrue(flying.size() == 1, "no missile in the air: " + flying.size());
+			missile.set(flying.get(0));
 		});
-		helper.runAfterDelay(205, () -> helper.assertTrue(crawler.getHealth() == crawler.getMaxHealth(), "the nuke landed early: the crawler has "
+		helper.runAfterDelay(80, () -> helper.assertTrue(missile.get().isAlive() && missile.get().getY() > crawler.getY() + 30, "the missile did not rise: " + missile.get().position()));
+		helper.runAfterDelay(185, () -> helper.assertTrue(crawler.getHealth() == crawler.getMaxHealth(), "the nuke landed early: the crawler has "
 			+ crawler.getHealth() + " of " + crawler.getMaxHealth() + ", hurt by " + crawler.getLastHurtByMob() + " with " + crawler.getLastDamageSource()));
-		helper.runAfterDelay(305, () -> {
+		helper.runAfterDelay(240, () -> {
 			helper.assertTrue(!crawler.isAlive() || crawler.getHealth() < crawler.getMaxHealth() * 0.2, "the nuke left " + crawler.getHealth());
+			level.getGameRules().getRule(dev.starmine.StarMine.NUKE_GRIEFING).set(true, level.getServer());
+			helper.assertTrue(missile.get().isRemoved(), "the missile is still there");
+			helper.succeed();
+		});
+	}
+
+	/** Owner 17.10: an order to the guiding ghost lets the nuke go: the missile dies in the air with a small blast, nothing below is hurt. */
+	@GameTest(template = ARENA, batch = "terranNukeCancel", timeoutTicks = 300)
+	public void aCancelledNukeDies(GameTestHelper helper) {
+		clear(helper);
+		StarUnit cc = commandCenter(helper);
+		ServerLevel level = helper.getLevel();
+		StarUnit crawler = unit(helper, UnitKind.SPINE_CRAWLER, 30, 10, null);
+		java.util.concurrent.atomic.AtomicReference<NukeMissile> missile = new java.util.concurrent.atomic.AtomicReference<>();
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, cc);
+			for (StarUnit scv : level.getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(40), unit -> unit.kind == UnitKind.SCV)) scv.discard();
+			StarUnit ghost = TestArena.member(helper, base, UnitKind.GHOST, 6, 10);
+			ghost.setNoAi(true);
+			dev.starmine.race.Research.NUKE.apply(base);
+			helper.assertTrue(Abilities.cast(ghost, level, Ability.NUKE, null, crawler.position()), "no nuke: " + Abilities.refusal(ghost, Ability.NUKE));
+			missile.set(level.getEntitiesOfClass(NukeMissile.class, ghost.getBoundingBox().inflate(80)).get(0));
+			helper.runAfterDelay(40, () -> ghost.command(StarUnit.Order.NONE, ghost.position()));
+		});
+		helper.runAfterDelay(60, () -> helper.assertTrue(missile.get().isRemoved(), "the missile flies on without its ghost"));
+		helper.runAfterDelay(250, () -> {
+			helper.assertTrue(crawler.getHealth() == crawler.getMaxHealth(), "a cancelled nuke hurt the crawler");
+			helper.succeed();
+		});
+	}
+
+	/** Owner 17.10: a battlecruiser charging its tactical jump holds still and holds fire, then comes out at the point. */
+	@GameTest(template = ARENA, batch = "terranJump", timeoutTicks = 200)
+	public void aJumpingCruiserHoldsStill(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		StarUnit cruiser = unit(helper, UnitKind.BATTLECRUISER, 10, 10, UUID.randomUUID());
+		Vec3 to = point(helper, 38, 38);
+		java.util.concurrent.atomic.AtomicReference<Vec3> from = new java.util.concurrent.atomic.AtomicReference<>();
+		helper.runAfterDelay(2, () -> {
+			helper.assertTrue(Abilities.cast(cruiser, level, Ability.TACTICAL_JUMP, null, to), "no jump: " + Abilities.refusal(cruiser, Ability.TACTICAL_JUMP));
+			from.set(cruiser.position());
+			cruiser.command(StarUnit.Order.MOVE, point(helper, 10, 40));
+		});
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(Abilities.horizontal(cruiser.position(), from.get()) < 0.5, "the cruiser moved while charging: " + cruiser.position().subtract(from.get()));
+			helper.assertTrue(cruiser.weapon().damage() == 0, "the cruiser can fire while charging");
+			helper.assertTrue(Status.has(cruiser, Status.WARPING), "no warping state");
+		});
+		helper.runAfterDelay(100, () -> {
+			helper.assertTrue(Abilities.horizontal(cruiser.position(), to) < 2, "the cruiser did not jump: " + TestArena.rel(helper, cruiser));
+			helper.assertFalse(Status.has(cruiser, Status.WARPING), "still warping after the jump");
+			helper.assertTrue(cruiser.weapon().damage() > 0, "the cruiser cannot fire after the jump");
 			helper.succeed();
 		});
 	}
