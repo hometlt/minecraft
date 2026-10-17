@@ -1,0 +1,12 @@
+{
+	"name": "The Strike Force",
+	"icon": "starmine:artifact_pedestal",
+	"category": "starmine:endgame",
+	"sortnum": 6,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The first time you make the artifact whole, the three freed heroes come to it and your $(l)strike force$() gathers round it: transports — overlords, medivacs, a warp prism — full of workers and ground troops of all three races, and an air fleet of mutalisks, a corruptor, vikings, a banshee, phoenixes and a void ray. It goes up the beam into the portal, and the heroes go back to their ships.$(br2)In the Void it is your army, of your $(l)base in the Void$() (600 minerals and 300 vespene to start): build there and train more."
+		}
+	]
+}

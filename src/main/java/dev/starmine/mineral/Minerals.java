@@ -145,6 +145,8 @@ public final class Minerals {
 	/** What is left in a crystal (synced to clients: the crystal shrinks as it empties). */
 	public static final class Core extends BlockEntity {
 		int amount = AMOUNT;
+		/** Owner 17.10: a gold crystal of the Void — each trip's minerals are worth twice. */
+		boolean rich;
 
 		public Core(BlockPos pos, BlockState state) {
 			super(CORE_ENTITY, pos, state);
@@ -152,6 +154,16 @@ public final class Minerals {
 
 		public int amount() {
 			return amount;
+		}
+
+		public boolean rich() {
+			return rich;
+		}
+
+		public void setRich(boolean rich) {
+			this.rich = rich;
+			setChanged();
+			if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
 		}
 
 		public void setAmount(int amount) {
@@ -164,12 +176,14 @@ public final class Minerals {
 		protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.saveAdditional(tag, registries);
 			tag.putInt("Amount", amount);
+			tag.putBoolean("Rich", rich);
 		}
 
 		@Override
 		protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
 			super.loadAdditional(tag, registries);
 			amount = tag.contains("Amount") ? tag.getInt("Amount") : AMOUNT;
+			rich = tag.getBoolean("Rich");
 		}
 
 		@Override
@@ -222,9 +236,10 @@ public final class Minerals {
 		if (core == null || !(level.getBlockEntity(core) instanceof Core entity)) return 0;
 		int taken = Math.min(want, entity.amount);
 		entity.setAmount(entity.amount - taken);
-		level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.BLOCKS, 0.8f, 1.2f);
+		level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.BLOCKS, 0.8f, entity.rich ? 1.6f : 1.2f);
+		boolean rich = entity.rich;
 		if (entity.amount <= 0) deplete(level, core);
-		return taken;
+		return rich ? taken * 2 : taken; // a gold crystal's minerals count twice
 	}
 
 	/** An emptied crystal goes; the mineralized earth round it that no other crystal holds turns to dirt. */

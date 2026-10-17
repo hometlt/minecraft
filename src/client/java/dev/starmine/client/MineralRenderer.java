@@ -59,13 +59,13 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 			pose.mulPose(Axis.YP.rotationDegrees(random.nextFloat() * 360));
 			float lean = i == 0 ? random.nextFloat() * 6 : 10 + random.nextFloat() * 18;
 			pose.mulPose(Axis.ZP.rotationDegrees(lean));
-			shard(pose.last(), out, width, height * left, overlay, glow, i == 0 ? 255 : 220 + random.nextInt(36));
+			shard(pose.last(), out, width, height * left, overlay, glow, i == 0 ? 255 : 220 + random.nextInt(36), core.rich());
 			pose.popPose();
 		}
 	}
 
 	/** A six-sided prism `width` across rising to 70 % of `height`, then a point. */
-	private static void shard(PoseStack.Pose pose, VertexConsumer out, float width, float height, int overlay, int light, int shade) {
+	private static void shard(PoseStack.Pose pose, VertexConsumer out, float width, float height, int overlay, int light, int shade, boolean gold) {
 		float r = width / 2, body = height * 0.7f;
 		Vector3f[] ring = new Vector3f[6];
 		for (int k = 0; k < 6; k++) {
@@ -77,22 +77,23 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 			Vector3f normal = new Vector3f(a.x + b.x, 0, a.z + b.z).normalize();
 			float u0 = k / 6f, u1 = (k + 1) / 6f;
 			// the side
-			vertex(out, pose, a.x, 0, a.z, u0, 1, normal, overlay, light, shade);
-			vertex(out, pose, b.x, 0, b.z, u1, 1, normal, overlay, light, shade);
-			vertex(out, pose, b.x, body, b.z, u1, 0.3f, normal, overlay, light, shade);
-			vertex(out, pose, a.x, body, a.z, u0, 0.3f, normal, overlay, light, shade);
+			vertex(out, pose, a.x, 0, a.z, u0, 1, normal, overlay, light, shade, gold);
+			vertex(out, pose, b.x, 0, b.z, u1, 1, normal, overlay, light, shade, gold);
+			vertex(out, pose, b.x, body, b.z, u1, 0.3f, normal, overlay, light, shade, gold);
+			vertex(out, pose, a.x, body, a.z, u0, 0.3f, normal, overlay, light, shade, gold);
 			// the point (a quad with its two top corners together)
 			Vector3f up = new Vector3f(normal.x, 0.6f, normal.z).normalize();
-			vertex(out, pose, a.x, body, a.z, u0, 0.3f, up, overlay, light, shade);
-			vertex(out, pose, b.x, body, b.z, u1, 0.3f, up, overlay, light, shade);
-			vertex(out, pose, 0, height, 0, (u0 + u1) / 2, 0, up, overlay, light, shade);
-			vertex(out, pose, 0, height, 0, (u0 + u1) / 2, 0, up, overlay, light, shade);
+			vertex(out, pose, a.x, body, a.z, u0, 0.3f, up, overlay, light, shade, gold);
+			vertex(out, pose, b.x, body, b.z, u1, 0.3f, up, overlay, light, shade, gold);
+			vertex(out, pose, 0, height, 0, (u0 + u1) / 2, 0, up, overlay, light, shade, gold);
+			vertex(out, pose, 0, height, 0, (u0 + u1) / 2, 0, up, overlay, light, shade, gold);
 		}
 	}
 
 	private static void vertex(VertexConsumer out, PoseStack.Pose pose, float x, float y, float z, float u, float v, Vector3f normal,
-			int overlay, int light, int shade) {
-		out.addVertex(pose, x, y, z).setColor(shade, shade, 255, 255).setUv(u, v).setOverlay(overlay).setLight(light)
+			int overlay, int light, int shade, boolean gold) {
+		// owner 17.10: a gold crystal of the Void — the blue shards tinted gold
+		out.addVertex(pose, x, y, z).setColor(gold ? 255 : shade, gold ? shade * 200 / 255 : shade, gold ? 70 : 255, 255).setUv(u, v).setOverlay(overlay).setLight(light)
 			.setNormal(pose, normal.x, normal.y, normal.z);
 	}
 }

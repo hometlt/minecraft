@@ -2,7 +2,7 @@
 	"name": "The Xel'Naga Artifact",
 	"icon": "starmine:artifact_pedestal",
 	"category": "starmine:endgame",
-	"sortnum": 4,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:image",
@@ -14,7 +14,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "Each hero carries a $(l)part of the artifact's key$(). Put a xel'naga pedestal down and stack the three parts on it, one on another, like a beacon's crystal on its base — zerg, terran and protoss, in any order. The pedestal lights, a violet beam rises, and $(l)high in the sky over it$() (at least 48 blocks up, at height 200 or more) a portal to the Void opens."
+			"text": "Each hero keeps a $(l)part of the artifact's key$() on its arena (see Amun's Hold). Put a xel'naga pedestal down in the overworld and stack the three parts on it, one on another, like a beacon's crystal on its base — zerg, terran and protoss, in any order. The pedestal lights, a violet beam rises, and $(l)high in the sky over it$() (at least 48 blocks up, at height 200 or more) a portal to the Void opens."
 		},
 		{
 			"type": "patchouli:crafting",

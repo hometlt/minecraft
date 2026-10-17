@@ -32,6 +32,8 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	/** Blocks each outlet has risen as a volcano. */
 	private int[] risen = new int[0];
 	private long[] nextRise = new long[0];
+	/** Owner 17.10: a lake inside an island of the Void (no volcano, no cobblestone round it), and whether of terrazine. */
+	private boolean lake, terrazine;
 
 	public VespeneRootBlockEntity(BlockPos pos, BlockState state) {
 		super(Vespene.ROOT_ENTITY, pos, state);
@@ -44,6 +46,13 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		emptySince = new long[outlets.length];
 		risen = new int[outlets.length];
 		nextRise = new long[outlets.length];
+		setChanged();
+	}
+
+	/** Makes this vein a lake (of terrazine or vespene). */
+	public void setLake(boolean terrazine) {
+		this.lake = true;
+		this.terrazine = terrazine;
 		setChanged();
 	}
 
@@ -77,7 +86,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		if (vein.emptySince.length != vein.outlets.length) vein.emptySince = new long[vein.outlets.length];
 		if (vein.risen.length != vein.outlets.length) vein.risen = java.util.Arrays.copyOf(vein.risen, vein.outlets.length);
 		if (vein.nextRise.length != vein.outlets.length) vein.nextRise = new long[vein.outlets.length];
-		vein.volcanoes(level, now);
+		if (!vein.lake) vein.volcanoes(level, now);
 		// emptied outlets are fed from the channel
 		for (int i = 0; i < vein.outlets.length; i++) {
 			BlockPos outlet = BlockPos.of(vein.outlets[i]);
@@ -97,7 +106,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		if (vein.nextRegen == 0) vein.nextRegen = now + REGEN;
 		if (now < vein.nextRegen) return;
 		vein.nextRegen = now + REGEN;
-		vein.wall(level);
+		if (!vein.lake) vein.wall(level);
 		for (int k = 0; k < vein.outlets.length; k++) {
 			int i = (vein.nextOutlet + k) % vein.outlets.length;
 			BlockPos outlet = BlockPos.of(vein.outlets[i]);
@@ -250,7 +259,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	}
 
 	private void fill(Level level, BlockPos at, boolean outlet) {
-		level.setBlock(at, Vespene.VESPENE.defaultBlockState().setValue(VespeneBlock.OUTLET, outlet), Block.UPDATE_ALL);
+		level.setBlock(at, (terrazine ? Vespene.TERRAZINE : Vespene.VESPENE).defaultBlockState().setValue(VespeneBlock.OUTLET, outlet), Block.UPDATE_ALL);
 		setChanged();
 	}
 
@@ -261,6 +270,8 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		tag.putLongArray("Outlets", outlets);
 		tag.putInt("NextOutlet", nextOutlet);
 		tag.putIntArray("Risen", risen);
+		tag.putBoolean("Lake", lake);
+		tag.putBoolean("Terrazine", terrazine);
 	}
 
 	@Override
@@ -272,5 +283,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		emptySince = new long[outlets.length];
 		risen = java.util.Arrays.copyOf(tag.getIntArray("Risen"), outlets.length);
 		nextRise = new long[outlets.length];
+		lake = tag.getBoolean("Lake");
+		terrazine = tag.getBoolean("Terrazine");
 	}
 }

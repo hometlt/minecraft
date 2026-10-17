@@ -70,8 +70,29 @@ public final class Vespene {
 	public static final Feature<NoneFeatureConfiguration> VEIN = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("vespene_vein"),
 		new VespeneVeinFeature(NoneFeatureConfiguration.CODEC));
 
+	/** Owner 17.10: terrazine — purple, of the Void's lakes, worth twice vespene ({@link #perTrip}). */
+	public static final StarFluid.Kind TERRAZINE_KIND = new StarFluid.Kind(() -> Vespene.TERRAZINE_SOURCE, () -> Vespene.TERRAZINE_FLOWING,
+		() -> Vespene.TERRAZINE_BUCKET, () -> Vespene.TERRAZINE, 30, 2, 2);
+	public static final StarFluid TERRAZINE_SOURCE = Registry.register(BuiltInRegistries.FLUID, StarMine.id("terrazine"), new StarFluid.Source(TERRAZINE_KIND));
+	public static final StarFluid TERRAZINE_FLOWING = Registry.register(BuiltInRegistries.FLUID, StarMine.id("flowing_terrazine"), new StarFluid.Flowing(TERRAZINE_KIND));
+	public static final VespeneBlock TERRAZINE = block("terrazine", new VespeneBlock(TERRAZINE_SOURCE, BlockBehaviour.Properties.of()
+		.mapColor(MapColor.COLOR_PURPLE).noCollission().strength(100f).noLootTable().lightLevel(state -> 9).liquid()
+		.sound(SoundType.EMPTY).pushReaction(PushReaction.DESTROY).isValidSpawn((state, level, pos, type) -> false)));
+	public static final Item TERRAZINE_BUCKET = Registry.register(BuiltInRegistries.ITEM, StarMine.id("terrazine_bucket"),
+		new BucketItem(TERRAZINE_SOURCE, new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
+
 	/** Vespene a worker brings home from one outlet (SC2: 4 per trip). */
 	public static final int PER_TRIP = 4;
+
+	/** Whether a block is terrazine (twice the worth of vespene). */
+	public static boolean isTerrazine(BlockState state) {
+		return state.is(TERRAZINE);
+	}
+
+	/** What a worker brings home from a full outlet: {@link #PER_TRIP}, twice that of terrazine. */
+	public static int perTrip(BlockState state) {
+		return isTerrazine(state) ? PER_TRIP * 2 : PER_TRIP;
+	}
 
 	private Vespene() {
 	}
@@ -122,6 +143,7 @@ public final class Vespene {
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("vespene_vein")));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
 			entries.accept(BUCKET);
+			entries.accept(TERRAZINE_BUCKET);
 			entries.accept(CANISTER_ITEM);
 		});
 	}

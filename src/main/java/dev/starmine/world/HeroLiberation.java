@@ -130,6 +130,10 @@ public final class HeroLiberation {
 
 	/** Every tick of a hero: Amun's motes round it while he holds it; it never leaves its arena. */
 	public static void tick(StarUnit hero, ServerLevel level) {
+		if (hero.getTags().contains(VoidArmy.CLONE)) { // a hero of the artifact's scene left behind (the world saved mid-scene)
+			if (hero.tickCount > 1600) hero.discard();
+			return;
+		}
 		if (!freed(hero) && hero.tickCount % 3 == 0 && hero.deathTime == 0) {
 			double w = hero.getBbWidth() * 0.7, h = hero.getBbHeight();
 			level.sendParticles(BLACK, hero.getX(), hero.getY() + h * 0.5, hero.getZ(), 4, w, h * 0.4, w, 0.02);

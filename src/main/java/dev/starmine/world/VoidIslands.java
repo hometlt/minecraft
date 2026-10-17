@@ -43,9 +43,19 @@ public final class VoidIslands {
 		CRYSTAL = block("void_crystal", new Block(BlockBehaviour.Properties.of().strength(1.5f).lightLevel(state -> 12).sound(SoundType.AMETHYST)));
 	}
 
-	/** One island: its middle (the top of its floor) and its radius. */
-	public record Island(BlockPos centre, int radius) {
+	/** What an island holds (owner 17.10): nothing much, a vespene lake and minerals, a terrazine lake, gold minerals. */
+	public enum Riches { NONE, VESPENE, TERRAZINE, GOLD }
+
+	/** One island: its middle (the top of its floor), its radius and its riches. */
+	public record Island(BlockPos centre, int radius, Riches riches) {
+		public Island(BlockPos centre, int radius) {
+			this(centre, radius, Riches.NONE);
+		}
 	}
+
+	/** The large islands of riches (owner 17.10): a lake inside each, and a field of crystals. */
+	public static final List<Riches> RICH_ISLANDS = List.of(Riches.VESPENE, Riches.TERRAZINE, Riches.GOLD, Riches.VESPENE);
+	public static final int LAKE_DEPTH = 3, CRYSTALS = 6;
 
 	private VoidIslands() {
 	}
@@ -77,8 +87,20 @@ public final class VoidIslands {
 			islands.add(new Island(new BlockPos(Mth.floor(Math.cos(heading) * distance), y, Mth.floor(Math.sin(heading) * distance)), 8 + random.nextInt(10)));
 		}
 		double away = random.nextDouble() * Math.PI * 2;
-		islands.add(new Island(new BlockPos(Mth.floor(Math.cos(away) * AMUN_DISTANCE), VoidWorld.RETURN.getY() + 4,
-			Mth.floor(Math.sin(away) * AMUN_DISTANCE)), AMUN_RADIUS));
+		Island amun = new Island(new BlockPos(Mth.floor(Math.cos(away) * AMUN_DISTANCE), VoidWorld.RETURN.getY() + 4,
+			Mth.floor(Math.sin(away) * AMUN_DISTANCE)), AMUN_RADIUS);
+		for (Riches riches : RICH_ISLANDS) // the large islands of riches, clear of the others and nearer than Amun's
+			for (int attempt = 0; attempt < 60; attempt++) {
+				double a = random.nextDouble() * Math.PI * 2, d = 70 + random.nextInt(130);
+				int r = 20 + random.nextInt(5);
+				BlockPos at = new BlockPos(Mth.floor(Math.cos(a) * d), VoidWorld.RETURN.getY() - 2 + random.nextInt(9), Mth.floor(Math.sin(a) * d));
+				boolean clear = Math.sqrt(at.distSqr(amun.centre())) - r - amun.radius() > 30
+					&& islands.stream().allMatch(other -> Math.sqrt(other.centre().distSqr(at)) - r - other.radius() > 6);
+				if (!clear) continue;
+				islands.add(new Island(at, r, riches));
+				break;
+			}
+		islands.add(amun);
 		return islands;
 	}
 
@@ -105,6 +127,7 @@ public final class VoidIslands {
 			spires.add(on.centre().offset(2, 0, -2));
 		}
 		for (BlockPos spire : spires) spire(painter, spire, 8 + random.nextInt(8));
+		for (Island island : islands) if (island.riches() != Riches.NONE) riches(level, painter, island, random);
 		for (int i = 2; i < islands.size() - 1; i += 3) { // a little to take: a mineral crystal here and there, a chest
 			BlockPos core = islands.get(i).centre().offset(-3, 1, 3);
 			painter.then(() -> dev.starmine.mineral.Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, 2)));
@@ -129,6 +152,54 @@ public final class VoidIslands {
 			level.addFreshEntity(boss);
 		});
 		painter.start();
+	}
+
+	/**
+	 * An island's riches (owner 17.10): a lake inside it — vespene, or terrazine on a terrazine island — fed by its own
+	 * vein (its outlets, two of them, take gas buildings; emptied, they fill from the lake), and opposite it a field of
+	 * mineral crystals, of gold on a gold island (each trip worth twice).
+	 */
+	static void riches(ServerLevel level, Painter painter, Island island, RandomSource random) {
+		BlockPos c = island.centre();
+		double side = random.nextDouble() * Math.PI * 2;
+		BlockPos lakeAt = c.offset(Mth.floor(Math.cos(side) * island.radius() * 0.35), 0, Mth.floor(Math.sin(side) * island.radius() * 0.35));
+		boolean terrazine = island.riches() == Riches.TERRAZINE;
+		BlockState liquid = (terrazine ? dev.starmine.vespene.Vespene.TERRAZINE : dev.starmine.vespene.Vespene.VESPENE).defaultBlockState();
+		List<BlockPos> channel = new ArrayList<>(), outlets = new ArrayList<>();
+		for (int dy = -LAKE_DEPTH + 1; dy <= 0; dy++) // the bottom up, so the vein drains from the top
+			for (int dx = -6; dx <= 6; dx++)
+				for (int dz = -5; dz <= 5; dz++) {
+					if (Painter.sq(dx / 6.5) + Painter.sq(dz / 5.5) > 1 - dy * 0.12) continue;
+					BlockPos at = lakeAt.offset(dx, dy, dz);
+					boolean outlet = dy == 0 && dz == 0 && (dx == -3 || dx == 3);
+					painter.set(at, liquid.setValue(dev.starmine.vespene.VespeneBlock.OUTLET, outlet));
+					(outlet ? outlets : channel).add(at.immutable());
+					if (dy == 0) for (int up = 1; up <= 3; up++) painter.set(at.above(up), Blocks.AIR.defaultBlockState());
+				}
+		for (int dx = -7; dx <= 7; dx++) // a rim of void bricks round the lake
+			for (int dz = -6; dz <= 6; dz++) {
+				double e = Painter.sq(dx / 6.5) + Painter.sq(dz / 5.5);
+				if (e > 1 && e <= 1.45) painter.set(lakeAt.offset(dx, 0, dz), BRICKS.defaultBlockState());
+			}
+		BlockPos root = lakeAt.below(LAKE_DEPTH + 1);
+		painter.set(root, dev.starmine.vespene.Vespene.ROOT.defaultBlockState());
+		painter.then(() -> {
+			if (level.getBlockEntity(root) instanceof dev.starmine.vespene.VespeneRootBlockEntity vein) {
+				vein.setVein(channel, outlets);
+				vein.setLake(terrazine);
+			}
+		});
+		boolean gold = island.riches() == Riches.GOLD;
+		for (int i = 0; i < CRYSTALS; i++) { // the field: an arc on the far side from the lake
+			double a = side + Math.PI + (i - (CRYSTALS - 1) / 2.0) * 0.32;
+			double r = island.radius() - 6;
+			BlockPos core = c.offset(Mth.floor(Math.cos(a) * r), 1, Mth.floor(Math.sin(a) * r));
+			for (BlockPos cell : BlockPos.betweenClosed(core.offset(-1, 0, -1), core.offset(2, 3, 2))) painter.set(cell.immutable(), Blocks.AIR.defaultBlockState());
+			painter.then(() -> {
+				if (!dev.starmine.mineral.Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, 2))) return;
+				if (gold && level.getBlockEntity(core) instanceof dev.starmine.mineral.Minerals.Core crystal) crystal.setRich(true);
+			});
+		}
 	}
 
 	/** A rough mass of void stone under a flat top with crystals and a little amethyst and crying obsidian on it. */

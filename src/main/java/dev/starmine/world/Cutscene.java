@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -62,13 +59,23 @@ public final class Cutscene {
 				for (UUID id : ids) {
 					ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
 					if (player == null) continue;
-					player.connection.send(new ClientboundSetTitlesAnimationPacket(4, Math.max(20, now.ticks() - 10), 6));
-					player.connection.send(new ClientboundSetSubtitleTextPacket(full));
-					player.connection.send(new ClientboundSetTitleTextPacket(Component.empty()));
+					player.displayClientMessage(full, true); // the subtitle, over the hotbar
 					player.sendSystemMessage(full);
 					player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.MASTER, 0.4f, 0.7f);
 				}
 			});
+			if (beat.line() != null) // the subtitle stays up as long as the line (an action bar line fades after 3 s)
+				for (int again = 50; again < beat.ticks() - 10; again += 50) {
+					Beat repeat = beat;
+					Delayed.after(level, at + again, () -> {
+						Component full = Component.empty().append(Component.translatable("speaker.starmine." + repeat.speaker()).withStyle(colour(repeat.speaker()), ChatFormatting.BOLD))
+							.append(Component.literal(": ").withStyle(ChatFormatting.GRAY)).append(Component.translatable(repeat.line()));
+						for (UUID id : ids) {
+							ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+							if (player != null) player.displayClientMessage(full, true);
+						}
+					});
+				}
 			at += beat.ticks();
 		}
 		Delayed.after(level, at, end);

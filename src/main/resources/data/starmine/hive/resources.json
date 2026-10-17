@@ -21,6 +21,15 @@
 			]
 		},
 		{
+			"block": "starmine:terrazine",
+			"vespene": 8,
+			"label": "vespene",
+			"icon": "starmine:terrazine_bucket",
+			"items": [
+				"starmine:terrazine_bucket"
+			]
+		},
+		{
 			"block": "#minecraft:copper_ores",
 			"minerals": 4,
 			"label": "copper",

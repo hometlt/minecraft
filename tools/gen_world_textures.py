@@ -153,11 +153,28 @@ def creep_bucket():
     out.save(os.path.join(ITEM, 'liquid_creep_bucket.png'))
 
 
+def terrazine_bucket():
+    """Owner 17.10: the terrazine bucket — the vespene bucket in terrazine's violet."""
+    source = Image.open(os.path.join(ITEM, 'vespene_bucket.png')).convert('RGBA')
+    out = Image.new('RGBA', source.size)
+    for y in range(source.height):
+        for x in range(source.width):
+            r, g, b, a = source.getpixel((x, y))
+            if g > r + 25 and g > b:
+                out.putpixel((x, y), (clamp(g * 0.7), clamp(g * 0.35), clamp(g * 1.05), a))
+            else:
+                out.putpixel((x, y), (r, g, b, a))
+    out.save(os.path.join(ITEM, 'terrazine_bucket.png'))
+
+
 if __name__ == '__main__':
     liquid('vespene_still', (20, 90, 40), (90, 220, 110), (210, 255, 200), 1, 16, 16, False)
     liquid('vespene_flow', (20, 90, 40), (90, 220, 110), (210, 255, 200), 2, 32, 16, True)
     liquid('liquid_creep_still', (40, 10, 50), (120, 40, 140), (220, 120, 230), 3, 16, 16, False)
     liquid('liquid_creep_flow', (40, 10, 50), (120, 40, 140), (220, 120, 230), 4, 32, 16, True)
+    liquid('terrazine_still', (50, 20, 110), (150, 80, 230), (240, 200, 255), 5, 16, 16, False)
+    liquid('terrazine_flow', (50, 20, 110), (150, 80, 230), (240, 200, 255), 6, 32, 16, True)
+    terrazine_bucket()
     flesh('zerg_flesh', False, 5)
     flesh('glowing_zerg_flesh', True, 5)
     portal('zerg', ((30, 6, 30), (150, 40, 120), (255, 170, 210)), 6)

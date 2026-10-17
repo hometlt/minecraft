@@ -96,6 +96,8 @@ final class DroneWork extends Goal {
 	private BlockPos gasOutlet;
 	private boolean inside;
 	private int gasTicks;
+	/** What the vespene drawn on this trip is worth (owner 17.10: terrazine twice vespene). */
+	private int gasWorth = Vespene.PER_TRIP;
 	static final int INSIDE = 60, PUMP = 160, GAS_WORKERS = 3;
 	/** Workers per outlet (a vespene building takes 3, as in SC2). */
 	private static final Map<BlockPos, Set<UUID>> GAS = new HashMap<>();
@@ -189,7 +191,7 @@ final class DroneWork extends Goal {
 		if (inside) { // it comes out of the building with what it drew
 			inside = false;
 			drone.setInvisible(false);
-			drone.takeVespene(Vespene.PER_TRIP);
+			drone.takeVespene(gasWorth);
 		}
 		resetMove();
 	}
@@ -448,7 +450,7 @@ final class DroneWork extends Goal {
 			if (--gasTicks > 0) return;
 			inside = false;
 			drone.setInvisible(false);
-			drone.takeVespene(Vespene.PER_TRIP);
+			drone.takeVespene(gasWorth);
 			to(State.CARRY);
 			return;
 		}
@@ -467,6 +469,7 @@ final class DroneWork extends Goal {
 			if (move == Move.ARRIVED) {
 				drone.getNavigation().stop();
 				if (VespeneBlock.isSource(at)) { // in it goes; the outlet is emptied and its vein refills it
+					gasWorth = Vespene.perTrip(at);
 					VespeneBlock.take(level, gasOutlet, at);
 					inside = true;
 					gasTicks = INSIDE;
@@ -503,7 +506,7 @@ final class DroneWork extends Goal {
 		if (--gasTicks > 0) return;
 		VespeneBlock.take(level, gasOutlet, at);
 		drone.playSound(net.minecraft.sounds.SoundEvents.BUCKET_FILL, 0.8f, 0.8f);
-		drone.takeVespene(Vespene.PER_TRIP);
+		drone.takeVespene(Vespene.perTrip(at));
 		gasTicks = PUMP;
 		to(State.CARRY);
 	}

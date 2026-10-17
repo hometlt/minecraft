@@ -254,6 +254,50 @@ public final class CommandScreen extends Screen {
 	}
 
 	/** Bottom left: the army button and the control groups (most common kind's icon, size), as in SC2. */
+	/** Owner 17.10: the card of what is looked at — a creature's name and health, a crystal's minerals left, a geyser's gas. */
+	private void drawInspected(GuiGraphics graphics) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return;
+		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4, panelWidth = 280, panelHeight = 3 * (CELL + GAP);
+		if (CommandView.inspected != null && mc.level.getEntity(CommandView.inspected) instanceof net.minecraft.world.entity.LivingEntity living && living.isAlive()) {
+			graphics.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, 0xB0101418);
+			net.minecraft.world.item.SpawnEggItem egg = net.minecraft.world.item.SpawnEggItem.byId(living.getType());
+			if (egg != null) graphics.renderItem(new ItemStack(egg), panelLeft + 6, panelTop + 6);
+			boolean foe = living instanceof net.minecraft.world.entity.monster.Enemy;
+			graphics.drawString(font, living.getDisplayName(), panelLeft + 28, panelTop + 6, foe ? 0xFFFF8080 : 0xFFFFE080);
+			int hp = (int) Math.ceil(living.getHealth()), max = (int) Math.ceil(living.getMaxHealth());
+			graphics.drawString(font, hp + " / " + max, panelLeft + 28, panelTop + 18, 0xFF80FF80);
+			bar(graphics, panelLeft + 6, panelTop + 30, panelWidth - 12, living.getHealth() / living.getMaxHealth(), 0xFF40C040);
+			graphics.drawString(font, Component.translatable("command.starmine.armor", living.getArmorValue()), panelLeft + 6, panelTop + 40, 0xFFD0D0D0);
+			return;
+		}
+		net.minecraft.core.BlockPos at = CommandView.inspectedBlock;
+		if (at == null) return;
+		net.minecraft.world.level.block.state.BlockState state = mc.level.getBlockState(at);
+		if (!CommandView.resource(state)) return;
+		graphics.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, 0xB0101418);
+		net.minecraft.core.BlockPos core = dev.starmine.mineral.Minerals.core(mc.level, at);
+		if (core != null && mc.level.getBlockEntity(core) instanceof dev.starmine.mineral.Minerals.Core crystal) {
+			graphics.renderItem(new ItemStack(dev.starmine.mineral.Minerals.SHARD), panelLeft + 6, panelTop + 6);
+			graphics.drawString(font, Component.translatable(crystal.rich() ? "command.starmine.gold_minerals" : "command.starmine.minerals_field"),
+				panelLeft + 28, panelTop + 6, crystal.rich() ? 0xFFFFD040 : 0xFF80C0FF);
+			graphics.drawString(font, Component.translatable("command.starmine.minerals_left", crystal.amount(), dev.starmine.mineral.Minerals.AMOUNT),
+				panelLeft + 28, panelTop + 18, 0xFFFFFFFF);
+			bar(graphics, panelLeft + 6, panelTop + 30, panelWidth - 12, crystal.amount() / (float) dev.starmine.mineral.Minerals.AMOUNT,
+				crystal.rich() ? 0xFFE0B030 : 0xFF40A0FF);
+			if (crystal.rich()) graphics.drawString(font, Component.translatable("command.starmine.worth_twice"), panelLeft + 6, panelTop + 40, 0xFFFFD040);
+			return;
+		}
+		boolean terrazine = dev.starmine.vespene.Vespene.isTerrazine(state);
+		graphics.renderItem(new ItemStack(terrazine ? dev.starmine.vespene.Vespene.TERRAZINE_BUCKET : dev.starmine.vespene.Vespene.BUCKET), panelLeft + 6, panelTop + 6);
+		graphics.drawString(font, Component.translatable(terrazine ? "command.starmine.terrazine_geyser" : "command.starmine.vespene_geyser"),
+			panelLeft + 28, panelTop + 6, terrazine ? 0xFFC080FF : 0xFF80FF80);
+		boolean full = dev.starmine.vespene.VespeneBlock.isSource(state);
+		graphics.drawString(font, Component.translatable(full ? "command.starmine.geyser_full" : "command.starmine.geyser_empty",
+			dev.starmine.vespene.Vespene.perTrip(state)), panelLeft + 28, panelTop + 18, 0xFFFFFFFF);
+		if (terrazine) graphics.drawString(font, Component.translatable("command.starmine.worth_twice"), panelLeft + 6, panelTop + 40, 0xFFC080FF);
+	}
+
 	private void drawGroups(GuiGraphics graphics, int mouseX, int mouseY) {
 		int[] army = groupBox(ARMY_GROUP);
 		int armySize = army().size();
@@ -318,7 +362,10 @@ public final class CommandScreen extends Screen {
 	/** Bottom middle: one unit in detail, or the selected units' icons with their health. */
 	private void drawSelection(GuiGraphics graphics) {
 		List<StarUnit> units = CommandView.selected();
-		if (units.isEmpty()) return;
+		if (units.isEmpty()) {
+			drawInspected(graphics);
+			return;
+		}
 		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4, panelWidth = 280, panelHeight = 3 * (CELL + GAP);
 		graphics.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, 0xB0101418);
 		if (units.size() == 1) {
@@ -816,9 +863,23 @@ public final class CommandScreen extends Screen {
 		long now = System.currentTimeMillis();
 		boolean twice = now - lastClick < 300;
 		lastClick = now;
+		CommandView.inspected = null;
+		CommandView.inspectedBlock = null;
 		if (unit == null) {
 			if (CommandView.heroAt(mouseX, mouseY, width, height)) { // the player's own body: the hero
 				CommandView.selectHero();
+				return;
+			}
+			// owner 17.10: a creature (a monster, an animal) or a resource (a crystal, a geyser) is looked at
+			net.minecraft.world.entity.LivingEntity creature = CommandView.creature(mouseX, mouseY, width, height);
+			if (creature != null) {
+				CommandView.inspect(creature.getId(), null);
+				return;
+			}
+			net.minecraft.world.phys.BlockHitResult hit = CommandView.block(mouseX, mouseY, width, height);
+			Minecraft mc = Minecraft.getInstance();
+			if (hit != null && mc.level != null && CommandView.resource(mc.level.getBlockState(hit.getBlockPos()))) {
+				CommandView.inspect(null, hit.getBlockPos());
 				return;
 			}
 			if (!hasShiftDown()) {

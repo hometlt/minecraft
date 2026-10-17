@@ -12,7 +12,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "Leaping strike and psionic shift. At 2/3 health she calls her brood (zerglings, a hydralisk, a roach) and her shields come back; at 1/3 she rages for the rest of the fight and calls more. Her bar shows the phase.$(br2)$(l)Reward$(): Kerrigan's Crown, the rest of a zerg suit, the $(l)zerg part of the artifact's key$(), 16 chitin shards, 8 diamonds."
+			"text": "Leaping strike and psionic shift. At 2/3 health she calls her brood (zerglings, a hydralisk, a roach) and her shields come back; at 1/3 she rages for the rest of the fight and calls more. Her bar shows the phase.$(br2)$(l)When beaten$() Amun's hold breaks and the hero joins you (see Amun's Hold), leaving: Kerrigan's Crown, the rest of a zerg suit, 16 chitin shards, 8 diamonds."
 		}
 	]
 }

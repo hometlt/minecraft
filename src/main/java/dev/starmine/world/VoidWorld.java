@@ -74,18 +74,30 @@ public final class VoidWorld {
 
 	/** `/starmine void [amun]`: a player into the Void, at its first island or over Amun's (false when there is no Void). */
 	public static boolean visit(ServerPlayer player, boolean amun) {
+		return visit(player, amun ? "amun" : "");
+	}
+
+	/** `/starmine void [amun|riches]`: into the Void, at its first island, over Amun's, or over the first island of riches. */
+	public static boolean visit(ServerPlayer player, String where) {
 		ServerLevel there = level(player.getServer());
 		if (there == null) return false;
 		Vec3 at = arrival(there);
+		boolean amun = !where.isEmpty();
 		if (amun) {
 			List<VoidIslands.Island> islands = VoidIslands.layout(there.getSeed());
 			BlockPos centre = islands.get(islands.size() - 1).centre();
+			if (where.equals("riches"))
+				for (VoidIslands.Island island : islands) if (island.riches() != VoidIslands.Riches.NONE) {
+					centre = island.centre();
+					break;
+				}
 			at = new Vec3(centre.getX() + 0.5, centre.getY() + 40, centre.getZ() + VoidIslands.AMUN_RADIUS + 20.5);
 			BlockPos under = BlockPos.containing(at).below();
 			for (BlockPos pos : BlockPos.betweenClosed(under.offset(-1, 0, -1), under.offset(1, 0, 1))) // a ledge to watch from
 				if (there.getBlockState(pos).isAir()) there.setBlock(pos, VoidIslands.BRICKS.defaultBlockState(), Block.UPDATE_ALL);
 		}
 		player.teleportTo(there, at.x, at.y, at.z, java.util.Set.of(), amun ? 180 : player.getYRot(), amun ? 30 : player.getXRot());
+		VoidArmy.arrive(there, player);
 		return true;
 	}
 
@@ -104,8 +116,10 @@ public final class VoidWorld {
 		to.playSound(null, BlockPos.containing(at), SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0f, 0.7f);
 		for (Entity arrived : moved.getSelfAndPassengers().toList()) {
 			RESTING.put(arrived.getUUID(), now + REST);
-			if (arrived instanceof ServerPlayer player)
+			if (arrived instanceof ServerPlayer player) {
 				player.displayClientMessage(Component.translatable(is(to) ? "message.starmine.void_in" : "message.starmine.void_out"), true);
+				if (is(to)) VoidArmy.arrive(to, player); // owner 17.10: the army waits there the first time
+			}
 		}
 		if (RESTING.size() > 256) RESTING.values().removeIf(until -> until < now);
 	}

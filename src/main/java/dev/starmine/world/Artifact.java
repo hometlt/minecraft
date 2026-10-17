@@ -35,6 +35,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -128,7 +129,10 @@ public final class Artifact {
 		boolean whole = !pedestalGone && whole(level, pedestal);
 		BlockState state = level.getBlockState(pedestal);
 		boolean active = !pedestalGone && state.is(PEDESTAL) && state.getValue(ACTIVE);
-		if (whole && !active) open(level, pedestal);
+		if (whole && !active && level.dimension() != Level.OVERWORLD) { // owner 17.10: only in the overworld
+			for (ServerPlayer player : level.players())
+				if (player.blockPosition().closerThan(pedestal, 32)) player.displayClientMessage(Component.translatable("message.starmine.artifact_overworld"), true);
+		} else if (whole && !active) open(level, pedestal);
 		else if (!whole && (active || pedestalGone)) close(level, pedestal);
 	}
 
@@ -150,6 +154,10 @@ public final class Artifact {
 		for (ServerPlayer player : level.players())
 			if (player.blockPosition().closerThan(pedestal, 96))
 				player.displayClientMessage(Component.translatable("message.starmine.artifact_opened"), false);
+		// owner 17.10: the heroes come, and the player's army goes up the beam to the Void
+		ServerPlayer maker = level.players().stream().filter(p -> !p.isSpectator() && p.blockPosition().closerThan(pedestal, 32))
+			.min(java.util.Comparator.comparingDouble(p -> p.distanceToSqr(Vec3.atCenterOf(pedestal)))).orElse(null);
+		if (maker != null) VoidArmy.assembled(level, pedestal, maker);
 	}
 
 	/** The artifact is broken: its portal goes. */

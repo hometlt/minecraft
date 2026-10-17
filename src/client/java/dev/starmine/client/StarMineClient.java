@@ -93,6 +93,12 @@ public final class StarMineClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(StarMineBlocks.LIQUID_CREEP_SOURCE,
 			StarMineBlocks.LIQUID_CREEP_FLOWING, new net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler(
 				StarMine.id("block/liquid_creep_still"), StarMine.id("block/liquid_creep_flow")));
+		// owner 17.10: terrazine of the Void's lakes
+		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(dev.starmine.vespene.Vespene.TERRAZINE_SOURCE,
+			dev.starmine.vespene.Vespene.TERRAZINE_FLOWING, new net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler(
+				StarMine.id("block/terrazine_still"), StarMine.id("block/terrazine_flow")));
+		BlockRenderLayerMap.INSTANCE.putFluids(RenderType.translucent(), dev.starmine.vespene.Vespene.TERRAZINE_SOURCE, dev.starmine.vespene.Vespene.TERRAZINE_FLOWING);
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.TERRAZINE, RenderType.translucent());
 		BlockRenderLayerMap.INSTANCE.putFluids(RenderType.translucent(), dev.starmine.vespene.Vespene.SOURCE, dev.starmine.vespene.Vespene.FLOWING,
 			StarMineBlocks.LIQUID_CREEP_SOURCE, StarMineBlocks.LIQUID_CREEP_FLOWING);
 		BlockRenderLayerMap.INSTANCE.putBlock(StarMineBlocks.FORCE_FIELD, RenderType.translucent());

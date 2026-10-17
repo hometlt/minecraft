@@ -38,7 +38,35 @@ public final class VespeneBlock extends LiquidBlock {
 
 	/** A full cell of vespene (not a flowing one). */
 	public static boolean isSource(BlockState state) {
-		return state.is(Vespene.VESPENE) && state.getValue(LEVEL) == 0;
+		return state.getBlock() instanceof VespeneBlock && state.getValue(LEVEL) == 0;
+	}
+
+	/**
+	 * Owner 17.10: water on vespene (or terrazine) makes cobblestone, as on lava — the vespene turns, unless it is an
+	 * outlet: then the water does (a geyser is not sealed by a splash).
+	 */
+	static void quench(Level level, BlockPos pos, BlockState state) {
+		if (level.isClientSide) return;
+		for (net.minecraft.core.Direction side : net.minecraft.core.Direction.values()) {
+			BlockPos next = pos.relative(side);
+			if (!level.getFluidState(next).is(net.minecraft.tags.FluidTags.WATER)) continue;
+			BlockPos turn = state.getValue(OUTLET) ? next : pos;
+			level.setBlockAndUpdate(turn, net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState());
+			level.levelEvent(net.minecraft.world.level.block.LevelEvent.LAVA_FIZZ, turn, 0);
+			if (turn == pos) return;
+		}
+	}
+
+	@Override
+	protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState old, boolean moved) {
+		super.onPlace(state, level, pos, old, moved);
+		quench(level, pos, state);
+	}
+
+	@Override
+	protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos from, boolean moved) {
+		super.neighborChanged(state, level, pos, block, from, moved);
+		if (level.getBlockState(pos) == state) quench(level, pos, state);
 	}
 
 	/** Takes the vespene from a block: an outlet becomes an empty vent, a vein cell air. */

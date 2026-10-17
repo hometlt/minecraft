@@ -81,6 +81,9 @@ public final class CommandView {
 	static BlockPos ghostSite;
 	static boolean ghostValid;
 	static Integer hovered;
+	/** Owner 17.10: what is looked at without being commanded — a creature (a monster, an animal), or a resource block (a crystal, a geyser). */
+	static Integer inspected;
+	static BlockPos inspectedBlock;
 	private static final SkinnedModelDrawer GHOST = new SkinnedModelDrawer();
 	private static float[] ghostPalette = new float[0];
 
@@ -334,6 +337,27 @@ public final class CommandView {
 		return best;
 	}
 
+	/** Whether a block is a resource to look at: a mineral crystal, a vespene or terrazine outlet, an empty vent. */
+	static boolean resource(net.minecraft.world.level.block.state.BlockState state) {
+		return dev.starmine.mineral.Minerals.isCrystal(state) || dev.starmine.vespene.Vespene.isOutlet(state)
+			|| state.getBlock() instanceof dev.starmine.vespene.VespeneBlock;
+	}
+
+	/** The box of the resource looked at (a crystal's whole 2 x 2 x 2), or null when it is gone. */
+	static @org.jetbrains.annotations.Nullable AABB inspectedBox(ClientLevel level) {
+		if (inspectedBlock == null || !resource(level.getBlockState(inspectedBlock))) return null;
+		BlockPos core = dev.starmine.mineral.Minerals.core(level, inspectedBlock);
+		return core != null ? new AABB(core).expandTowards(1, 1, 1) : new AABB(inspectedBlock);
+	}
+
+	/** Looks at a creature or a resource instead of commanding: the selection is emptied. */
+	static void inspect(@org.jetbrains.annotations.Nullable Integer entity, @org.jetbrains.annotations.Nullable BlockPos block) {
+		selection.clear();
+		hero = false;
+		inspected = entity;
+		inspectedBlock = block;
+	}
+
 	/** Whether a unit belongs to this player's base. */
 	static boolean own(StarUnit unit) {
 		Minecraft mc = Minecraft.getInstance();
@@ -477,6 +501,12 @@ public final class CommandView {
 		}
 		Orders.render(pose, lines, context.tickCounter().getGameTimeDeltaPartialTick(false));
 		if (hovered != null && mc.level.getEntity(hovered) instanceof StarUnit unit && !selection.contains(hovered)) ring(pose, lines, unit, 0xA0FFFFFF);
+		if (inspected != null && mc.level.getEntity(inspected) instanceof net.minecraft.world.entity.LivingEntity looked && looked.isAlive())
+			ring(pose, lines, looked, 0xFFFFD040);
+		else inspected = null;
+		AABB resource = inspectedBox(mc.level);
+		if (resource != null) net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, lines, resource.inflate(0.03), 1f, 0.85f, 0.25f, 1f);
+		else inspectedBlock = null;
 		if (placing != null && ghostSite != null) drawGhost(pose, buffers, placing, ghostSite, ghostValid ? GHOST_GOOD : GHOST_BAD);
 		// what detectors sense behind walls: a frame of its body seen through the blocks (as well as the glowing
 		// outline, which shader packs may not draw)

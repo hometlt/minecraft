@@ -124,7 +124,7 @@ public class VoidGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "voidLayout", timeoutTicks = 20)
 	public void theIslandsSpreadOutWithAmunsFarthest(GameTestHelper helper) {
 		List<VoidIslands.Island> islands = VoidIslands.layout(helper.getLevel().getSeed());
-		helper.assertTrue(islands.size() == VoidIslands.ISLANDS + 2, "islands: " + islands.size());
+		helper.assertTrue(islands.size() == VoidIslands.ISLANDS + VoidIslands.RICH_ISLANDS.size() + 2, "islands: " + islands.size());
 		helper.assertTrue(islands.get(0).centre().equals(VoidWorld.RETURN.below()), "the first island is not at the portal back");
 		VoidIslands.Island amun = islands.get(islands.size() - 1);
 		for (int i = 0; i < islands.size(); i++)
@@ -136,6 +136,9 @@ public class VoidGameTests implements FabricGameTest {
 		for (VoidIslands.Island island : islands)
 			helper.assertTrue(island == amun || island.centre().distSqr(VoidWorld.RETURN) < amun.centre().distSqr(VoidWorld.RETURN),
 				"an island lies beyond Amun's");
+		for (VoidIslands.Riches riches : VoidIslands.Riches.values())
+			if (riches != VoidIslands.Riches.NONE)
+				helper.assertTrue(islands.stream().anyMatch(island -> island.riches() == riches), "no island of " + riches);
 		helper.succeed();
 	}
 }
