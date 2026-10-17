@@ -20,7 +20,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "Supply comes from overlords, supply depots and pylons. Prices, build times and supply follow StarCraft II. A worker with nothing in reach explores farther, on the land and under it; a worker in danger gets an escort, and a dark place is lit its race's way."
+			"text": "Supply comes from overlords, supply depots and pylons. Prices, build times and supply follow StarCraft II. Workers find minerals and geysers within 100 blocks of their store, other valuables within 10 blocks of themselves, walls or not; with nothing in reach they explore the land and the caves. A worker in danger gets an escort, and a dark place is lit its race's way.$(br2)A new base stands on 20 blocks of plain stone under a top of $(l)concrete$() its workers never dig."
 		}
 	]
 }

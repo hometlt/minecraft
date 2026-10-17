@@ -40,6 +40,8 @@ public final class Founding {
 		base.join(main.kind);
 		ServerPlayer player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
 		if (fresh) {
+			// owner 17.10: under a player's base plain stone 20 deep and a concrete top its workers leave alone
+			if (owner != null) dev.starmine.world.BaseGround.foundation(level, main.blockPosition(), (int) Math.ceil(main.kind.width / 2) + 8, main.kind.race);
 			startWorkers(level, base, main);
 			if (player != null) player.sendSystemMessage(Component.translatable("message.starmine.base_founded"));
 		} else if (player != null) {

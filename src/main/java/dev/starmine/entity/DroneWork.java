@@ -372,17 +372,23 @@ final class DroneWork extends Goal {
 				return;
 			}
 		}
+		BlockPos outlet = freeOutlet(level); // owner 17.10: a geyser within RESOURCES of its base, pumped by hand
+		if (outlet != null) {
+			startGas(outlet);
+			return;
+		}
 		if (drone.cargoBlocks > 0) {
 			to(State.CARRY);
 			return;
 		}
-		// owner 16.10: a wild worker with nothing to do does not stand turning on the spot — it looks farther;
+		// owner 16.10: a worker with nothing to do does not stand turning on the spot — it explores the land and the caves
+		// round about for something to gather (owner 17.10: a player's workers too, near their base);
 		// only wild zerg dig the hive's tunnels and roam far, the others keep near their base
-		if (commanded()) { // a player's worker waits by its base for orders (and for an army's way to cut, Engineering)
+		if (!commanded() && drone.kind.race == UnitKind.Race.ZERG && griefing && startTunnel(level)) return;
+		if (commanded() && drone.workArea() != null) { // a player's mining area worked out: it waits for orders
 			seekCooldown = 100;
 			return;
 		}
-		if (drone.kind.race == UnitKind.Race.ZERG && griefing && startTunnel(level)) return;
 		startExplore(level);
 	}
 
@@ -418,7 +424,7 @@ final class DroneWork extends Goal {
 		if (drone.hiveId() == null) return null;
 		BlockPos best = null;
 		double bestDist = Double.MAX_VALUE;
-		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(48),
+		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(RESOURCES, 48, RESOURCES),
 				mob -> mob.kind.gas() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
 			BlockPos outlet = Vespene.outletUnder(level, building.blockPosition());
 			if (outlet == null || workersOn(level, outlet) >= GAS_WORKERS) continue;
@@ -551,21 +557,9 @@ final class DroneWork extends Goal {
 		}
 		BlockPos crystal = crystalNear(level);
 		if (crystal != null) return crystal;
-		BlockPos ore = findOre(level, drone.blockPosition(), 16, drone.getUUID(), unreachable.keySet());
-		if (ore != null || drone.hiveId() == null) return ore;
-		StarUnit main = null;
-		double best = Double.MAX_VALUE;
-		for (StarUnit unit : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(48),
-				mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive())) {
-			double d = unit.distanceToSqr(drone);
-			if (d < best) {
-				best = d;
-				main = unit;
-			}
-		}
-		if (main == null) return null;
-		ore = findOre(level, main.blockPosition(), 16 + (int) Math.ceil(main.getBbWidth() / 2), drone.getUUID(), unreachable.keySet());
-		return ore != null ? ore : farOre(level, main);
+		// owner 17.10: other valuables only within ORE_RADIUS of the worker itself — through walls, but no farther;
+		// beyond that it explores (and finds them as it goes)
+		return findOre(level, drone.blockPosition(), ORE_RADIUS, drone.getUUID(), unreachable.keySet());
 	}
 
 	/** The nearest crystal or ore in a mining area this worker can still reach (minerals first, as everywhere). */
@@ -591,8 +585,43 @@ final class DroneWork extends Goal {
 		return bestCrystal != null ? bestCrystal : best;
 	}
 
-	/** How far from its base (or itself) a worker looks for mineral crystals first. */
-	static final int CRYSTALS = 48;
+	/** How far from its base a worker looks for mineral crystals and vespene geysers (owner 17.10: 100). */
+	static final int CRYSTALS = 100, RESOURCES = 100;
+	/** How far from itself a worker sees other valuable blocks, through walls (owner 17.10: 10, no farther). */
+	static final int ORE_RADIUS = 10;
+
+	/**
+	 * Owner 17.10: a bare vespene outlet (or one under its own base's gas building) within {@link #RESOURCES} of its
+	 * base's storage that wants a worker, nearest the storage; none with another base's building on it.
+	 */
+	private BlockPos freeOutlet(ServerLevel level) {
+		if (drone.hiveId() == null) return null;
+		StarUnit storage = level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(RESOURCES),
+			mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive()).stream()
+			.min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(drone))).orElse(null);
+		if (storage == null) return null;
+		BlockPos from = storage.blockPosition();
+		BlockPos best = null;
+		double bestDist = Double.MAX_VALUE;
+		for (int cx = (from.getX() - RESOURCES) >> 4; cx <= (from.getX() + RESOURCES) >> 4; cx++)
+			for (int cz = (from.getZ() - RESOURCES) >> 4; cz <= (from.getZ() + RESOURCES) >> 4; cz++) {
+				if (!level.hasChunk(cx, cz)) continue;
+				for (net.minecraft.world.level.block.entity.BlockEntity entity : level.getChunk(cx, cz).getBlockEntities().values()) {
+					if (!(entity instanceof dev.starmine.vespene.VespeneRootBlockEntity vein)) continue;
+					for (int i = 0; i < vein.outletCount(); i++) {
+						BlockPos outlet = vein.outlet(i);
+						double d = outlet.distSqr(from);
+						if (d > (double) RESOURCES * RESOURCES || d >= bestDist || unreachable.containsKey(outlet)) continue;
+						if (!Vespene.isOutlet(level.getBlockState(outlet)) || workersOn(level, outlet) >= GAS_WORKERS) continue;
+						StarUnit building = buildingOn(level, outlet, false);
+						if (building != null && buildingOn(level, outlet, true) == null) continue; // another base's, or being built
+						best = outlet;
+						bestDist = d;
+					}
+				}
+			}
+		return best;
+	}
 
 	/**
 	 * Owner 17.10: workers gather minerals first, other valuable blocks only when there are none. A crystal within
@@ -613,39 +642,9 @@ final class DroneWork extends Goal {
 		return cores.get(Math.floorMod(drone.getUUID().hashCode(), Math.min(3, cores.size())));
 	}
 
-	/** Ores of a base farther out ({@link #FAR} from its main building's edge), found once for all its workers every {@link #FAR_TICKS}. */
-	private record Far(long tick, List<BlockPos> ores) {
-	}
-
-	private static final Map<UUID, Far> FAR_ORE = new HashMap<>();
-	/**
-	 * How far from the main building's edge workers go for ore when none is left within 16 blocks of it
-	 * (CLOUD_TASK_2 stage 3): the ore near a base ran out in a few minutes, and its workers stood idle beside
-	 * a hill full of ore 20 blocks away (a long test: 8 SCVs brought 210 minerals in the second minute, 16 in
-	 * the fourth).
-	 */
-	static final int FAR = 48, FAR_TICKS = 200, FAR_DOWN = 24, FAR_UP = 16;
-
-	private BlockPos farOre(ServerLevel level, StarUnit main) {
-		long now = level.getGameTime();
-		Far far = FAR_ORE.get(main.getUUID());
-		if (far == null || now - far.tick > FAR_TICKS) {
-			int radius = FAR + (int) Math.ceil(main.getBbWidth() / 2);
-			BlockPos centre = main.blockPosition();
-			List<BlockPos> ores = new ArrayList<>();
-			for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-radius, -FAR_DOWN, -radius), centre.offset(radius, FAR_UP, radius)))
-				if (level.hasChunkAt(pos) && HiveResources.isOre(level.getBlockState(pos))) ores.add(pos.immutable());
-			ores.sort(java.util.Comparator.comparingDouble(pos -> pos.distSqr(centre)));
-			far = new Far(now, ores);
-			FAR_ORE.put(main.getUUID(), far);
-			if (FAR_ORE.size() > 64) FAR_ORE.clear();
-		}
-		for (BlockPos pos : far.ores) {
-			UUID owner = CLAIMS.get(pos);
-			if (owner != null && !owner.equals(drone.getUUID()) || unreachable.containsKey(pos)) continue;
-			if (HiveResources.isOre(level.getBlockState(pos))) return pos;
-		}
-		return null;
+	/** What a worker at `at` sees to mine besides crystals: the nearest valuable within {@link #ORE_RADIUS}, through walls. */
+	public static BlockPos findOreFor(ServerLevel level, BlockPos at) {
+		return findOre(level, at, ORE_RADIUS, NOBODY, Set.of());
 	}
 
 	static BlockPos findOre(ServerLevel level, BlockPos centre, int radius, UUID self, Set<BlockPos> skip) {
@@ -810,10 +809,24 @@ final class DroneWork extends Goal {
 		double radius = Math.min(roams ? ROAM : LEASH, 16 << Math.min(misses, 3));
 		double angle = drone.getRandom().nextDouble() * Math.PI * 2;
 		exploreTo = surface(level, new Vec3(home.getX() + Math.cos(angle) * radius, 0, home.getZ() + Math.sin(angle) * radius));
+		if (drone.getRandom().nextBoolean()) { // owner 17.10: now and then a cave under that place instead
+			Vec3 cave = cave(level, BlockPos.containing(exploreTo));
+			if (cave != null) exploreTo = cave;
+		}
 		to(State.EXPLORE);
 	}
 
 	private void explore(ServerLevel level, boolean griefing) {
+		if (griefing && stateTicks % 20 == 0) { // owner 17.10: it looks round as it goes (10 blocks, through walls)
+			BlockPos found = oreNear(level);
+			if (found != null) {
+				if (!dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(found))) claimGroup(level, found);
+				mineTarget = found;
+				deep = false;
+				to(State.MINE);
+				return;
+			}
+		}
 		Vec3 goal = exploreTo == null ? null
 			: drone.position().distanceTo(exploreTo) > 36 ? surface(level, drone.position().add(exploreTo.subtract(drone.position()).normalize().scale(32))) : exploreTo;
 		Move move = goal == null ? Move.FAILED : moveTo(level, goal, 4, false);
@@ -831,6 +844,17 @@ final class DroneWork extends Goal {
 			to(State.SEEK);
 			seekCooldown = 0;
 		}
+	}
+
+	/** A cave under a column: an air cell with a floor, out of the sky's sight, within 40 blocks down; or null. */
+	private static Vec3 cave(ServerLevel level, BlockPos column) {
+		int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
+		for (int y = top - 4; y > top - 44 && y > level.getMinBuildHeight() + 2; y--) {
+			BlockPos at = new BlockPos(column.getX(), y, column.getZ());
+			if (level.getBlockState(at).isAir() && level.getBlockState(at.above()).isAir() && level.getBlockState(at.below()).isSolid()
+				&& level.getFluidState(at).isEmpty()) return Vec3.atBottomCenterOf(at);
+		}
+		return null;
 	}
 
 	/** Where a leashed worker explores round: its base's nearest main building, else its home, else where it is. */

@@ -231,6 +231,9 @@ public final class RaceBases {
 			data.setDirty();
 		}
 		BlockPos column = baseOffset(data.baseOrigin, data.baseHeading, race);
+		// owner 17.10: the flattest dry place within 40 blocks of its column (bases on level land)
+		BlockPos flat = HiveStructure.chooseSite(level, column, RandomSource.create(level.getSeed() ^ column.asLong()), 0, 40);
+		if (flat != null) column = flat;
 		return new BlockPos(column.getX(), Math.max(HiveStructure.ground(level, column.getX(), column.getZ()),
 			level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ())), column.getZ());
 	}
@@ -276,7 +279,9 @@ public final class RaceBases {
 		boolean terran = race == UnitKind.Race.TERRAN;
 
 		// the plaza
-		HiveStructure.flatten(level, centre, PLAZA, 16, true); // the disc only: the land round it stays as it was
+		HiveStructure.flatten(level, centre, PLAZA, 16, true); // the disc only
+		BaseGround.fillUnder(level, centre, PLAZA); // owner 17.10: land under the plaza, and the land round it sloping to it
+		BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 14);
 		BlockState pave = terran ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.SMOOTH_SANDSTONE.defaultBlockState();
 		BlockState line = terran ? Blocks.YELLOW_CONCRETE.defaultBlockState() : Blocks.YELLOW_TERRACOTTA.defaultBlockState();
 		BlockState inlay = terran ? Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState() : Blocks.BLUE_TERRACOTTA.defaultBlockState();

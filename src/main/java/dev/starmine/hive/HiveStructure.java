@@ -253,6 +253,8 @@ public final class HiveStructure {
 			hive.tier = 2;
 			data.add(hive);
 			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 14);
+			dev.starmine.world.BaseGround.fillUnder(level, centre, 14); // owner 17.10: land under the lair, sloping to it round about
+			dev.starmine.world.BaseGround.blend(level, centre, 15, 28);
 			HiveTerrain.lay(level, centre, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
 			wait(UnitKind.HATCHERY, centre, null, null, 0);

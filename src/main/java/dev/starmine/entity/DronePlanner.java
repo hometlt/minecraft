@@ -338,9 +338,15 @@ public final class DronePlanner {
 	 * A block a drone may break: no block entity, no water or lava at or next to it, not metal or very
 	 * hard (owner: not iron, obsidian…), and not the floor of one of the hive's routes.
 	 */
+	/** The valuable a worker at `at` would see: within its 10-block reach, walls or not. */
+	public static BlockPos oreFor(ServerLevel level, BlockPos at) {
+		return DroneWork.findOreFor(level, at);
+	}
+
 	public static boolean breakable(ServerLevel level, BlockPos pos, Set<Long> routes) {
 		BlockState state = level.getBlockState(pos);
 		if (!state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) return false;
+		if (dev.starmine.world.BaseGround.protectedTop(state)) return false; // owner 17.10: a base's concrete is not dug
 		float hardness = state.getDestroySpeed(level, pos);
 		if (hardness < 0 || hardness >= 5) return false;
 		SoundType sound = state.getSoundType();
