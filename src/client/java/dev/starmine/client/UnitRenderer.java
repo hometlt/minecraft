@@ -124,7 +124,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, ours ? 0x70FFFFFF : 0x14FFFFFF);
 			} else if (shown(entity.kind) != entity.kind && entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
 			else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
-			if (entity.kind == UnitKind.DRONE && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight);
+			if (entity.kind.worker() && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight); // owner 18.10: every race's workers
 			poseStack.popPose();
 		}
 		if (!imported) { // owner 17.10: no imported SC2 model — StarMine's own stand-in (FallbackModels), not an outline
@@ -175,12 +175,24 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		return 1.5f;
 	}
 
-	/** The drone's valuable slot held in front of it: one small block per unit, up to 8 (2x2x2). */
+	/**
+	 * A worker's valuable slot held in front of it: one small block per unit, up to 8 (2x2x2). A single load — a
+	 * mineral shard, a vespene canister — is drawn large (owner 18.10: seen from the command view's height).
+	 */
 	private void drawCarried(StarUnit drone, SkinnedModel model, PoseStack poseStack, MultiBufferSource buffers, int light) {
 		ItemStack carried = drone.carried();
 		if (carried.isEmpty()) return;
 		int cubes = Math.min(8, carried.getCount());
 		ItemStack one = carried.copyWithCount(1);
+		if (cubes == 1) {
+			poseStack.pushPose();
+			poseStack.translate(0, model.size[1] * 0.35, model.size[2] * 0.45);
+			poseStack.scale(0.45f, 0.45f, 0.45f);
+			items.renderStatic(one, ItemDisplayContext.FIXED, Math.max(light, net.minecraft.client.renderer.LightTexture.pack(12, 12)), OverlayTexture.NO_OVERLAY,
+				poseStack, buffers, drone.level(), drone.getId());
+			poseStack.popPose();
+			return;
+		}
 		for (int i = 0; i < cubes; i++) {
 			poseStack.pushPose();
 			poseStack.translate(((i & 1) - 0.5) * 0.17, model.size[1] * 0.25 + (i >> 2) * 0.17, model.size[2] * 0.36 + ((i >> 1) & 1) * 0.17);
