@@ -80,6 +80,8 @@ public final class Abilities {
 			case ORBITAL_COMMAND -> lacks(unit, UnitKind.BARRACKS);
 			case PLANETARY_FORTRESS -> lacks(unit, UnitKind.ENGINEERING_BAY);
 			case HELLBAT -> unit.kind == UnitKind.HELLION ? lacks(unit, UnitKind.ARMORY) : null;
+			// SC2 LotV: a lair first (a player's; the wild's overlords carry anyway)
+			case VENTRAL_SACS -> base(unit) != null && base(unit).owner != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
 			default -> null;
 		};
 	}
@@ -96,9 +98,14 @@ public final class Abilities {
 	 */
 	public static boolean available(StarUnit unit, Ability ability) {
 		int mode = unit.mode();
+		if (ability == Ability.VENTRAL_SACS && unit.owner().isEmpty()) return false; // the wild's overlords carry without
 		if (Modes.oneWay(ability)) return mode == Modes.NORMAL;
-		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE; // an add-on or upgrade keeps it down
+		// SC2: an add-on stays on the ground and an orbital command flies; only a planetary fortress keeps it down
+		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE || LiftOff.leaves(mode);
 		if (mode == Modes.AIRBORNE) return false; // in the air a building only flies and lands
+		// a player's overlord before its sacs and an orbital carry nothing (what is still aboard may come out)
+		if (ability == Ability.LOAD && Transport.capacity(unit) == 0) return false;
+		if (ability == Ability.UNLOAD && Transport.capacity(unit) == 0 && !unit.isVehicle()) return false;
 		if (ability == Ability.SHADE_CANCEL || ability == Ability.PSIONIC_TRANSFER) // an adept with its shade out may call it off (shown both sides)
 			return (ability == Ability.SHADE_CANCEL) == ProtossAbilities.SHADING.equals(unit.disguise());
 		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP || mode == Modes.ORBITAL;
@@ -164,7 +171,7 @@ public final class Abilities {
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)
 			int to = turningOff ? Modes.NORMAL : mode;
-			if (ability == Ability.LIFT_OFF && !turningOff) unit.abilities.liftedFrom = unit.position();
+			if (ability == Ability.LIFT_OFF && !turningOff) LiftOff.liftingOff(unit, base(unit));
 			Modes.change(unit, to, (int) Math.round(Modes.changeTicks(ability, to) / dev.starmine.race.Research.changeFactor(base(unit), unit.kind)));
 			return true;
 		}
@@ -204,7 +211,7 @@ public final class Abilities {
 		boolean ally = Faction.allied(unit, target);
 		return switch (ability) {
 			case TRANSFUSION -> ally && target != unit && (other == null || other.kind.race == UnitKind.Race.ZERG) && target.getHealth() < target.getMaxHealth();
-			case INJECT_LARVA -> ally && other != null && other.kind == UnitKind.HATCHERY && !Status.has(other, Status.INJECTED);
+			case INJECT_LARVA -> ally && other != null && other.kind == UnitKind.HATCHERY; // SC2 LotV: injects stack (ZergAbilities#inject)
 			case CONSUME -> ally && other != null && other.kind.structure() && other.kind.race == UnitKind.Race.ZERG;
 			case CAUSTIC_SPRAY -> !ally && other != null && other.kind.structure();
 			case REPAIR -> ally && other != null && other.kind.mechanical() && other.kind.race == UnitKind.Race.TERRAN && target.getHealth() < target.getMaxHealth()
@@ -259,6 +266,7 @@ public final class Abilities {
 			case ANTI_ARMOR_MISSILE -> TerranAbilities.antiArmor(unit, level, point);
 			case TACTICAL_JUMP -> TerranAbilities.tacticalJump(unit, level, point);
 			case REPAIR -> TerranAbilities.repair(unit, target);
+			case SALVAGE -> TerranAbilities.salvage(unit, level);
 			case MULE -> TerranAbilities.mule(unit, level, point);
 			case SCANNER_SWEEP -> TerranAbilities.scan(unit, level, point);
 			// protoss

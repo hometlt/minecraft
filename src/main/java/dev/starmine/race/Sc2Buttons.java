@@ -124,6 +124,8 @@ public final class Sc2Buttons {
 			case PSIONIC_SHIFT -> "CommanderTraitKerriganPsionicShift";
 			case HYPERION_STRIKE -> "CommanderTraitRaynorHyperionYamatoCannon";
 			case LIGHTNING_DASH -> "Charge";
+			case VENTRAL_SACS -> "MorphToTransportOverlord";
+			case SALVAGE -> "Salvage";
 			case LOAD -> "BunkerLoad";
 			case UNLOAD -> "BunkerUnloadAll";
 		};

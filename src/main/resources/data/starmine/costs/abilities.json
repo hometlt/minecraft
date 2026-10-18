@@ -3,5 +3,6 @@
 	"planetary_fortress": {"minerals": 150, "vespene": 150},
 	"greater_spire": {"minerals": 100, "vespene": 150},
 	"techlab": {"minerals": 50, "vespene": 25},
-	"reactor": {"minerals": 50, "vespene": 50}
+	"reactor": {"minerals": 50, "vespene": 50},
+	"ventral_sacs": {"minerals": 25, "vespene": 25}
 }

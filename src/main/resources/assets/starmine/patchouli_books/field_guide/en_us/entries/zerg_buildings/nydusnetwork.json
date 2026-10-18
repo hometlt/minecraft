@@ -14,6 +14,11 @@
 			"type": "patchouli:text",
 			"title": "Nydus Network",
 			"text": "$(l)Health$(): 850$(br)No attack$(br)$(l)Cost$(): 150 minerals, 150 vespene$(br)$(l)Build time$(): 36 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Load$(): Takes aboard own ground units of its race nearby: a flyer 8 slots, a bunker 4 (6 with neosteel), a command center 5 SCVs, a nydus any zerg$(br2)$(l)Unload$(): Flies there and puts the cargo down; a building lets it out (a nydus the cargo of all its ends); a click on a rider in the panel lets it out alone"
 		}
 	]
 }

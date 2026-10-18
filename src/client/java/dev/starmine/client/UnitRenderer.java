@@ -38,6 +38,13 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		this.shadowRadius = 0.5f;
 	}
 
+	/** A unit inside a command center or a nydus is not seen (a bunker's garrison shows behind its walls). */
+	@Override
+	public boolean shouldRender(StarUnit entity, net.minecraft.client.renderer.culling.Frustum frustum, double x, double y, double z) {
+		if (entity.getVehicle() instanceof StarUnit hold && hold.kind.structure() && hold.kind != UnitKind.BUNKER) return false;
+		return super.shouldRender(entity, frustum, x, y, z);
+	}
+
 	/** Block light every building has at least (owner 16.10: buildings glow a little, even in the dark). */
 	public static final int BUILDING_GLOW = 9;
 

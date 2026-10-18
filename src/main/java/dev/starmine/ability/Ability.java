@@ -39,6 +39,7 @@ public enum Ability {
 	PARASITIC_BOMB(     "parasitic_bomb",      'W', Target.UNIT,    125,   0,       8,    0,      0),
 	CONSUME(            "consume",             'C', Target.UNIT,    0,     1,       1,    0,      0),
 	CAUSTIC_SPRAY(      "caustic_spray",       'C', Target.UNIT,    0,     0,       6,    0,      0),
+	VENTRAL_SACS(       "ventral_sacs",        'T', Target.NONE,    0,     0,       0,    0,      12), // SC2 LotV: an overlord morphs into a transport
 	// ---- terran ----
 	STIMPACK(           "stimpack",            'T', Target.NONE,    0,     1,       0,    0,      0),
 	KD8_CHARGE(         "kd8_charge",          'D', Target.POINT,   0,     14,      5,    0,      1.5),
@@ -63,6 +64,7 @@ public enum Ability {
 	BUILD_TECHLAB(      "techlab",             'X', Target.NONE,    0,     0,       0,    0,      18),
 	BUILD_REACTOR(      "reactor",             'C', Target.NONE,    0,     0,       0,    0,      36),
 	LIFT_OFF(           "lift_off",            'L', Target.TOGGLE,  0,     0,       0,    0,      0),
+	SALVAGE(            "salvage",             'S', Target.NONE,    0,     0,       0,    0,      5), // SC2: the bunker comes down, 75 % back
 	// owner 17.10: the cyclone and the raven (SC2 LotV)
 	LOCK_ON(            "lock_on",             'E', Target.UNIT,    0,     4,       7,    0,      0),
 	AUTO_TURRET(        "auto_turret",         'T', Target.POINT,   50,    0,       2,    0,      0),
@@ -129,6 +131,8 @@ public enum Ability {
 		BUILD_TECHLAB.vespene = 25;
 		BUILD_REACTOR.minerals = 50;
 		BUILD_REACTOR.vespene = 50;
+		VENTRAL_SACS.minerals = 25;
+		VENTRAL_SACS.vespene = 25;
 	}
 
 	Ability(String id, char hotkey, Target target, int energy, double cooldown, double sc2Range, double channel, double delay) {
@@ -158,6 +162,8 @@ public enum Ability {
 			case NEURAL_PARASITE, FUNGAL_GROWTH -> List.of(INFESTOR);
 			case BLINDING_CLOUD, ABDUCT, PARASITIC_BOMB, CONSUME -> List.of(VIPER);
 			case CAUSTIC_SPRAY -> List.of(CORRUPTOR);
+			case VENTRAL_SACS -> List.of(OVERLORD);
+			case SALVAGE -> List.of(BUNKER);
 			case STIMPACK -> List.of(MARINE, MARAUDER);
 			case KD8_CHARGE -> List.of(REAPER, RAYNOR); // Raynor's grenade
 			case CLOAK -> List.of(GHOST, BANSHEE);
@@ -199,7 +205,7 @@ public enum Ability {
 			case MASS_RECALL -> List.of(MOTHERSHIP, NEXUS); // SC2 strategic recall, both
 			case CHRONO_BOOST, BATTERY_OVERCHARGE -> List.of(NEXUS);
 			case WARP_GATE -> List.of(GATEWAY);
-			case LOAD, UNLOAD -> List.of(MEDIVAC, WARP_PRISM, OVERLORD, BUNKER);
+			case LOAD, UNLOAD -> List.of(MEDIVAC, WARP_PRISM, OVERLORD, BUNKER, COMMAND_CENTER, NYDUS_NETWORK, NYDUS_CANAL);
 		};
 	}
 

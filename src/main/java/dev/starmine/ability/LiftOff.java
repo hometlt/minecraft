@@ -13,8 +13,10 @@ import org.jetbrains.annotations.Nullable;
  * hovers {@link #HOVER} blocks over the ground, flies straight to its move order point at SC2 speed
  * {@link #SC2_SPEED} and neither trains nor researches. It lifts off only idle (nothing in training, no
  * research) and lands only where its body fits: no other building there, no blocks in the way. A
- * landed command center moves its base's anchor with it. The add-ons and the command center's upgrades
- * are modes of their buildings, so a building with one stays down.
+ * landed command center moves its base's anchor with it. As in SC2, an add-on (a mode of its building here) stays
+ * on the ground when its building lifts off ({@link Hive#addOns}): a barracks, factory or starport that lands on
+ * that site takes it (so two buildings swap add-ons by trading places); an orbital command flies and lands an
+ * orbital again; a planetary fortress stays down.
  */
 public final class LiftOff {
 	/** Blocks a lifted building keeps over the ground (SC2: air units' height). */
@@ -32,6 +34,28 @@ public final class LiftOff {
 
 	public static boolean airborne(StarUnit unit) {
 		return unit.mode() == Modes.AIRBORNE;
+	}
+
+	/** Whether a building in `mode` may lift off from it (SC2: an add-on stays behind, an orbital command flies). */
+	static boolean leaves(int mode) {
+		return mode == Modes.TECHLAB || mode == Modes.REACTOR || mode == Modes.ORBITAL;
+	}
+
+	/** Its site on the ground: the key of an add-on left there. */
+	static net.minecraft.core.BlockPos site(StarUnit unit) {
+		return net.minecraft.core.BlockPos.containing(unit.kind.gridCentre(unit.position()));
+	}
+
+	/** It starts to lift off: where from, its ground mode, and an add-on of it stays on the site. */
+	static void liftingOff(StarUnit unit, @Nullable Hive base) {
+		AbilityState state = unit.abilities;
+		state.liftedFrom = unit.position();
+		state.liftedMode = unit.mode();
+		if (base != null && (unit.mode() == Modes.TECHLAB || unit.mode() == Modes.REACTOR)) {
+			// ponytail: the add-on left behind is not drawn on its own (its look is part of its building's model); a separate add-on entity would show it
+			base.addOns.put(site(unit), unit.mode());
+			if (unit.level() instanceof net.minecraft.server.level.ServerLevel server) dev.starmine.hive.HiveSavedData.get(server.getServer()).setDirty();
+		}
 	}
 
 	/** Why it cannot lift off or land now (a lang key), or null. */
@@ -106,5 +130,12 @@ public final class LiftOff {
 		} else unit.setPos(unit.getX(), unit.groundBelow(unit.getX(), unit.getZ()), unit.getZ());
 		if (base != null && unit.kind.main() && liftedFrom != null && base.hatchery.closerToCenterThan(liftedFrom, 2))
 			base.hatchery = unit.blockPosition();
+		int ground = unit.kind.main() && unit.abilities.liftedMode == Modes.ORBITAL ? Modes.ORBITAL : Modes.NORMAL;
+		if (base != null && Ability.BUILD_TECHLAB.users().contains(unit.kind)) { // an add-on on the site is its now
+			Integer addOn = base.addOns.remove(site(unit));
+			if (addOn != null) ground = addOn;
+		}
+		unit.abilities.liftedMode = Modes.NORMAL;
+		unit.setMode(ground);
 	}
 }

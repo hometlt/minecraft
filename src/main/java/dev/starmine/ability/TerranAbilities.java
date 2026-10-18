@@ -251,6 +251,20 @@ public final class TerranAbilities {
 	}
 
 	/** The SCV takes up the repair: it walks to the target and mends it while the base pays ({@link #repairTick}). */
+	/** The bunker comes down (SC2 salvage, 5 s after the order): its garrison walks out and its base gets 75 % of its cost back. */
+	static void salvage(StarUnit bunker, ServerLevel level) {
+		if (!bunker.isAlive()) return;
+		Transport.unloadHere(bunker);
+		Hive base = Abilities.base(bunker);
+		if (base != null) {
+			base.minerals += bunker.kind.economy().minerals() * 3 / 4;
+			base.vespene += bunker.kind.economy().vespene() * 3 / 4;
+			HiveSavedData.get(level.getServer()).setDirty();
+		}
+		level.sendParticles(ParticleTypes.LARGE_SMOKE, bunker.getX(), bunker.getY() + 0.5, bunker.getZ(), 30, bunker.getBbWidth() / 2, 0.4, bunker.getBbWidth() / 2, 0.02);
+		bunker.discard();
+	}
+
 	static void repair(StarUnit unit, @Nullable LivingEntity target) {
 		if (target == null) return;
 		unit.command(StarUnit.Order.NONE, null);

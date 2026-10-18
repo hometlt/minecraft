@@ -48,6 +48,7 @@ final class ModeLook {
 			case Modes.AIRBORNE -> "airborne";
 			case Modes.DEFENDER -> "defender";
 			case Modes.GREATER -> "greater";
+			case Modes.SACS -> "sacs"; // an overlord transport (SC2 OverlordTransport)
 			default -> "normal";
 		};
 	}

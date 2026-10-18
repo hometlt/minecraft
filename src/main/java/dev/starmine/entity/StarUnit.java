@@ -200,6 +200,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private int trainTicks;
 	/** A reactor's second slot: the second queued unit trains alongside the first, on its own time (SC2). */
 	private int secondTicks;
+	/** A warp gate: ticks till it may warp in the next unit (SC2 warp gate cooldown). */
+	private int warpCooldown;
 	private Vec3 rally;
 	/** Engineering bay research: "weapons" or "armor" and ticks left. */
 	private String research;
@@ -1123,6 +1125,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			tag.putString("StarMineQueue", String.join(",", queue.stream().map(Enum::name).toList()));
 			tag.putInt("StarMineTrain", trainTicks); tag.putInt("StarMineTrain2", secondTicks);
 		}
+		if (warpCooldown > 0) tag.putInt("StarMineWarpCooldown", warpCooldown);
 		if (rally != null) tag.put("StarMineRally", NbtUtils.writeBlockPos(BlockPos.containing(rally)));
 		if (research != null) {
 			tag.putString("StarMineResearch", research);
@@ -1210,6 +1213,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				// a kind removed from the mod
 			}
 		trainTicks = tag.getInt("StarMineTrain"); secondTicks = tag.getInt("StarMineTrain2");
+		warpCooldown = tag.getInt("StarMineWarpCooldown");
 		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
 		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
 		researchTicks = tag.getInt("StarMineResearchTicks");
@@ -1511,14 +1515,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		++this.deathTime;
 		if (this.level() instanceof ServerLevel server) deathBurst(server);
 		if (kind.flying) this.setNoGravity(false);
-		if (this.isVehicle()) {
-			if (kind == UnitKind.BUNKER) dev.starmine.ability.Transport.unloadHere(this); // a bunker's garrison walks out
-			else { // owner 18.10 (SC2): a transport's cargo dies with it
-				List<Entity> cargo = new ArrayList<>(this.getPassengers());
-				this.ejectPassengers();
-				for (Entity carried : cargo) if (carried instanceof StarUnit unit) unit.kill();
-			}
-		}
+		if (this.isVehicle() && !this.level().isClientSide()) dev.starmine.ability.Transport.atDeath(this);
 		if (this.deathTime >= kind.deathTicks() && !this.level().isClientSide() && !this.isRemoved()) {
 			this.level().broadcastEntityEvent(this, (byte) 60);
 			this.remove(Entity.RemovalReason.KILLED);
@@ -1793,14 +1790,19 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		this.rally = at;
 	}
 
-	/** The first queued unit trains; done, it walks out to the rally point (or next to the building). */
 	/**
 	 * The first queued unit trains (with a reactor the first two at once; under chrono boost 50 % faster);
-	 * done, it walks out to the rally point (or next to the building). A warp gate warps it in at the
-	 * rally point when that is in pylon power (or a phasing warp prism's).
+	 * done, it walks out to the rally point (or next to the building). A warp gate trains nothing ({@link #warpIn}).
 	 */
 	private void produce(ServerLevel server) {
-		if (queue.isEmpty() || abilities.changingMode()) return;
+		if (abilities.changingMode()) return;
+		boolean warping = mode() == dev.starmine.ability.Modes.WARPGATE;
+		if (warping && warpCooldown > 0) warpCooldown -= workTicks();
+		if (queue.isEmpty()) return;
+		if (warping) {
+			warpIn(server);
+			return;
+		}
 		int step = workTicks();
 		trainTicks += step;
 		boolean second = mode() == dev.starmine.ability.Modes.REACTOR && queue.size() > 1;
@@ -1823,20 +1825,41 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		for (UnitKind unit : ready) {
 			if (hive == null) return;
 			hive.born(unit, 1);
-			Vec3 spot = null;
-			if (mode() == dev.starmine.ability.Modes.WARPGATE && rally != null
-				&& dev.starmine.race.ProtossRace.poweredAt(server, rally.x, rally.y, rally.z, hiveId)) spot = rally;
-			if (spot == null) {
-				// out of the building by both bodies' half widths: a thor (10 wide) came out a block from its factory's edge, inside it
-				double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + unit.width / 2 + 1;
-				spot = Spots.outside(server, unit, this.position().add(0, unit.flying ? 2 : 0, 0), angle, radius);
-			} else server.sendParticles(ParticleTypes.END_ROD, spot.x, spot.y + 1, spot.z, 30, 0.5, 1, 0.5, 0.02);
-			StarUnit born = HiveLogic.spawn(server, hive, unit, spot, null);
+			StarUnit born = HiveLogic.spawn(server, hive, unit, outside(server, unit), null);
 			if (born != null) {
-				if (rally != null && spot != rally) born.command(Order.MOVE, rally);
+				if (rally != null) born.command(Order.MOVE, rally);
 				else born.home = born.blockPosition();
 			}
 		}
+		HiveSavedData.get(server.getServer()).setDirty();
+	}
+
+	/** A spot just out of the building for a new unit: by both bodies' half widths (a thor, 10 wide, came out inside its factory). */
+	private Vec3 outside(ServerLevel server, UnitKind unit) {
+		double angle = this.random.nextDouble() * Math.PI * 2, radius = kind.width / 2 + unit.width / 2 + 1;
+		return Spots.outside(server, unit, this.position().add(0, unit.flying ? 2 : 0, 0), angle, radius);
+	}
+
+	/**
+	 * A warp gate (SC2 LotV) trains nothing: when it is cool, the first ordered unit warps in at once at its rally point
+	 * if that is in power (a pylon's or a phasing warp prism's), else by the gate; it stays there unable to move or fight
+	 * for its warp-in time ({@link dev.starmine.race.ProtossRace#warpInTicks}: 16 s, 4 s by a nexus or a warp gate), and
+	 * the gate cools down for that unit's SC2 time ({@link dev.starmine.race.ProtossRace#warpCooldown}).
+	 */
+	private void warpIn(ServerLevel server) {
+		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
+		if (warpCooldown > 0 || hive == null) return;
+		UnitKind unit = queue.remove(0);
+		trainTicks = 0;
+		hive.born(unit, 1);
+		Vec3 spot = rally != null && dev.starmine.race.ProtossRace.poweredAt(server, rally.x, rally.y, rally.z, hiveId) ? rally : outside(server, unit);
+		server.sendParticles(ParticleTypes.END_ROD, spot.x, spot.y + 1, spot.z, 30, 0.5, 1, 0.5, 0.02);
+		StarUnit born = HiveLogic.spawn(server, hive, unit, spot, null);
+		if (born != null) {
+			born.home = born.blockPosition();
+			dev.starmine.ability.Status.apply(born, dev.starmine.ability.Status.WARPING, dev.starmine.race.ProtossRace.warpInTicks(server, spot, hiveId));
+		}
+		warpCooldown = dev.starmine.race.ProtossRace.warpCooldown(unit);
 		HiveSavedData.get(server.getServer()).setDirty();
 	}
 

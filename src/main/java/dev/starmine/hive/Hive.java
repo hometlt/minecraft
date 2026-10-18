@@ -50,6 +50,11 @@ public final class Hive {
 	 */
 	public final java.util.List<BlockPos> nydus = new java.util.ArrayList<>();
 	public long nextNydusTransfer;
+	/**
+	 * Add-ons left on the ground by its lifted terran buildings (SC2): the site each building stood on and the add-on's
+	 * mode (tech lab, reactor); a barracks, factory or starport that lands on the site takes it ({@link dev.starmine.ability.LiftOff}).
+	 */
+	public final java.util.Map<BlockPos, Integer> addOns = new java.util.HashMap<>();
 	public int dropSize;
 	public BlockPos expedition;
 	public boolean expeditionCave;
@@ -260,6 +265,8 @@ public final class Hive {
 		tag.putLong("nextClaim", nextClaim);
 		tag.putLongArray("nydus", nydus.stream().mapToLong(BlockPos::asLong).toArray());
 		tag.putLong("nextNydusTransfer", nextNydusTransfer);
+		tag.putLongArray("addOnSites", addOns.keySet().stream().mapToLong(BlockPos::asLong).toArray());
+		tag.putIntArray("addOnModes", addOns.values().stream().mapToInt(Integer::intValue).toArray());
 		tag.putLong("nextDrop", nextDrop);
 		tag.putInt("dropSize", dropSize);
 		tag.put("hatchery", NbtUtils.writeBlockPos(hatchery));
@@ -315,6 +322,9 @@ public final class Hive {
 		for (long cell : tag.getLongArray("nydus")) hive.nydus.add(BlockPos.of(cell));
 		if (hive.nydus.size() % 2 == 1) hive.nydus.remove(hive.nydus.size() - 1);
 		hive.nextNydusTransfer = tag.getLong("nextNydusTransfer");
+		long[] addOnSites = tag.getLongArray("addOnSites");
+		int[] addOnModes = tag.getIntArray("addOnModes");
+		for (int i = 0; i < Math.min(addOnSites.length, addOnModes.length); i++) hive.addOns.put(BlockPos.of(addOnSites[i]), addOnModes[i]);
 		hive.nextDrop = tag.getLong("nextDrop");
 		hive.dropSize = tag.getInt("dropSize");
 		hive.minerals = tag.getInt("minerals");

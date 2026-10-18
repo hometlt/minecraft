@@ -147,8 +147,8 @@ final class AbilityAi {
 					&& unit.queue().isEmpty() && cast(unit, level, ability);
 			}
 			case LOAD -> unit.kind == UnitKind.BUNKER ? foeWithin(unit, 12) && cast(unit, level, ability)
-				// a flying transport takes up the badly wounded out of a fight
-				: foeWithin(unit, 12) && nearestOwn(unit, 6, other -> !other.flying() && !other.kind.structure() && !other.isPassenger()
+				// a flying transport takes up the badly wounded out of a fight (a command center or a nydus does not)
+				: unit.flying() && foeWithin(unit, 12) && nearestOwn(unit, 6, other -> !other.flying() && !other.kind.structure() && !other.isPassenger()
 					&& other.kind.race == unit.kind.race && other.getHealth() < other.getMaxHealth() * 0.3f) != null && cast(unit, level, ability);
 			case UNLOAD -> !unit.getPassengers().isEmpty() && (calm || unit.kind != UnitKind.BUNKER && unit.getHealth() < unit.getMaxHealth() * 0.25f)
 				&& cast(unit, level, ability, unit.position());

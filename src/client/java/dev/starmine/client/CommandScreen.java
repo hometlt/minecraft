@@ -435,6 +435,13 @@ public final class CommandScreen extends Screen {
 					bar(graphics, panelLeft + 6, panelTop + 60, panelWidth - 12, Math.abs(progress) / 1000f, 0xFF60A0FF);
 				}
 			}
+			List<Entity> riders = CommandView.own(unit) ? unit.getPassengers() : List.of();
+			for (int i = 0; i < riders.size() && i < CARGO_SHOWN; i++) // its cargo (SC2): a left click on one lets it out alone
+				if (riders.get(i) instanceof StarUnit rider) {
+					int[] at = cargoCell(i);
+					graphics.fill(at[0], at[1], at[0] + 18, at[1] + 18, 0x60406080);
+					graphics.renderItem(new ItemStack(StarMine.egg(rider.kind)), at[0] + 1, at[1] + 1);
+				}
 			return;
 		}
 		int columns = 12, size = 22;
@@ -445,6 +452,27 @@ public final class CommandScreen extends Screen {
 			graphics.fill(x, y, x + size - 2, y + size - 2, health > 0.6f ? 0x6020A020 : health > 0.3f ? 0x60A0A020 : 0x60A02020);
 			graphics.renderItem(new ItemStack(StarMine.egg(unit.kind)), x + 2, y + 2);
 		}
+	}
+
+	/** How many riders of a transport its panel shows (two rows). */
+	private static final int CARGO_SHOWN = 26;
+
+	/** Where the `i`th rider's icon is in the selection panel: two rows of 13 under the transport's bars. */
+	private int[] cargoCell(int i) {
+		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4;
+		return new int[] {panelLeft + 6 + (i % 13) * 20, panelTop + 70 + (i / 13) * 18};
+	}
+
+	/** The rider of the one selected transport whose icon is under the mouse, or null. */
+	private Entity cargoAt(double mouseX, double mouseY) {
+		List<StarUnit> units = CommandView.selected();
+		if (units.size() != 1 || !CommandView.own(units.get(0))) return null;
+		List<Entity> riders = units.get(0).getPassengers();
+		for (int i = 0; i < riders.size() && i < CARGO_SHOWN; i++) {
+			int[] at = cargoCell(i);
+			if (mouseX >= at[0] && mouseX < at[0] + 18 && mouseY >= at[1] && mouseY < at[1] + 18) return riders.get(i);
+		}
+		return null;
 	}
 
 	private static void bar(GuiGraphics graphics, int x, int y, int width, float fraction, int color) {
@@ -853,6 +881,11 @@ public final class CommandScreen extends Screen {
 				CommandView.selection.clear();
 				for (StarUnit unit : members(group)) CommandView.selection.add(unit.getId());
 				page = Page.MAIN;
+				return true;
+			}
+			Entity rider = cargoAt(mouseX, mouseY);
+			if (rider != null) { // SC2: a click on a rider in the cargo lets it out alone
+				CommandView.send("unload_one", Vec3.ZERO, rider.getId(), null);
 				return true;
 			}
 			if (onPanel(mouseX, mouseY)) return true;

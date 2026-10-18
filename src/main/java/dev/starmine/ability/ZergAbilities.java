@@ -93,16 +93,21 @@ public final class ZergAbilities {
 		return level.getBlockState(at).is(StarMineBlocks.CREEP) && CreepSources.nearestTumor(level, at) >= CreepSources.TUMOR_SPACING;
 	}
 
-	/** The queen injects a hatchery: in 29 s it gives 3 larvae beyond its usual 3. */
+	/** The queen injects a hatchery: in 29 s it gives 3 larvae beyond its usual 3; on one already injected it queues (SC2 LotV: injects stack). */
 	static void inject(StarUnit unit, ServerLevel level, @Nullable LivingEntity target) {
 		if (!(target instanceof StarUnit hatchery)) return;
-		Status.apply(hatchery, Status.INJECTED, INJECT_TICKS);
+		if (Status.has(hatchery, Status.INJECTED)) hatchery.abilities.queuedInjects++;
+		else Status.apply(hatchery, Status.INJECTED, INJECT_TICKS);
 		level.sendParticles(ParticleTypes.ITEM_SLIME, hatchery.getX(), hatchery.getY() + hatchery.getBbHeight(), hatchery.getZ(), 30, 1, 0.5, 1, 0.1);
 	}
 
-	/** An inject is over: the larvae come out around the hatchery. */
+	/** An inject is over: the larvae come out around the hatchery, and a queued one starts. */
 	static void injectDone(StarUnit hatchery) {
 		if (!(hatchery.level() instanceof ServerLevel level) || hatchery.hiveId() == null) return;
+		if (hatchery.abilities.queuedInjects > 0) {
+			hatchery.abilities.queuedInjects--;
+			Status.apply(hatchery, Status.INJECTED, INJECT_TICKS);
+		}
 		Hive hive = HiveSavedData.get(level.getServer()).get(hatchery.hiveId());
 		if (hive == null) return;
 		for (int i = 0; i < INJECT_LARVAE; i++) {

@@ -63,7 +63,7 @@ final class Ferry {
 	static Set<UUID> start(ServerLevel level, Hive base, List<StarUnit> army, StarUnit.Order order, Vec3 goal, boolean raid, long until) {
 		Vec3 centre = army.stream().map(StarUnit::position).reduce(Vec3.ZERO, Vec3::add).scale(1.0 / army.size());
 		List<StarUnit> transports = level.getEntitiesOfClass(StarUnit.class, new AABB(BlockPos.containing(centre)).inflate(CALL),
-			unit -> unit.isAlive() && base.id.equals(unit.hiveId()) && Transport.capacity(unit.kind) > 0 && !unit.kind.structure()
+			unit -> unit.isAlive() && base.id.equals(unit.hiveId()) && Transport.capacity(unit) > 0 && !unit.kind.structure()
 				&& unit.getPassengers().isEmpty() && !busy(unit.getUUID()));
 		if (transports.isEmpty()) return Set.of();
 		for (StarUnit unit : army)

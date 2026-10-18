@@ -13,7 +13,7 @@ import static dev.starmine.entity.UnitKind.SCALE;
  * Unit modes (owner 14.10, docs/ABILITIES.md): a unit switches its form and weapon, one way for every
  * race — the siege tank's siege mode, burrowing (zerg), the viking's landing, the hellion's hellbat
  * form, the warp prism's phasing mode, the oracle's pulsar beam, the thor's high impact payload, a
- * lowered supply depot, a warp gate, a barracks' tech lab or reactor, an orbital command or planetary
+ * lowered supply depot, a warp gate, an overlord's ventral sacs, a barracks' tech lab or reactor, an orbital command or planetary
  * fortress, a greater spire, a terran building lifted off ({@link LiftOff}). A change takes its SC2 time ({@link #changeTicks}), during which the unit neither moves nor
  * fights; then its weapon, speed and body follow the new mode ({@link #weapon}, {@link #speedFactor},
  * applied by {@link StarUnit#refreshWeapon} and {@link StarUnit#applyModeBody}). Toggles go back and
@@ -24,7 +24,7 @@ import static dev.starmine.entity.UnitKind.SCALE;
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
 		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
-		AIRBORNE = 14, DEFENDER = 15, GREATER = 16;
+		AIRBORNE = 14, DEFENDER = 15, GREATER = 16, SACS = 17;
 	public static final int CHANGE_TICKS = 60;
 	/** The mark of a base that has a greater spire (brood lords need it). */
 	public static final String GREATER_SPIRE_ID = "greater_spire";
@@ -52,6 +52,7 @@ public final class Modes {
 			case ORBITAL_COMMAND -> ORBITAL;
 			case PLANETARY_FORTRESS -> PLANETARY;
 			case GREATER_SPIRE -> GREATER;
+			case VENTRAL_SACS -> SACS;
 			case LIFT_OFF -> AIRBORNE;
 			default -> -1;
 		};
@@ -60,7 +61,7 @@ public final class Modes {
 	/** Modes that are for good (add-ons, command center upgrades): only from the normal mode, never back. */
 	public static boolean oneWay(Ability ability) {
 		return ability == Ability.BUILD_TECHLAB || ability == Ability.BUILD_REACTOR || ability == Ability.ORBITAL_COMMAND
-			|| ability == Ability.PLANETARY_FORTRESS || ability == Ability.GREATER_SPIRE;
+			|| ability == Ability.PLANETARY_FORTRESS || ability == Ability.GREATER_SPIRE || ability == Ability.VENTRAL_SACS;
 	}
 
 	/** SC2 time of a change to `mode` by `ability`, in ticks (0: at once). */

@@ -38,6 +38,10 @@ public final class AbilityState {
 	long nextChangeling;
 	/** Where a terran building lifted off (a landed command center moves its base's anchor from there). */
 	@Nullable Vec3 liftedFrom;
+	/** The mode it had on the ground when it lifted off (an orbital command lands an orbital again). */
+	int liftedMode;
+	/** Injects queued on a hatchery after the one under way (SC2 LotV: they stack). */
+	int queuedInjects;
 	/** A transport's unload point. */
 	@Nullable Vec3 unloadAt;
 
@@ -159,6 +163,8 @@ public final class AbilityState {
 		if (barrier > 0) tag.putFloat("StarMineBarrier", barrier);
 		if (barrierReadyAt > 0) tag.putLong("StarMineBarrierReady", barrierReadyAt);
 		if (forcedCloak) tag.putBoolean("StarMineForcedCloak", true);
+		if (liftedMode != 0) tag.putInt("StarMineLiftedMode", liftedMode);
+		if (queuedInjects > 0) tag.putInt("StarMineQueuedInjects", queuedInjects);
 	}
 
 	public void load(CompoundTag tag) {
@@ -170,6 +176,8 @@ public final class AbilityState {
 		}
 		modeTicks = tag.getInt("StarMineModeTicks");
 		nextMode = tag.getInt("StarMineNextMode");
+		liftedMode = tag.getInt("StarMineLiftedMode");
+		queuedInjects = tag.getInt("StarMineQueuedInjects");
 		try {
 			morphTo = modeTicks > 0 && tag.contains("StarMineMorph") ? dev.starmine.entity.UnitKind.valueOf(tag.getString("StarMineMorph")) : null;
 		} catch (IllegalArgumentException unknown) {

@@ -184,6 +184,24 @@ public final class ProtossRace implements RaceRules {
 			.isEmpty();
 	}
 
+	/** SC2 LotV warp-in: 16 s, 4 s where a nexus or a warp gate of the base stands near (fast warp). */
+	public static int warpInTicks(Level level, net.minecraft.world.phys.Vec3 at, @Nullable UUID baseId) {
+		boolean fast = !level.getEntitiesOfClass(StarUnit.class, new AABB(at, at).inflate(POWER_RADIUS, 12, POWER_RADIUS),
+			mob -> mob.isAlive() && (baseId == null || baseId.equals(mob.hiveId()))
+				&& (mob.kind == NEXUS || mob.kind == GATEWAY && mob.mode() == dev.starmine.ability.Modes.WARPGATE)
+				&& Math.hypot(mob.getX() - at.x, mob.getZ() - at.z) <= POWER_RADIUS).isEmpty();
+		return (fast ? 4 : 16) * 20;
+	}
+
+	/** SC2 LotV warp gate cooldown after warping a unit in (seconds, Faster). */
+	public static int warpCooldown(UnitKind kind) {
+		return switch (kind) {
+			case STALKER, SENTRY -> 23;
+			case HIGH_TEMPLAR, DARK_TEMPLAR -> 32;
+			default -> 20; // zealot, adept
+		} * 20;
+	}
+
 	/** SC2 warp prism phasing field radius 3.75, on the building grid. */
 	public static final double PRISM_RADIUS = 3.75 * UnitKind.CELL;
 

@@ -104,6 +104,10 @@ public final class Commands {
 					if (why != null) BaseLogic.tell(level, base, why);
 				}
 			}
+			case "unload_one" -> { // SC2: a click on a rider in a transport's cargo lets it out alone
+				if (level.getEntity(command.target()) instanceof net.minecraft.world.entity.Entity rider)
+					units.stream().filter(unit -> dev.starmine.ability.Transport.unloadOne(unit, rider)).findFirst();
+			}
 			case "sky" -> { // owner 17.10: flyers up into the stratosphere, or down from it to the overworld
 				for (StarUnit unit : mobile) if (unit.kind.flying && !unit.isPassenger()) dev.starmine.world.Stratosphere.shift(unit);
 			}
