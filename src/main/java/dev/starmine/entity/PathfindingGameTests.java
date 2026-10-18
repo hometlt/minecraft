@@ -419,6 +419,33 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "winding 3x3 tunnel", goals, 2.5, 800);
 	}
 
+	/**
+	 * Owner 18.10: units in caves and over uneven ground. A cave in solid rock, as high as the tallest of them
+	 * and a block more, whose floor climbs four one-block steps and comes down four again; they walk it end to end.
+	 */
+	@GameTest(template = ARENA, batch = "pathCave", timeoutTicks = 1800)
+	public void unitsWalkACaveUpAndDownSteps(GameTestHelper helper) {
+		clear(helper);
+		UnitKind[] kinds = {UnitKind.ZERGLING, UnitKind.MARINE, UnitKind.HYDRALISK, UnitKind.STALKER};
+		int tall = 0, wide = 0;
+		for (UnitKind kind : kinds) {
+			tall = Math.max(tall, (int) Math.ceil(kind.height) + 1);
+			wide = Math.max(wide, (int) Math.ceil(kind.width) + 1);
+		}
+		fill(helper, 0, 2, 0, 47, 2 + 4 + tall, 47, Blocks.STONE.defaultBlockState());
+		int z0 = 24 - wide / 2, z1 = z0 + wide - 1;
+		for (int x = 1; x <= 46; x++) {
+			int step = x < 10 ? 0 : x < 30 ? Math.min(4, (x - 10) / 3 + 1) : Math.max(0, 4 - (x - 30) / 3 - 1); // up 4 steps, then down
+			fill(helper, x, 2 + step, z0, x, 2 + step + tall - 1, z1, Blocks.AIR.defaultBlockState());
+		}
+		UUID player = UUID.randomUUID();
+		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
+		// one behind the other, each its own spot (the cave is a dead end: those come first stand at its end, in the way)
+		for (int i = 0; i < kinds.length; i++)
+			goals.put(unit(helper, kinds[i], 2 + i * 2, z0 + wide / 2.0, player), point(helper, 39 + i * 2, z0 + wide / 2.0));
+		race(helper, "a cave up and down steps", goals, 2.5, 1000);
+	}
+
 	@GameTest(template = ARENA, batch = "pathForest", timeoutTicks = 1350)
 	public void unitsCrossAForest(GameTestHelper helper) {
 		clear(helper);
@@ -521,6 +548,7 @@ public class PathfindingGameTests implements FabricGameTest {
 		ServerLevel level = helper.getLevel();
 		StarUnit medivac = unit(helper, UnitKind.MEDIVAC, 8, 8, player), prism = unit(helper, UnitKind.WARP_PRISM, 8, 24, player);
 		StarUnit overlord = unit(helper, UnitKind.OVERLORD, 8, 40, player);
+		overlord.setMode(dev.starmine.ability.Modes.SACS); // SC2: a player's overlord carries once it has its ventral sacs
 		StarUnit marine = unit(helper, UnitKind.MARINE, 9, 9, player), zealot = unit(helper, UnitKind.ZEALOT, 9, 25, player);
 		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 9, 41, player);
 		Map<StarUnit, Vec3> drops = Map.of(medivac, point(helper, 38, 8), prism, point(helper, 38, 24), overlord, point(helper, 38, 40));

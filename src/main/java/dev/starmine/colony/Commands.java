@@ -108,6 +108,9 @@ public final class Commands {
 				if (level.getEntity(command.target()) instanceof net.minecraft.world.entity.Entity rider)
 					units.stream().filter(unit -> dev.starmine.ability.Transport.unloadOne(unit, rider)).findFirst();
 			}
+			case "altitude" -> { // owner 18.10: aircraft up or down (target: +1 or -1 steps)
+				for (StarUnit unit : mobile) if (!unit.isPassenger()) unit.climb(Integer.signum(command.target()));
+			}
 			case "sky" -> { // owner 17.10: flyers up into the stratosphere, or down from it to the overworld
 				for (StarUnit unit : mobile) if (unit.kind.flying && !unit.isPassenger()) dev.starmine.world.Stratosphere.shift(unit);
 			}

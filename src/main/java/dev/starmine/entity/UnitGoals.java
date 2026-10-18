@@ -299,7 +299,7 @@ public final class UnitGoals {
 				return;
 			}
 			if (unit.flying()) { // a flying move control steers one tick per wanted position: give it every tick
-				double above = Math.max(3, unit.kind.hoverHeight());
+				double above = unit.above(Math.max(3, unit.kind.hoverHeight()));
 				double y = ZergGoals.cruise(unit, goal.x, goal.z, above);
 				// the ground ahead on the way: climb before a hill, not into it
 				double toX = goal.x - unit.getX(), toZ = goal.z - unit.getZ();

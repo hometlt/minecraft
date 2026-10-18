@@ -24,6 +24,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "The $(l)middle button$() held and dragged pans the view; held on the $(l)minimap$() it drags the map itself. Terran barracks, factories, starports and command centers $(l)lift off$() (L), fly where they are sent and land again (L). Units that change form — siege mode, burrow, phasing, defender mode, a hellion into a hellbat — play their $(l)morph$() and look different after; the AI uses every ability its units have."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Tunnels and caves:$() the four buttons at the top left cut the land away — ▼ and ▲ lower and raise a level above which no block is drawn, + and - a radius round the camera — so an army underground is seen and commanded; all off by default. Your units hidden from the camera show as framed icons. $(l)Aircraft$() fly higher or lower with the card's Higher and Lower buttons, down to a block over the ground: into a cave's mouth or a tunnel.$(br2)Sent where they cannot walk, ground armies wait while workers cut them a tunnel, stairs or a bridge — in ordinary worlds; on a StarCraft II battle map the map's relief stays as it is."
 		}
 	]
 }

@@ -73,6 +73,14 @@ public final class CommandView {
 	/** The camera's height and the height it eases to. */
 	static double height, targetHeight;
 	static double panX, panZ, turn, climbing;
+	/**
+	 * The cutaway (owner 18.10, off by default): blocks higher than {@link #cutDepth} under the camera and
+	 * nearer the camera than {@link #cutRadius} are not drawn ({@link BlockFog#cut}), to see an army in a
+	 * tunnel or a cave. -1 and 0: off.
+	 */
+	static int cutDepth = -1, cutRadius;
+	/** Blocks a press moves the level (a tunnel is 3 or 4 high: a coarser step jumps over it) and the radius. */
+	static final int CUT_LEVEL_STEP = 2, CUT_STEP = 4, CUT_MAX_RADIUS = 160;
 	static final Set<Integer> selection = new LinkedHashSet<>();
 	/** The player's own body is selected as a hero (owner 17.10; {@link HeroPilot}); then no unit is. */
 	static boolean hero;
@@ -179,6 +187,8 @@ public final class CommandView {
 		placing = null;
 		ghostSite = null;
 		BlockFog.stop(mc);
+		cutDepth = -1;
+		cutRadius = 0;
 		LOOKS.clear();
 		eyeX = Double.NaN;
 		if (ClientPlayNetworking.canSend(dev.starmine.colony.CommanderEye.Look.TYPE))
@@ -215,6 +225,9 @@ public final class CommandView {
 		groundY = Mth.lerp(0.25, groundY, ground(mc.level, targetX, targetZ));
 		placeCamera(false);
 		updateSights(mc);
+		// the sphere's middle follows the camera in steps of a few blocks (each step meshes its shell again)
+		BlockFog.cut(mc, cutDepth < 0 ? Integer.MAX_VALUE : Mth.floor(height) - cutDepth,
+			(int) Math.round(camera.getX() / CUT_STEP) * CUT_STEP, (int) Math.round(camera.getY() / CUT_STEP) * CUT_STEP, (int) Math.round(camera.getZ() / CUT_STEP) * CUT_STEP, cutRadius);
 		BlockFog.tick(mc);
 	}
 
@@ -242,6 +255,32 @@ public final class CommandView {
 	/** How high the camera is over the ground it looks at (at least a few blocks: under the ground it looks down a cave). */
 	static double zoom() {
 		return Math.max(6, height - groundY);
+	}
+
+	/**
+	 * Cuts the land lower (`steps` 1) or higher (-1): the first cut is at the ground the camera looks at,
+	 * then {@link #CUT_LEVEL_STEP} blocks a step; above the camera it is off.
+	 */
+	static void cutLevel(int steps) {
+		if (cutDepth < 0) {
+			if (steps > 0) cutDepth = (int) Math.ceil(height - groundY) + 1;
+			return;
+		}
+		cutDepth += steps * CUT_LEVEL_STEP;
+		if (cutDepth <= 0) cutDepth = -1;
+	}
+
+	/**
+	 * Cuts away more (`steps` 1) or less (-1) round the camera: the first cut reaches the ground the camera
+	 * looks at, then {@link #CUT_STEP} blocks a step; below a step it is off.
+	 */
+	static void cutNear(int steps) {
+		if (cutRadius <= 0) {
+			if (steps > 0 && camera != null) cutRadius = (int) Math.round(camera.position().distanceTo(new Vec3(targetX, groundY, targetZ)));
+			return;
+		}
+		cutRadius = Math.min(CUT_MAX_RADIUS, cutRadius + steps * CUT_STEP);
+		if (cutRadius < CUT_STEP) cutRadius = 0;
 	}
 
 	/** Turns the isometric view by a quarter (-1 left, 1 right). */
@@ -316,8 +355,28 @@ public final class CommandView {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || camera == null) return null;
 		Vec3[] ray = ray(mouseX, mouseY, width, height);
-		BlockHitResult hit = mc.level.clip(new ClipContext(ray[0], ray[0].add(ray[1].scale(300)), ClipContext.Block.OUTLINE, ClipContext.Fluid.ANY, camera));
+		BlockHitResult hit = drawnClip(mc.level, ray[0], ray[0].add(ray[1].scale(300)), ClipContext.Block.OUTLINE, ClipContext.Fluid.ANY, camera);
 		return hit.getType() == HitResult.Type.BLOCK ? hit : null;
+	}
+
+	/** The game's block clip, through the blocks the cutaway leaves out ({@link BlockFog#clipped}): what is drawn is what is hit. */
+	static BlockHitResult drawnClip(ClientLevel level, Vec3 from, Vec3 to, ClipContext.Block shape, ClipContext.Fluid fluid, Entity viewer) {
+		Vec3 dir = to.subtract(from).normalize();
+		for (int i = 0; i < 512; i++) {
+			BlockHitResult hit = level.clip(new ClipContext(from, to, shape, fluid, viewer));
+			if (hit.getType() != HitResult.Type.BLOCK || !BlockFog.clipped(hit.getBlockPos())) return hit;
+			// on from where the ray leaves the cut block
+			BlockPos cell = hit.getBlockPos();
+			double out = Double.MAX_VALUE;
+			double[] start = {from.x, from.y, from.z}, d = {dir.x, dir.y, dir.z};
+			int[] lo = {cell.getX(), cell.getY(), cell.getZ()};
+			for (int a = 0; a < 3; a++)
+				if (d[a] != 0) out = Math.min(out, ((d[a] > 0 ? lo[a] + 1 : lo[a]) - start[a]) / d[a]);
+			Vec3 next = from.add(dir.scale(Math.max(0, out) + 1e-4));
+			if (next.distanceToSqr(from) >= to.distanceToSqr(from)) break;
+			from = next;
+		}
+		return BlockHitResult.miss(to, net.minecraft.core.Direction.UP, BlockPos.containing(to));
 	}
 
 	/** The nearest visible StarMine unit under a screen point, or null. */
@@ -582,7 +641,7 @@ public final class CommandView {
 				dark[i * n + k] = lit[i * n + k] ? 0 : explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
 				int top = Math.max(Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z)),
 					Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z - 1)));
-				height[i * n + k] = top + 0.06f;
+				height[i * n + k] = Math.min(top, BlockFog.cutTop() + 1) + 0.06f; // on the cut, not over what it left out
 			}
 		PoseStack.Pose last = pose.last();
 		for (int i = 0; i + 1 < n; i++)

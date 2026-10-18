@@ -202,6 +202,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private int secondTicks;
 	/** A warp gate: ticks till it may warp in the next unit (SC2 warp gate cooldown). */
 	private int warpCooldown;
+	/**
+	 * A flyer's height over its usual cruise, in blocks (owner 18.10: the command card raises and lowers
+	 * aircraft, down to a block over the ground: into a cave's mouth or a tunnel).
+	 */
+	private int altitude;
+	public static final int ALTITUDE_STEP = 2, ALTITUDE_MIN = -12, ALTITUDE_MAX = 24;
 	private Vec3 rally;
 	/** Engineering bay research: "weapons" or "armor" and ticks left. */
 	private String research;
@@ -398,7 +404,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Flying kinds stay above their hover height over the ground below. */
 	private void keepAloft() {
-		double floor = ZergGoals.cruise(this, this.getX(), this.getZ(), kind.hoverHeight()) - 1;
+		double floor = ZergGoals.cruise(this, this.getX(), this.getZ(), above(kind.hoverHeight())) - 1;
 		if (this.getY() < floor) {
 			Vec3 motion = this.getDeltaMovement();
 			this.setDeltaMovement(motion.x, Math.max(motion.y, 0.12), motion.z);
@@ -1126,6 +1132,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			tag.putInt("StarMineTrain", trainTicks); tag.putInt("StarMineTrain2", secondTicks);
 		}
 		if (warpCooldown > 0) tag.putInt("StarMineWarpCooldown", warpCooldown);
+		if (altitude != 0) tag.putInt("StarMineAltitude", altitude);
 		if (rally != null) tag.put("StarMineRally", NbtUtils.writeBlockPos(BlockPos.containing(rally)));
 		if (research != null) {
 			tag.putString("StarMineResearch", research);
@@ -1214,6 +1221,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			}
 		trainTicks = tag.getInt("StarMineTrain"); secondTicks = tag.getInt("StarMineTrain2");
 		warpCooldown = tag.getInt("StarMineWarpCooldown");
+		altitude = tag.getInt("StarMineAltitude");
 		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
 		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
 		researchTicks = tag.getInt("StarMineResearchTicks");
@@ -2212,7 +2220,26 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** The height this flyer keeps over a point: its hover height over the ground, lower under a roof. */
 	public double cruiseHeight(double x, double z) {
-		return ZergGoals.cruise(this, x, z, Math.max(3, kind.hoverHeight()));
+		return ZergGoals.cruise(this, x, z, above(Math.max(3, kind.hoverHeight())));
+	}
+
+	/** A flyer's height over the ground: its usual one plus what its player set ({@link #altitude}), a block at the least. */
+	public double above(double usual) {
+		return Math.max(1, usual + altitude);
+	}
+
+	/** Raises (steps up) or lowers a flyer by {@link #ALTITUDE_STEP} blocks a step; an idle one goes to its new height at once. */
+	public void climb(int steps) {
+		if (!flying()) return;
+		altitude = Math.max(ALTITUDE_MIN, Math.min(ALTITUDE_MAX, altitude + steps * ALTITUDE_STEP));
+		if (order() == Order.NONE || order() == Order.HOLD) { // the flying navigation feeds the move control every tick (a bare wanted position steers one tick)
+			double y = cruiseHeight(this.getX(), this.getZ());
+			if (!this.getNavigation().moveTo(this.getX(), y, this.getZ(), 1.0)) this.getMoveControl().setWantedPosition(this.getX(), y, this.getZ(), 1.0);
+		}
+	}
+
+	public int altitude() {
+		return altitude;
 	}
 
 	/** The ground (feet level) under a point, as flying units and transports see it. */

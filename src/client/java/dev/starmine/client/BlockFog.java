@@ -33,6 +33,10 @@ import net.minecraft.world.level.block.state.BlockState;
  * A unit is scanned again when it has moved a block or every {@link #RESCAN} ticks, within
  * {@link #BUDGET} block reads a tick: entering the view shows the base around its units within a few
  * ticks, a moving army opens the map as it goes.
+ *
+ * The cutaway (owner 18.10: to see and command an army in tunnels and caves) leaves out, besides, the blocks
+ * above a level and those nearer the camera than a radius ({@link #cut}); {@link CommandView} sets both from
+ * its buttons, relative to the camera. Units stay drawn; picking passes through what is cut ({@link #clipped}).
  */
 public final class BlockFog {
 	/** Block reads a tick for the rays. */
@@ -42,6 +46,8 @@ public final class BlockFog {
 	/** The explored bits of the shown dimension per section (4096 bits); read by chunk building threads. */
 	private static volatile ConcurrentHashMap<Long, long[]> explored = new ConcurrentHashMap<>();
 	private static volatile boolean hiding;
+	/** The cutaway: no block above {@link #cutTop} is drawn, nor any within the radius of the near point ({@link #cut}). */
+	private static volatile int cutTop = Integer.MAX_VALUE, nearX, nearY, nearZ, nearRadius;
 	private record Scan(double x, double y, double z, long tick) {
 	}
 
@@ -63,10 +69,83 @@ public final class BlockFog {
 	/** {@link #hidden(BlockPos)} by coordinates (Sodium's mesher reads blocks so). */
 	public static boolean hidden(int x, int y, int z) {
 		if (!hiding) return false;
+		if (clipped(x, y, z)) return true;
 		long[] bits = explored.get(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
 		if (bits == null) return true;
 		int i = (y & 15) << 8 | (z & 15) << 4 | x & 15;
 		return (bits[i >> 6] & 1L << (i & 63)) == 0;
+	}
+
+	/** Whether the cutaway leaves this block out. */
+	static boolean clipped(int x, int y, int z) {
+		if (y > cutTop) return true;
+		int r = nearRadius;
+		if (r <= 0) return false;
+		int dx = x - nearX, dy = y - nearY, dz = z - nearZ;
+		return dx * dx + dy * dy + dz * dz < r * r;
+	}
+
+	static boolean clipped(BlockPos pos) {
+		return clipped(pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	/** In the view, a block the cutaway leaves out: the meshing lights what it opens (CutawayLightMixin). */
+	public static boolean cutOpen(BlockPos pos) {
+		return hiding && clipped(pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	/** The highest block the cutaway draws (MAX_VALUE: no level cut). */
+	static int cutTop() {
+		return cutTop;
+	}
+
+	/**
+	 * Sets the cutaway (`top` MAX_VALUE and `radius` 0: none) and meshes again the sections it changes:
+	 * the layers between the old and the new level, the shells of the old and the new sphere.
+	 */
+	static void cut(Minecraft mc, int top, int x, int y, int z, int radius) {
+		int oldTop = cutTop, ox = nearX, oy = nearY, oz = nearZ, oldRadius = nearRadius;
+		boolean sphere = radius != oldRadius || radius > 0 && (x != ox || y != oy || z != oz);
+		if (top == oldTop && !sphere) return;
+		cutTop = top;
+		nearX = x;
+		nearY = y;
+		nearZ = z;
+		nearRadius = radius;
+		if (!hiding || mc.level == null || mc.player == null) return;
+		LongOpenHashSet dirty = new LongOpenHashSet();
+		int minSection = mc.level.getMinSection(), maxSection = mc.level.getMaxSection() - 1;
+		if (top != oldTop) {
+			int view = mc.options.getEffectiveRenderDistance() + 1, cx = x >> 4, cz = z >> 4;
+			int lo = Mth.clamp(Math.min(top, oldTop) >> 4, minSection, maxSection), hi = Mth.clamp(Math.max(top, oldTop) >> 4, minSection, maxSection);
+			for (int sx = cx - view; sx <= cx + view; sx++)
+				for (int sz = cz - view; sz <= cz + view; sz++)
+					for (int sy = lo; sy <= hi; sy++) dirty.add(SectionPos.asLong(sx, sy, sz));
+		}
+		if (sphere) {
+			shell(dirty, ox, oy, oz, oldRadius, minSection, maxSection);
+			shell(dirty, x, y, z, radius, minSection, maxSection);
+		}
+		for (long section : dirty) mc.levelRenderer.setSectionDirty(SectionPos.x(section), SectionPos.y(section), SectionPos.z(section));
+	}
+
+	/** The sections a sphere's surface passes through. */
+	private static void shell(LongOpenHashSet dirty, int x, int y, int z, int radius, int minSection, int maxSection) {
+		if (radius <= 0) return;
+		long r2 = (long) radius * radius;
+		for (int sx = (x - radius) >> 4; sx <= (x + radius) >> 4; sx++)
+			for (int sy = Math.max(minSection, (y - radius) >> 4); sy <= Math.min(maxSection, (y + radius) >> 4); sy++)
+				for (int sz = (z - radius) >> 4; sz <= (z + radius) >> 4; sz++) {
+					long near = 0, far = 0;
+					for (int[] axis : new int[][] {{x, sx}, {y, sy}, {z, sz}}) {
+						int lo = axis[1] << 4, hi = lo + 16, c = axis[0];
+						long d = c < lo ? lo - c : c > hi ? c - hi : 0;
+						long e = Math.max(Math.abs(c - lo), Math.abs(hi - c));
+						near += d * d;
+						far += e * e;
+					}
+					if (near < r2 && far >= r2) dirty.add(SectionPos.asLong(sx, sy, sz));
+				}
 	}
 
 	/** The view opens: unexplored blocks go, everything is meshed again. */
@@ -82,6 +161,8 @@ public final class BlockFog {
 	static void stop(Minecraft mc) {
 		if (!hiding) return;
 		hiding = false;
+		cutTop = Integer.MAX_VALUE;
+		nearRadius = 0;
 		mc.levelRenderer.allChanged();
 	}
 

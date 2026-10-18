@@ -181,6 +181,52 @@ public final class CommandScreen extends Screen {
 		else if (CommandView.placing != null)
 			graphics.drawCenteredString(font, Component.translatable("command.starmine.place", name(CommandView.placing)), width / 2, 24, 0xFFFFFF60);
 		if (hover != null) graphics.renderComponentTooltip(font, hover.tooltip, mouseX, mouseY);
+		drawCut(graphics, mouseX, mouseY);
+	}
+
+	// ---- the cutaway (owner 18.10): four buttons at the top left cut the land by a level and round the camera ----
+
+	private static final int CUT = 20;
+	private static final String[] CUTS = {"cut_down", "cut_up", "cut_near_more", "cut_near_less"}, CUT_LABELS = {"\u25BC", "\u25B2", "+", "-"};
+
+	private int[] cutButton(int i) {
+		return new int[] {4 + i * (CUT + 2), 4};
+	}
+
+	private int cutAt(double x, double y) {
+		for (int i = 0; i < CUTS.length; i++) {
+			int[] at = cutButton(i);
+			if (x >= at[0] && x < at[0] + CUT && y >= at[1] && y < at[1] + CUT) return i;
+		}
+		return -1;
+	}
+
+	private void drawCut(GuiGraphics graphics, int mouseX, int mouseY) {
+		int hover = cutAt(mouseX, mouseY);
+		for (int i = 0; i < CUTS.length; i++) {
+			int[] at = cutButton(i);
+			boolean on = i < 2 ? CommandView.cutDepth >= 0 : CommandView.cutRadius > 0;
+			graphics.fill(at[0], at[1], at[0] + CUT, at[1] + CUT, i == hover ? 0xE0305080 : 0xD0203048);
+			graphics.renderOutline(at[0], at[1], CUT, CUT, on ? 0xFF60E060 : 0xFF6080B0);
+			graphics.drawCenteredString(font, CUT_LABELS[i], at[0] + CUT / 2, at[1] + 6, 0xFFFFFFFF);
+		}
+		Minecraft mc = Minecraft.getInstance();
+		int[] level = cutButton(0), near = cutButton(2);
+		if (CommandView.cutDepth >= 0)
+			graphics.drawString(font, "y " + (net.minecraft.util.Mth.floor(CommandView.height) - CommandView.cutDepth), level[0], level[1] + CUT + 2, 0xFF60E060);
+		if (CommandView.cutRadius > 0) graphics.drawString(font, "r " + CommandView.cutRadius, near[0], near[1] + CUT + 2, 0xFF60E060);
+		if (hover >= 0 && mc.level != null)
+			graphics.renderComponentTooltip(font, List.of(Component.translatable("command.starmine." + CUTS[hover]),
+				Component.translatable("command.starmine.cut.tip").withColor(0xFFC0C0C0)), mouseX, mouseY);
+	}
+
+	private static void cut(int i) {
+		switch (i) {
+			case 0 -> CommandView.cutLevel(1);
+			case 1 -> CommandView.cutLevel(-1);
+			case 2 -> CommandView.cutNear(1);
+			default -> CommandView.cutNear(-1);
+		}
 	}
 
 	private static String keyName(int key) {
@@ -199,7 +245,7 @@ public final class CommandScreen extends Screen {
 
 	private boolean onPanel(double x, double y) {
 		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4;
-		return x >= panelLeft && x < width / 2 + 140 && y >= panelTop || onCard(x, y) || y < 140 && x > width - 210
+		return x >= panelLeft && x < width / 2 + 140 && y >= panelTop || onCard(x, y) || y < 140 && x > width - 210 || cutAt(x, y) >= 0
 			|| groupAt(x, y) != 0 || CommandMinimap.contains(x, y, height);
 	}
 
@@ -360,8 +406,8 @@ public final class CommandScreen extends Screen {
 				if (!(entity instanceof StarUnit unit) || !unit.isAlive() || !CommandView.own(unit) || unit.kind.structure()) continue;
 				Vec3 centre = unit.position().add(0, unit.getBbHeight() / 2, 0);
 				if (centre.distanceToSqr(eye) > 160 * 160) continue;
-				net.minecraft.world.phys.BlockHitResult hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, centre,
-					net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, unit));
+				net.minecraft.world.phys.BlockHitResult hit = CommandView.drawnClip(mc.level, eye, centre,
+					net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, unit);
 				if (hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK && hit.getLocation().distanceTo(centre) >= unit.getBbWidth()) HIDDEN.add(unit);
 			}
 		}
@@ -568,6 +614,18 @@ public final class CommandScreen extends Screen {
 			for (int i = 0; i < morphs.size() && i < 3; i++) {
 				UnitKind kind = morphs.get(i);
 				buttons.add(unitButton(7 + i, kind, kind.hotkey(), () -> CommandView.send("train", Vec3.ZERO, -1, kind.name()), true));
+			}
+			// owner 18.10: aircraft fly higher or lower (down to a block over the ground: into caves and tunnels)
+			if (worker == null && mobile.stream().anyMatch(StarUnit::flying)) {
+				int[] free = java.util.stream.IntStream.of(6, 8, 9, 7).filter(slot -> buttons.stream().noneMatch(b -> b.slot == slot)).limit(2).toArray();
+				String[] actions = {"altitude_up", "altitude_down"};
+				for (int i = 0; i < free.length; i++) {
+					int step = i == 0 ? 1 : -1;
+					Component label = Component.translatable("command.starmine." + actions[i]);
+					buttons.add(new Button(free[i], label, 0, null, true, List.of(label,
+						Component.translatable("command.starmine." + actions[i] + ".tip", StarUnit.ALTITUDE_STEP).withColor(0xFFC0C0C0)),
+						() -> CommandView.send("altitude", Vec3.ZERO, step, null), null));
+				}
 			}
 			return buttons;
 		}
@@ -837,6 +895,14 @@ public final class CommandScreen extends Screen {
 			return true;
 		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+			int cut = cutAt(mouseX, mouseY);
+			if (cut >= 0) {
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
+				cut(cut);
+				return true;
+			}
 			if (onCard(mouseX, mouseY)) {
 				// the release must not select in the world under the card (owner 16.10: it cleared the selection and
 				// closed the build page the click had just opened)

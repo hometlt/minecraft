@@ -82,7 +82,7 @@ final class ZergGoals {
 			double radius = home != null ? 20 : 16;
 			double x = cx + (mob.getRandom().nextDouble() * 2 - 1) * radius;
 			double z = cz + (mob.getRandom().nextDouble() * 2 - 1) * radius;
-			double y = ground(mob, x, z) + mob.kind.hoverHeight() + mob.getRandom().nextDouble() * 3;
+			double y = ground(mob, x, z) + mob.above(mob.kind.hoverHeight()) + mob.getRandom().nextDouble() * 3;
 			// the flying navigation feeds the move control every tick (a bare wanted position steers one tick only)
 			if (!mob.getNavigation().moveTo(x, y, z, 1.0)) mob.getMoveControl().setWantedPosition(x, y, z, 1.0);
 		}

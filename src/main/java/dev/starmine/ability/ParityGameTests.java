@@ -250,4 +250,27 @@ public class ParityGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 18.10: the command card flies aircraft lower (down to a block over the ground) and higher. */
+	@GameTest(template = ARENA, batch = "parityAltitude", timeoutTicks = 400)
+	public void aircraftFlyLowerAndHigher(GameTestHelper helper) {
+		clear(helper);
+		StarUnit medivac = unit(helper, UnitKind.MEDIVAC, 24, 24, UUID.randomUUID());
+		double[] usual = new double[1];
+		helper.runAfterDelay(80, () -> {
+			usual[0] = medivac.getY() - medivac.groundBelow(medivac.getX(), medivac.getZ());
+			medivac.climb(-100);
+		});
+		helper.runAfterDelay(200, () -> {
+			double low = medivac.getY() - medivac.groundBelow(medivac.getX(), medivac.getZ());
+			// a block over the ground, and up to 3 more where it wanders idly (ZergGoals.HoverWander)
+			helper.assertTrue(low < 5.5 && low < usual[0] - 3, "the medivac did not come down: " + low + " over the ground, usually " + usual[0]);
+			medivac.climb(10);
+		});
+		helper.runAfterDelay(320, () -> {
+			double now = medivac.getY() - medivac.groundBelow(medivac.getX(), medivac.getZ());
+			helper.assertTrue(now > usual[0] + 3, "the medivac did not climb: " + now + " over the ground, usually " + usual[0]);
+			helper.succeed();
+		});
+	}
 }

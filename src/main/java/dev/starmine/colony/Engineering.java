@@ -113,7 +113,7 @@ public final class Engineering {
 	private static Set<UUID> begin(ServerLevel level, Hive base, List<StarUnit> units, StarUnit.Order order, Vec3 goal, boolean raid, long until) {
 		for (StarUnit unit : units) release(unit.getUUID());
 		List<StarUnit> army = units.stream().filter(unit -> !unit.kind.worker() && !unit.kind.flying && !unit.kind.structure()).toList();
-		if (army.isEmpty()) return Set.of();
+		if (army.isEmpty() || onBattleMap(level, goal) || army.stream().anyMatch(unit -> onBattleMap(level, unit.position()))) return Set.of();
 		// every size of the army must walk there: the way is cut for the widest of those that cannot (a thor
 		// strides over a river 5 wide on its banks while a marine cannot cross it, and a way cut for the thor's
 		// body needed no bridge)
@@ -184,6 +184,14 @@ public final class Engineering {
 		BaseLogic.tell(level, base, "message.starmine.engineering", job.workers.size(), steps.size());
 		update(level, job);
 		return Set.copyOf(job.army);
+	}
+
+	/**
+	 * A point on a laid-over SC2 battle map (owner 18.10): the map's relief is the game's, workers never cut
+	 * it; units there walk the map's ramps or stay where they cannot go.
+	 */
+	static boolean onBattleMap(ServerLevel level, Vec3 at) {
+		return level.dimension() == Level.OVERWORLD && dev.starmine.world.MapOverlay.covers((int) Math.floor(at.x), (int) Math.floor(at.z));
 	}
 
 	/** The unit leaves its job (a new order; a worker that died or was given other work). */

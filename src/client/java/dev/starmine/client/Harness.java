@@ -41,6 +41,10 @@ import net.minecraft.world.phys.Vec3;
  * survival player, who aims at the model's middle, top and side and swings. A miss means the crosshair is on the
  * model but not on the hitbox, or the hitbox lies beyond reach while the model does not. `harness/models.tsv`
  * lists model extents against hitboxes for every kind.
+ * <p>
+ * Scenario `cutaway` (owner 18.10: armies in tunnels): a hill with a tunnel and a marine in it; the command view
+ * looks at it, the cutaway's level comes down through the hill and the click under the screen's middle must reach
+ * the tunnel's floor instead of the hilltop; the radius cut round the camera, and leaving the view puts it all back.
  */
 public final class Harness {
 	private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("StarMine/harness");
@@ -78,7 +82,7 @@ public final class Harness {
 		}
 		// a harness client runs in the background: never paused by a lost focus or a stray menu
 		mc.options.pauseOnLostFocus = false;
-		if (mc.screen != null) mc.setScreen(null);
+		if (mc.screen != null && !(mc.screen instanceof CommandScreen)) mc.setScreen(null);
 		if (!started) {
 			started = true;
 			delay = 100; // let the world settle and the terrain build
@@ -121,6 +125,70 @@ public final class Harness {
 		}));
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("hitbox")) hitbox(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("ground")) ground(mc);
+		if (SCENARIOS.equals("all") || SCENARIOS.contains("cutaway")) cutaway(mc);
+	}
+
+	private static void cutaway(Minecraft mc) {
+		int hillX = 13, hillZ = 0;
+		steps.add(new Step(40, () -> server(mc, (level, player) -> {
+			for (Entity old : level.getEntitiesOfClass(StarUnit.class, player.getBoundingBox().inflate(40))) old.discard();
+			int y = groundY;
+			for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(hillX - 7, y, hillZ - 7, hillX + 7, y + 7, hillZ + 7))
+				level.setBlock(pos, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(), 2);
+			for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(hillX - 7, y, hillZ - 1, hillX + 7, y + 2, hillZ + 1))
+				level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 2);
+			StarUnit marine = StarMine.type(UnitKind.MARINE).create(level);
+			marine.moveTo(hillX + 0.5, y, hillZ + 0.5, 90, 0);
+			marine.setNoAi(true);
+			level.addFreshEntity(marine);
+			current = marine;
+			// the player stands in the tunnel: their eyes explore it (blocks nobody has seen are not drawn, BlockFog)
+			player.teleportTo(level, hillX - 4 + 0.5, y, hillZ + 0.5, -90, 0);
+		})));
+		steps.add(new Step(40, () -> {
+			CommandView.enter(mc);
+			CommandView.lookAt(hillX + 0.5, hillZ + 0.5);
+		}));
+		int[] gui = new int[2];
+		steps.add(new Step(5, () -> {
+			gui[0] = mc.getWindow().getGuiScaledWidth();
+			gui[1] = mc.getWindow().getGuiScaledHeight();
+			var hit = CommandView.block(gui[0] / 2.0, gui[1] / 2.0, gui[0], gui[1]);
+			check("cutaway: the hilltop is under the middle at first", hit != null && hit.getBlockPos().getY() == groundY + 7,
+				"hit " + (hit == null ? "nothing" : hit.getBlockPos().toShortString()));
+			shot(mc, "cutaway-before");
+			// down into the tunnel (under its roof, over its floor)
+			for (int i = 0; i < 12 && net.minecraft.util.Mth.floor(CommandView.height) - CommandView.cutDepth >= groundY + 3; i++) CommandView.cutLevel(1);
+		}));
+		steps.add(new Step(60, () -> {
+			int top = BlockFog.cutTop();
+			var hit = CommandView.block(gui[0] / 2.0, gui[1] / 2.0, gui[0], gui[1]);
+			check("cutaway: the level is cut through the hill", top < groundY + 3 && top >= groundY, "cut above y " + top + ", ground " + groundY);
+			check("cutaway: a click goes through the cut hill to the tunnel's floor", hit != null && hit.getBlockPos().getY() <= top && hit.getBlockPos().getY() < groundY + 3,
+				"hit " + (hit == null ? "nothing" : hit.getBlockPos().toShortString()));
+			check("cutaway: the hilltop is not drawn", BlockFog.hidden(hillX, groundY + 7, hillZ + 4), "y " + (groundY + 7));
+			int light = net.minecraft.client.renderer.LevelRenderer.getLightColor(mc.level, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),
+				new net.minecraft.core.BlockPos(hillX, top + 1, hillZ + 4));
+			check("cutaway: the cut is lit", light == net.minecraft.client.renderer.LightTexture.FULL_BRIGHT, "light " + Integer.toHexString(light));
+			shot(mc, "cutaway-level");
+		}));
+		steps.add(new Step(100, () -> {
+			shot(mc, "cutaway-level-late");
+			for (int i = 0; i < 40; i++) CommandView.cutLevel(-1); // up past the camera: off
+			CommandView.cutNear(1);
+			CommandView.cutNear(1);
+		}));
+		steps.add(new Step(60, () -> {
+			check("cutaway: raising the level past the camera turns it off", CommandView.cutDepth < 0 && BlockFog.cutTop() == Integer.MAX_VALUE,
+				"depth " + CommandView.cutDepth);
+			var hit = CommandView.block(gui[0] / 2.0, gui[1] / 2.0, gui[0], gui[1]);
+			check("cutaway: the radius round the camera cuts into the hill", CommandView.cutRadius > 0 && hit != null && hit.getBlockPos().getY() < groundY + 7, // under the hilltop
+				"radius " + CommandView.cutRadius + ", hit " + (hit == null ? "nothing" : hit.getBlockPos().toShortString()));
+			shot(mc, "cutaway-near");
+			mc.setScreen(null); // leaves the view
+		}));
+		steps.add(new Step(10, () -> check("cutaway: leaving the view puts the land back", CommandView.cutRadius == 0 && CommandView.cutDepth < 0
+			&& !BlockFog.clipped(hillX, groundY + 7, hillZ), "radius " + CommandView.cutRadius + ", depth " + CommandView.cutDepth)));
 	}
 
 	/** The model of a kind as drawn: its size at rest (the exporter's header, posed) times the renderer's scale. */
