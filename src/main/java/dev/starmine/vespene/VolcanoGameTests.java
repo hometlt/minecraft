@@ -31,7 +31,11 @@ public class VolcanoGameTests implements FabricGameTest {
 		BlockPos top = vein.outlet(0);
 		helper.assertTrue(top.equals(outlet.above(3)), "the volcano did not rise: " + top.toShortString());
 		helper.assertTrue(level.getBlockState(top.below().north()).is(Blocks.COBBLESTONE), "no cone round the volcano");
-		BlockPos site = Vespene.collapseUnder(level, top.above());
+		// owner 18.10: a click on the cone's side takes the outlet on top; the building's site is where the volcano rose from
+		BlockPos chosen = dev.starmine.race.Placement.site(level, dev.starmine.entity.UnitKind.REFINERY, top.below(2).north(2));
+		helper.assertTrue(outlet.above().equals(chosen), "a click on the cone gave the site " + chosen);
+		helper.assertTrue(Vespene.coneReach(level, chosen) > 0, "no cone reach round a volcano's site");
+		BlockPos site = Vespene.collapseUnder(level, chosen);
 		helper.assertTrue(site.equals(outlet.above()), "the site is not back on the ground: " + site.toShortString());
 		helper.assertTrue(vein.outlet(0).equals(outlet) && Vespene.isOutlet(level.getBlockState(outlet)), "the outlet is not back at the ground");
 		for (int y = 1; y <= 4; y++)

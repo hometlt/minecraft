@@ -32,6 +32,20 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 		return true; // it is larger than its block
 	}
 
+	/**
+	 * Owner 18.10: seen from afar, as SC2's fields are — the game draws a block entity only within 64 blocks, and from
+	 * the command view's height a field 60 blocks off showed nothing but its dark earth.
+	 */
+	@Override
+	public int getViewDistance() {
+		return 256;
+	}
+
+	@Override
+	public boolean shouldRender(Minerals.Core core, net.minecraft.world.phys.Vec3 camera) {
+		return net.minecraft.world.phys.Vec3.atCenterOf(core.getBlockPos()).closerThan(camera, getViewDistance());
+	}
+
 	@Override
 	public void render(Minerals.Core core, float partialTick, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
 		VertexConsumer out = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));

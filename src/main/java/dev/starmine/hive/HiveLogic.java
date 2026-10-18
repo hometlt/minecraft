@@ -124,9 +124,9 @@ public final class HiveLogic {
 		if (hive == null || !hive.unlocked(kind) || !hive.canAfford(kind, 1)) return null;
 		int half = HiveTerrain.foundation(kind);
 		if (kind.gas()) { // an extractor grows on a vein outlet, no foundation
-			BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(level, site);
+			BlockPos outlet = dev.starmine.vespene.Vespene.siteFor(level, site); // on a volcano: where it rose from
 			if (outlet == null) return null;
-			site = outlet.above();
+			site = outlet;
 			if (!level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.gas() && mob.isAlive()).isEmpty()) return null;
 			site = dev.starmine.vespene.Vespene.collapseUnder(level, site); // owner 17.10: on a volcano it destroys it
 		} else {

@@ -672,7 +672,7 @@ public final class CommandView {
 		}
 		BlockPos site = hit.getBlockPos().above();
 		if (placing.gas()) { // on a vein outlet only
-			BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(mc.level, site);
+			BlockPos outlet = dev.starmine.vespene.Vespene.outletFor(mc.level, site); // a volcano's cone: its top (owner 18.10)
 			if (outlet != null) site = outlet.above();
 			ghostSite = site;
 			boolean taken = !mc.level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
@@ -685,6 +685,7 @@ public final class CommandView {
 		boolean free = mc.level.getEntitiesOfClass(StarUnit.class, box, mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
 		ghostValid = free && seen(site.getX(), site.getZ(), 0)
 			&& placing.race.rules().siteRefusal(mc.level, placing, site, null) == null // protoss: pylon power
+			&& !((placing.main() || placing == UnitKind.HATCHERY) && dev.starmine.mineral.Minerals.nearSite(mc.level, site, placing.width / 2.0)) // 9 off resources
 			&& HiveTerrain.prepare(mc.level, site, half, (int) Math.ceil(placing.height), false);
 	}
 }

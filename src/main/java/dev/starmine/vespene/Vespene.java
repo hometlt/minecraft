@@ -123,10 +123,51 @@ public final class Vespene {
 	 * the outlet is back at the ground; the site over it now (the same site when it was no volcano).
 	 */
 	public static BlockPos collapseUnder(net.minecraft.world.level.Level level, BlockPos site) {
-		BlockPos outlet = outletUnder(level, site);
+		BlockPos outlet = outletFor(level, site);
 		if (outlet == null) return site;
 		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
 		return vein == null ? site : vein.collapse(level, outlet).above();
+	}
+
+	/**
+	 * The outlet a gas building put at `chosen` takes: the one under it, else the nearest one a little aside or up to
+	 * {@link VespeneRootBlockEntity#VOLCANO_HEIGHT} above (owner 18.10: a click on a volcano's cone takes the outlet
+	 * on its top, the extractor destroys the volcano and stands where it rose from). Null when there is none.
+	 */
+	public static @Nullable BlockPos outletFor(BlockGetter level, BlockPos chosen) {
+		BlockPos under = outletUnder(level, chosen);
+		if (under != null) return under;
+		BlockPos best = null;
+		for (BlockPos pos : BlockPos.betweenClosed(chosen.offset(-6, -2, -6), chosen.offset(6, VespeneRootBlockEntity.VOLCANO_HEIGHT + 2, 6)))
+			if (isOutlet(level.getBlockState(pos)) && (best == null || pos.distSqr(chosen) < best.distSqr(chosen))) best = pos.immutable();
+		return best;
+	}
+
+	/** Where a gas building at `chosen` will stand: over its outlet, at the ground it rose from when it is a volcano. */
+	public static @Nullable BlockPos siteFor(net.minecraft.world.level.Level level, BlockPos chosen) {
+		BlockPos outlet = outletFor(level, chosen);
+		if (outlet == null) return null;
+		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
+		return outlet.below(vein == null ? 0 : vein.risen(outlet)).above();
+	}
+
+	/** How far round a gas building's site a worker may stop to put it down: a volcano's cone keeps it off (0: no volcano). */
+	public static double coneReach(net.minecraft.world.level.Level level, BlockPos site) {
+		BlockPos outlet = outletFor(level, site);
+		VespeneRootBlockEntity vein = outlet == null ? null : VespeneRootBlockEntity.veinOf(level, outlet);
+		int risen = vein == null ? 0 : vein.risen(outlet);
+		return risen == 0 ? 0 : Math.ceil(1 + (risen + 2) * 0.75) + 1;
+	}
+
+	/**
+	 * The vespene left in an outlet's vein and what it holds full, both in vespene (a block is a trip's worth); null
+	 * when its vein is not known here. Works on the client too (the vein is sent with its chunk).
+	 */
+	public static int @Nullable [] gasLeft(net.minecraft.world.level.Level level, BlockPos outlet) {
+		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
+		if (vein == null || vein.capacity() == 0) return null;
+		int per = perTrip(level.getBlockState(outlet));
+		return new int[] {vein.content(level) * per, vein.capacity() * per};
 	}
 
 	/** The outlets within `radius` of a point (nearest first). */

@@ -298,7 +298,16 @@ public final class CommandScreen extends Screen {
 		boolean full = dev.starmine.vespene.VespeneBlock.isSource(state);
 		graphics.drawString(font, Component.translatable(full ? "command.starmine.geyser_full" : "command.starmine.geyser_empty",
 			dev.starmine.vespene.Vespene.perTrip(state)), panelLeft + 28, panelTop + 18, 0xFFFFFFFF);
-		if (terrazine) graphics.drawString(font, Component.translatable("command.starmine.worth_twice"), panelLeft + 6, panelTop + 40, 0xFFC080FF);
+		if (terrazine) graphics.drawString(font, Component.translatable("command.starmine.worth_twice"), panelLeft + 6, panelTop + 50, 0xFFC080FF);
+		gasLeft(graphics, mc.level, dev.starmine.vespene.Vespene.isOutlet(state) ? at : dev.starmine.vespene.Vespene.outletFor(mc.level, at), panelLeft, panelTop, panelWidth);
+	}
+
+	/** Owner 18.10: the vespene left in a geyser's vein, with a bar (the geyser looked at, or the one under a gas building). */
+	private void gasLeft(GuiGraphics graphics, net.minecraft.world.level.Level level, net.minecraft.core.BlockPos outlet, int panelLeft, int panelTop, int panelWidth) {
+		int[] gas = outlet == null ? null : dev.starmine.vespene.Vespene.gasLeft(level, outlet);
+		if (gas == null) return;
+		graphics.drawString(font, Component.translatable("command.starmine.vespene_left", gas[0], gas[1]), panelLeft + 6, panelTop + 30, 0xFF80FF80);
+		bar(graphics, panelLeft + 6, panelTop + 41, panelWidth - 12, gas[0] / (float) Math.max(1, gas[1]), 0xFF40C060);
 	}
 
 	private void drawGroups(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -389,6 +398,7 @@ public final class CommandScreen extends Screen {
 			int hp = (int) Math.ceil(unit.getHealth()), max = (int) Math.ceil(unit.getMaxHealth());
 			graphics.drawString(font, hp + " / " + max, panelLeft + 28, panelTop + 18, 0xFF80FF80);
 			bar(graphics, panelLeft + 6, panelTop + 30, panelWidth - 12, unit.getHealth() / unit.getMaxHealth(), 0xFF40C040);
+			if (unit.kind.gas()) gasLeft(graphics, unit.level(), dev.starmine.vespene.Vespene.outletUnder(unit.level(), unit.blockPosition()), panelLeft, panelTop + 12, panelWidth);
 			if (unit.kind.shields > 0) { // protoss plasma shields over the health
 				graphics.drawString(font, Component.translatable("command.starmine.shields", (int) Math.ceil(unit.shield()), (int) Math.ceil(unit.maxShield())),
 					panelLeft + 120, panelTop + 18, 0xFF80C0FF);
@@ -952,6 +962,12 @@ public final class CommandScreen extends Screen {
 				CommandView.inspect(null, hit.getBlockPos());
 				return;
 			}
+			// owner 18.10: a click on a geyser's mound (its outlet is one small block on top) selects the geyser
+			net.minecraft.core.BlockPos geyser = hit == null || mc.level == null ? null : nearOutlet(mc.level, hit.getBlockPos());
+			if (geyser != null) {
+				CommandView.inspect(null, geyser);
+				return;
+			}
 			if (!hasShiftDown()) {
 				CommandView.selection.clear();
 				CommandView.hero = false;
@@ -971,6 +987,13 @@ public final class CommandScreen extends Screen {
 		CommandView.selection.clear();
 		CommandView.selection.add(unit.getId());
 		page = Page.MAIN;
+	}
+
+	/** An outlet within 2 blocks of a clicked block, or null. */
+	private static net.minecraft.core.BlockPos nearOutlet(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos at) {
+		for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(at.offset(-2, -2, -2), at.offset(2, 2, 2)))
+			if (dev.starmine.vespene.Vespene.isOutlet(level.getBlockState(pos))) return pos.immutable();
+		return null;
 	}
 
 	private void boxSelect(double x0, double y0, double x1, double y1) {

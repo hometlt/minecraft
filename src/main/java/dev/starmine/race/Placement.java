@@ -48,8 +48,7 @@ public final class Placement {
 	/** The site a building really takes: a vespene building sits on the outlet under the chosen spot; null when there is none. */
 	public static @Nullable BlockPos site(Level level, UnitKind kind, BlockPos chosen) {
 		if (!kind.gas()) return BlockPos.containing(kind.gridCentre(Vec3.atBottomCenterOf(chosen))); // on the grid (owner 15.10)
-		BlockPos outlet = dev.starmine.vespene.Vespene.outletUnder(level, chosen);
-		return outlet == null ? null : outlet.above();
+		return dev.starmine.vespene.Vespene.siteFor(level, chosen); // on a volcano: where it rose from (it is destroyed)
 	}
 
 	/** Places the building for the worker's base, or tells the base's player why not and returns null. */

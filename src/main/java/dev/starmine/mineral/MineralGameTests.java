@@ -81,8 +81,11 @@ public class MineralGameTests implements FabricGameTest {
 		TestArena.clear(helper);
 		ServerLevel level = helper.getLevel();
 		crystal(helper, 40, 24);
-		helper.assertTrue(Minerals.nearSite(level, helper.absolutePos(new BlockPos(20, 2, 24)), UnitKind.COMMAND_CENTER.width / 2.0),
-			"a command center 12 blocks off the crystal's edge is allowed");
+		// owner 18.10: 9 blocks from the building's edge
+		helper.assertTrue(Minerals.nearSite(level, helper.absolutePos(new BlockPos(26, 2, 24)), UnitKind.COMMAND_CENTER.width / 2.0),
+			"a command center 6 blocks off the crystal is allowed");
+		helper.assertTrue(!Minerals.nearSite(level, helper.absolutePos(new BlockPos(22, 2, 24)), UnitKind.COMMAND_CENTER.width / 2.0),
+			"a command center 10 blocks off the crystal is refused");
 		helper.assertTrue(!Minerals.nearSite(level, helper.absolutePos(new BlockPos(8, 2, 24)), 0.5), "a site 31 blocks off is refused");
 		helper.succeed();
 	}

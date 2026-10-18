@@ -65,7 +65,7 @@ import org.jetbrains.annotations.Nullable;
  * core keeps its size), and the block over them is {@link #WARD}: nothing climbs over them.
  */
 public final class Minerals {
-	public static final int AMOUNT = 500, PER_TRIP = 5, KEEP_OFF = 16;
+	public static final int AMOUNT = 500, PER_TRIP = 5, KEEP_OFF = 9; // owner 18.10: 9 blocks (was 16), off geysers too
 	/** The deepest gap under a crystal filled with mineralized earth; deeper, the crystal does not go there. */
 	static final int MAX_FILL = 3;
 	/** Ticks a worker spends on a trip's minerals (SC2: 2.786 s). */
@@ -331,7 +331,8 @@ public final class Minerals {
 				double ex = Math.max(0, Math.abs(dx) - halfWidth), ez = Math.max(0, Math.abs(dz) - halfWidth);
 				if (ex * ex + ez * ez > KEEP_OFF * KEEP_OFF) continue;
 				for (int dy = -6; dy <= 8; dy++)
-					if (level.getBlockState(at.set(site.getX() + dx, site.getY() + dy, site.getZ() + dz)).is(CRYSTAL)) return true;
+					if (level.getBlockState(at.set(site.getX() + dx, site.getY() + dy, site.getZ() + dz)).is(CRYSTAL)
+						|| dev.starmine.vespene.Vespene.isOutlet(level.getBlockState(at))) return true;
 			}
 		return false;
 	}

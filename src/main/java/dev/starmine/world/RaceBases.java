@@ -325,9 +325,11 @@ public final class RaceBases {
 			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5)));
 		lights(painter, centre, terran);
 		// owner 18.10: the base's resources west of the plaza (the east is the way down): 5 crystals, 2 geysers with its gas buildings
+		// (the overworld's: a nether or End base's great hall lies where a geyser's vein would climb through it)
 		int depositX = centre.getX() - (PLAZA + 8), depositZ = centre.getZ();
-		for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
-			spawns.add(Spawn.member(race.rules().gasBuilding(), gas));
+		if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD)
+			for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
+				spawns.add(Spawn.member(race.rules().gasBuilding(), gas));
 		// owner 16.10: main bases well defended — at the plaza's edge, by each pylon's line, a gun and a battery or bunker
 		for (int i = 0; i < 3; i++) {
 			double angle = Math.PI / 3 + i * Math.PI * 2 / 3;

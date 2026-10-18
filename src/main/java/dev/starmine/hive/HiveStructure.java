@@ -305,8 +305,9 @@ public final class HiveStructure {
 			// owner 18.10: the hive's resources between two of its buildings: 5 crystals, 2 geysers with extractors
 			double toward = start + 0.5 * turn;
 			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 28), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 28);
-			for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
-				wait(UnitKind.EXTRACTOR, gas, null, null, 0);
+			if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD) // a nether or End lair's halls lie where a vein would climb
+				for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
+					wait(UnitKind.EXTRACTOR, gas, null, null, 0);
 			// creep grows out from the hatchery now, as if the hive had stood here a while
 			for (int i = 0; i < 400; i++) CreepGrowth.grow(level, centre, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
 			for (int i = 0; i < 3; i++) {

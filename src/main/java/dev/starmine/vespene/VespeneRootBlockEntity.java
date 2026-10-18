@@ -72,6 +72,12 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		return count;
 	}
 
+	/** Blocks this outlet has risen as a volcano (0: none, or not this vein's). */
+	public int risen(BlockPos outlet) {
+		for (int k = 0; k < outlets.length; k++) if (outlets[k] == outlet.asLong()) return risen[k];
+		return 0;
+	}
+
 	public int capacity() {
 		return channel.length + outlets.length;
 	}
@@ -185,6 +191,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		channel[channel.length - 1] = old.asLong();
 		outlets[i] = top.asLong();
 		risen[i]++;
+		sync(level);
 		BlockState cobble = net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState();
 		for (int k = 0; k <= risen[i] + 2; k++) {
 			int y = top.getY() - k;
@@ -243,6 +250,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 				}
 		outlets[i] = ground.asLong();
 		risen[i] = 0;
+		sync(level);
 		nextRise[i] = 0;
 		fill(level, ground, true);
 		level.playSound(null, ground, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.2f);
@@ -261,6 +269,22 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	private void fill(Level level, BlockPos at, boolean outlet) {
 		level.setBlock(at, (terrazine ? Vespene.TERRAZINE : Vespene.VESPENE).defaultBlockState().setValue(VespeneBlock.OUTLET, outlet), Block.UPDATE_ALL);
 		setChanged();
+	}
+
+	/** Owner 18.10: the client knows the vein (the command view shows a geyser's vespene left, {@link Vespene#gasLeft}). */
+	private void sync(Level level) {
+		setChanged();
+		level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+	}
+
+	@Override
+	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+		return saveWithoutMetadata(registries);
+	}
+
+	@Override
+	public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getUpdatePacket() {
+		return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
 	}
 
 	@Override

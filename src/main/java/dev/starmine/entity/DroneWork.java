@@ -776,9 +776,11 @@ final class DroneWork extends Goal {
 		}
 		double dx = drone.getX() - centre.x, dz = drone.getZ() - centre.z;
 		double flat = Math.sqrt(dx * dx + dz * dz);
-		double rim = half + 3.5;
-		// delivered anywhere a walk to the rim may end (it arrives within 2.5 blocks of it)
-		if (flat < rim + 2.8 && Math.abs(drone.getY() - centre.y) < 4) {
+		// owner 18.10: right up to the building, as in SC2 — its edge plus the worker's own half width (it was delivered
+		// 6 blocks off); touching the building counts too, when others crowd the rim
+		double rim = half + drone.getBbWidth() / 2 + 0.4;
+		boolean touching = nearest != null && drone.getBoundingBox().inflate(0.6, 0.5, 0.6).intersects(nearest.getBoundingBox());
+		if ((flat < rim + 1.0 || touching) && Math.abs(drone.getY() - centre.y) < 4) {
 			int yield = drone.mule() ? dev.starmine.ability.TerranAbilities.MULE_YIELD : 1; // a MULE mines 4 times as much (SC2)
 			hive.deliver(drone.cargoMinerals * yield, drone.cargoVespene, drone.cargoDiamonds, drone.cargoLabel, drone.cargoBlocks);
 			HiveSavedData.get(level.getServer()).setDirty();
@@ -791,7 +793,9 @@ final class DroneWork extends Goal {
 		Vec3 edge = flat < 0.01 ? centre.add(rim, 0, 0) : centre.add(dx / flat * rim, 0, dz / flat * rim);
 		// leg by leg when far: the plan's reach is 40 blocks
 		Vec3 goal = drone.position().distanceTo(edge) > 36 ? surface(level, drone.position().add(edge.subtract(drone.position()).normalize().scale(32))) : edge;
-		if (moveTo(level, goal, 2.5, griefing) == Move.FAILED) resetMove();
+		Move move = moveTo(level, goal, 2.0, griefing);
+		if (move == Move.FAILED) resetMove();
+		else if (move == Move.ARRIVED && goal == edge) drone.getMoveControl().setWantedPosition(centre.x, drone.getY(), centre.z, 1.0); // the last steps straight in
 	}
 
 	private Vec3 surface(ServerLevel level, Vec3 point) {
@@ -884,12 +888,17 @@ final class DroneWork extends Goal {
 			terranBuild(level, site, base);
 			return;
 		}
-		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), buildReach(level, kind, site), kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
 			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			giveUp(kind, site, move == Move.FAILED ? "no way there" : "too long on the way");
 		}
+	}
+
+	/** How near its site a worker puts a building down: by its edge; at a volcano's cone (owner 18.10) it may stop at the cone. */
+	private static double buildReach(ServerLevel level, UnitKind kind, BlockPos site) {
+		return kind.width / 2 + 2 + (kind.gas() ? dev.starmine.vespene.Vespene.coneReach(level, site) : 0);
 	}
 
 	private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("StarMine/build");
@@ -923,7 +932,7 @@ final class DroneWork extends Goal {
 			}
 			return;
 		}
-		Move move = moveTo(level, Vec3.atBottomCenterOf(site), kind.width / 2 + 2, kind.gas()); // an outlet may be underground
+		Move move = moveTo(level, Vec3.atBottomCenterOf(site), buildReach(level, kind, site), kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
 			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
 		} else if (move == Move.FAILED || stateTicks > 1200) {
