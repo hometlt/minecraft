@@ -1167,6 +1167,33 @@
 			"unit": "CreepTumorBurrowed",
 			"mod": "Mods/VoidMulti.SC2Mod",
 			"death": false
+		},
+		{
+			"model": "amun",
+			"kind": null,
+			"race": "PROTOSS",
+			"unit": "AmonEpilogue03Unit",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2Model": "Amon"
+		},
+		{
+			"model": "voidshard",
+			"kind": null,
+			"race": "PROTOSS",
+			"unit": "AmonUmbraSpireEpilogue03",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2Model": "Void_ShardFortress"
+		},
+		{
+			"model": "voidrift",
+			"kind": null,
+			"race": "PROTOSS",
+			"unit": "VoidRift",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2Model": "VoidRift"
 		}
 	]
 }

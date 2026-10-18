@@ -113,6 +113,10 @@ def main():
 		assert kind in all_kinds, kind
 		models.append({'model': ident(kind) + '_' + form, 'kind': kind, 'race': races[kind], 'form': form, 'unit': unit, 'mod': MULTI, 'death': False})
 	models.append({'model': 'creeptumor', 'kind': None, 'race': 'ZERG', 'unit': 'CreepTumorBurrowed', 'mod': MULTI, 'death': False})
+	# the Void's foes (world/Amun, VoidShard, VoidRift: not unit kinds), from the Legacy of the Void epilogue
+	for model, unit, sc2_model in [('amun', 'AmonEpilogue03Unit', 'Amon'), ('voidshard', 'AmonUmbraSpireEpilogue03', 'Void_ShardFortress'),
+			('voidrift', 'VoidRift', 'VoidRift')]:
+		models.append({'model': model, 'kind': None, 'race': 'PROTOSS', 'unit': unit, 'mod': VOID, 'death': False, 'sc2Model': sc2_model})
 	OUT.write_text(json.dumps({'schemaVersion': 1, 'models': models}, indent='\t', ensure_ascii=False) + '\n', encoding='utf-8')
 	print(f'{len(models)} models -> {OUT.relative_to(ROOT)}')
 

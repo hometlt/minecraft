@@ -24,9 +24,33 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import org.joml.Quaternionf;
 
-/** How the Void's foes look (owner 17.10): Amun, the void shards with their beams on him, the rifts. */
+/**
+ * How the Void's foes look (owner 17.10): Amun, the void shards with their beams on him, the rifts. Each is drawn
+ * from its StarCraft II model (amun, voidshard, voidrift: Amon, the shard fortress and the void rift of the Legacy of
+ * the Void epilogue, imported by Modkit) when the assets carry it, else from the mod's own look below.
+ */
 final class VoidRenderers {
+	private static final SkinnedModelDrawer DRAWER = new SkinnedModelDrawer();
+	private static float[] palette = new float[0];
+
 	private VoidRenderers() {
+	}
+
+	/** Draws an SC2 model standing at the entity, as tall as the entity, playing its stand; false if the assets lack it. */
+	static boolean drawSc2(String name, Entity entity, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+		SkinnedModel model = StarMineModels.get(name);
+		SkinnedModel.Clip stand = model == null ? null : model.clips.get("stand");
+		if (stand == null) return false;
+		if (palette.length != model.slots * 12) palette = new float[model.slots * 12];
+		model.pose(stand, (entity.tickCount + partial) / 20f, palette);
+		DRAWER.skin(model, palette);
+		pose.pushPose();
+		pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+		float scale = entity.getBbHeight() / Math.max(0.01f, model.size[1]);
+		pose.scale(scale, scale, scale);
+		DRAWER.draw(model, pose.last(), buffers, light, OverlayTexture.NO_OVERLAY);
+		pose.popPose();
+		return true;
 	}
 
 	static void register() {
@@ -50,6 +74,13 @@ final class VoidRenderers {
 					return EYES;
 				}
 			});
+		}
+
+		@Override
+		public void render(Amun amun, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+			float body = Mth.rotLerp(partial, amun.yBodyRotO, amun.yBodyRot);
+			if (!drawSc2("amun", amun, body, partial, pose, buffers, net.minecraft.client.renderer.LightTexture.pack(11, 15)))
+				super.render(amun, yaw, partial, pose, buffers, light);
 		}
 
 		@Override
@@ -95,6 +126,11 @@ final class VoidRenderers {
 
 		@Override
 		public void render(VoidShard shard, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+			if (drawSc2("voidshard", shard, 0, partial, pose, buffers, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)) {
+				beam(shard, partial, pose, buffers, light);
+				super.render(shard, yaw, partial, pose, buffers, light);
+				return;
+			}
 			float age = shard.tickCount + partial;
 			float bob = Mth.sin(age * 0.2f) / 2 + 0.5f;
 			bob = (bob * bob + bob) * 0.4f - 1.4f;
@@ -117,8 +153,14 @@ final class VoidRenderers {
 			pose.mulPose(Axis.YP.rotationDegrees(spin));
 			cube.render(pose, buffer, full, OverlayTexture.NO_OVERLAY);
 			pose.popPose();
+			beam(shard, partial, pose, buffers, light);
+			super.render(shard, yaw, partial, pose, buffers, light);
+		}
+
+		/** The beam, from the shard up to Amun when he is near. */
+		private static void beam(VoidShard shard, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
 			Entity amun = shard.amun() < 0 ? null : shard.level().getEntity(shard.amun());
-			if (amun != null) { // the beam, from the shard up to Amun
+			if (amun != null) {
 				float x = (float) (Mth.lerp(partial, amun.xo, amun.getX()) - Mth.lerp(partial, shard.xo, shard.getX()));
 				float y = (float) (Mth.lerp(partial, amun.yo, amun.getY()) + amun.getBbHeight() / 2 - Mth.lerp(partial, shard.yo, shard.getY()) - 1.6);
 				float z = (float) (Mth.lerp(partial, amun.zo, amun.getZ()) - Mth.lerp(partial, shard.zo, shard.getZ()));
@@ -127,7 +169,6 @@ final class VoidRenderers {
 				EnderDragonRenderer.renderCrystalBeams(x, y, z, partial, shard.tickCount, pose, buffers, light);
 				pose.popPose();
 			}
-			super.render(shard, yaw, partial, pose, buffers, light);
 		}
 
 		@Override
@@ -151,6 +192,10 @@ final class VoidRenderers {
 
 		@Override
 		public void render(VoidRift rift, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+			if (drawSc2("voidrift", rift, 0, partial, pose, buffers, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)) {
+				super.render(rift, yaw, partial, pose, buffers, light);
+				return;
+			}
 			pose.pushPose();
 			pose.translate(0, rift.getBbHeight() / 2, 0);
 			pose.mulPose(entityRenderDispatcher.cameraOrientation());
