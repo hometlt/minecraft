@@ -30,6 +30,10 @@ loom {
 			if (providers.gradleProperty('starmineRunDir').isPresent()) {
 				runDir providers.gradleProperty('starmineRunDir').get()
 			}
+			// extra game arguments, e.g. -PstarmineClientArgs="--quickPlaySingleplayer~World", parted by ~, to open a world at once (profiling)
+			if (providers.gradleProperty('starmineClientArgs').isPresent()) {
+				programArgs(*providers.gradleProperty('starmineClientArgs').get().tokenize('~'))
+			}
 		}
 		gametest {
 			inherit server

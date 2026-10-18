@@ -294,8 +294,25 @@ final class DroneWork extends Goal {
 		return Move.MOVING;
 	}
 
+	/**
+	 * Owner 18.10 (ten workers stalled the server for a minute): a worker's dig-planner search is costly (thousands of
+	 * cells), and one that cannot get where it goes asked for one every tick. Now a worker plans at most once per
+	 * {@link #REPLAN_TICKS}, and all workers together at most {@link #PLANS_PER_TICK} a tick; meanwhile it waits.
+	 */
+	static final int REPLAN_TICKS = 40, PLANS_PER_TICK = 2;
+	private static int planTick = -1, plansThisTick;
+	private long nextReplan;
+
 	private Move replan(ServerLevel level, Vec3 goal, double arrive, boolean dig) {
 		drone.getNavigation().stop();
+		int tick = level.getServer().getTickCount();
+		if (tick != planTick) {
+			planTick = tick;
+			plansThisTick = 0;
+		}
+		if (level.getGameTime() < nextReplan || plansThisTick >= PLANS_PER_TICK) return Move.MOVING; // its turn comes
+		plansThisTick++;
+		nextReplan = level.getGameTime() + REPLAN_TICKS + drone.getRandom().nextInt(REPLAN_TICKS / 2);
 		Hive hive = HiveSavedData.get(level.getServer()).get(drone.hiveId());
 		Set<Long> routes = hive != null ? hive.routes : Set.of();
 		replans++;
@@ -471,7 +488,12 @@ final class DroneWork extends Goal {
 		}
 		StarUnit building = buildingOn(level, gasOutlet, true);
 		if (building != null) {
-			Move move = moveTo(level, building.position(), building.kind.width / 2 + 1.8, false);
+			// beside the building, measured across the ground (owner 18.10: one on a geyser's mound stands 4 blocks up, and
+			// a worker at its foot never came "near" it and planned its way again and again)
+			double fx = drone.getX() - building.getX(), fz = drone.getZ() - building.getZ();
+			boolean beside = Math.sqrt(fx * fx + fz * fz) <= building.kind.width / 2 + 2.2 && Math.abs(drone.getY() - building.getY()) < 6;
+			Move move = beside ? Move.ARRIVED : moveTo(level, new Vec3(building.getX(), Math.min(building.getY(), drone.getY() + 1), building.getZ()),
+				building.kind.width / 2 + 1.8, false);
 			if (move == Move.ARRIVED) {
 				drone.getNavigation().stop();
 				if (VespeneBlock.isSource(at)) { // in it goes; the outlet is emptied and its vein refills it
