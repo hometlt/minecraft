@@ -129,6 +129,40 @@ public final class Harness {
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("addon")) addOn(mc);
 		if (SCENARIOS.contains("cards")) cards(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("sheriff")) sheriff(mc);
+		if (SCENARIOS.equals("all") || SCENARIOS.contains("rts")) rts(mc);
+	}
+
+	/**
+	 * Owner 19.10: the command view far from the body keeps the body (the hero) and the world round it; leaving it
+	 * the world is drawn again round the player.
+	 */
+	private static void rts(Minecraft mc) {
+		steps.add(new Step(20, () -> {
+			CommandView.enter(mc);
+		}));
+		steps.add(new Step(40, () -> {
+			shot(mc, "rts-hero");
+			check("rts: the body's chunk is here while the view looks at it", mc.level.getChunkSource().hasChunk(mc.player.chunkPosition().x, mc.player.chunkPosition().z), "");
+			CommandView.lookAt(X + 400.5, Z + 0.5);
+		}));
+		steps.add(new Step(200, () -> {
+			CommandView.lookAt(mc.player.getX(), mc.player.getZ());
+		}));
+		steps.add(new Step(60, () -> shot(mc, "rts-back-over-body")));
+		steps.add(new Step(10, () -> mc.setScreen(null)));
+		steps.add(new Step(100, () -> {
+		}));
+		steps.add(new Step(200, () -> {
+			int x = mc.player.chunkPosition().x, z = mc.player.chunkPosition().z, missing = 0;
+			for (int dx = -4; dx <= 4; dx++)
+				for (int dz = -4; dz <= 4; dz++) if (!mc.level.getChunkSource().hasChunk(x + dx, z + dz)) missing++;
+			String stats = mc.levelRenderer.getSectionStatistics();
+			int drawn = Integer.parseInt(stats.replaceAll("^C: ([0-9]+)/.*$", "$1"));
+			check("rts: after leaving the view the world is drawn", drawn > 0, stats);
+			check("rts: after leaving the view the world round the player is here", missing == 0, missing + " of 81 chunks missing; "
+				+ mc.levelRenderer.getSectionStatistics());
+			shot(mc, "rts-after");
+		}));
 	}
 
 	/** The sheriff's stone house (dev.starmine.world.SheriffHouses), its door toward the camera, from both sides. */

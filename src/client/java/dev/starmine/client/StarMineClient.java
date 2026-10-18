@@ -37,6 +37,7 @@ public final class StarMineClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.colony.ColonyNetwork.AddOnSites.TYPE,
 			(sites, context) -> AddOnRenderer.sites = sites.sites());
 		net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(AddOnRenderer::renderLeft);
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> CommandView.chunkLoaded());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enterWithPanel(mc);
 			PilotClient.tick(mc);

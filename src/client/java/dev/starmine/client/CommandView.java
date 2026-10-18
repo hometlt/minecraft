@@ -196,6 +196,8 @@ public final class CommandView {
 		if (ClientPlayNetworking.canSend(dev.starmine.colony.CommanderEye.Look.TYPE))
 			ClientPlayNetworking.send(new dev.starmine.colony.CommanderEye.Look(false, 0, 0, 0));
 		if (mc.player != null) mc.setCameraEntity(mc.player);
+		remesh = true;
+		sinceExit = 0;
 		if (savedCameraType != null) mc.options.setCameraType(savedCameraType);
 		mc.options.hideGui = savedHideGui;
 		mc.gameRenderer.setRenderHand(true);
@@ -205,6 +207,16 @@ public final class CommandView {
 
 	/** Client tick: leaves the view when its screen is gone, moves the camera. */
 	static void tick(Minecraft mc) {
+		if (!active && remesh && mc.level != null && mc.player != null && ++sinceExit >= 20 && ++sinceChunk >= 20) {
+			int cx = mc.player.chunkPosition().x, cz = mc.player.chunkPosition().z;
+			boolean back = true;
+			for (int dx = -2; dx <= 2 && back; dx++)
+				for (int dz = -2; dz <= 2 && back; dz++) back = mc.level.getChunkSource().hasChunk(cx + dx, cz + dz);
+			if (back) { // the sections stood empty while their chunks were away: the whole world is meshed and looked at again
+				remesh = false;
+				mc.levelRenderer.allChanged();
+			}
+		}
 		if (!active) return;
 		if (!(mc.screen instanceof CommandScreen) || mc.player == null || mc.level == null || !mc.player.isAlive()) {
 			exit(mc);
@@ -557,6 +569,31 @@ public final class CommandView {
 	// ---- world drawing ----
 
 	/** After entities: fog, rings, the ghost of a building being placed. */
+	/**
+	 * Owner 19.10: the player's body stays in the view as its hero. The game draws the local player only when the camera
+	 * is the player, and the view's camera is a marker: the body is drawn here (as the hero's unit when the player plays as one).
+	 */
+	private static void drawHero(Minecraft mc, WorldRenderContext context, PoseStack pose, MultiBufferSource buffers) {
+		var player = mc.player;
+		if (player == null || player.isInvisible() || !mc.level.getChunkSource().hasChunk(player.chunkPosition().x, player.chunkPosition().z)) return;
+		float tick = context.tickCounter().getGameTimeDeltaPartialTick(false);
+		double x = Mth.lerp(tick, player.xOld, player.getX()), y = Mth.lerp(tick, player.yOld, player.getY()), z = Mth.lerp(tick, player.zOld, player.getZ());
+		var dispatcher = mc.getEntityRenderDispatcher();
+		dispatcher.render(player, x, y, z, Mth.lerp(tick, player.yRotO, player.getYRot()), tick, pose, buffers, dispatcher.getPackedLightCoords(player, tick));
+	}
+
+	/**
+	 * After the view: the world is meshed again once the chunks round the body are back and the server has stopped
+	 * sending them (closing the eye, it sends the body's chunks anew; meshed while they came, the sections stay empty).
+	 */
+	private static boolean remesh;
+	private static int sinceExit, sinceChunk;
+
+	/** A chunk came (ClientChunkEvents): the remesh after the view waits till they stop. */
+	static void chunkLoaded() {
+		sinceChunk = 0;
+	}
+
 	static void render(WorldRenderContext context) {
 		if (!active) return;
 		Minecraft mc = Minecraft.getInstance();
@@ -567,6 +604,7 @@ public final class CommandView {
 		pose.pushPose();
 		pose.translate(-cam.x, -cam.y, -cam.z);
 		drawFog(mc.level, pose, buffers.getBuffer(RenderType.debugQuads()));
+		drawHero(mc, context, pose, buffers);
 		VertexConsumer lines = buffers.getBuffer(RenderType.lines());
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
 		if (heroSelected() && mc.player != null) ring(pose, lines, mc.player, 0xFF40E0FF);
