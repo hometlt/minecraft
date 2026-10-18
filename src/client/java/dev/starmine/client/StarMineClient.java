@@ -55,6 +55,7 @@ public final class StarMineClient implements ClientModInitializer {
 			BeamRenderer.clear();
 		});
 		PilotClient.register();
+		Harness.register(); // dev-only, inert without -Dstarmine.harness
 		StratosphereSky.register();
 		VoidSky.register();
 		VoidRenderers.register();

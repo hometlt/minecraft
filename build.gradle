@@ -35,6 +35,13 @@ loom {
 				programArgs(*providers.gradleProperty('starmineClientArgs').get().tokenize('~'))
 			}
 		}
+		// scenario harness in a real client (dev.starmine.client.Harness): gradlew runHarness [-PstarmineHarness=hitbox]
+		harness {
+			inherit client
+			name "Harness"
+			vmArg "-Dstarmine.harness=${providers.gradleProperty('starmineHarness').getOrElse('all')}"
+			runDir "${project.layout.buildDirectory.get()}/harness/run"
+		}
 		gametest {
 			inherit server
 			name "Game Test"

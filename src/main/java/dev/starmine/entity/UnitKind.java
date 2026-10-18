@@ -18,28 +18,28 @@ import net.minecraft.world.item.Items;
  */
 public enum UnitKind {
 	//           sc2Hp  speed  fly    attack                  dmg   period range  aggressive  hitbox w/h (from model size)  egg colours
-	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.65f, 0.72f, 0x4b1f4f, 0xc79a52),
-	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 1.3f, 0.72f, 0x6a4a2a, 0xd8c08a),
-	OVERLORD(    200,   0.902, true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 4.0f,  0x5a3a5a, 0xb08ab0),
-	OVERSEER(    200,   2.62,  true,  Attack.NONE,            0,    0,     0,    false, 4.0f, 3.8f,  0x3a5a3a, 0xc0d080),
-	QUEEN(       175,   1.31,  false, Attack.RANGED,          8,    0.71,  5,    true,  2.0f, 2.6f,  0x40205a, 0xe0b040),
-	ROACH(       145,   3.15,  false, Attack.RANGED,          16,   1.43,  4,    true,  1.3f, 1.0f,  0x5a3a20, 0x90b040),
-	RAVAGER(     120,   3.85,  false, Attack.RANGED,          16,   1.14,  6,    true,  2.0f, 2.0f,  0x7a3010, 0xf07020),
-	BANELING(    30,    3.5,   false, Attack.EXPLODE,         35,   0,     0,    true,  1.0f, 0.95f,  0x30602a, 0x9ae050),
-	HYDRALISK(   90,    3.15,  false, Attack.RANGED,          12,   0.59,  5,    true,  1.3f, 2.1f,  0x6a2a40, 0xe0a060),
-	LURKER(      190,   4.13,  false, Attack.LINE,            20,   1.43,  8,    true,  3.0f, 1.65f,  0x3a2a40, 0xc0a0c0),
-	MUTALISK(    120,   5.6,   true,  Attack.RANGED,          9,    1.09,  3,    true,  2.2f, 1.5f,  0x5a2050, 0x40c0a0),
-	CORRUPTOR(   200,   4.725, true,  Attack.RANGED,          14,   1.36,  6,    true,  2.0f, 1.7f,  0x5a2a6a, 0xf0a040),
-	BROOD_LORD(  225,   1.97,  true,  Attack.SPAWN_BROODLINGS, 20,  1.79,  10,   true,  4.0f, 1.3f,  0x402a2a, 0xd09060),
-	INFESTOR(    90,    3.15,  false, Attack.SLOW,            30,   4.0,   10,   true,  1.8f, 2.2f,  0x40303a, 0xa0e060),
-	SWARM_HOST(  160,   3.15,  false, Attack.SPAWN_LOCUSTS,   0,    22.0,  12,   true,  2.0f, 1.9f,  0x4a3a2a, 0xd0b070),
-	VIPER(       150,   4.13,  true,  Attack.PULL,            0,    8.0,   9,    true,  2.0f, 2.1f,  0x2a3a5a, 0xe0c060),
-	ULTRALISK(   500,   4.13,  false, Attack.SPLASH,          35,   0.61,  0,    true,  2.8f, 3.7f,  0x5a4a3a, 0xe0d0b0),
-	BROODLING(   20,    5.37,  false, Attack.MELEE,           4,    0.46,  0,    true,  0.8f, 0.5f,  0x3a2a20, 0x907050),
-	LOCUST(      50,    2.62,  false, Attack.MELEE,           10,   0.43,  0,    true,  0.8f, 0.8f,  0x4a5a2a, 0xb0d060),
-	CHANGELING(  5,     3.15,  false, Attack.NONE,            0,    0,     0,    false, 0.9f, 1.0f,  0x6a5a3a, 0xf0e0b0),
+	ZERGLING(    35,    4.13,  false, Attack.MELEE,           5,    0.497, 0,    true,  0.86f, 0.77f, 0x4b1f4f, 0xc79a52),
+	DRONE(       40,    3.94,  false, Attack.MELEE,           5,    1.07,  0,    false, 0.86f, 0.48f, 0x6a4a2a, 0xd8c08a),
+	OVERLORD(    200,   0.902, true,  Attack.NONE,            0,    0,     0,    false, 2.31f, 2.67f,  0x5a3a5a, 0xb08ab0),
+	OVERSEER(    200,   2.62,  true,  Attack.NONE,            0,    0,     0,    false, 2.31f, 2.11f,  0x3a5a3a, 0xc0d080),
+	QUEEN(       175,   1.31,  false, Attack.RANGED,          8,    0.71,  5,    true,  2.02f, 2.09f,  0x40205a, 0xe0b040),
+	ROACH(       145,   3.15,  false, Attack.RANGED,          16,   1.43,  4,    true,  1.15f, 1.08f,  0x5a3a20, 0x90b040),
+	RAVAGER(     120,   3.85,  false, Attack.RANGED,          16,   1.14,  6,    true,  1.73f, 2.01f,  0x7a3010, 0xf07020),
+	BANELING(    30,    3.5,   false, Attack.EXPLODE,         35,   0,     0,    true,  0.86f, 0.75f,  0x30602a, 0x9ae050),
+	HYDRALISK(   90,    3.15,  false, Attack.RANGED,          12,   0.59,  5,    true,  1.44f, 1.59f,  0x6a2a40, 0xe0a060),
+	LURKER(      190,   4.13,  false, Attack.LINE,            20,   1.43,  8,    true,  2.16f, 1.89f,  0x3a2a40, 0xc0a0c0),
+	MUTALISK(    120,   5.6,   true,  Attack.RANGED,          9,    1.09,  3,    true,  1.15f, 1.24f,  0x5a2050, 0x40c0a0),
+	CORRUPTOR(   200,   4.725, true,  Attack.RANGED,          14,   1.36,  6,    true,  1.44f, 1.18f,  0x5a2a6a, 0xf0a040),
+	BROOD_LORD(  225,   1.97,  true,  Attack.SPAWN_BROODLINGS, 20,  1.79,  10,   true,  2.31f, 0.72f,  0x402a2a, 0xd09060),
+	INFESTOR(    90,    3.15,  false, Attack.SLOW,            30,   4.0,   10,   true,  1.44f, 1.68f,  0x40303a, 0xa0e060),
+	SWARM_HOST(  160,   3.15,  false, Attack.SPAWN_LOCUSTS,   0,    22.0,  12,   true,  1.87f, 1.94f,  0x4a3a2a, 0xd0b070),
+	VIPER(       150,   4.13,  true,  Attack.PULL,            0,    8.0,   9,    true,  2.31f, 1.31f,  0x2a3a5a, 0xe0c060),
+	ULTRALISK(   500,   4.13,  false, Attack.SPLASH,          35,   0.61,  0,    true,  2.31f, 3.16f,  0x5a4a3a, 0xe0d0b0),
+	BROODLING(   20,    5.37,  false, Attack.MELEE,           4,    0.46,  0,    true,  0.86f, 0.4f,  0x3a2a20, 0x907050),
+	LOCUST(      50,    2.62,  false, Attack.MELEE,           10,   0.43,  0,    true,  0.86f, 0.72f,  0x4a5a2a, 0xb0d060),
+	CHANGELING(  5,     3.15,  false, Attack.NONE,            0,    0,     0,    false, 0.86f, 0.86f,  0x6a5a3a, 0xf0e0b0),
 	// hive: larva and cocoon stay at their hatchery; the hatchery is the hive's anchor (a structure)
-	LARVA(       25,    0.79,  false, Attack.NONE,            0,    0,     0,    false, 0.6f, 0.4f,  0x6a4a5a, 0xd0b0c0),
+	LARVA(       25,    0.79,  false, Attack.NONE,            0,    0,     0,    false, 0.72f, 0.28f,  0x6a4a5a, 0xd0b0c0),
 	EGG(         200,   0,     false, Attack.NONE,            0,    0,     0,    false, 0.9f, 0.9f,  0x5a3a4a, 0xa08070),
 	HATCHERY(    1500,  0,     false, Attack.NONE,            0,    0,     0,    false, 12.0f, 8.0f, 0x4a2a3a, 0xc08a6a),
 	// buildings a drone mutates into (SC2): tech for units, upgrades, defence
@@ -64,26 +64,26 @@ public enum UnitKind {
 
 	// terran (owner 14.10): an SCV-built base the player commands (see dev.starmine.colony); hitboxes from the model sizes
 	//                          sc2Hp speed  fly    attack         dmg   period range aggressive w/h          egg colours
-	SCV(           Race.TERRAN, 45,   3.94,  false, Attack.MELEE,  5,    1.07,  0,    false, 1.2f, 1.2f,  0x3a5a8a, 0xd0d0d0),
-	MARINE(        Race.TERRAN, 45,   3.15,  false, Attack.RANGED, 6,    0.61,  5,    true,  0.8f, 1.0f,  0x2a4a9a, 0xb0b0b0),
-	MARAUDER(      Race.TERRAN, 125,  3.15,  false, Attack.RANGED, 15,   1.07,  6,    true,  1.4f, 1.3f,  0x2a4a9a, 0x707070),
-	REAPER(        Race.TERRAN, 60,   5.25,  false, Attack.RANGED, 8,    0.79,  5,    true,  1.0f, 1.3f,  0x2a4a9a, 0xd04020),
-	GHOST(         Race.TERRAN, 100,  3.94,  false, Attack.RANGED, 10,   1.07,  6,    true,  0.8f, 1.6f,  0x2a4a9a, 0x30b0e0),
-	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  2.0f, 1.5f,  0x3a5a8a, 0xf08020),
+	SCV(           Race.TERRAN, 45,   3.94,  false, Attack.MELEE,  5,    1.07,  0,    false, 0.86f, 0.96f,  0x3a5a8a, 0xd0d0d0),
+	MARINE(        Race.TERRAN, 45,   3.15,  false, Attack.RANGED, 6,    0.61,  5,    true,  0.86f, 1.02f,  0x2a4a9a, 0xb0b0b0),
+	MARAUDER(      Race.TERRAN, 125,  3.15,  false, Attack.RANGED, 15,   1.07,  6,    true,  1.3f, 1.32f,  0x2a4a9a, 0x707070),
+	REAPER(        Race.TERRAN, 60,   5.25,  false, Attack.RANGED, 8,    0.79,  5,    true,  0.86f, 1.04f,  0x2a4a9a, 0xd04020),
+	GHOST(         Race.TERRAN, 100,  3.94,  false, Attack.RANGED, 10,   1.07,  6,    true,  0.86f, 1.64f,  0x2a4a9a, 0x30b0e0),
+	HELLION(       Race.TERRAN, 90,   5.95,  false, Attack.LINE,   8,    1.79,  5,    true,  1.44f, 1.15f,  0x3a5a8a, 0xf08020),
 	// owner 17.10: the hellbat a unit of its own (the hellion's battle mode in SC2), the widow mine and the liberator
-	HELLBAT(       Race.TERRAN, 135,  3.15,  false, Attack.LINE,   18,   1.43,  2,    true,  2.0f, 1.5f,  0x3a5a8a, 0xd05010),
+	HELLBAT(       Race.TERRAN, 135,  3.15,  false, Attack.LINE,   18,   1.43,  2,    true,  1.44f, 1.72f,  0x3a5a8a, 0xd05010),
 	// owner 17.10: the cyclone (lock on), the raven (auto-turret, interference matrix, anti-armor missile) and its turret
-	CYCLONE(       Race.TERRAN, 120,  4.72,  false, Attack.RANGED, 11,   0.71,  6,    true,  1.8f, 1.6f,  0x3a5a8a, 0xe0a030),
-	RAVEN(         Race.TERRAN, 140,  3.85,  true,  Attack.NONE,   0,    0,     0,    false, 2.2f, 1.0f,  0x3a5a8a, 0x40e0c0),
-	WIDOW_MINE(    Race.TERRAN, 90,   3.94,  false, Attack.NONE,   0,    0,     0,    false, 1.0f, 0.8f,  0x3a5a8a, 0xe0d040),
-	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.9f, 1.5f,  0x3a5a8a, 0x707050),
-	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  5.0f, 5.5f,  0x3a5a8a, 0x505050),
-	VIKING(        Race.TERRAN, 135,  3.85,  true,  Attack.RANGED, 20,   1.43,  9,    true,  2.5f, 0.9f,  0x3a5a8a, 0xa0a0b0),
-	VIKING_ASSAULT(Race.TERRAN, 135,  3.15,  false, Attack.RANGED, 12,   0.71,  6,    true,  2.0f, 1.8f,  0x3a5a8a, 0x707080),
-	MEDIVAC(       Race.TERRAN, 150,  3.5,   true,  Attack.NONE,   0,    0,     0,    false, 2.8f, 1.2f,  0x3a5a8a, 0xf0f0f0),
-	BANSHEE(       Race.TERRAN, 140,  3.85,  true,  Attack.RANGED, 24,   0.89,  6,    true,  2.5f, 0.8f,  0x3a5a8a, 0x404060),
-	LIBERATOR(     Race.TERRAN, 180,  4.72,  true,  Attack.RANGED, 10,   1.29,  5,    true,  2.6f, 1.0f,  0x3a5a8a, 0x80c0e0),
-	BATTLECRUISER( Race.TERRAN, 550,  2.62,  true,  Attack.RANGED, 8,    0.16,  6,    true,  4.3f, 2.2f,  0x3a5a8a, 0x808090),
+	CYCLONE(       Race.TERRAN, 120,  4.72,  false, Attack.RANGED, 11,   0.71,  6,    true,  1.73f, 1.87f,  0x3a5a8a, 0xe0a030),
+	RAVEN(         Race.TERRAN, 140,  3.85,  true,  Attack.NONE,   0,    0,     0,    false, 1.44f, 1.53f,  0x3a5a8a, 0x40e0c0),
+	WIDOW_MINE(    Race.TERRAN, 90,   3.94,  false, Attack.NONE,   0,    0,     0,    false, 1.15f, 1.01f,  0x3a5a8a, 0xe0d040),
+	SIEGE_TANK(    Race.TERRAN, 175,  3.15,  false, Attack.RANGED, 15,   0.74,  7,    true,  2.02f, 1.18f,  0x3a5a8a, 0x707050),
+	THOR(          Race.TERRAN, 400,  2.62,  false, Attack.RANGED, 60,   0.91,  7,    true,  2.31f, 2.77f,  0x3a5a8a, 0x505050),
+	VIKING(        Race.TERRAN, 135,  3.85,  true,  Attack.RANGED, 20,   1.43,  9,    true,  1.73f, 0.77f,  0x3a5a8a, 0xa0a0b0),
+	VIKING_ASSAULT(Race.TERRAN, 135,  3.15,  false, Attack.RANGED, 12,   0.71,  6,    true,  1.73f, 1.56f,  0x3a5a8a, 0x707080),
+	MEDIVAC(       Race.TERRAN, 150,  3.5,   true,  Attack.NONE,   0,    0,     0,    false, 1.73f, 0.83f,  0x3a5a8a, 0xf0f0f0),
+	BANSHEE(       Race.TERRAN, 140,  3.85,  true,  Attack.RANGED, 24,   0.89,  6,    true,  1.73f, 0.64f,  0x3a5a8a, 0x404060),
+	LIBERATOR(     Race.TERRAN, 180,  4.72,  true,  Attack.RANGED, 10,   1.29,  5,    true,  1.73f, 1.13f,  0x3a5a8a, 0x80c0e0),
+	BATTLECRUISER( Race.TERRAN, 550,  2.62,  true,  Attack.RANGED, 8,    0.16,  6,    true,  2.88f, 1.72f,  0x3a5a8a, 0x808090),
 	COMMAND_CENTER(Race.TERRAN, 1500, 0,     false, Attack.NONE,   0,    0,     0,    false, 5.8f, 4.4f,  0x3a5a8a, 0xc0c0c0),
 	SUPPLY_DEPOT(  Race.TERRAN, 400,  0,     false, Attack.NONE,   0,    0,     0,    false, 4.4f, 2.0f,  0x3a5a8a, 0x909090),
 	BARRACKS(      Race.TERRAN, 1000, 0,     false, Attack.NONE,   0,    0,     0,    false, 4.5f, 3.1f,  0x3a5a8a, 0xa08060),
@@ -102,28 +102,28 @@ public enum UnitKind {
 
 	// protoss (owner 14.10): SC2 life and plasma shields; hitboxes from the model sizes
 	//                            sc2Hp shield speed  fly    attack         dmg  period range aggressive w/h          egg colours
-	PROBE(            Race.PROTOSS, 20,  20,   3.94,  false, Attack.MELEE,  5,   1.07,  0,    false, 1.0f, 0.9f,  0xc8a030, 0x3070d0),
-	ZEALOT(           Race.PROTOSS, 100, 50,   3.15,  false, Attack.MELEE,  16,  0.86,  0,    true,  0.8f, 1.5f,  0xc8a030, 0x4080f0),
-	STALKER(          Race.PROTOSS, 80,  80,   4.13,  false, Attack.RANGED, 13,  1.34,  6,    true,  2.2f, 3.1f,  0xc8a030, 0x30a0e0),
-	SENTRY(           Race.PROTOSS, 40,  40,   3.15,  false, Attack.RANGED, 6,   0.71,  5,    true,  2.0f, 1.3f,  0xc8a030, 0x60c0f0),
-	ADEPT(            Race.PROTOSS, 70,  70,   3.5,   false, Attack.RANGED, 10,  1.61,  4,    true,  0.9f, 1.5f,  0xc8a030, 0x50d0c0),
-	HIGH_TEMPLAR(     Race.PROTOSS, 40,  40,   2.62,  false, Attack.RANGED, 4,   1.25,  6,    true,  1.0f, 1.6f,  0xc8a030, 0x8080ff),
-	DARK_TEMPLAR(     Race.PROTOSS, 40,  80,   3.94,  false, Attack.MELEE,  45,  1.21,  0,    true,  1.0f, 1.8f,  0x403050, 0x80ff80),
-	ARCHON(           Race.PROTOSS, 10,  350,  3.94,  false, Attack.RANGED, 25,  1.25,  3,    true,  2.0f, 2.9f,  0xa0c0ff, 0xffffff),
-	IMMORTAL(         Race.PROTOSS, 200, 100,  3.15,  false, Attack.RANGED, 20,  1.04,  6,    true,  2.0f, 2.4f,  0xc8a030, 0xe0e0e0),
+	PROBE(            Race.PROTOSS, 20,  20,   3.94,  false, Attack.MELEE,  5,   1.07,  0,    false, 0.86f, 0.8f,  0xc8a030, 0x3070d0),
+	ZEALOT(           Race.PROTOSS, 100, 50,   3.15,  false, Attack.MELEE,  16,  0.86,  0,    true,  1.15f, 1.35f,  0xc8a030, 0x4080f0),
+	STALKER(          Race.PROTOSS, 80,  80,   4.13,  false, Attack.RANGED, 13,  1.34,  6,    true,  1.44f, 2.13f,  0xc8a030, 0x30a0e0),
+	SENTRY(           Race.PROTOSS, 40,  40,   3.15,  false, Attack.RANGED, 6,   0.71,  5,    true,  1.15f, 0.77f,  0xc8a030, 0x60c0f0),
+	ADEPT(            Race.PROTOSS, 70,  70,   3.5,   false, Attack.RANGED, 10,  1.61,  4,    true,  1.15f, 1.46f,  0xc8a030, 0x50d0c0),
+	HIGH_TEMPLAR(     Race.PROTOSS, 40,  40,   2.62,  false, Attack.RANGED, 4,   1.25,  6,    true,  0.86f, 1.5f,  0xc8a030, 0x8080ff),
+	DARK_TEMPLAR(     Race.PROTOSS, 40,  80,   3.94,  false, Attack.MELEE,  45,  1.21,  0,    true,  0.86f, 1.55f,  0x403050, 0x80ff80),
+	ARCHON(           Race.PROTOSS, 10,  350,  3.94,  false, Attack.RANGED, 25,  1.25,  3,    true,  2.31f, 2.35f,  0xa0c0ff, 0xffffff),
+	IMMORTAL(         Race.PROTOSS, 200, 100,  3.15,  false, Attack.RANGED, 20,  1.04,  6,    true,  1.73f, 1.82f,  0xc8a030, 0xe0e0e0),
 	// owner 17.10: the colossus could not move — its body (7 wide, 15 tall) found no way among trees and hills; its
 	// hitbox is now its legs (2.4 wide, 4 tall), it steps over what is under its body (StarUnit#stilts)
-	COLOSSUS(         Race.PROTOSS, 200, 150,  3.15,  false, Attack.LINE,   20,  1.07,  7,    true,  1.2f, 2.0f,  0xc8a030, 0xff6060),
-	DISRUPTOR(        Race.PROTOSS, 100, 100,  3.15,  false, Attack.NONE,   0,   0,     0,    false, 1.9f, 1.1f,  0xc8a030, 0xd0a0ff),
-	OBSERVER(         Race.PROTOSS, 40,  20,   2.63,  true,  Attack.NONE,   0,   0,     0,    false, 1.2f, 1.4f,  0xc8a030, 0x404040),
-	WARP_PRISM(       Race.PROTOSS, 80,  100,  4.13,  true,  Attack.NONE,   0,   0,     0,    false, 3.0f, 3.5f,  0xc8a030, 0xa0a0ff),
-	PHOENIX(          Race.PROTOSS, 120, 60,   5.95,  true,  Attack.RANGED, 10,  0.79,  5,    true,  2.4f, 0.7f,  0xc8a030, 0xff8020),
-	VOID_RAY(         Race.PROTOSS, 150, 100,  3.85,  true,  Attack.RANGED, 6,   0.36,  6,    true,  2.5f, 1.7f,  0xc8a030, 0xc040ff),
-	ORACLE(           Race.PROTOSS, 100, 60,   5.6,   true,  Attack.RANGED, 15,  0.61,  4,    true,  2.4f, 2.9f,  0xc8a030, 0x40e0ff),
-	TEMPEST(          Race.PROTOSS, 200, 100,  3.15,  true,  Attack.RANGED, 40,  2.36,  10,   true,  4.0f, 1.1f,  0xc8a030, 0x6060ff),
-	CARRIER(          Race.PROTOSS, 300, 150,  2.62,  true,  Attack.RANGED, 16,  0.5,   8,    true,  3.5f, 2.2f,  0xc8a030, 0xffffff),
-	INTERCEPTOR(      Race.PROTOSS, 40,  40,   7.5,   true,  Attack.MELEE,  16,  2.14,  0,    true,  0.7f, 0.4f,  0xc8a030, 0xc0c0c0),
-	MOTHERSHIP(       Race.PROTOSS, 350, 350,  2.62,  true,  Attack.RANGED, 24,  2.21,  7,    true,  10.0f, 4.5f, 0x302040, 0xffd040),
+	COLOSSUS(         Race.PROTOSS, 200, 150,  3.15,  false, Attack.LINE,   20,  1.07,  7,    true,  1.3f, 2.0f,  0xc8a030, 0xff6060), // its legs: SC2 InnerRadius 0.5625, it strides over trees and cliffs
+	DISRUPTOR(        Race.PROTOSS, 100, 100,  3.15,  false, Attack.NONE,   0,   0,     0,    false, 1.44f, 1.49f,  0xc8a030, 0xd0a0ff),
+	OBSERVER(         Race.PROTOSS, 40,  20,   2.63,  true,  Attack.NONE,   0,   0,     0,    false, 1.15f, 1.18f,  0xc8a030, 0x404040),
+	WARP_PRISM(       Race.PROTOSS, 80,  100,  4.13,  true,  Attack.NONE,   0,   0,     0,    false, 2.02f, 1.92f,  0xc8a030, 0xa0a0ff),
+	PHOENIX(          Race.PROTOSS, 120, 60,   5.95,  true,  Attack.RANGED, 10,  0.79,  5,    true,  1.73f, 0.62f,  0xc8a030, 0xff8020),
+	VOID_RAY(         Race.PROTOSS, 150, 100,  3.85,  true,  Attack.RANGED, 6,   0.36,  6,    true,  2.31f, 1.43f,  0xc8a030, 0xc040ff),
+	ORACLE(           Race.PROTOSS, 100, 60,   5.6,   true,  Attack.RANGED, 15,  0.61,  4,    true,  1.73f, 1.9f,  0xc8a030, 0x40e0ff),
+	TEMPEST(          Race.PROTOSS, 200, 100,  3.15,  true,  Attack.RANGED, 40,  2.36,  10,   true,  2.59f, 1f,  0xc8a030, 0x6060ff),
+	CARRIER(          Race.PROTOSS, 300, 150,  2.62,  true,  Attack.RANGED, 16,  0.5,   8,    true,  2.88f, 1.77f,  0xc8a030, 0xffffff),
+	INTERCEPTOR(      Race.PROTOSS, 40,  40,   7.5,   true,  Attack.MELEE,  16,  2.14,  0,    true,  0.58f, 0.2f,  0xc8a030, 0xc0c0c0),
+	MOTHERSHIP(       Race.PROTOSS, 350, 350,  2.62,  true,  Attack.RANGED, 24,  2.21,  7,    true,  3.17f, 2.69f, 0x302040, 0xffd040),
 	NEXUS(            Race.PROTOSS, 1000, 1000, 0,    false, Attack.NONE,   0,   0,     0,    false, 6.2f, 4.1f,  0xc8a030, 0x30a0ff),
 	PYLON(            Race.PROTOSS, 200, 200,  0,     false, Attack.NONE,   0,   0,     0,    false, 1.8f, 3.1f,  0xc8a030, 0x60c0ff),
 	ASSIMILATOR(      Race.PROTOSS, 300, 300,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.6f,  0xc8a030, 0x60e060),
@@ -141,21 +141,21 @@ public enum UnitKind {
 	FLEET_BEACON(     Race.PROTOSS, 500, 500,  0,     false, Attack.NONE,   0,   0,     0,    false, 4.2f, 2.9f,  0xc8a030, 0xffd040),
 	PROTOSS_PLATFORM( Race.PROTOSS, 200, 200,  0,     false, Attack.NONE,   0,   0,     0,    false, 3.0f, 1.2f,  0xc8a030, 0x40c0ff),
 	// ---- heroes: the bosses of the sky ships (CLOUD_TASK_2 stage 8; numbers and sources in docs/BALANCE.md) ----
-	KERRIGAN(         Race.ZERG,    800, 0,    3.94,  false, Attack.MELEE,  40,  1.5,   1,    true,  1.1f, 2.3f,  0x5a2a6a, 0xd060ff),
-	RAYNOR(           Race.TERRAN,  600, 0,    3.15,  false, Attack.RANGED, 18,  0.61,  6,    true,  1.1f, 2.1f,  0x3a5a8a, 0xffb060),
-	ARTANIS(          Race.PROTOSS, 500, 500,  3.15,  false, Attack.MELEE,  40,  1.2,   1,    true,  1.2f, 2.4f,  0xc8a030, 0x80c0ff),
+	KERRIGAN(         Race.ZERG,    800, 0,    3.94,  false, Attack.MELEE,  40,  1.5,   1,    true,  0.86f, 2.35f,  0x5a2a6a, 0xd060ff),
+	RAYNOR(           Race.TERRAN,  600, 0,    3.15,  false, Attack.RANGED, 18,  0.61,  6,    true,  1.15f, 2.04f,  0x3a5a8a, 0xffb060),
+	ARTANIS(          Race.PROTOSS, 500, 500,  3.15,  false, Attack.MELEE,  40,  1.2,   1,    true,  1.15f, 1.85f,  0xc8a030, 0x80c0ff),
 	// ---- owner 17.10: the heroes guarding the three main bases in the overworld ----
 	ABATHUR(          Race.ZERG,    750, 0,    2.6,   false, Attack.RANGED, 18,  1.2,   6,    true,  1.6f, 2.0f,  0x4a5a2a, 0xc0ff60),
-	SWANN(            Race.TERRAN,  650, 0,    2.8,   false, Attack.RANGED, 24,  1.0,   6,    true,  1.3f, 2.2f,  0x6a4a2a, 0xffa040),
-	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.1f, 2.2f,  0xc8a030, 0x40ffd0),
+	SWANN(            Race.TERRAN,  650, 0,    2.8,   false, Attack.RANGED, 24,  1.0,   6,    true,  1.15f, 1.4f,  0x6a4a2a, 0xffa040),
+	KARAX(            Race.PROTOSS, 400, 400,  3.15,  false, Attack.RANGED, 20,  1.0,   7,    true,  1.15f, 1.76f,  0xc8a030, 0x40ffd0),
 	// ---- owner 17.10: the Nether's heroes (Tosh and Zeratul cloak, Zagara throws banelings and digs) ----
-	TOSH(             Race.TERRAN,  900, 0,    3.94,  false, Attack.RANGED, 32,  1.0,   7,    true,  1.0f, 2.1f,  0x2a2a3a, 0xc02020),
-	ZERATUL(          Race.PROTOSS, 700, 700,  3.94,  false, Attack.MELEE,  50,  1.0,   1,    true,  1.1f, 2.4f,  0x3a2a5a, 0x40ff80),
-	ZAGARA(           Race.ZERG,    1100, 0,   3.5,   false, Attack.RANGED, 26,  0.9,   6,    true,  1.4f, 2.6f,  0x6a2a2a, 0xffa040),
+	TOSH(             Race.TERRAN,  900, 0,    3.94,  false, Attack.RANGED, 32,  1.0,   7,    true,  0.86f, 1.45f,  0x2a2a3a, 0xc02020),
+	ZERATUL(          Race.PROTOSS, 700, 700,  3.94,  false, Attack.MELEE,  50,  1.0,   1,    true,  1.15f, 1.57f,  0x3a2a5a, 0x40ff80),
+	ZAGARA(           Race.ZERG,    1100, 0,   3.5,   false, Attack.RANGED, 26,  0.9,   6,    true,  2.02f, 2.75f,  0x6a2a2a, 0xffa040),
 	// ---- owner 17.10: the End's heroes, heroic ships over their bases ----
 	HORNER(           Race.TERRAN,  2000, 0,   2.62,  true,  Attack.RANGED, 12,  0.2,   8,    true,  4.3f, 2.2f,  0x3a5a8a, 0xf0d060),
-	STUKOV(           Race.ZERG,    1800, 0,   2.62,  true,  Attack.SPAWN_BROODLINGS, 30, 1.6, 9, true, 4.0f, 1.8f,  0x3a5a3a, 0x90ff60),
-	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  4.0f, 2.2f,  0xc8a030, 0xff80c0);
+	STUKOV(           Race.ZERG,    1800, 0,   2.62,  true,  Attack.SPAWN_BROODLINGS, 30, 1.6, 9, true, 1.15f, 1.87f,  0x3a5a3a, 0x90ff60),
+	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  3.17f, 2.21f,  0xc8a030, 0xff80c0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -539,29 +539,47 @@ public enum UnitKind {
 		return race.rules().requires(this);
 	}
 
+	/**
+	 * How far past its hitbox the crosshair and a player's blow still reach it (owner 18.10: «сложно бить
+	 * некоторых мобов ближним оружием»): its model, drawn wider than its hitbox, held the player off beyond reach.
+	 * Measured in a real client by dev.starmine.client.Harness (scenario hitbox): the model's half width (or height)
+	 * past the hitbox's (SC2 collision radius, UnitKind's width), plus 0.2. Only aiming and melee use it (Entity#getPickRadius and the server's reach
+	 * check, dev.starmine.mixin.UnitReachMixin); bodies, paths and unit weapons keep the hitbox.
+	 */
+	public float reachPad() {
+		return switch (this) {
+			case ROACH, SWARM_HOST, HELLBAT, RAVEN, SIEGE_TANK, MEDIVAC, BANSHEE, DARK_TEMPLAR, ARTANIS, ABATHUR -> 0.8f;
+			case CHANGELING, VIKING, VOID_RAY -> 0.9f;
+			case QUEEN, BROOD_LORD, THOR -> 1.0f;
+			case HYDRALISK, INFESTOR, BATTLECRUISER -> 1.1f;
+			case DISRUPTOR, TEMPEST -> 1.4f;
+			case LURKER, VIPER, LIBERATOR -> 1.5f;
+			case MUTALISK -> 1.8f;
+			case RAVAGER, CARRIER -> 1.9f;
+			case ULTRALISK -> 2.5f;
+			case COLOSSUS -> 2.6f; // its body is its legs (SC2 inner radius), its model spans 7.7
+			case SELENDIS -> 2.7f;
+			case ZAGARA -> 2.8f;
+			case MOTHERSHIP -> 3.3f;
+			default -> 0f;
+		};
+	}
+
 	/** Main building tier it needs: 2 = lair, 3 = hive (zerg). */
 	public int tier() {
 		return race.rules().tier(this);
 	}
 
-	/** How the imported model is drawn: units {@link #UNIT_SIZE} times (owner 15.10), the lurker, overlord,
-	 * overseer and brood lord a little more as the owner set them; buildings at model size, the hatchery twice. */
+	/**
+	 * How the imported model is drawn: buildings stretched to their footprint, units {@link #UNIT_SIZE} times (owner 15.10).
+	 * A unit's model comes at its game size — its CModel scale, standing on its origin, as SC2 draws it (owner 18.10:
+	 * «размеры как в игре»; the per-unit enlargements chosen by eye are gone with it).
+	 */
 	public float modelScale() {
 		if (structure() && this != EGG) return width / modelWidth; // its model stretched to its footprint
-		return UNIT_SIZE * switch (this) {
-			case KERRIGAN -> 1.0f; // the queen's model (4 wide at this size) stands in for her
-			case RAYNOR -> 1.15f;
-			case ARTANIS, ZERATUL, TOSH -> 1.2f;
-			case ZAGARA -> 1.1f;
-			case HORNER, SELENDIS -> 1.15f;
-			case STUKOV -> 1.2f;
-			case LURKER -> 1.1f;
-			case OVERLORD -> 1.6f;
-			case OVERSEER -> 1.44f;
-			case BROOD_LORD -> 1.06f;
-			default -> 1f;
-		};
+		return UNIT_SIZE;
 	}
+
 
 	/**
 	 * Flying kinds keep at least this many blocks above the ground unless diving at a target; grown with
