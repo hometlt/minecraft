@@ -123,8 +123,7 @@ public final class HiveStructure {
 			return;
 		}
 		BlockPos site = data.spawnHiveSite;
-		boolean near = level.players().stream().anyMatch(player -> !player.isSpectator()
-			&& Mth.square(player.getX() - site.getX()) + Mth.square(player.getZ() - site.getZ()) < TRIGGER * TRIGGER);
+		boolean near = dev.starmine.world.RaceBases.scouted(level, site.getX(), site.getZ(), TRIGGER); // a body, a camera or a unit
 		if (!near) return;
 		data.spawnHiveDone = true;
 		data.setDirty();

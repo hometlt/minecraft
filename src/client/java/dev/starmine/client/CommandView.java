@@ -94,6 +94,11 @@ public final class CommandView {
 		return active;
 	}
 
+	/** Whether the player's body is held where it stands: the view is open and it is not walking as the hero (owner 18.10). */
+	public static boolean bodyHeld() {
+		return active && !HeroPilot.busy();
+	}
+
 	static boolean heroSelected() {
 		return hero && selection.isEmpty();
 	}

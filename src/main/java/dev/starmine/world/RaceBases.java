@@ -185,12 +185,13 @@ public final class RaceBases {
 		if (data.baseOrigin == null) return false; // the first three are placed first
 		for (var player : level.players()) {
 			if (player.isSpectator()) continue;
-			int prx = Math.floorDiv(player.getBlockX(), REGION), prz = Math.floorDiv(player.getBlockZ(), REGION);
+			net.minecraft.world.phys.Vec3 eye = dev.starmine.colony.CommanderEye.eye(player); // the regions round the camera, if it is open
+			int prx = Math.floorDiv(eye != null ? (int) eye.x : player.getBlockX(), REGION), prz = Math.floorDiv(eye != null ? (int) eye.z : player.getBlockZ(), REGION);
 			for (int rx = prx - 1; rx <= prx + 1; rx++)
 				for (int rz = prz - 1; rz <= prz + 1; rz++) {
 					Far far = far(level.getSeed(), data.baseOrigin, rx, rz);
 					if (far == null || data.structuresDone.contains(far.key())) continue;
-					if (Mth.square(player.getX() - far.x()) + Mth.square(player.getZ() - far.z()) >= TRIGGER * TRIGGER) continue;
+					if (!scouted(level, far.x(), far.z(), TRIGGER)) continue;
 					data.structuresDone.add(far.key());
 					data.setDirty();
 					buildFar(level, far);
@@ -210,8 +211,24 @@ public final class RaceBases {
 	}
 
 	private static boolean playerNear(ServerLevel level, BlockPos site) {
-		return level.players().stream().anyMatch(player -> !player.isSpectator()
-			&& Mth.square(player.getX() - site.getX()) + Mth.square(player.getZ() - site.getZ()) < TRIGGER * TRIGGER);
+		return scouted(level, site.getX(), site.getZ(), TRIGGER);
+	}
+
+	/**
+	 * Whether a player has come within `reach` of a column: their body, their command view's camera
+	 * ({@link dev.starmine.colony.CommanderEye}), or one of their units (owner 18.10: the army reached the protoss
+	 * base and nothing was there — only the body counted, and the body stays home while its player commands).
+	 */
+	public static boolean scouted(ServerLevel level, double x, double z, double reach) {
+		for (var player : level.players()) {
+			if (player.isSpectator()) continue;
+			if (Mth.square(player.getX() - x) + Mth.square(player.getZ() - z) < reach * reach) return true;
+			net.minecraft.world.phys.Vec3 eye = dev.starmine.colony.CommanderEye.eye(player);
+			if (eye != null && Mth.square(eye.x - x) + Mth.square(eye.z - z) < reach * reach) return true;
+		}
+		var area = new net.minecraft.world.phys.AABB(x - reach, level.getMinBuildHeight(), z - reach, x + reach, level.getMaxBuildHeight(), z + reach);
+		return !level.getEntitiesOfClass(dev.starmine.entity.StarUnit.class, area, unit -> unit.isAlive() && unit.owner().isPresent()
+			&& Mth.square(unit.getX() - x) + Mth.square(unit.getZ() - z) < reach * reach).isEmpty();
 	}
 
 	/** A fixed 16-chunk radial offset relative to the first player's Minecraft heading. */

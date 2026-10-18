@@ -83,7 +83,8 @@ public final class Deposits {
 		if (!(level.getChunkSource().getGenerator() instanceof FlatLevelSource)) return; // elsewhere the world generates them
 		for (var player : level.players()) {
 			if (player.isSpectator()) continue;
-			int prx = Math.floorDiv(player.getBlockX(), REGION), prz = Math.floorDiv(player.getBlockZ(), REGION);
+			net.minecraft.world.phys.Vec3 eye = dev.starmine.colony.CommanderEye.eye(player); // round the command view's camera, if it is open
+			int prx = Math.floorDiv(eye != null ? (int) eye.x : player.getBlockX(), REGION), prz = Math.floorDiv(eye != null ? (int) eye.z : player.getBlockZ(), REGION);
 			for (int rx = prx - 1; rx <= prx + 1; rx++)
 				for (int rz = prz - 1; rz <= prz + 1; rz++) {
 					String key = "DEPOSIT:" + rx + ":" + rz;
@@ -95,7 +96,7 @@ public final class Deposits {
 						continue;
 					}
 					int x = rx * REGION + 48 + random.nextInt(REGION - 96), z = rz * REGION + 48 + random.nextInt(REGION - 96);
-					if (Mth.square(player.getX() - x) + Mth.square(player.getZ() - z) >= TRIGGER * TRIGGER) continue;
+					if (!dev.starmine.world.RaceBases.scouted(level, x, z, TRIGGER)) continue;
 					data.structuresDone.add(key);
 					data.setDirty();
 					boolean taken = false; // not on a base: those have their own

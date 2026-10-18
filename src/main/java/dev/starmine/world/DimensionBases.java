@@ -46,8 +46,7 @@ public final class DimensionBases {
 				String key = (end ? "END:" : "NETHER:") + race.name();
 				if (data.structuresDone.contains(key)) continue;
 				BlockPos column = column(data, race, end);
-				boolean near = level.players().stream().anyMatch(p -> !p.isSpectator()
-					&& Mth.square(p.getX() - column.getX()) + Mth.square(p.getZ() - column.getZ()) < RaceBases.TRIGGER * RaceBases.TRIGGER);
+				boolean near = RaceBases.scouted(level, column.getX(), column.getZ(), RaceBases.TRIGGER); // a body, a camera or a unit
 				if (!near) continue;
 				data.structuresDone.add(key);
 				data.setDirty();

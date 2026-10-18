@@ -46,6 +46,19 @@ public class FarBaseGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
+	/** Owner 18.10: a player's unit at a base's site scouts it (the body stays home while the player commands); a wild one does not. */
+	@GameTest(template = ARENA, batch = "farBases", timeoutTicks = 20)
+	public void aPlayersUnitScoutsASite(GameTestHelper helper) {
+		clear(helper);
+		Vec3 site = point(helper, 24, 24);
+		unit(helper, UnitKind.ZEALOT, 10, 10, null);
+		helper.assertTrue(!RaceBases.scouted(helper.getLevel(), site.x + 200, site.z, 20), "a wild unit scouted a site");
+		unit(helper, UnitKind.ZEALOT, 30, 24, java.util.UUID.randomUUID());
+		helper.assertTrue(RaceBases.scouted(helper.getLevel(), site.x, site.z, 20), "a player's unit 6 blocks off did not scout the site");
+		helper.assertTrue(!RaceBases.scouted(helper.getLevel(), site.x + 200, site.z, 20), "a site 200 blocks off was scouted");
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "farGuard", timeoutTicks = 40)
 	public void noMonstersNearAnyUnit(GameTestHelper helper) {
 		clear(helper);
