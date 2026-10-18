@@ -1259,6 +1259,9 @@ public final class CommandScreen extends Screen {
 			CommandView.send("attack", monster.position(), monster.getId(), null);
 		} else if (unit != null && workers && unit.kind == UnitKind.COMMAND_CENTER && CommandView.own(unit)) {
 			CommandView.send("return", at, -1, null);
+		} else if (unit != null && workers && unit.kind.structure() && unit.kind.race == UnitKind.Race.TERRAN && CommandView.own(unit)
+				&& "construct".equals(unit.queueIds())) {
+			CommandView.send("construct", at, unit.getId(), null); // SC2: an SCV sent to an unfinished building goes on building it
 		} else if (unit != null && workers && unit.kind.gas() && CommandView.own(unit)) {
 			CommandView.send("gather", unit.position(), -1, null);
 		} else if (unit == null && workers && block != null && resource(Minecraft.getInstance().level.getBlockState(block.getBlockPos()))) {

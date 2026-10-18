@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * Only full (source) cells count: vespene that has flowed into an emptied cell is not taken or counted.
  */
 public final class VespeneRootBlockEntity extends BlockEntity {
-	public static final int OUTLET_REFILL = 100, REGEN = 600, VOLCANO_TICKS = 3600, VOLCANO_HEIGHT = 14;
+	public static final int OUTLET_REFILL = 100, REGEN = 600, VOLCANO_TICKS = 3600, VOLCANO_HEIGHT = 11; // owner 19.10: 3 blocks lower than the first 14
 
 	private long[] channel = new long[0], outlets = new long[0];
 	private long[] emptySince = new long[0];

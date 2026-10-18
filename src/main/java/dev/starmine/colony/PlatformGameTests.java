@@ -155,4 +155,33 @@ public class PlatformGameTests implements FabricGameTest {
 			});
 		});
 	}
+
+	/** Owner 19.10, SC2: an SCV called away from an unfinished barracks goes on building it when sent to it again. */
+	@GameTest(template = ARENA, batch = "resumeConstruction", timeoutTicks = 400)
+	public void anScvSentToAnUnfinishedBuildingBuildsItAgain(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		java.util.UUID player = java.util.UUID.randomUUID();
+		dev.starmine.entity.StarUnit cc = dev.starmine.ability.TestArena.unit(helper, dev.starmine.entity.UnitKind.COMMAND_CENTER, 10, 10, player);
+		dev.starmine.entity.StarUnit barracks = dev.starmine.ability.TestArena.unit(helper, dev.starmine.entity.UnitKind.BARRACKS, 30, 30, player);
+		dev.starmine.entity.StarUnit scv = dev.starmine.ability.TestArena.unit(helper, dev.starmine.entity.UnitKind.SCV, 22, 30, player);
+		int[] left = new int[1];
+		helper.runAfterDelay(5, () -> {
+			dev.starmine.hive.Hive base = dev.starmine.ability.TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			barracks.joinHive(base);
+			scv.joinHive(base);
+			barracks.startConstruction(barracks.kind.economy().trainTicks());
+			scv.orderBuild(barracks.kind, barracks.blockPosition());
+			scv.setConstructing(barracks.getUUID());
+			scv.command(dev.starmine.entity.StarUnit.Order.NONE, null); // called away: the order and the building are dropped
+			helper.assertTrue(scv.constructing() == null, "the SCV still builds after being called away");
+			Commands.resumeConstruction(helper.getLevel(), base, java.util.List.of(scv), java.util.List.of(scv), barracks.getId(), barracks.position());
+			helper.assertTrue(barracks.getUUID().equals(scv.constructing()), "the SCV did not take the building up again");
+			left[0] = barracks.progress();
+		});
+		helper.runAfterDelay(300, () -> {
+			helper.assertTrue(barracks.underConstruction() && barracks.progress() > left[0], "the barracks did not grow: " + left[0] + " -> " + barracks.progress());
+			helper.succeed();
+		});
+	}
 }

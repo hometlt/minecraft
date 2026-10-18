@@ -31,6 +31,26 @@ public final class Commands {
 	private Commands() {
 	}
 
+	/**
+	 * SC2: workers sent to their own unfinished terran building (its SCV called away, the order cancelled) go on
+	 * building it — the nearest SCV takes it up again; the others, and a finished building, just a move there.
+	 */
+	static void resumeConstruction(ServerLevel level, Hive base, List<StarUnit> workers, List<StarUnit> mobile, int target, Vec3 at) {
+		StarUnit building = level.getEntity(target) instanceof StarUnit found && found.isAlive() && base.id.equals(found.hiveId()) ? found : null;
+		StarUnit builder = building == null || !building.underConstruction() ? null
+			: workers.stream().filter(unit -> unit.kind == UnitKind.SCV).min(java.util.Comparator.comparingDouble(unit -> unit.distanceToSqr(building))).orElse(null);
+		if (builder != null) {
+			for (StarUnit other : level.getEntitiesOfClass(StarUnit.class, building.getBoundingBox().inflate(48),
+					unit -> unit != builder && building.getUUID().equals(unit.constructing())))
+				other.setConstructing(null); // one builder at a time, as in SC2
+			builder.command(StarUnit.Order.NONE, null);
+			builder.orderBuild(building.kind, building.blockPosition());
+			builder.setConstructing(building.getUUID());
+		}
+		List<StarUnit> rest = mobile.stream().filter(unit -> unit != builder).toList();
+		if (!rest.isEmpty()) moveArmy(level, base, rest, StarUnit.Order.MOVE, at);
+	}
+
 	public static void command(ServerPlayer player, ColonyNetwork.UnitCommand command) {
 		ServerLevel level = player.serverLevel();
 		if (!CommandPanel.carried(player)) return; // owner 14.10: commands only with a command panel
@@ -58,6 +78,7 @@ public final class Commands {
 				formation(lifted, StarUnit.Order.MOVE, at);
 			}
 			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
+			case "construct" -> resumeConstruction(level, base, workers, mobile, command.target(), at);
 			case "tumor" -> { // SC2: the player's creep tumor (the arg: x,y,z) spreads once to a creep cell in its reach
 				String[] xyz = command.arg().split(",");
 				if (xyz.length == 3) try {
