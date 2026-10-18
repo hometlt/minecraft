@@ -43,6 +43,10 @@ public final class Guns {
 	public static final EntityType<Townsfolk> MARSHAL = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("marshal"),
 		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.MARSHAL), MobCategory.CREATURE)
 			.sized(0.6f, 1.95f).clientTrackingRange(10).build("marshal"));
+	/** Owner 19.10: the sheriff of a large village, by his stone house ({@link dev.starmine.world.SheriffHouses}). */
+	public static final EntityType<Townsfolk> SHERIFF = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("sheriff"),
+		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.SHERIFF), MobCategory.CREATURE)
+			.sized(0.6f, 1.95f).clientTrackingRange(10).build("sheriff"));
 	public static final EntityType<Townsfolk> GHOST_AGENT = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("ghost_agent"),
 		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.GHOST), MobCategory.CREATURE)
 			.sized(0.6f, 1.95f).clientTrackingRange(10).build("ghost_agent"));
@@ -88,11 +92,12 @@ public final class Guns {
 	}
 
 	public static void load() {
-		for (EntityType<Townsfolk> type : java.util.List.of(MARSHAL, GHOST_AGENT))
+		for (EntityType<Townsfolk> type : java.util.List.of(MARSHAL, GHOST_AGENT, SHERIFF))
 			FabricDefaultAttributeRegistry.register(type, Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5).add(Attributes.MAX_HEALTH, 30)
 				.add(Attributes.FOLLOW_RANGE, 48));
 		Item marshalEgg = item("marshal_spawn_egg", new SpawnEggItem(MARSHAL, 0x4a5a6a, 0xd0b040, new Item.Properties()));
 		Item ghostEgg = item("ghost_agent_spawn_egg", new SpawnEggItem(GHOST_AGENT, 0x2a2a30, 0x60a0ff, new Item.Properties()));
+		Item sheriffEgg = item("sheriff_spawn_egg", new SpawnEggItem(SHERIFF, 0x6a4a2a, 0xe0c040, new Item.Properties()));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> {
 			entries.accept(GAUSS_RIFLE);
 			entries.accept(GAUSS_AMMO);
@@ -107,6 +112,7 @@ public final class Guns {
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			entries.accept(marshalEgg);
 			entries.accept(ghostEgg);
+			entries.accept(sheriffEgg);
 		});
 		// armed neighbours in villages: decided once per villager, when it is first loaded
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {

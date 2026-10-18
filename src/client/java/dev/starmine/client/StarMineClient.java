@@ -83,6 +83,7 @@ public final class StarMineClient implements ClientModInitializer {
 		EntityRendererRegistry.register(dev.starmine.world.VisionBlocker.TYPE, VisionBlockerRenderer::new);
 		EntityRendererRegistry.register(dev.starmine.gear.Guns.MARSHAL, TownsfolkRenderer::new);
 		EntityRendererRegistry.register(dev.starmine.gear.Guns.GHOST_AGENT, TownsfolkRenderer::new);
+		EntityRendererRegistry.register(dev.starmine.gear.Guns.SHERIFF, TownsfolkRenderer::new);
 		// owner 16.10: a weapon module looks like its unit's weapon in the hand (dev.starmine.possess.WeaponLook)
 		net.minecraft.client.renderer.item.ItemProperties.register(dev.starmine.possess.ModuleItem.WEAPON, StarMine.id("weapon"), (stack, level, entity, seed) -> {
 			UnitKind kind = dev.starmine.possess.ModuleItem.kindOf(stack);

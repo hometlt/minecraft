@@ -1224,6 +1224,8 @@
 	"entity.starmine.marshal": "Маршал",
 	"entity.starmine.ghost_agent": "Призрак",
 	"item.starmine.marshal_spawn_egg": "Яйцо призыва маршала",
+	"entity.starmine.sheriff": "Шериф",
+	"item.starmine.sheriff_spawn_egg": "Яйцо призыва шерифа",
 	"item.starmine.ghost_agent_spawn_egg": "Яйцо призыва призрака",
 	"message.starmine.boss_phase.2": "%s зовёт стражу!",
 	"message.starmine.boss_phase.3": "%s в ярости!",

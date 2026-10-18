@@ -136,6 +136,8 @@ CATEGORIES = [
                   'Пси-клинок (фанатика): протосский клинок острее алмазного, чинится осколками брони протоссов.'),
             text('Marshals in villages sell rounds, grenades, KD8 charges and the guns themselves for emeralds.',
                  'Маршалы в деревнях продают патроны, гранаты, заряды KD8 и само оружие за изумруды.'),
+            text('Large villages have a sheriff: he lives by the village in a house of stone bricks with an iron door and iron shutters on its windows, his chest full of grenades and gauss rounds, and guards it with a gauss rifle. He sells a few things of his own pick (rounds, grenades, terran armor pieces and shards, stimpacks, guns) for mineral shards, the dearer ones for a bucket of vespene too.',
+                 'В крупных деревнях есть шериф: он живёт рядом в доме из каменных кирпичей с железной дверью и железными люками на окнах, в его сундуке гранаты и гаусс-патроны, и он охраняет его с гаусс-винтовкой. Шериф продаёт кое-что на свой выбор (патроны, гранаты, части и осколки терранской брони, стимпаки, оружие) за осколки минералов, а то, что подороже, — ещё и за ведро веспена.'),
         ]),
     ]),
     ('world', t('The World', 'Мир'), t('Packs, dungeons, sky ships and heroes.', 'Отряды, подземелья, корабли и герои.'), 'minecraft:filled_map', [

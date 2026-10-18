@@ -128,6 +128,27 @@ public final class Harness {
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("cutaway")) cutaway(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("addon")) addOn(mc);
 		if (SCENARIOS.contains("cards")) cards(mc);
+		if (SCENARIOS.equals("all") || SCENARIOS.contains("sheriff")) sheriff(mc);
+	}
+
+	/** The sheriff's stone house (dev.starmine.world.SheriffHouses), its door toward the camera, from both sides. */
+	private static void sheriff(Minecraft mc) {
+		int hx = X + 14, hz = Z;
+		steps.add(new Step(40, () -> server(mc, (level, player) -> {
+			for (Entity old : level.getEntitiesOfClass(Entity.class, player.getBoundingBox().inflate(60), e -> !(e instanceof ServerPlayer))) old.discard();
+			dev.starmine.world.SheriffHouses.build(level, new net.minecraft.core.BlockPos(hx, groundY, hz), net.minecraft.core.Direction.WEST,
+				net.minecraft.util.RandomSource.create(3));
+			player.teleportTo(level, hx - 9.5, groundY, hz + 4.5, 0, 0);
+		})));
+		steps.add(new Step(60, () -> aim(mc, new Vec3(hx, groundY + 2, hz))));
+		steps.add(new Step(20, () -> shot(mc, "sheriff-front")));
+		steps.add(new Step(10, () -> server(mc, (level, player) -> player.teleportTo(level, hx + 9.5, groundY + 3, hz - 6.5, 0, 0))));
+		steps.add(new Step(40, () -> aim(mc, new Vec3(hx, groundY + 1, hz))));
+		steps.add(new Step(20, () -> {
+			shot(mc, "sheriff-back");
+			check("sheriff: the sheriff stands by his house", mc.level != null && !mc.level.getEntitiesOfClass(dev.starmine.gear.Townsfolk.class,
+				new net.minecraft.world.phys.AABB(hx - 16, groundY - 4, hz - 16, hx + 16, groundY + 8, hz + 16)).isEmpty(), "");
+		}));
 	}
 
 	/** Every kind's command card as the player sees it (one of the player's own, selected), to `harness/cards.tsv`. */

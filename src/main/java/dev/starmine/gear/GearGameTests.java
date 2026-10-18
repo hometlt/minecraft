@@ -93,4 +93,52 @@ public class GearGameTests implements FabricGameTest {
 			helper.assertTrue(target.position().distanceTo(start) > 0.5, "the charge did not throw it back");
 		});
 	}
+
+	/**
+	 * Owner 19.10: a large village (a bell, ten beds) gets the sheriff's stone house: an iron door, iron trapdoors over
+	 * the windows, a chest of terran loot, and the sheriff with a gauss rifle, who stays by it and sells for minerals.
+	 */
+	@GameTest(template = ARENA, batch = "gearSheriff", timeoutTicks = 40)
+	public void aLargeVillageHasASheriffHouse(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos bell = helper.absolutePos(new BlockPos(8, 2, 24));
+		level.setBlock(bell, Blocks.BELL.defaultBlockState(), 3);
+		for (int i = 0; i < dev.starmine.world.SheriffHouses.LARGE; i++) {
+			BlockPos foot = helper.absolutePos(new BlockPos(2 + i * 4, 2, 5));
+			level.setBlock(foot, Blocks.WHITE_BED.defaultBlockState().setValue(net.minecraft.world.level.block.BedBlock.FACING, net.minecraft.core.Direction.NORTH), 3);
+			level.setBlock(foot.north(), Blocks.WHITE_BED.defaultBlockState().setValue(net.minecraft.world.level.block.BedBlock.FACING, net.minecraft.core.Direction.NORTH)
+				.setValue(net.minecraft.world.level.block.BedBlock.PART, net.minecraft.world.level.block.state.properties.BedPart.HEAD), 3);
+		}
+		BlockPos site = dev.starmine.world.SheriffHouses.consider(level, bell, net.minecraft.util.RandomSource.create(7));
+		helper.assertTrue(site != null, "no sheriff house by a village of ten beds");
+		int doors = 0, shutters = 0;
+		net.minecraft.world.level.block.entity.ChestBlockEntity chest = null;
+		for (BlockPos pos : BlockPos.betweenClosed(site.offset(-4, -1, -4), site.offset(4, 6, 4))) {
+			var state = level.getBlockState(pos);
+			if (state.is(Blocks.IRON_DOOR)) doors++;
+			if (state.is(Blocks.IRON_TRAPDOOR)) shutters++;
+			if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity found) chest = found;
+		}
+		helper.assertTrue(doors == 2, "no iron door: " + doors + " door blocks");
+		helper.assertTrue(shutters >= 10, "the windows are not shut with iron trapdoors: " + shutters);
+		helper.assertTrue(chest != null, "no chest in the house");
+		boolean grenades = false, rounds = false;
+		for (int i = 0; i < chest.getContainerSize(); i++) {
+			grenades |= chest.getItem(i).is(Guns.PUNISHER_GRENADE);
+			rounds |= chest.getItem(i).is(Guns.GAUSS_AMMO);
+		}
+		helper.assertTrue(grenades && rounds, "no grenades or gauss rounds in the sheriff's chest");
+		var sheriffs = level.getEntitiesOfClass(Townsfolk.class, new net.minecraft.world.phys.AABB(site).inflate(6), folk -> folk.role == Townsfolk.Role.SHERIFF);
+		helper.assertTrue(sheriffs.size() == 1, "sheriffs by the house: " + sheriffs.size());
+		Townsfolk sheriff = sheriffs.get(0);
+		helper.assertTrue(sheriff.getMainHandItem().is(Guns.GAUSS_RIFLE), "the sheriff holds " + sheriff.getMainHandItem());
+		helper.assertTrue(sheriff.hasRestriction() && sheriff.getRestrictCenter().equals(site), "the sheriff does not keep to his house");
+		var offers = sheriff.getOffers();
+		helper.assertTrue(offers.size() == Townsfolk.SHERIFF_OFFERS && offers.stream().allMatch(o -> o.getCostA().is(dev.starmine.mineral.Minerals.SHARD)),
+			"the sheriff does not sell for minerals: " + offers.size() + " offers");
+		sheriff.discard();
+		for (BlockPos pos : BlockPos.betweenClosed(site.offset(-4, 0, -4), site.offset(4, 6, 4))) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
+		helper.succeed();
+	}
 }

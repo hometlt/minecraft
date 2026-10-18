@@ -170,6 +170,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();
+		dev.starmine.world.SheriffHouses.load(); // owner 19.10: a sheriff's stone house in large villages
 		dev.starmine.guide.Goals.load();
 		dev.starmine.guide.Guide.load();
 		for (UnitKind kind : UnitKind.values()) FabricDefaultAttributeRegistry.register(TYPES.get(kind), StarUnit.attributes(kind));

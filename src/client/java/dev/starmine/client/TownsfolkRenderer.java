@@ -15,7 +15,7 @@ import net.minecraft.world.entity.npc.WanderingTrader;
 /**
  * The armed villagers (owner 16.10) drawn as wandering traders in their own clothes: the game's own
  * wandering trader skin recoloured when first needed (nothing of it is shipped) — the marshal in olive
- * armour with yellow stripes, the ghost in a near-black suit with blue lights. Their gun shows in their
+ * armour with yellow stripes, the ghost in a near-black suit with blue lights, the sheriff in a brown coat with gold. Their gun shows in their
  * crossed arms.
  */
 public final class TownsfolkRenderer extends WanderingTraderRenderer {
@@ -46,11 +46,14 @@ public final class TownsfolkRenderer extends WanderingTraderRenderer {
 					float[] hsv = java.awt.Color.RGBtoHSB(r, g, b, null);
 					int rgb;
 					if (hsv[1] > 0.25f && hsv[0] > 0.5f && hsv[0] < 0.75f) // the blue robe
-						rgb = role == Townsfolk.Role.MARSHAL ? java.awt.Color.HSBtoRGB(0.22f, 0.25f, hsv[2] * 0.9f)
-							: java.awt.Color.HSBtoRGB(0.6f, 0.1f, hsv[2] * 0.35f);
+						rgb = switch (role) {
+							case MARSHAL -> java.awt.Color.HSBtoRGB(0.22f, 0.25f, hsv[2] * 0.9f);
+							case SHERIFF -> java.awt.Color.HSBtoRGB(0.07f, 0.55f, hsv[2] * 0.7f);
+							case GHOST -> java.awt.Color.HSBtoRGB(0.6f, 0.1f, hsv[2] * 0.35f);
+						};
 					else if (hsv[1] > 0.9f && hsv[0] < 0.05f) // the red trims (skin and belt are duller)
-						rgb = role == Townsfolk.Role.MARSHAL ? java.awt.Color.HSBtoRGB(0.13f, 0.8f, Math.min(1, hsv[2] * 1.2f))
-							: java.awt.Color.HSBtoRGB(0.55f, 0.7f, 1f);
+						rgb = role == Townsfolk.Role.GHOST ? java.awt.Color.HSBtoRGB(0.55f, 0.7f, 1f)
+							: java.awt.Color.HSBtoRGB(0.13f, 0.8f, Math.min(1, hsv[2] * 1.2f)); // gold
 					else continue;
 					int nr = rgb >> 16 & 255, ng = rgb >> 8 & 255, nb = rgb & 255;
 					image.setPixelRGBA(x, y, a << 24 | nb << 16 | ng << 8 | nr);

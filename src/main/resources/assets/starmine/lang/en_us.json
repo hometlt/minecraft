@@ -1224,6 +1224,8 @@
 	"entity.starmine.marshal": "Marshal",
 	"entity.starmine.ghost_agent": "Ghost",
 	"item.starmine.marshal_spawn_egg": "Marshal Spawn Egg",
+	"entity.starmine.sheriff": "Sheriff",
+	"item.starmine.sheriff_spawn_egg": "Sheriff Spawn Egg",
 	"item.starmine.ghost_agent_spawn_egg": "Ghost Spawn Egg",
 	"message.starmine.boss_phase.2": "%s calls its guard!",
 	"message.starmine.boss_phase.3": "%s is enraged!",

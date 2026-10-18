@@ -36,6 +36,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "Marshals in villages sell rounds, grenades, KD8 charges and the guns themselves for emeralds."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Large villages have a sheriff: he lives by the village in a house of stone bricks with an iron door and iron shutters on its windows, his chest full of grenades and gauss rounds, and guards it with a gauss rifle. He sells a few things of his own pick (rounds, grenades, terran armor pieces and shards, stimpacks, guns) for mineral shards, the dearer ones for a bucket of vespene too."
 		}
 	]
 }
