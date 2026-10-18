@@ -152,7 +152,7 @@ public final class UnitGoals {
 	static final class Shoot extends Goal {
 		private final StarUnit unit;
 		private LivingEntity target;
-		private int seeTime;
+		private int seeTime, repath;
 
 		Shoot(StarUnit unit) {
 			this.unit = unit;
@@ -192,7 +192,12 @@ public final class UnitGoals {
 			boolean sees = unit.getSensing().hasLineOfSight(target);
 			seeTime = sees ? seeTime + 1 : 0;
 			if (reach <= weapon.range() && seeTime >= 5 || !weapon.mobile()) unit.getNavigation().stop();
-			else unit.getNavigation().moveTo(target, 1.0);
+			else if (--repath <= 0 || unit.getNavigation().isDone()) {
+				// a new way every few ticks, not each tick the target steps onto another block (owner 18.10: an army
+				// chasing a fleeing one planned a hundred ways a tick)
+				repath = 4 + unit.getRandom().nextInt(4);
+				unit.getNavigation().moveTo(target, 1.0);
+			}
 			unit.getLookControl().setLookAt(target, 30.0f, 30.0f);
 			if (sees && reach <= weapon.range() && reach >= weapon.minRange() && unit.weaponReady()) {
 				unit.performRangedAttack(target, 1.0f);
@@ -313,10 +318,19 @@ public final class UnitGoals {
 				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 				return;
 			}
-			if (--repath > 0) return;
+			if (--repath > 0 && !(unit.getNavigation().isDone() && repath < 15)) return; // at the end of a part of its way: on within 5 ticks, not 20
 			repath = 20;
-			if (!unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0) && dry(unit, goal)) {
-				unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
+			boolean found = unit.getNavigation() instanceof UnitNavigation navigation ? navigation.route(goal.x, goal.y, goal.z, 1.0)
+				: unit.getNavigation().moveTo(goal.x, goal.y, goal.z, 1.0);
+			if (!found && unit.getNavigation() instanceof UnitNavigation navigation && navigation.deferred) {
+				// this tick's searches are spent (a big army ordered at once): off toward the point now, the way next tick
+				repath = 1;
+				if (dry(unit, goal)) unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
+			} else if (!found) {
+				// no way planned: in the air (a jump, just landed from a transport) the game plans none at all, so again
+				// in 2 ticks, not 20 (owner 18.10: it took the order and stood)
+				if (!unit.onGround()) repath = 2;
+				if (dry(unit, goal)) unit.getMoveControl().setWantedPosition(goal.x, goal.y, goal.z, 1.0);
 			}
 		}
 

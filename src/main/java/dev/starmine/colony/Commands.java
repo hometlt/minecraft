@@ -183,8 +183,23 @@ public final class Commands {
 		formation(units.stream().filter(unit -> !taken.contains(unit.getUUID())).toList(), order, at);
 	}
 
-	/** Units sent to one point stand in a square around it instead of crowding onto it. */
+	/** How spread a group may be and still keep its shape on the way (SC2's "magic box"), blocks from its middle. */
+	static final double KEEP_SHAPE = 10;
+
+	/**
+	 * Units sent to one point. A tight group sent beyond itself keeps its shape, each unit going to the point
+	 * plus its place in the group (SC2: they move side by side, none crosses the others to one spot); a group
+	 * sent into its own midst or spread wide stands in a square round the point instead of crowding onto it.
+	 */
 	private static void formation(List<StarUnit> units, StarUnit.Order order, Vec3 at) {
+		if (units.size() > 1) {
+			double cx = units.stream().mapToDouble(StarUnit::getX).average().orElse(at.x), cz = units.stream().mapToDouble(StarUnit::getZ).average().orElse(at.z);
+			double spread = units.stream().mapToDouble(unit -> Math.hypot(unit.getX() - cx, unit.getZ() - cz)).max().orElse(0);
+			if (spread <= KEEP_SHAPE && Math.hypot(at.x - cx, at.z - cz) > spread + 2) {
+				for (StarUnit unit : units) unit.command(order, at.add(unit.getX() - cx, 0, unit.getZ() - cz));
+				return;
+			}
+		}
 		int columns = (int) Math.ceil(Math.sqrt(units.size()));
 		double spacing = 0.6 + units.stream().mapToDouble(unit -> unit.kind.width).max().orElse(1);
 		for (int i = 0; i < units.size(); i++) {

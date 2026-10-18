@@ -115,6 +115,37 @@ public class PathfindingGameTests implements FabricGameTest {
 		race(helper, "open ground, 32 blocks", goals, 1.5, 700);
 	}
 
+	/**
+	 * Owner 18.10: an army ordered at once sets off at once and gets there. 24 marines are more than one
+	 * tick's searches ({@link UnitNavigation#SEARCHES_PER_TICK}): the rest walk straight until their way is planned,
+	 * so every one has moved within 10 ticks (half a second) of the order.
+	 */
+	@GameTest(template = ARENA, batch = "pathFlat", timeoutTicks = 1200)
+	public void anArmyOrderedAtOnceSetsOffAtOnce(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		Map<StarUnit, Vec3> goals = new LinkedHashMap<>();
+		Map<StarUnit, Vec3> from = new LinkedHashMap<>();
+		for (int i = 0; i < 24; i++) {
+			double x = 4 + (i % 4) * 2.5, z = 4 + (i / 4) * 2.5;
+			StarUnit marine = unit(helper, UnitKind.MARINE, x, z, player);
+			goals.put(marine, point(helper, x + 24, z));
+			from.put(marine, marine.position());
+		}
+		long[] ordered = {-1}; // the tick race() gives the order (its first tick, as this one's)
+		helper.onEachTick(() -> {
+			if (ordered[0] < 0) ordered[0] = helper.getTick();
+			if (helper.getTick() != ordered[0] + 10) return;
+			List<String> idle = new ArrayList<>();
+			from.forEach((unit, at) -> {
+				if (Abilities.horizontal(unit.position(), at) < 0.1) idle.add(TestArena.where(helper, unit) + " order " + unit.order()
+					+ " path " + (unit.getNavigation().getPath() == null ? "none" : "planned"));
+			});
+			if (!idle.isEmpty()) helper.fail("not off within 10 ticks of the order: " + idle);
+		});
+		race(helper, "an army of 24 at once, 24 blocks", goals, 1.5, 700);
+	}
+
 	@GameTest(template = ARENA, batch = "pathGaps", timeoutTicks = 1200)
 	public void unitsFindGapsTheirSize(GameTestHelper helper) {
 		clear(helper);

@@ -336,17 +336,28 @@ public final class CommandScreen extends Screen {
 	 * Own units hidden from the camera (behind a hill, in a tunnel) are shown where they are: their
 	 * icon in a frame (green when selected), so they can be seen, clicked and box-selected.
 	 */
+	private static final List<StarUnit> HIDDEN = new ArrayList<>();
+	private static long hiddenTick = Long.MIN_VALUE;
+
 	private void drawHidden(GuiGraphics graphics) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null) return;
 		Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
-		for (Entity entity : mc.level.entitiesForRendering()) {
-			if (!(entity instanceof StarUnit unit) || !unit.isAlive() || !CommandView.own(unit) || unit.kind.structure()) continue;
+		if (mc.level.getGameTime() != hiddenTick) { // owner 18.10: a ray per unit once a tick, not every frame (a big army cost frames)
+			hiddenTick = mc.level.getGameTime();
+			HIDDEN.clear();
+			for (Entity entity : mc.level.entitiesForRendering()) {
+				if (!(entity instanceof StarUnit unit) || !unit.isAlive() || !CommandView.own(unit) || unit.kind.structure()) continue;
+				Vec3 centre = unit.position().add(0, unit.getBbHeight() / 2, 0);
+				if (centre.distanceToSqr(eye) > 160 * 160) continue;
+				net.minecraft.world.phys.BlockHitResult hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, centre,
+					net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, unit));
+				if (hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK && hit.getLocation().distanceTo(centre) >= unit.getBbWidth()) HIDDEN.add(unit);
+			}
+		}
+		for (StarUnit unit : HIDDEN) {
+			if (!unit.isAlive()) continue;
 			Vec3 centre = unit.position().add(0, unit.getBbHeight() / 2, 0);
-			if (centre.distanceToSqr(eye) > 160 * 160) continue;
-			net.minecraft.world.phys.BlockHitResult hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, centre,
-				net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, unit));
-			if (hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK || hit.getLocation().distanceTo(centre) < unit.getBbWidth()) continue;
 			double[] at = CommandView.project(centre, width, height);
 			if (at == null) continue;
 			int x = (int) at[0] - 10, y = (int) at[1] - 10;
@@ -655,25 +666,28 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(int key, int scanCode, int modifiers) {
+		// owner 18.10: a letter of the command card is its command first, whatever else it does (WASD pans, Q E turn
+		// the camera only where the card has no such letter; the arrows always pan)
+		if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z && (modifiers & GLFW.GLFW_MOD_CONTROL) == 0 && hotkey(key)) return true;
 		switch (key) {
 			case GLFW.GLFW_KEY_W, GLFW.GLFW_KEY_UP -> up = true;
 			case GLFW.GLFW_KEY_S, GLFW.GLFW_KEY_DOWN -> {
-				if (key == GLFW.GLFW_KEY_DOWN || !press('S')) down = true;
+				down = true;
 				return true;
 			}
 			case GLFW.GLFW_KEY_A, GLFW.GLFW_KEY_LEFT -> {
-				if (key == GLFW.GLFW_KEY_LEFT || !press('A')) left = true;
+				left = true;
 				return true;
 			}
 			case GLFW.GLFW_KEY_D, GLFW.GLFW_KEY_RIGHT -> {
-				if (key == GLFW.GLFW_KEY_RIGHT || !press('D')) right = true;
+				right = true;
 				return true;
 			}
 			case GLFW.GLFW_KEY_Q -> CommandView.rotate(-1);
 			case GLFW.GLFW_KEY_PAGE_UP -> CommandView.climbing = 1;
 			case GLFW.GLFW_KEY_PAGE_DOWN -> CommandView.climbing = -1;
 			case GLFW.GLFW_KEY_E -> {
-				if (!press('E')) CommandView.rotate(1);
+				CommandView.rotate(1);
 				return true;
 			}
 			case GLFW.GLFW_KEY_ESCAPE -> {
@@ -712,18 +726,21 @@ public final class CommandScreen extends Screen {
 			}
 			return true;
 		}
-		if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z) press(key);
 		return true;
 	}
 
-	/** Runs the enabled card button with this hotkey; true when there was one. */
-	private boolean press(int key) {
-		for (Button button : buttons())
-			if (button.key == key && button.enabled) {
+	/** Runs the enabled card button with this hotkey; true when the card has one (a disabled one swallows the key). */
+	private boolean hotkey(int key) {
+		boolean found = false;
+		for (Button button : buttons()) {
+			if (button.key != key) continue;
+			if (button.enabled) {
 				button.action.run();
 				return true;
 			}
-		return false;
+			found = true;
+		}
+		return found;
 	}
 
 	@Override
@@ -797,6 +814,14 @@ public final class CommandScreen extends Screen {
 			}
 			if (CommandMinimap.contains(mouseX, mouseY, height)) {
 				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
+				Minecraft mc = Minecraft.getInstance();
+				if (targeting != null && !targeting.startsWith("ability:") && !targeting.equals("gather") && !CommandView.heroSelected() && mc.level != null) {
+					// SC2: a command waiting for its target is given on the minimap too (A, then a click on the map: attack-move there)
+					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
+					CommandView.send(targeting.equals("attack") ? "attack_move" : targeting, new Vec3(at.x, y, at.z), -1, null);
+					if (!hasShiftDown()) targeting = null;
+					return true;
+				}
 				CommandView.lookAt(at.x, at.z);
 				this.dragX = mouseX;
 				this.dragY = mouseY;

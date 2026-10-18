@@ -31,6 +31,38 @@ final class UnitNavigation extends GroundPathNavigation {
 	/** Nodes one search may visit (vanilla: 16 per block of follow range, 240 for a marine). */
 	static final int NODES = 2048;
 
+	/**
+	 * Full searches player orders may run in one server tick (owner 18.10: a hundred units sent at once all
+	 * planned their ways in the same tick and the server stalled). The others walk straight at their point
+	 * for a tick or two and plan next tick: they start at once, as in SC2.
+	 */
+	static final int SEARCHES_PER_TICK = 8;
+	private static int budgetTick = -1, budgetUsed;
+	/** The last {@link #route} found no search left this tick. */
+	boolean deferred;
+
+	/**
+	 * A way to a player's order point within this tick's search budget; false when there is none or the
+	 * budget is spent ({@link #deferred}). A new way is shown to the unit's player ({@link Routes}).
+	 */
+	boolean route(double x, double y, double z, double speed) {
+		deferred = false;
+		BlockPos goal = BlockPos.containing(x, y, z);
+		if (this.path != null && !this.path.isDone() && goal.equals(this.getTargetPos())) return this.moveTo(x, y, z, speed); // the same way: no search
+		int tick = this.mob.getServer() == null ? 0 : this.mob.getServer().getTickCount(); // ponytail: one budget for all dimensions
+		if (tick != budgetTick) {
+			budgetTick = tick;
+			budgetUsed = 0;
+		}
+		if (++budgetUsed > SEARCHES_PER_TICK) {
+			deferred = true;
+			return false;
+		}
+		boolean found = this.moveTo(x, y, z, speed);
+		if (found && this.mob instanceof StarUnit unit) Routes.send(unit, this.path);
+		return found;
+	}
+
 	UnitNavigation(Mob mob, Level level) {
 		super(mob, level);
 		// CLOUD_TASK_2 stage 4: ground units neither swim nor walk the bottom; water is crossed by a transport or a

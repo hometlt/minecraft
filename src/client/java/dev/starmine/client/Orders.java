@@ -15,7 +15,8 @@ import net.minecraft.world.phys.Vec3;
  * its order's point. In the command view a line of arrows leads from the unit to it (green: move, red:
  * attack, yellow: gather, patrol, rally, a cast), a marker lies on the ground there — a ring that closes in
  * when the order is given, then a small cross while the units are on the way — and a dot on the minimap.
- * An order is forgotten when its unit gets there, dies, or after {@link #KEEP} ticks.
+ * An order is forgotten when its unit gets there, dies, or after {@link #KEEP} ticks. Once the server has
+ * planned a unit's way ({@link #route}, owner 18.10) the arrows follow that way, round cliffs and buildings.
  */
 final class Orders {
 	static final int KEEP = 20 * 30, FLASH = 16;
@@ -26,6 +27,8 @@ final class Orders {
 	}
 
 	private static final Map<Integer, Order> ORDERS = new HashMap<>();
+	/** The planned way of a unit to its order point: node middles, from where it stood. */
+	private static final Map<Integer, java.util.List<Vec3>> ROUTES = new HashMap<>();
 	private static Vec3 lastPoint;
 	private static int lastColour;
 	private static long lastSince = -1000;
@@ -47,6 +50,7 @@ final class Orders {
 		int colour = colour(action);
 		Minecraft mc = Minecraft.getInstance();
 		long now = mc.level == null ? 0 : mc.level.getGameTime();
+		for (int id : ids) ROUTES.remove(id); // the old way is gone with the old order
 		if (colour == 0) {
 			for (int id : ids) ORDERS.remove(id);
 			return;
@@ -58,6 +62,13 @@ final class Orders {
 		lastSince = now;
 	}
 
+	/** The server planned this unit's way (block x y z per node). */
+	static void route(int id, int[] nodes) {
+		java.util.List<Vec3> points = new java.util.ArrayList<>();
+		for (int i = 0; i + 2 < nodes.length; i += 3) points.add(new Vec3(nodes[i] + 0.5, nodes[i + 1], nodes[i + 2] + 0.5));
+		if (points.size() > 1) ROUTES.put(id, points);
+	}
+
 	/** Forgets orders done, stale or of the gone. */
 	private static void prune(long now) {
 		Minecraft mc = Minecraft.getInstance();
@@ -67,6 +78,7 @@ final class Orders {
 			Vec3 to = entry.getValue().to();
 			return Mth.square(unit.getX() - to.x) + Mth.square(unit.getZ() - to.z) < THERE * THERE;
 		});
+		ROUTES.keySet().retainAll(ORDERS.keySet());
 	}
 
 	/** The arrows and markers in the world (called with the pose at the world's origin). */
@@ -81,7 +93,9 @@ final class Orders {
 			if (!(mc.level.getEntity(entry.getKey()) instanceof StarUnit unit) || !CommandView.selection.contains(unit.getId())) continue;
 			Order order = entry.getValue();
 			Vec3 from = unit.getPosition(partialTick).add(0, 0.15, 0), to = order.to().add(0, 0.15, 0);
-			arrows(last, lines, from, to, order.colour(), now + partialTick);
+			java.util.List<Vec3> route = ROUTES.get(entry.getKey());
+			if (route == null) arrows(last, lines, from, to, order.colour(), now + partialTick);
+			else arrows(last, lines, ahead(route, from, to), order.colour(), now + partialTick);
 			marks.put(order.to(), order.colour());
 		}
 		for (Map.Entry<Vec3, Integer> mark : marks.entrySet()) cross(last, lines, mark.getKey().add(0, 0.1, 0), mark.getValue());
@@ -89,17 +103,39 @@ final class Orders {
 		if (lastPoint != null && flash >= 0 && flash < 1) ring(last, lines, lastPoint.add(0, 0.12, 0), 2.2 * (1 - flash) + 0.3, lastColour);
 	}
 
+	/** The rest of a planned way: from the unit, past the node it is nearest, on to the order point. */
+	private static java.util.List<Vec3> ahead(java.util.List<Vec3> route, Vec3 from, Vec3 to) {
+		int nearest = 0;
+		for (int i = 1; i < route.size(); i++)
+			if (route.get(i).distanceToSqr(from) < route.get(nearest).distanceToSqr(from)) nearest = i;
+		java.util.List<Vec3> points = new java.util.ArrayList<>();
+		points.add(from);
+		for (int i = nearest + 1; i < route.size(); i++) points.add(route.get(i).add(0, 0.15, 0));
+		if (points.get(points.size() - 1).distanceToSqr(to) > 1) points.add(to);
+		return points;
+	}
+
 	/** A dashed line of chevrons from a unit to its point, moving toward the point. */
 	private static void arrows(PoseStack.Pose last, VertexConsumer lines, Vec3 from, Vec3 to, int colour, float time) {
-		Vec3 way = to.subtract(from);
-		double length = way.length();
-		if (length < 0.5) return;
-		Vec3 dir = way.scale(1 / length), side = new Vec3(-dir.z, 0, dir.x).normalize().scale(0.35);
-		double offset = (time * 0.08) % 1.5;
-		for (double t = offset; t < length - 0.6; t += 1.5) {
-			Vec3 tip = from.add(dir.scale(t + 0.5)), back = from.add(dir.scale(t));
-			line(last, lines, back.add(side), tip, colour);
-			line(last, lines, back.subtract(side), tip, colour);
+		arrows(last, lines, java.util.List.of(from, to), colour, time);
+	}
+
+	/** Chevrons a step apart along a line through these points, moving along it. */
+	private static void arrows(PoseStack.Pose last, VertexConsumer lines, java.util.List<Vec3> points, int colour, float time) {
+		double at = (time * 0.08) % 1.5; // where the next chevron's back lies, along the whole line
+		for (int i = 0; i + 1 < points.size(); i++) {
+			Vec3 from = points.get(i), way = points.get(i + 1).subtract(from);
+			double length = way.length();
+			if (length < 1e-3) continue;
+			Vec3 dir = way.scale(1 / length), side = new Vec3(-dir.z, 0, dir.x);
+			side = side.lengthSqr() < 1e-6 ? new Vec3(0.35, 0, 0) : side.normalize().scale(0.35);
+			boolean lastPart = i + 2 == points.size();
+			for (; at < length - (lastPart ? 0.6 : 0); at += 1.5) {
+				Vec3 back = from.add(dir.scale(at)), tip = from.add(dir.scale(Math.min(at + 0.5, length)));
+				line(last, lines, back.add(side), tip, colour);
+				line(last, lines, back.subtract(side), tip, colour);
+			}
+			at -= length;
 		}
 	}
 

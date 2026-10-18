@@ -107,9 +107,23 @@ public final class ColonyNetwork {
 		}
 
 		private static UnitCommand read(RegistryFriendlyByteBuf buf) {
-			int[] ids = buf.readVarIntArray(256);
+			int[] ids = buf.readVarIntArray(1024); // owner 18.10: a big army (256 dropped the connection)
 			return new UnitCommand(ids, buf.readUtf(32), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readVarInt(), buf.readUtf(64));
 		}
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** The way a unit plans to its order point (entity id; block x y z of each node from the next), see dev.starmine.entity.Routes. */
+	public record UnitRoute(int id, int[] nodes) implements CustomPacketPayload {
+		public static final Type<UnitRoute> TYPE = new Type<>(StarMine.id("unit_route"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, UnitRoute> CODEC = StreamCodec.of((buf, value) -> {
+			buf.writeVarInt(value.id);
+			buf.writeVarIntArray(value.nodes);
+		}, buf -> new UnitRoute(buf.readVarInt(), buf.readVarIntArray(3 * 128)));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {
@@ -170,6 +184,7 @@ public final class ColonyNetwork {
 	public static void register() {
 		PayloadTypeRegistry.playS2C().register(BaseStatus.TYPE, BaseStatus.CODEC);
 		PayloadTypeRegistry.playS2C().register(BaseMarks.TYPE, BaseMarks.CODEC);
+		PayloadTypeRegistry.playS2C().register(UnitRoute.TYPE, UnitRoute.CODEC);
 		PayloadTypeRegistry.playC2S().register(UnitCommand.TYPE, UnitCommand.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(UnitCommand.TYPE, (command, context) -> Commands.command(context.player(), command));
 	}
