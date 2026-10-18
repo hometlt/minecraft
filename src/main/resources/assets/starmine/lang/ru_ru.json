@@ -634,6 +634,7 @@
 	"command.starmine.food": "Снабжение %s",
 	"command.starmine.time": "Время %s с",
 	"command.starmine.requires": "Нужно: %s",
+	"command.starmine.morphing": "Улучшается",
 	"command.starmine.constructing": "Строится",
 	"block.starmine.vespene": "Жидкий веспен",
 	"block.starmine.vespene_vent": "Выход веспеновой жилы",

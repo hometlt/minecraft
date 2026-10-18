@@ -25,6 +25,8 @@ public final class AbilityState {
 	int channelTicks;
 	/** Ticks left of a mode change (a tank sieging up); the unit neither moves nor fights meanwhile. */
 	int modeTicks;
+	/** The whole time of the change under way (for its progress bar, owner 18.10). */
+	int modeTotal;
 	/** The mode it changes to. */
 	int nextMode;
 	/** The kind it turns into when the change is done ({@link Morphs}: a hellion into a hellbat), or null. */
@@ -96,6 +98,11 @@ public final class AbilityState {
 
 	public boolean changingMode() {
 		return modeTicks > 0;
+	}
+
+	/** How far the change of form under way is, 0-1000 (owner 18.10: shown like a construction's). */
+	public int changeProgress() {
+		return modeTicks <= 0 ? 0 : 1000 - (int) (1000L * modeTicks / Math.max(modeTicks, modeTotal));
 	}
 
 	/** Whether an SCV is repairing something or on its way to (its work waits meanwhile). */

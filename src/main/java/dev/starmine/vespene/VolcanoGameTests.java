@@ -45,6 +45,36 @@ public class VolcanoGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
+	/** Owner 18.10: a gas building on a generated geyser takes its whole cobblestone mound away and stands on the ground. */
+	@GameTest(template = ARENA, batch = "volcano", timeoutTicks = 40)
+	public void aGasBuildingTakesTheMoundAway(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		// a geyser as the world makes one (VespeneVeinFeature): its trunk up through the ground, a mound 4 layers high
+		// (radius 4 to 1) on the ground, the outlet on its top
+		BlockPos root = helper.absolutePos(new BlockPos(24, -2, 24)), ground = root.above(3), top = ground.above(1 + VespeneRootBlockEntity.MOUND);
+		List<BlockPos> channel = new ArrayList<>();
+		for (BlockPos cell = root.above(); cell.getY() < top.getY(); cell = cell.above()) channel.add(cell.immutable());
+		for (int k = 0; k <= 3; k++) {
+			int r = 4 - k;
+			for (int dx = -r; dx <= r; dx++)
+				for (int dz = -r; dz <= r; dz++)
+					if (dx * dx + dz * dz <= r * r + 1) level.setBlock(ground.above(1 + k).offset(dx, 0, dz), Blocks.COBBLESTONE.defaultBlockState(), 2);
+		}
+		level.setBlock(root, Vespene.ROOT.defaultBlockState(), 2);
+		for (BlockPos cell : channel) level.setBlock(cell, Vespene.VESPENE.defaultBlockState(), 2);
+		level.setBlock(top, Vespene.VESPENE.defaultBlockState().setValue(VespeneBlock.OUTLET, true), 2);
+		((VespeneRootBlockEntity) level.getBlockEntity(root)).setVein(channel, List.of(top));
+		BlockPos chosen = dev.starmine.race.Placement.site(level, dev.starmine.entity.UnitKind.REFINERY, top.below(2).east(3));
+		helper.assertTrue(chosen != null && chosen.getY() <= top.getY() - VespeneRootBlockEntity.MOUND, "the site is not under the mound: " + chosen);
+		BlockPos site = Vespene.collapseUnder(level, chosen);
+		helper.assertTrue(site.equals(chosen), "the building stands at " + site + ", not " + chosen);
+		helper.assertTrue(Vespene.outletUnder(level, site) != null, "no outlet under the building");
+		for (BlockPos at : BlockPos.betweenClosed(site.offset(-5, 0, -5), site.offset(5, VespeneRootBlockEntity.MOUND + 1, 5)))
+			helper.assertFalse(level.getBlockState(at).is(Blocks.COBBLESTONE), "cobblestone left at " + helper.relativePos(at).toShortString());
+		helper.succeed();
+	}
+
 	/** A mineral hall under a stone hill: a carved hall with a flat floor, a geyser of its own vein, crystals round it. */
 	@GameTest(template = ARENA, batch = "mineralHall", timeoutTicks = 100)
 	public void mineralsLieInAHallUnderground(GameTestHelper helper) {

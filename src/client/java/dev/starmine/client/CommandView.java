@@ -388,6 +388,8 @@ public final class CommandView {
 		Vec3 point = target > 0 && mc.level != null && mc.level.getEntity(target) instanceof Entity aimed ? aimed.position() : at;
 		if (!action.equals("train") && !action.equals("cancel") && !action.equals("build") && !(action.equals("ability") && point.lengthSqr() == 0))
 			Orders.sent(ids, action, point);
+		if (action.equals("ability") && arg != null && arg.equals(dev.starmine.ability.Ability.SCANNER_SWEEP.id) && point.lengthSqr() > 0
+			&& selected().stream().anyMatch(unit -> own(unit) && unit.mode() == dev.starmine.ability.Modes.ORBITAL)) scanned(point);
 	}
 
 	// ---- fog of war ----
@@ -397,6 +399,21 @@ public final class CommandView {
 
 	private static List<Sight> sights = List.of();
 
+	/** A scanner sweep the player cast: its sight (from high over its place, a detector) and when it ends. */
+	private record Scan(Sight sight, long until) {
+	}
+
+	private static final List<Scan> SCANS = new ArrayList<>();
+
+	/** The player cast a scanner sweep at `at`: its place is seen (fog lifted, cloaked units shown) for the sweep's time. */
+	static void scanned(Vec3 at) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return;
+		double ground = mc.level.getHeight(Heightmap.Types.WORLD_SURFACE, Mth.floor(at.x), Mth.floor(at.z));
+		SCANS.add(new Scan(new Sight(at.x, Math.max(at.y, ground) + 24, at.z, Math.hypot(dev.starmine.ability.TerranAbilities.SCAN_RADIUS, 24), true),
+			mc.level.getGameTime() + dev.starmine.ability.TerranAbilities.SCAN_TICKS));
+	}
+
 	/** What the base's units and buildings and the player's body see (recomputed each tick and frame). */
 	private static void updateSights(Minecraft mc) {
 		List<Sight> list = new ArrayList<>();
@@ -405,6 +422,9 @@ public final class CommandView {
 			for (Entity entity : mc.level.entitiesForRendering())
 				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
 					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight(), unit.kind.detector()));
+		long now = mc.level == null ? 0 : mc.level.getGameTime();
+		SCANS.removeIf(scan -> scan.until() < now);
+		for (Sight scan : SCANS.stream().map(Scan::sight).toList()) list.add(scan); // owner 18.10: a scanner sweep shows its place
 		sights = list;
 		if (mc.level != null) VisionBlockers.refresh(mc.level);
 	}
@@ -673,7 +693,8 @@ public final class CommandView {
 		BlockPos site = hit.getBlockPos().above();
 		if (placing.gas()) { // on a vein outlet only
 			BlockPos outlet = dev.starmine.vespene.Vespene.outletFor(mc.level, site); // a volcano's cone: its top (owner 18.10)
-			if (outlet != null) site = outlet.above();
+			// the ghost stands where the building will (owner 18.10): on the ground under the mound and cone it takes away
+			if (outlet != null) site = java.util.Objects.requireNonNullElse(dev.starmine.vespene.Vespene.siteFor(mc.level, site), outlet.above());
 			ghostSite = site;
 			boolean taken = !mc.level.getEntitiesOfClass(StarUnit.class, new AABB(site).inflate(1, 2, 1), mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
 			ghostValid = outlet != null && !taken && seen(site.getX(), site.getZ(), 0);

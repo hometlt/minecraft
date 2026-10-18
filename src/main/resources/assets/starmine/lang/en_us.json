@@ -634,6 +634,7 @@
 	"command.starmine.food": "Supply %s",
 	"command.starmine.time": "Time %s s",
 	"command.starmine.requires": "Requires: %s",
+	"command.starmine.morphing": "Upgrading",
 	"command.starmine.constructing": "Under construction",
 	"block.starmine.vespene": "Liquid Vespene",
 	"block.starmine.vespene_vent": "Vespene Vent",

@@ -329,7 +329,7 @@ public final class RaceBases {
 		int depositX = centre.getX() - (PLAZA + 8), depositZ = centre.getZ();
 		if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD)
 			for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
-				spawns.add(Spawn.member(race.rules().gasBuilding(), gas));
+				spawns.add(Spawn.member(race.rules().gasBuilding(), dev.starmine.vespene.Vespene.collapseUnder(level, gas))); // its mound taken away
 		// owner 16.10: main bases well defended — at the plaza's edge, by each pylon's line, a gun and a battery or bunker
 		for (int i = 0; i < 3; i++) {
 			double angle = Math.PI / 3 + i * Math.PI * 2 / 3;

@@ -148,15 +148,14 @@ public final class Vespene {
 		BlockPos outlet = outletFor(level, chosen);
 		if (outlet == null) return null;
 		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
-		return outlet.below(vein == null ? 0 : vein.risen(outlet)).above();
+		return (vein == null ? outlet : vein.baseOf(level, outlet)).above(); // owner 18.10: under its mound and cone, on the ground
 	}
 
 	/** How far round a gas building's site a worker may stop to put it down: a volcano's cone keeps it off (0: no volcano). */
 	public static double coneReach(net.minecraft.world.level.Level level, BlockPos site) {
 		BlockPos outlet = outletFor(level, site);
 		VespeneRootBlockEntity vein = outlet == null ? null : VespeneRootBlockEntity.veinOf(level, outlet);
-		int risen = vein == null ? 0 : vein.risen(outlet);
-		return risen == 0 ? 0 : Math.ceil(1 + (risen + 2) * 0.75) + 1;
+		return vein == null ? 0 : vein.coneReach(level, outlet);
 	}
 
 	/**

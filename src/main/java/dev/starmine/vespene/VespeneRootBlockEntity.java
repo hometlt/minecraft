@@ -225,36 +225,70 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	}
 
 	/**
-	 * Owner 17.10: a gas building put on a volcano destroys it — the cobblestone cone and the risen column go, the
-	 * outlet is back at the ground where it rose from, and the building stands there. The outlet's position now.
+	 * A gas building put on a geyser takes all its cobblestone away (owner 17.10: a volcano's cone; owner 18.10: the
+	 * geyser's mound too, down to its base): the outlet goes down to the ground the mound stands on, the column over
+	 * it and every cobblestone of the mound and cone go, and the building stands on the ground. The outlet's position
+	 * now. Left open again (the building destroyed) it rises once more as a volcano ({@link #volcanoes}).
 	 */
 	public BlockPos collapse(Level level, BlockPos outlet) {
 		int i = -1;
 		for (int k = 0; k < outlets.length; k++) if (outlets[k] == outlet.asLong()) i = k;
-		if (i < 0 || risen[i] == 0) return outlet;
-		int r = risen[i];
-		BlockPos ground = outlet.below(r);
+		if (i < 0) return outlet;
+		BlockPos base = baseOf(level, outlet);
+		if (base.equals(outlet)) return outlet;
 		java.util.Set<Long> column = new java.util.HashSet<>();
-		for (int k = 1; k <= r; k++) column.add(ground.above(k).asLong());
+		for (int y = base.getY() + 1; y <= outlet.getY(); y++) column.add(new BlockPos(base.getX(), y, base.getZ()).asLong());
 		channel = java.util.Arrays.stream(channel).filter(cell -> !column.contains(cell)).toArray();
-		// the cone: cobblestone round the column above the ground (the column's vespene too)
-		int reach = (int) Math.ceil(1 + (r + 2) * 0.75);
-		for (int y = ground.getY() + 1; y <= outlet.getY() + 1; y++)
+		int reach = coneReach(level, outlet);
+		for (int y = base.getY() + 1; y <= outlet.getY() + 1; y++)
 			for (int dx = -reach; dx <= reach; dx++)
 				for (int dz = -reach; dz <= reach; dz++) {
-					BlockPos at = new BlockPos(ground.getX() + dx, y, ground.getZ() + dz);
+					if (dx * dx + dz * dz > reach * reach + 1) continue;
+					BlockPos at = new BlockPos(base.getX() + dx, y, base.getZ() + dz);
 					if (!level.isLoaded(at)) continue;
 					BlockState there = level.getBlockState(at);
-					if (there.is(net.minecraft.world.level.block.Blocks.COBBLESTONE) || there.is(Vespene.VESPENE) || there.is(Vespene.VENT))
+					if (there.is(net.minecraft.world.level.block.Blocks.COBBLESTONE) || there.is(Vespene.VESPENE) || there.is(Vespene.TERRAZINE)
+						|| there.is(Vespene.VENT))
 						level.setBlock(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 				}
-		outlets[i] = ground.asLong();
+		outlets[i] = base.asLong();
 		risen[i] = 0;
-		sync(level);
 		nextRise[i] = 0;
-		fill(level, ground, true);
-		level.playSound(null, ground, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.2f);
-		return ground;
+		fill(level, base, true);
+		sync(level);
+		level.playSound(null, base, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.2f);
+		return base;
+	}
+
+	/**
+	 * Where an outlet goes when its cobblestone is taken away ({@link #collapse}): under a volcano's rise and a mound's
+	 * height, flush with the ground the trunk comes up through; the outlet itself when it has neither.
+	 */
+	public BlockPos baseOf(Level level, BlockPos outlet) {
+		BlockPos base = outlet.below(risen(outlet));
+		if (hasMound(level, base)) {
+			base = base.below(MOUND);
+			if (isVespene(level, base.below())) base = base.below();
+		}
+		return base;
+	}
+
+	/** How far round its outlet an outlet's cobblestone (mound, cone) reaches; 0 with none. */
+	public int coneReach(Level level, BlockPos outlet) {
+		int r = risen(outlet);
+		return Math.max(hasMound(level, outlet.below(r)) ? MOUND + 2 : 0, r == 0 ? 0 : (int) Math.ceil(1 + (r + 2) * 0.75) + 1);
+	}
+
+	/** How high a generated geyser's mound is over its base (VespeneVeinFeature: 4 layers, the outlet on the top one). */
+	public static final int MOUND = 3;
+
+	/** Whether the outlet at `top` stands on a geyser's mound: its widest ring (4 across from the middle) is cobblestone. */
+	private static boolean hasMound(Level level, BlockPos top) {
+		BlockPos ring = top.below(MOUND);
+		int cobble = 0;
+		for (net.minecraft.core.Direction side : net.minecraft.core.Direction.Plane.HORIZONTAL)
+			if (level.getBlockState(ring.relative(side, 4)).is(net.minecraft.world.level.block.Blocks.COBBLESTONE)) cobble++;
+		return cobble >= 3;
 	}
 
 	/** The highest vespene block of the channel (taken first: the vein empties from the top). */

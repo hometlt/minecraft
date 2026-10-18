@@ -380,6 +380,10 @@ public class TerranAbilityGameTests implements FabricGameTest {
 			helper.assertTrue(Abilities.cast(cc, level, Ability.ORBITAL_COMMAND, null, null), "no orbital");
 			helper.assertTrue(base.minerals == 850, "the orbital is not paid");
 		});
+		helper.runAfterDelay(260, () -> { // owner 18.10: halfway, its progress shows like a construction's
+			helper.assertTrue(cc.queueIds().equals("morph") && cc.progress() > 300 && cc.progress() < 700,
+				"no upgrade progress halfway: " + cc.queueIds() + " " + cc.progress());
+		});
 		helper.runAfterDelay(530, () -> {
 			helper.assertTrue(cc.mode() == Modes.ORBITAL && cc.maxEnergy() == 200 && cc.energy() >= 50, "not an orbital with energy");
 			helper.assertTrue(!Abilities.available(cc, Ability.PLANETARY_FORTRESS), "an orbital can still become a fortress");

@@ -127,6 +127,7 @@ public final class Modes {
 			return;
 		}
 		state.modeTicks = ticks;
+		state.modeTotal = ticks;
 		unit.showChange(mode, state.morphTo, ticks); // drawn as a morph (client UnitRenderer)
 		unit.applyWeapon(new Weapon(0, 0, 0, 0, 0, false)); // nothing while it changes
 	}

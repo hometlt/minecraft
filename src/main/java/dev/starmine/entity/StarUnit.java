@@ -2246,11 +2246,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private void syncProgress() {
 		int progress = 0;
 		if (constructTicks > 0) progress = 1000 - (int) (1000L * constructTicks / Math.max(1, kind.economy().trainTicks()));
+		else if (abilities.changingMode()) progress = abilities.changeProgress(); // an upgrade (orbital, fortress, add-on), lift-off
 		else if (!queue.isEmpty()) progress = (int) (1000L * trainTicks / Math.max(1, queue.get(0).economy().trainTicks()));
 		else if (research != null) progress = -(int) (1000L * researchTicks / Math.max(1, dev.starmine.race.Research.byId(research) == null ? 1
 			: dev.starmine.race.Research.byId(research).ticks(1)));
 		this.entityData.set(PROGRESS, progress);
-		this.entityData.set(QUEUE_IDS, constructTicks > 0 ? "construct"
+		this.entityData.set(QUEUE_IDS, constructTicks > 0 ? "construct" : abilities.changingMode() ? "morph"
 			: String.join(",", queue.stream().map(k -> k.id).toList()) + (research != null ? (queue.isEmpty() ? "" : ",") + "research:" + research : ""));
 	}
 

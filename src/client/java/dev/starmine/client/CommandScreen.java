@@ -417,8 +417,9 @@ public final class CommandScreen extends Screen {
 			if (unit.kind.structure() && CommandView.own(unit)) {
 				int progress = unit.progress();
 				String queue = unit.queueIds();
-				if (queue.equals("construct")) {
-					graphics.drawString(font, Component.translatable("command.starmine.constructing"), panelLeft + 6, panelTop + 40, 0xFFFFD040);
+				if (queue.equals("construct") || queue.equals("morph")) { // owner 18.10: an upgrade's progress where a construction's is
+					graphics.drawString(font, Component.translatable(queue.equals("morph") ? "command.starmine.morphing" : "command.starmine.constructing"),
+						panelLeft + 6, panelTop + 40, 0xFFFFD040);
 					bar(graphics, panelLeft + 6, panelTop + 52, panelWidth - 12, progress / 1000f, 0xFFFFD040);
 				} else if (!queue.isEmpty()) {
 					int x = panelLeft + 6;
@@ -874,9 +875,12 @@ public final class CommandScreen extends Screen {
 				if (mc.level != null) {
 					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
 					boolean buildings = CommandView.selected().stream().filter(CommandView::own).allMatch(u -> u.kind.structure());
-					if (targeting != null && !targeting.startsWith("ability:") && !targeting.equals("gather") && !CommandView.heroSelected()) {
-						// SC2: a command waiting for its target goes to the minimap too (A, then the map: attack-move there)
-						CommandView.send(targeting.equals("attack") ? "attack_move" : targeting, new Vec3(at.x, y, at.z), -1, null);
+					if (targeting != null && !targeting.equals("gather") && !CommandView.heroSelected()) {
+						// SC2: a command waiting for its target goes to the minimap too (A, then the map: attack-move there; an aimed
+						// ability, a scanner sweep, at that place — owner 18.10)
+						Vec3 point = new Vec3(at.x, y, at.z);
+						if (targeting.startsWith("ability:")) CommandView.send("ability", point, -1, targeting.substring(8));
+						else CommandView.send(targeting.equals("attack") ? "attack_move" : targeting, point, -1, null);
 						if (!hasShiftDown()) targeting = null;
 					} else if (CommandView.heroSelected()) HeroPilot.move(new Vec3(at.x, y, at.z));
 					else CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
