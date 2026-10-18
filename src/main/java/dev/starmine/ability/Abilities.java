@@ -76,8 +76,18 @@ public final class Abilities {
 			case ARCHON_WARP -> ProtossAbilities.partner(unit) == null ? "message.starmine.no_partner" : null;
 			case REPAIR, MULE -> base(unit) == null ? "message.starmine.no_base" : null;
 			case GREATER_SPIRE -> base(unit) != null && base(unit).tier < 3 ? "message.starmine.need_tech" : null; // SC2: a hive first
+			// owner 18.10 (SC2 tech): an orbital needs a barracks, a fortress an engineering bay, the hellbat an armory
+			case ORBITAL_COMMAND -> lacks(unit, UnitKind.BARRACKS);
+			case PLANETARY_FORTRESS -> lacks(unit, UnitKind.ENGINEERING_BAY);
+			case HELLBAT -> unit.kind == UnitKind.HELLION ? lacks(unit, UnitKind.ARMORY) : null;
 			default -> null;
 		};
+	}
+
+	/** "need_tech" when a player's base has no `building` (the wild and Amun need none, as for brood lords). */
+	private static @Nullable String lacks(StarUnit unit, UnitKind building) {
+		Hive base = base(unit);
+		return base == null || base.owner == null || base.count(building) > 0 ? null : "message.starmine.need_tech";
 	}
 
 	/**

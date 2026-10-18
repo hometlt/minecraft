@@ -160,7 +160,7 @@ public final class TerranRace implements RaceRules {
 	}
 
 	public static boolean needsTechLab(UnitKind kind) {
-		return kind == MARAUDER || kind == GHOST || kind == SIEGE_TANK || kind == THOR || kind == BANSHEE || kind == BATTLECRUISER;
+		return kind == MARAUDER || kind == GHOST || kind == SIEGE_TANK || kind == THOR || kind == BANSHEE || kind == RAVEN || kind == BATTLECRUISER;
 	}
 
 	/**

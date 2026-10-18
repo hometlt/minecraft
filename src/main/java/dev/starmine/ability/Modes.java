@@ -92,8 +92,8 @@ public final class Modes {
 			return new Weapon(11 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 18, 0, 0, true);
 		if (kind == UnitKind.ORACLE) return mode == PULSAR ? own : none(true); // the pulsar beam is its only weapon
 		if (kind == UnitKind.WARP_PRISM && mode == PHASING) return none(false);
-		if (kind == UnitKind.COMMAND_CENTER && mode == PLANETARY) // SC2 ibiks cannon: 40, range 6, 2 s, splash 1.25
-			return new Weapon(6 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 40, 1.25 * BLOCKS_PER_UNIT, 0, false);
+		if (kind == UnitKind.COMMAND_CENTER && mode == PLANETARY) // SC2 ibiks cannon: 40, range 6, 1.43 s, splash 1.25
+			return new Weapon(6 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 29, 1.25 * BLOCKS_PER_UNIT, 0, false); // 1.43 s at Faster
 		return own;
 	}
 

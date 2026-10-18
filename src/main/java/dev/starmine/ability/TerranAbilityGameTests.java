@@ -377,6 +377,10 @@ public class TerranAbilityGameTests implements FabricGameTest {
 			helper.assertTrue(base != null, "no base");
 			base.minerals = 1000;
 			helper.assertTrue(!Abilities.available(cc, Ability.MULE), "a plain command center calls MULEs");
+			if (base.owner != null) { // SC2: an orbital needs a barracks (a player's base; owner 18.10)
+				helper.assertTrue(!Abilities.cast(cc, level, Ability.ORBITAL_COMMAND, null, null), "an orbital without a barracks");
+				base.join(UnitKind.BARRACKS);
+			}
 			helper.assertTrue(Abilities.cast(cc, level, Ability.ORBITAL_COMMAND, null, null), "no orbital");
 			helper.assertTrue(base.minerals == 850, "the orbital is not paid");
 		});

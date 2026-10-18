@@ -168,6 +168,8 @@ public final class Hive {
 			if (entry.getKey().race == of) cap += entry.getKey().economy().supply() * entry.getValue();
 		// hives saved before their hatchery was counted as a member
 		if (of == UnitKind.Race.ZERG && race == UnitKind.Race.ZERG && count(UnitKind.HATCHERY) == 0) cap += UnitKind.HATCHERY.economy().supply();
+		// an overlord morphing into an overseer keeps providing its supply as a cocoon (SC2; owner 18.10)
+		if (of == UnitKind.Race.ZERG) cap += pending(UnitKind.OVERSEER) * UnitKind.OVERSEER.economy().supply();
 		return Math.min(MAX_SUPPLY, cap);
 	}
 

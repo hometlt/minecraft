@@ -178,6 +178,11 @@ public enum Research {
 		// a burrowed roach crawls only with tunneling claws (a player's; the wild and Amun's need no research)
 		if (kind == UnitKind.ROACH && unit.mode() == dev.starmine.ability.Modes.BURROWED && weapon.mobile() && !has(unit, TUNNELING_CLAWS))
 			return new dev.starmine.ability.Modes.Weapon(weapon.range(), weapon.damage(), weapon.interval(), weapon.splash(), weapon.minRange(), false);
+		// owner 18.10 (SC2): a bunker's garrison shoots 1 farther, and 1 more with hi-sec auto tracking
+		double garrison = unit.getVehicle() instanceof dev.starmine.entity.StarUnit bunker && bunker.kind == UnitKind.BUNKER && weapon.damage() > 0
+			? 1 + (has(bunker, HISEC_AUTO_TRACKING) ? 1 : 0) : 0;
+		if (garrison > 0) weapon = new dev.starmine.ability.Modes.Weapon(weapon.range() + garrison * UnitKind.BLOCKS_PER_UNIT, weapon.damage(),
+			weapon.interval(), weapon.splash(), weapon.minRange(), weapon.mobile());
 		if (base == null || base.researched.isEmpty() || weapon.damage() <= 0) return weapon;
 		double range = 0, pace = 1;
 		if (kind == UnitKind.HYDRALISK && base.researched.contains(GROOVED_SPINES.id())) range = 1;

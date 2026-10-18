@@ -198,6 +198,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Terran production: kinds queued (paid), ticks into the first, where new units go. */
 	private final List<UnitKind> queue = new ArrayList<>();
 	private int trainTicks;
+	/** A reactor's second slot: the second queued unit trains alongside the first, on its own time (SC2). */
+	private int secondTicks;
 	private Vec3 rally;
 	/** Engineering bay research: "weapons" or "armor" and ticks left. */
 	private String research;
@@ -1119,7 +1121,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		}
 		if (!queue.isEmpty()) {
 			tag.putString("StarMineQueue", String.join(",", queue.stream().map(Enum::name).toList()));
-			tag.putInt("StarMineTrain", trainTicks);
+			tag.putInt("StarMineTrain", trainTicks); tag.putInt("StarMineTrain2", secondTicks);
 		}
 		if (rally != null) tag.put("StarMineRally", NbtUtils.writeBlockPos(BlockPos.containing(rally)));
 		if (research != null) {
@@ -1207,7 +1209,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			} catch (IllegalArgumentException ignored) {
 				// a kind removed from the mod
 			}
-		trainTicks = tag.getInt("StarMineTrain");
+		trainTicks = tag.getInt("StarMineTrain"); secondTicks = tag.getInt("StarMineTrain2");
 		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
 		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
 		researchTicks = tag.getInt("StarMineResearchTicks");
@@ -1228,6 +1230,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public boolean removeWhenFarAway(double distance) {
 		return hiveId == null && !kind.structure() && super.removeWhenFarAway(distance);
+	}
+
+	/** Its model is wider than its hitbox: the crosshair finds it there too ({@link UnitKind#reachPad}). */
+	@Override
+	public float getPickRadius() {
+		return kind.reachPad();
 	}
 
 	@Override
@@ -1505,7 +1513,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.flying) this.setNoGravity(false);
 		if (this.isVehicle()) {
 			if (kind == UnitKind.BUNKER) dev.starmine.ability.Transport.unloadHere(this); // a bunker's garrison walks out
-			else this.ejectPassengers();
+			else { // owner 18.10 (SC2): a transport's cargo dies with it
+				List<Entity> cargo = new ArrayList<>(this.getPassengers());
+				this.ejectPassengers();
+				for (Entity carried : cargo) if (carried instanceof StarUnit unit) unit.kill();
+			}
 		}
 		if (this.deathTime >= kind.deathTicks() && !this.level().isClientSide() && !this.isRemoved()) {
 			this.level().broadcastEntityEvent(this, (byte) 60);
@@ -1754,6 +1766,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (!queue.isEmpty()) {
 			UnitKind last = queue.remove(queue.size() - 1);
 			if (queue.isEmpty()) trainTicks = 0;
+			if (queue.size() < 2) secondTicks = 0;
 			if (hive != null) {
 				hive.refund(last, 1);
 				hive.born(last, 1);
@@ -1790,13 +1803,24 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (queue.isEmpty() || abilities.changingMode()) return;
 		int step = workTicks();
 		trainTicks += step;
-		boolean reactor = mode() == dev.starmine.ability.Modes.REACTOR && queue.size() > 1;
-		int ready = trainTicks >= queue.get(0).economy().trainTicks() ? reactor ? 2 : 1 : 0;
-		if (ready == 0) return;
+		boolean second = mode() == dev.starmine.ability.Modes.REACTOR && queue.size() > 1;
+		secondTicks = second ? secondTicks + step : 0;
+		// owner 18.10 (SC2): each reactor slot finishes on its own unit's time — a unit queued second used to finish
+		// together with the first, whatever its own time or how late it was queued
+		boolean firstDone = trainTicks >= queue.get(0).economy().trainTicks(), secondDone = second && secondTicks >= queue.get(1).economy().trainTicks();
+		if (!firstDone && !secondDone) return;
+		List<UnitKind> ready = new ArrayList<>();
+		if (secondDone) {
+			ready.add(queue.remove(1));
+			secondTicks = 0;
+		}
+		if (firstDone) {
+			ready.add(0, queue.remove(0));
+			trainTicks = secondDone ? 0 : secondTicks; // the second slot's unit moves up with its progress
+			secondTicks = 0;
+		}
 		Hive hive = HiveSavedData.get(server.getServer()).get(hiveId);
-		trainTicks = 0;
-		for (int n = 0; n < ready && !queue.isEmpty(); n++) {
-			UnitKind unit = queue.remove(0);
+		for (UnitKind unit : ready) {
 			if (hive == null) return;
 			hive.born(unit, 1);
 			Vec3 spot = null;
