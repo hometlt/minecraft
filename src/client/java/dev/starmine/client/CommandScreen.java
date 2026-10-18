@@ -31,8 +31,8 @@ import org.lwjgl.glfw.GLFW;
  * - top right: the resource panel ({@link BaseStatusClient});
  * - bottom right: the command card, 5 columns x 3 rows, with SC2 hotkeys. Units: move (M), stop (S),
  *   hold (H), patrol (P), attack (A); SCVs also gather (G), return cargo (C), build (B) and build
- *   advanced (V), which open pages of buildings (each placed as a translucent ghost: left click puts
- *   it, right click or Esc cancels). Buildings: the units they train, research at the engineering
+ *   advanced (V), which open pages of buildings (each placed as a translucent ghost: right click puts
+ *   it, left click or Esc cancels). Buildings: the units they train, research at the engineering
  *   bay, rally (Y), cancel (X). Greyed when the tech or the money is missing; the tooltip tells the cost;
  * - every action shows its SC2 button icon ({@link Sc2Buttons}, exported by Modkit) when the SC2 assets
  *   carry it, else its name;
@@ -41,7 +41,8 @@ import org.lwjgl.glfw.GLFW;
  * Mouse: left click selects (shift adds, double click takes all of that kind on screen), dragging
  * selects the base's units in a box; right click is the smart command (attack an enemy, gather a tree
  * or ore, return cargo at a command center, otherwise move; for buildings, the rally point). Commands
- * that need a target (move, patrol, attack, gather, rally) take the next left click. Ctrl+1..9 saves a
+ * that need a target (move, patrol, attack, gather, rally) take the next right click (owner 18.10: every action is the right button's; a left click
+ * only selects, dropping the waiting command). Ctrl+1..9 saves a
  * group, 1..9 selects it. Arrows and the screen edges pan (WASD too, unless the letter is a hotkey of
  * the card), the wheel zooms, Q/E turn the isometric view by a quarter, the middle button pans (held on the minimap it drags the map); the
  * minimap (bottom left) moves the view with a left click and sends the selection with a right click. Esc steps back: cancels placing or
@@ -785,8 +786,8 @@ public final class CommandScreen extends Screen {
 			CommandView.lookAt(CommandView.targetX + (cos * dragX - sin * dragY) * step, CommandView.targetZ + (sin * dragX + cos * dragY) * step);
 			return true;
 		}
-		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && !dragging && CommandView.placing == null && (targeting == null || gatherPress)
-			&& Math.abs(mouseX - this.dragX) + Math.abs(mouseY - this.dragY) > 4 && !onPanel(this.dragX, this.dragY)) dragging = true;
+		if ((button == GLFW.GLFW_MOUSE_BUTTON_LEFT ? CommandView.placing == null && targeting == null : button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && gatherPress)
+			&& !dragging && Math.abs(mouseX - this.dragX) + Math.abs(mouseY - this.dragY) > 4 && !onPanel(this.dragX, this.dragY)) dragging = true;
 		return true;
 	}
 
@@ -814,14 +815,6 @@ public final class CommandScreen extends Screen {
 			}
 			if (CommandMinimap.contains(mouseX, mouseY, height)) {
 				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
-				Minecraft mc = Minecraft.getInstance();
-				if (targeting != null && !targeting.startsWith("ability:") && !targeting.equals("gather") && !CommandView.heroSelected() && mc.level != null) {
-					// SC2: a command waiting for its target is given on the minimap too (A, then a click on the map: attack-move there)
-					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
-					CommandView.send(targeting.equals("attack") ? "attack_move" : targeting, new Vec3(at.x, y, at.z), -1, null);
-					if (!hasShiftDown()) targeting = null;
-					return true;
-				}
 				CommandView.lookAt(at.x, at.z);
 				this.dragX = mouseX;
 				this.dragY = mouseY;
@@ -852,6 +845,35 @@ public final class CommandScreen extends Screen {
 				return true;
 			}
 			if (onPanel(mouseX, mouseY)) return true;
+			if (CommandView.placing != null || targeting != null) { // owner 18.10: the left button only selects; it drops a waiting command
+				CommandView.placing = null;
+				targeting = null;
+				gatherPress = false;
+			}
+			this.dragX = mouseX;
+			this.dragY = mouseY;
+			dragging = false;
+			return true;
+		}
+		// owner 18.10: every action is the right button's — the smart command, and a command waiting for its target (attack,
+		// move, patrol, gather, rally, an aimed ability, a building's site); the left button only selects
+		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+			if (CommandMinimap.contains(mouseX, mouseY, height)) { // an order to a point on the minimap
+				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
+				Minecraft mc = Minecraft.getInstance();
+				if (mc.level != null) {
+					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
+					boolean buildings = CommandView.selected().stream().filter(CommandView::own).allMatch(u -> u.kind.structure());
+					if (targeting != null && !targeting.startsWith("ability:") && !targeting.equals("gather") && !CommandView.heroSelected()) {
+						// SC2: a command waiting for its target goes to the minimap too (A, then the map: attack-move there)
+						CommandView.send(targeting.equals("attack") ? "attack_move" : targeting, new Vec3(at.x, y, at.z), -1, null);
+						if (!hasShiftDown()) targeting = null;
+					} else if (CommandView.heroSelected()) HeroPilot.move(new Vec3(at.x, y, at.z));
+					else CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
+				}
+				return true;
+			}
+			if (onPanel(mouseX, mouseY)) return true;
 			if (CommandView.placing != null) {
 				CommandView.updateGhost(mouseX, mouseY, width, height);
 				if (CommandView.ghostSite != null && CommandView.ghostValid) {
@@ -875,29 +897,7 @@ public final class CommandScreen extends Screen {
 				if (!hasShiftDown()) targeting = null;
 				return true;
 			}
-			this.dragX = mouseX;
-			this.dragY = mouseY;
-			dragging = false;
-			return true;
-		}
-		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-			if (CommandView.placing != null || targeting != null) {
-				CommandView.placing = null;
-				targeting = null;
-				return true;
-			}
-			if (CommandMinimap.contains(mouseX, mouseY, height)) { // an order to a point on the minimap
-				Vec3 at = CommandMinimap.world(mouseX, mouseY, height);
-				Minecraft mc = Minecraft.getInstance();
-				if (mc.level != null) {
-					double y = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(at.x), (int) Math.floor(at.z));
-					boolean buildings = CommandView.selected().stream().filter(CommandView::own).allMatch(u -> u.kind.structure());
-					if (CommandView.heroSelected()) HeroPilot.move(new Vec3(at.x, y, at.z));
-					else CommandView.send(buildings ? "rally" : "move", new Vec3(at.x, y, at.z), -1, null);
-				}
-				return true;
-			}
-			if (!onPanel(mouseX, mouseY)) smart(mouseX, mouseY);
+			smart(mouseX, mouseY);
 			return true;
 		}
 		return true;
@@ -905,7 +905,7 @@ public final class CommandScreen extends Screen {
 
 	@Override
 	public boolean mouseReleased(double mouseX, double mouseY, int button) {
-		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && gatherPress) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && gatherPress) {
 			gatherPress = false;
 			if (dragging) {
 				BlockHitResult a = CommandView.block(dragX, dragY, width, height), b = CommandView.block(mouseX, mouseY, width, height);

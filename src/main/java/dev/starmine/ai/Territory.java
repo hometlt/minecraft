@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
  * and how many by the game rule `starmineAiPressure` (0 — never).
  */
 public final class Territory {
-	public static final int MAX_CLAIMS = 12, CLAIM_COOLDOWN = 3 * 60 * 20, EXPEDITION_TICKS = 4 * 60 * 20;
+	public static final int MAX_CLAIMS = 6, CLAIM_COOLDOWN = 6 * 60 * 20, EXPEDITION_TICKS = 4 * 60 * 20; // owner 18.10: outposts rarer (12, 3 min)
 	/** Blocks round a claim where no monster spawns and the race's style is laid. */
 	public static final int CLAIM_RADIUS = 20, STYLE_RADIUS = 7;
 	/** Ticks between drops at pressure 1 (divided by the pressure), the first drop's delay, squads' sizes. */

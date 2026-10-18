@@ -109,6 +109,7 @@ public final class Minerals {
 		BiomeModifications.addFeature(BiomeSelectors.foundInTheNether(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES,
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("nether_mineral_hall")));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(SHARD));
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(Deposits::tick); // owner 18.10
 	}
 
 	// ---- the crystal ----

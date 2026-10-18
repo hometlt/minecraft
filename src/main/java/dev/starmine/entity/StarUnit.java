@@ -338,6 +338,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	@Override
 	public void aiStep() {
 		if (kind == UnitKind.COLOSSUS) this.noPhysics = this.isAlive() && !this.isPassenger();
+		if (kind.structure()) { // owner 18.10: a building never turns (one turned before stands square again)
+			this.setYRot(0);
+			this.yRotO = this.yBodyRot = this.yBodyRotO = this.yHeadRot = this.yHeadRotO = 0;
+		}
 		super.aiStep();
 		if (kind == UnitKind.COLOSSUS && this.isAlive() && !this.isPassenger()) stilts();
 		if (!(this.level() instanceof ServerLevel server) || !this.isAlive()) return;

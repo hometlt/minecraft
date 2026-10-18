@@ -455,7 +455,7 @@
 	"ability.starmine.defender_mode": "Режим защитника",
 	"ability.starmine.defender_mode.tip": "Неподвижен; сильно бьёт наземные цели в своей зоне (75), по воздуху не стреляет",
 	"command.starmine.target": "%s: щёлкните цель (правая кнопка — отмена)",
-	"command.starmine.place": "Поставьте: %s (левая кнопка; с Shift — ещё; правая — отмена)",
+	"command.starmine.place": "Поставьте: %s (правая кнопка; с Shift — ещё; левая — отмена)",
 	"command.starmine.energy": "Энергия %s / %s",
 	"command.starmine.ascend": "Подняться в стратосферу",
 	"command.starmine.ascend.tip": "Летающие поднимаются в стратосферу над этим местом вместе с грузом",

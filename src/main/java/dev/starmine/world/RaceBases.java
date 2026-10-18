@@ -158,7 +158,7 @@ public final class RaceBases {
 
 	/** Owner 17.10: a region of the world (blocks a side) holds at most one far base, by this chance. */
 	public static final int REGION = 1536, REGION_MARGIN = 256, FAR_FROM_SPAWN = 1000;
-	public static final double FAR_CHANCE = 0.55;
+	public static final double FAR_CHANCE = 0.3; // owner 18.10: rarer (was 0.55)
 
 	/** A far base: its race and its column (the ground is found when it is built). */
 	public record Far(String key, UnitKind.Race race, int x, int z) {
@@ -307,6 +307,10 @@ public final class RaceBases {
 		if (!terran) for (int i = 0; i < 3; i++)
 			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5)));
 		lights(painter, centre, terran);
+		// owner 18.10: the base's resources west of the plaza (the east is the way down): 5 crystals, 2 geysers with its gas buildings
+		int depositX = centre.getX() - (PLAZA + 8), depositZ = centre.getZ();
+		for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
+			spawns.add(Spawn.member(race.rules().gasBuilding(), gas));
 		// owner 16.10: main bases well defended — at the plaza's edge, by each pylon's line, a gun and a battery or bunker
 		for (int i = 0; i < 3; i++) {
 			double angle = Math.PI / 3 + i * Math.PI * 2 / 3;

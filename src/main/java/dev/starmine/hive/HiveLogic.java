@@ -233,17 +233,32 @@ public final class HiveLogic {
 	public static StarUnit spawn(ServerLevel level, Hive hive, UnitKind kind, Vec3 at, StarUnit unused) {
 		StarUnit mob = StarMine.type(kind).create(level);
 		if (mob == null) return null;
-		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
+		at = seat(kind, at);
+		mob.moveTo(at.x, at.y, at.z, yaw(level, kind), 0);
 		mob.joinHive(hive);
 		level.addFreshEntity(mob);
 		return mob;
+	}
+
+	/**
+	 * Where a new unit stands: a building on the grid (owner 18.10: buildings always stand square on the cells,
+	 * a generated base's ones too, not where its ring put them), a gas building on its outlet, anything else as given.
+	 */
+	public static Vec3 seat(UnitKind kind, Vec3 at) {
+		return kind.structure() && !kind.gas() ? kind.gridCentre(at) : at;
+	}
+
+	/** Which way a new unit faces: a building never turns (owner 18.10), a unit any way. */
+	public static float yaw(ServerLevel level, UnitKind kind) {
+		return kind.structure() ? 0 : level.random.nextFloat() * 360;
 	}
 
 	/** A nest dweller of a hall (not counted in the hive); `hive` may be gone, then it is on its own. */
 	public static StarUnit spawnNest(ServerLevel level, Hive hive, UnitKind kind, Vec3 at, BlockPos hall) {
 		StarUnit mob = StarMine.type(kind).create(level);
 		if (mob == null) return null;
-		mob.moveTo(at.x, at.y, at.z, level.random.nextFloat() * 360, 0);
+		at = seat(kind, at);
+		mob.moveTo(at.x, at.y, at.z, yaw(level, kind), 0);
 		mob.makeNest(hall);
 		if (hive != null) mob.joinHive(hive);
 		level.addFreshEntity(mob);

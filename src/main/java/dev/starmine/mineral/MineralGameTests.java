@@ -24,6 +24,21 @@ public class MineralGameTests implements FabricGameTest {
 		return core;
 	}
 
+	/** Owner 18.10: a base's deposit — 5 crystals and 2 geysers, each geyser with a site for its gas building. */
+	@GameTest(template = ARENA, batch = "minerals", timeoutTicks = 100)
+	public void aDepositHasFiveCrystalsAndTwoGeysers(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos middle = helper.absolutePos(new BlockPos(24, 2, 30)), base = helper.absolutePos(new BlockPos(24, 2, 8));
+		java.util.List<BlockPos> sites = Deposits.build(level, level.random, middle.getX(), middle.getZ(), base.getX(), base.getZ());
+		int crystals = Minerals.coresNear(level, middle, 12).size();
+		helper.assertTrue(crystals == Deposits.MINERALS, crystals + " crystals, not 5");
+		helper.assertTrue(sites.size() == Deposits.GEYSERS, sites.size() + " geysers, not 2");
+		for (BlockPos site : sites)
+			helper.assertTrue(dev.starmine.vespene.Vespene.outletUnder(level, site) != null, "no outlet under the gas building's site " + site);
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "minerals", timeoutTicks = 100)
 	public void crystalIsGatheredAndGone(GameTestHelper helper) {
 		TestArena.clear(helper);

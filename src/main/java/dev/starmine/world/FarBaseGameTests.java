@@ -40,7 +40,8 @@ public class FarBaseGameTests implements FabricGameTest {
 				double fromSpawn = Math.hypot(far.x() - origin.getX(), far.z() - origin.getZ());
 				helper.assertTrue(fromSpawn >= RaceBases.FAR_FROM_SPAWN, "a far base " + (int) fromSpawn + " blocks from the spawn");
 			}
-		helper.assertTrue(bases > regions / 3 && bases < regions * 3 / 4, bases + " far bases in " + regions + " regions");
+		helper.assertTrue(bases > regions * RaceBases.FAR_CHANCE / 2 && bases < regions * RaceBases.FAR_CHANCE * 1.5, // owner 18.10: rarer
+			bases + " far bases in " + regions + " regions");
 		helper.assertTrue(races.size() == 3, "far bases of only " + races);
 		helper.succeed();
 	}

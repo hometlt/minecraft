@@ -455,7 +455,7 @@
 	"ability.starmine.defender_mode": "Defender Mode",
 	"ability.starmine.defender_mode.tip": "Immobile; hits ground units in its zone hard (75), cannot shoot air",
 	"command.starmine.target": "%s: click a target (right click cancels)",
-	"command.starmine.place": "Place %s (left click; shift keeps placing; right click cancels)",
+	"command.starmine.place": "Place %s (right click; shift keeps placing; left click cancels)",
 	"command.starmine.energy": "Energy %s / %s",
 	"command.starmine.ascend": "Up to the Stratosphere",
 	"command.starmine.ascend.tip": "Flyers climb into the stratosphere over this place, with what they carry",

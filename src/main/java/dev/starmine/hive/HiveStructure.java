@@ -237,7 +237,8 @@ public final class HiveStructure {
 			StarUnit main = StarMine.type(p.kind()).create(level);
 			if (main == null) return;
 			main.setUUID(hive.id);
-			main.moveTo(at.x, at.y, at.z, p.kind() == UnitKind.HATCHERY ? level.random.nextFloat() * 360 : 0, 0);
+			at = HiveLogic.seat(p.kind(), at);
+			main.moveTo(at.x, at.y, at.z, 0, 0); // owner 18.10: square on the grid, never turned
 			main.joinHive(hive);
 			if (p.kind() != UnitKind.HATCHERY) hive.join(p.kind());
 			level.addFreshEntity(main);
@@ -302,6 +303,11 @@ public final class HiveStructure {
 				HiveTerrain.lay(level, feet, HiveTerrain.foundation(kind));
 				wait(kind, feet, null, null, 0);
 			}
+			// owner 18.10: the hive's resources between two of its buildings: 5 crystals, 2 geysers with extractors
+			double toward = start + 0.5 * turn;
+			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 28), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 28);
+			for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
+				wait(UnitKind.EXTRACTOR, gas, null, null, 0);
 			// creep grows out from the hatchery now, as if the hive had stood here a while
 			for (int i = 0; i < 400; i++) CreepGrowth.grow(level, centre, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
 			for (int i = 0; i < 3; i++) {
