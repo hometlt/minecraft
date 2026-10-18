@@ -114,7 +114,7 @@ public final class ZergAbilities {
 			double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + 1;
 			double x = hatchery.getX() + Math.cos(angle) * radius, z = hatchery.getZ() + Math.sin(angle) * radius;
 			BlockPos ground = HiveLogic.groundNear(level, (int) Math.floor(x), hatchery.getBlockY(), (int) Math.floor(z));
-			HiveLogic.spawn(level, hive, UnitKind.LARVA, ground != null ? Vec3.atBottomCenterOf(ground) : new Vec3(x, hatchery.getY(), z), null);
+			HiveLogic.larva(level, hive, hatchery, ground != null ? Vec3.atBottomCenterOf(ground) : new Vec3(x, hatchery.getY(), z));
 		}
 		HiveSavedData.get(level.getServer()).setDirty();
 	}

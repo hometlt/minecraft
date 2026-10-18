@@ -320,7 +320,7 @@ public class RaceGameTests implements FabricGameTest {
 	@GameTest(template = ARENA, batch = "sc2Buttons")
 	public void everyCommandHasAnSc2Button(GameTestHelper helper) {
 		java.util.List<String> ids = new java.util.ArrayList<>();
-		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) ids.add(Sc2Buttons.ability(ability));
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.values()) for (UnitKind kind : ability.users()) ids.add(Sc2Buttons.ability(ability, kind));
 		for (UnitKind.Race race : UnitKind.Race.values()) {
 			for (Research research : Research.values()) for (int level = 1; level <= 3; level++) ids.add(Sc2Buttons.research(research, race, level));
 			for (String action : java.util.List.of("move", "stop", "hold", "patrol", "attack", "gather", "return", "build", "advanced", "rally", "cancel", "back"))

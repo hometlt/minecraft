@@ -81,7 +81,7 @@ public final class ZergRace implements RaceRules {
 			case SWARM_HOST -> new Economy(100, 75, 3, normal(40), 0, 4);
 			case VIPER -> new Economy(100, 200, 3, normal(40), 0, 0);
 			case ULTRALISK -> new Economy(275, 200, 6, normal(55), 0, 8);
-			case HATCHERY -> new Economy(325, 0, 0, seconds(71), 6, 0); // SC2: 71 s at Faster, 6 supply (owner 18.10)
+			case HATCHERY -> new Economy(275, 0, 0, seconds(71), 6, 0); // SC2: 275 (CUnit Hatchery 325 counts the drone, as every zerg building does), 71 s at Faster, 6 supply
 			case SPAWNING_POOL -> new Economy(200, 0, 0, seconds(46), 0, 0);
 			case EVOLUTION_CHAMBER -> new Economy(75, 0, 0, seconds(25), 0, 0);
 			case ROACH_WARREN -> new Economy(150, 0, 0, seconds(39), 0, 0);

@@ -57,6 +57,23 @@ public class CreepTumorGameTests implements FabricGameTest {
 		});
 	}
 
+	/** SC2: the player sends their tumor's one spread to a creep cell in its reach; never twice, never past its reach. */
+	@GameTest(template = ARENA, batch = "tumorDirected", timeoutTicks = 40)
+	public void aPlayerSpreadsTheirTumorWhereTheyClick(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		BlockPos at = tumor(helper, player.getUUID());
+		BlockPos far = helper.absolutePos(new BlockPos(18, 2, 18)), near = helper.absolutePos(new BlockPos(29, 2, 24));
+		helper.assertFalse(CreepTumors.direct(level, player, at, at.offset(30, 0, 0)), "spread off the creep, out of reach");
+		helper.assertTrue(level.getBlockEntity(at) instanceof dev.starmine.block.CreepTumorBlockEntity t && !t.spent(), "a refused order spent the tumor");
+		helper.assertTrue(CreepTumors.direct(level, player, at, near), "no spread where the player clicked");
+		helper.assertTrue(level.getBlockState(near).is(StarMineBlocks.CREEP_TUMOR), "the new tumor is not where the player clicked");
+		helper.assertFalse(CreepTumors.direct(level, player, at, far), "the tumor spread twice");
+		level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+		helper.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "tumorArrow", timeoutTicks = 200)
 	public void arrowsWoundATumor(GameTestHelper helper) {
 		clear(helper);

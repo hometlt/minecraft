@@ -92,6 +92,8 @@ public final class CommandView {
 	/** Owner 17.10: what is looked at without being commanded — a creature (a monster, an animal), or a resource block (a crystal, a geyser). */
 	static Integer inspected;
 	static BlockPos inspectedBlock;
+	/** The player's creep tumor selected, to spread by a right click (CreepTumors.direct), or null. */
+	static BlockPos tumor;
 	private static final SkinnedModelDrawer GHOST = new SkinnedModelDrawer();
 	private static float[] ghostPalette = new float[0];
 

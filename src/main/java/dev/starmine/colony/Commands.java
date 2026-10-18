@@ -58,6 +58,14 @@ public final class Commands {
 				formation(lifted, StarUnit.Order.MOVE, at);
 			}
 			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
+			case "tumor" -> { // SC2: the player's creep tumor (the arg: x,y,z) spreads once to a creep cell in its reach
+				String[] xyz = command.arg().split(",");
+				if (xyz.length == 3) try {
+					BlockPos from = new BlockPos(Integer.parseInt(xyz[0]), Integer.parseInt(xyz[1]), Integer.parseInt(xyz[2]));
+					if (CommanderEye.near(player, Vec3.atCenterOf(from), COMMAND_RANGE)) dev.starmine.creep.CreepTumors.direct(level, player, from, BlockPos.containing(at));
+				} catch (NumberFormatException ignored) {
+				}
+			}
 			case "stop" -> {
 				mobile.forEach(unit -> unit.command(StarUnit.Order.NONE, null));
 				lifted.forEach(unit -> unit.command(StarUnit.Order.NONE, null));

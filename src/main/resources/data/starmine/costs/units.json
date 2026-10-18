@@ -16,7 +16,7 @@
 	"swarmhost": {"minerals": 100, "vespene": 75},
 	"viper": {"minerals": 100, "vespene": 200},
 	"ultralisk": {"minerals": 275, "vespene": 200},
-	"hatchery": {"minerals": 325},
+	"hatchery": {"minerals": 275},
 	"spawningpool": {"minerals": 200},
 	"evolutionchamber": {"minerals": 75},
 	"roachwarren": {"minerals": 150},

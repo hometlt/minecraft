@@ -134,6 +134,8 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			if (entity.kind.worker() && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight); // owner 18.10: every race's workers
 			poseStack.popPose();
 		}
+		if (entity.deathTime == 0 && sink <= 0f) // a tech lab or reactor on its side (SC2: beside it, to the east)
+			AddOnRenderer.attached(entity, poseStack, buffers, packedLight, (entity.tickCount + partialTick) / 20f);
 		if (!imported) { // owner 17.10: no imported SC2 model — StarMine's own stand-in (FallbackModels), not an outline
 			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			poseStack.pushPose();

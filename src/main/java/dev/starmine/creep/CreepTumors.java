@@ -63,6 +63,30 @@ public final class CreepTumors {
 		return false;
 	}
 
+	/**
+	 * SC2: a player orders their creep tumor to spread - once, to a creep cell within its reach ({@link CreepSources#TUMOR_RADIUS}):
+	 * the clicked block, or the creep cell nearest it. False (and a message) when it cannot.
+	 */
+	public static boolean direct(ServerLevel level, net.minecraft.server.level.ServerPlayer player, BlockPos from, BlockPos to) {
+		CreepTumorBlockEntity tumor = at(level, from);
+		if (tumor == null || !player.getUUID().equals(tumor.owner())) return false;
+		if (tumor.spent()) {
+			player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.tumor_spent"), true);
+			return false;
+		}
+		BlockPos best = null;
+		for (BlockPos cell : BlockPos.betweenClosed(to.offset(-2, -2, -2), to.offset(2, 2, 2))) {
+			if (cell.distSqr(from) > CreepSources.TUMOR_RADIUS * CreepSources.TUMOR_RADIUS || !level.getBlockState(cell).is(dev.starmine.block.StarMineBlocks.CREEP)) continue;
+			if (best == null || cell.distSqr(to) < best.distSqr(to)) best = cell.immutable();
+		}
+		if (best == null || !CreepGrowth.placeTumor(level, best, 2, player.getUUID())) {
+			player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.tumor_far"), true);
+			return false;
+		}
+		tumor.spend();
+		return true;
+	}
+
 	/** The tumor takes damage (a shot, an arrow, a blow); at none left it bursts. */
 	public static void hurt(ServerLevel level, BlockPos pos, double damage) {
 		CreepTumorBlockEntity tumor = at(level, pos);

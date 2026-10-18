@@ -207,6 +207,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	 * aircraft, down to a block over the ground: into a cave's mouth or a tunnel).
 	 */
 	private int altitude;
+	/** A hatchery: ticks toward its next larva (SC2: each hatchery has its own, {@link dev.starmine.hive.HiveLogic#LARVA_TICKS}). */
+	public int larvaTicks;
 	public static final int ALTITUDE_STEP = 2, ALTITUDE_MIN = -12, ALTITUDE_MAX = 24;
 	private Vec3 rally;
 	/** Engineering bay research: "weapons" or "armor" and ticks left. */
@@ -1010,6 +1012,11 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		return home;
 	}
 
+	/** Where it returns when idle (a larva: the hatchery that made it). */
+	public void setHome(BlockPos home) {
+		this.home = home == null ? null : home.immutable();
+	}
+
 	/** Makes this zerg a nest dweller of the hall at `hall` (call before {@link #joinHive}). */
 	public void makeNest(BlockPos hall) {
 		this.nest = hall.immutable();
@@ -1133,6 +1140,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		}
 		if (warpCooldown > 0) tag.putInt("StarMineWarpCooldown", warpCooldown);
 		if (altitude != 0) tag.putInt("StarMineAltitude", altitude);
+		if (larvaTicks != 0) tag.putInt("StarMineLarvaTicks", larvaTicks);
 		if (rally != null) tag.put("StarMineRally", NbtUtils.writeBlockPos(BlockPos.containing(rally)));
 		if (research != null) {
 			tag.putString("StarMineResearch", research);
@@ -1222,6 +1230,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		trainTicks = tag.getInt("StarMineTrain"); secondTicks = tag.getInt("StarMineTrain2");
 		warpCooldown = tag.getInt("StarMineWarpCooldown");
 		altitude = tag.getInt("StarMineAltitude");
+		larvaTicks = tag.getInt("StarMineLarvaTicks");
 		rally = NbtUtils.readBlockPos(tag, "StarMineRally").map(Vec3::atBottomCenterOf).orElse(null);
 		research = tag.contains("StarMineResearch") ? tag.getString("StarMineResearch") : null;
 		researchTicks = tag.getInt("StarMineResearchTicks");

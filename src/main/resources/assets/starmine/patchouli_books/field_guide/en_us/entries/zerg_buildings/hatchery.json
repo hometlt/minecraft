@@ -13,7 +13,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Hatchery",
-			"text": "$(l)Health$(): 1500$(br)No attack$(br)$(l)Cost$(): 325 minerals$(br)$(l)Build time$(): 51 s$(br)$(l)Gives supply$(): 8$(br2)$(o)StarCraft II numbers (LotV).$()"
+			"text": "$(l)Health$(): 1500$(br)No attack$(br)$(l)Cost$(): 275 minerals$(br)$(l)Build time$(): 71 s$(br)$(l)Gives supply$(): 6$(br2)$(o)StarCraft II numbers (LotV).$()"
 		}
 	]
 }

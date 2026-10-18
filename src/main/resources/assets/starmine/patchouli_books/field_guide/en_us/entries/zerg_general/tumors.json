@@ -7,6 +7,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "A creep tumor shows for its first 5 seconds, then burrows: only its own side and $(l)detectors$() see it — a raven, an observer, an overseer, a turret, a cannon, a spore crawler, a detector potion. Soon after it plants one new tumor at the edge of its creep, as in SC2 — only a base's tumor, and with a purpose: round the base, toward the minerals it mines or wants (under the ground too), toward its foes only over its own land. A wild tumor with no base does not spread. It has 50 hit points: arrows and shots wound it, and units that see a foe's tumor within reach shoot it down themselves."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "You may send your own tumor's spread yourself, as in SC2: in the command view click the tumor, then right-click creep within its reach (10 blocks) — the new tumor grows there. A tumor spreads once; one that already spread says so."
 		}
 	]
 }

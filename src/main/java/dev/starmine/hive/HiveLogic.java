@@ -83,10 +83,12 @@ public final class HiveLogic {
 			hive.foundation = true;
 		}
 		CreepGrowth.grow(level, hive.hatchery, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
-		if (hive.count(UnitKind.LARVA) < MAX_LARVAE && ++hive.larvaTimer >= LARVA_TICKS) {
-			hive.larvaTimer = 0;
-			spawn(level, hive, UnitKind.LARVA, around(hatchery, level, UnitKind.LARVA), null);
+		// SC2: every hatchery (lair, hive) makes its own larvae, up to 3 of them, one every 11 s
+		if (larvae(hatchery, level) < MAX_LARVAE && ++hatchery.larvaTicks >= LARVA_TICKS) {
+			hatchery.larvaTicks = 0;
+			larva(level, hive, hatchery, around(hatchery, level, UnitKind.LARVA));
 		}
+		if (hive.hatchery != null && hive.hatchery.equals(hatchery.blockPosition())) hive.larvaTimer = hatchery.larvaTicks; // shown by /hive
 		if (hive.queenTicks >= 0 && --hive.queenTicks < 0) {
 			hive.born(UnitKind.QUEEN, 1);
 			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level, UnitKind.QUEEN), null);
@@ -266,6 +268,23 @@ public final class HiveLogic {
 	}
 
 	/** A spot just outside the hatchery where a body of `kind` fits (a queen, 4 wide, came out inside it). */
+	/** Blocks round a hatchery its larvae are counted in (they stay within a few blocks: ZergGoals.ReturnHome). */
+	static final double LARVA_REACH = 10;
+
+	/** The larvae of this hatchery: those that call it home (larvae of older saves go home to the base's first hatchery). */
+	public static int larvae(StarUnit hatchery, ServerLevel level) {
+		BlockPos at = hatchery.blockPosition();
+		return level.getEntitiesOfClass(StarUnit.class, hatchery.getBoundingBox().inflate(LARVA_REACH, 4, LARVA_REACH),
+			unit -> unit.kind == UnitKind.LARVA && unit.isAlive() && at.equals(unit.home())).size();
+	}
+
+	/** A larva of this hatchery: it stays by it (natural ones and injected ones alike). */
+	public static StarUnit larva(ServerLevel level, Hive hive, StarUnit hatchery, Vec3 at) {
+		StarUnit larva = spawn(level, hive, UnitKind.LARVA, at, null);
+		if (larva != null) larva.setHome(hatchery.blockPosition());
+		return larva;
+	}
+
 	private static Vec3 around(StarUnit hatchery, ServerLevel level, UnitKind kind) {
 		double angle = level.random.nextDouble() * Math.PI * 2, radius = hatchery.getBbWidth() / 2 + kind.width / 2 + 0.5;
 		return dev.starmine.entity.Spots.outside(level, kind, hatchery.position(), angle, radius);

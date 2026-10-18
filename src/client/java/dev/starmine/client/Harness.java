@@ -126,6 +126,66 @@ public final class Harness {
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("hitbox")) hitbox(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("ground")) ground(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("cutaway")) cutaway(mc);
+		if (SCENARIOS.equals("all") || SCENARIOS.contains("addon")) addOn(mc);
+		if (SCENARIOS.contains("cards")) cards(mc);
+	}
+
+	/** Every kind's command card as the player sees it (one of the player's own, selected), to `harness/cards.tsv`. */
+	private static void cards(Minecraft mc) {
+		StringBuilder table = new StringBuilder("kind\tslot\tbutton\tkey\n");
+		StarUnit[] shown = new StarUnit[1];
+		steps.add(new Step(10, () -> CommandView.enter(mc)));
+		for (UnitKind kind : UnitKind.values()) {
+			steps.add(new Step(8, () -> server(mc, (level, player) -> {
+				StarUnit unit = StarMine.type(kind).create(level);
+				if (unit == null) return;
+				unit.moveTo(X + 6.5, groundY, Z + 0.5, 0, 0);
+				unit.setNoAi(true);
+				unit.setOwner(player.getUUID());
+				level.addFreshEntity(unit);
+				shown[0] = unit;
+			})));
+			steps.add(new Step(8, () -> {
+				if (shown[0] == null) return;
+				CommandView.selection.clear();
+				CommandView.selection.add(shown[0].getId());
+			}));
+			steps.add(new Step(4, () -> {
+				if (mc.screen instanceof CommandScreen screen)
+					for (String line : screen.card().split("\n")) if (!line.isEmpty()) table.append(kind.name()).append('\t').append(line).append('\n');
+				StarUnit unit = shown[0];
+				shown[0] = null;
+				if (unit != null) server(mc, (level, player) -> {
+					var gone = level.getEntity(unit.getUUID());
+					if (gone != null) gone.discard();
+				});
+			}));
+		}
+		steps.add(new Step(5, () -> {
+			write(mc, "cards.tsv", table.toString());
+			check("cards: every kind's card dumped", table.length() > 100, table.length() + " chars");
+		}));
+	}
+
+	/** A barracks with its tech lab beside it, and a reactor left on the ground by a building that lifted off. */
+	private static void addOn(Minecraft mc) {
+		int bx = X + 20, bz = Z;
+		steps.add(new Step(40, () -> server(mc, (level, player) -> {
+			for (Entity old : level.getEntitiesOfClass(StarUnit.class, player.getBoundingBox().inflate(60))) old.discard();
+			StarUnit barracks = StarMine.type(UnitKind.BARRACKS).create(level);
+			barracks.moveTo(bx + 0.5, groundY, bz + 0.5, 0, 0);
+			barracks.setNoAi(true);
+			level.addFreshEntity(barracks);
+			barracks.setMode(dev.starmine.ability.Modes.TECHLAB);
+			player.teleportTo(level, bx - 2.5, groundY + 22, bz + 34.5, 180, 30);
+		})));
+		steps.add(new Step(60, () -> {
+			AddOnRenderer.sites = new int[] {bx - 18, groundY, bz, dev.starmine.ability.Modes.REACTOR};
+			aim(mc, new Vec3(bx - 4, groundY, bz));
+			check("addon: tech lab and reactor models are loaded", StarMineModels.get("techlab") != null && StarMineModels.get("reactor") != null, "");
+		}));
+		steps.add(new Step(20, () -> shot(mc, "addon")));
+		steps.add(new Step(10, () -> AddOnRenderer.sites = new int[0]));
 	}
 
 	private static void cutaway(Minecraft mc) {
@@ -358,6 +418,7 @@ public final class Harness {
 		String summary = "[harness] done: " + ok + " OK, " + fail + " FAIL";
 		lines.add(summary);
 		LOG.info(summary);
+		new File(mc.gameDirectory, "harness").mkdirs();
 		try (PrintWriter out = new PrintWriter(new File(mc.gameDirectory, "harness/results.txt"), StandardCharsets.UTF_8)) {
 			lines.forEach(out::println);
 		} catch (IOException e) {

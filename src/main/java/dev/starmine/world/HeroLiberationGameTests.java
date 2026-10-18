@@ -35,6 +35,7 @@ public class HeroLiberationGameTests implements FabricGameTest {
 		BlockPos centre = BlockPos.containing(point(helper, 24, 24));
 		Hive wild = new Hive(UUID.randomUUID(), level.dimension().location().toString(), centre);
 		wild.race = UnitKind.Race.TERRAN;
+		wild.members.put(UnitKind.COMMAND_CENTER, 1); // a base without one is cleared away every 10 s (BaseLogic.serverTick)
 		data.add(wild);
 		StarUnit raynor = HiveLogic.spawnNest(level, wild, UnitKind.RAYNOR, point(helper, 24, 24), centre);
 		StarUnit marine = HiveLogic.spawnNest(level, wild, UnitKind.MARINE, point(helper, 30, 24), centre);

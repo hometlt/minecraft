@@ -251,6 +251,26 @@ public class ParityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** SC2: every hatchery makes its own larvae, 3 at most, on its own timer; a second hatchery doubles them. */
+	@GameTest(template = ARENA, batch = "parityLarvae", timeoutTicks = 900)
+	public void everyHatcheryMakesItsOwnLarvae(GameTestHelper helper) {
+		clear(helper);
+		StarUnit first = unit(helper, UnitKind.HATCHERY, 12, 24, UUID.randomUUID());
+		StarUnit[] second = new StarUnit[1];
+		ServerLevel level = helper.getLevel();
+		helper.runAfterDelay(5, () -> {
+			Hive base = TestArena.base(helper, first);
+			helper.assertTrue(base != null, "no hive");
+			second[0] = TestArena.member(helper, base, UnitKind.HATCHERY, 36, 24);
+		});
+		helper.runAfterDelay(4 * dev.starmine.hive.HiveLogic.LARVA_TICKS, () -> {
+			int a = dev.starmine.hive.HiveLogic.larvae(first, level), b = dev.starmine.hive.HiveLogic.larvae(second[0], level);
+			helper.assertTrue(a == dev.starmine.hive.HiveLogic.MAX_LARVAE && b == dev.starmine.hive.HiveLogic.MAX_LARVAE,
+				"larvae by the hatcheries: " + a + " and " + b + ", base " + TestArena.base(helper, first).count(UnitKind.LARVA));
+			helper.succeed();
+		});
+	}
+
 	/** Owner 18.10: the command card flies aircraft lower (down to a block over the ground) and higher. */
 	@GameTest(template = ARENA, batch = "parityAltitude", timeoutTicks = 400)
 	public void aircraftFlyLowerAndHigher(GameTestHelper helper) {

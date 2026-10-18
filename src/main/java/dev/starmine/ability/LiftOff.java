@@ -52,9 +52,11 @@ public final class LiftOff {
 		state.liftedFrom = unit.position();
 		state.liftedMode = unit.mode();
 		if (base != null && (unit.mode() == Modes.TECHLAB || unit.mode() == Modes.REACTOR)) {
-			// ponytail: the add-on left behind is not drawn on its own (its look is part of its building's model); a separate add-on entity would show it
-			base.addOns.put(site(unit), unit.mode());
-			if (unit.level() instanceof net.minecraft.server.level.ServerLevel server) dev.starmine.hive.HiveSavedData.get(server.getServer()).setDirty();
+			base.addOns.put(site(unit), unit.mode()); // drawn on its own by the client (AddOnRenderer)
+			if (unit.level() instanceof net.minecraft.server.level.ServerLevel server) {
+				dev.starmine.hive.HiveSavedData.get(server.getServer()).setDirty();
+				dev.starmine.colony.ColonyNetwork.sendAddOns(server);
+			}
 		}
 	}
 
@@ -133,7 +135,10 @@ public final class LiftOff {
 		int ground = unit.kind.main() && unit.abilities.liftedMode == Modes.ORBITAL ? Modes.ORBITAL : Modes.NORMAL;
 		if (base != null && Ability.BUILD_TECHLAB.users().contains(unit.kind)) { // an add-on on the site is its now
 			Integer addOn = base.addOns.remove(site(unit));
-			if (addOn != null) ground = addOn;
+			if (addOn != null) {
+				ground = addOn;
+				if (unit.level() instanceof net.minecraft.server.level.ServerLevel server) dev.starmine.colony.ColonyNetwork.sendAddOns(server);
+			}
 		}
 		unit.abilities.liftedMode = Modes.NORMAL;
 		unit.setMode(ground);

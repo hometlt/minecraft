@@ -52,6 +52,39 @@ public final class Sc2Buttons {
 		};
 	}
 
+	/** The button of an ability on this kind's card: SC2 gives some kinds their own (a banshee's cloak, a medivac's load). */
+	public static String ability(Ability ability, UnitKind kind) {
+		String own = switch (ability) {
+			case CLOAK -> kind == UnitKind.BANSHEE ? "CloakOnBanshee" : null;
+			case STIMPACK -> kind == UnitKind.MARAUDER ? "StimMarauder" : null;
+			case BUILD_TECHLAB -> kind == UnitKind.FACTORY ? "TechLabFactory" : kind == UnitKind.STARPORT ? "TechLabStarport" : null;
+			case BURROW -> switch (kind) {
+				case LURKER -> "BurrowLurkerMP";
+				case WIDOW_MINE -> "WidowMineBurrow";
+				case SWARM_HOST -> "SwarmHostBurrowDown";
+				default -> null;
+			};
+			case HELLBAT -> kind == UnitKind.HELLBAT ? "MorphToHellion" : null;
+			case VIKING_LAND -> kind == UnitKind.VIKING_ASSAULT ? "FighterMode" : null;
+			case MASS_RECALL -> kind == UnitKind.MOTHERSHIP ? "MassRecall" : kind == UnitKind.NEXUS ? "NexusMassRecall" : null;
+			case LOAD -> switch (kind) {
+				case MEDIVAC -> "MedivacLoad";
+				case WARP_PRISM -> "WarpPrismLoad";
+				case NYDUS_NETWORK -> "NydusCanalLoad";
+				case NYDUS_CANAL -> "Load";
+				default -> null;
+			};
+			case UNLOAD -> switch (kind) {
+				case MEDIVAC -> "MedivacUnloadAll";
+				case WARP_PRISM -> "WarpPrismUnloadAll";
+				case NYDUS_NETWORK, NYDUS_CANAL -> "NydusCanalUnloadAll";
+				default -> null;
+			};
+			default -> null;
+		};
+		return own != null ? own : ability(ability);
+	}
+
 	public static String ability(Ability ability) {
 		return switch (ability) {
 			case BURROW -> "BurrowDown";

@@ -67,6 +67,17 @@ public class CreepTumorBlockEntity extends BlockEntity {
 		return owner;
 	}
 
+	/** Whether it has spread its one new tumor (then it only feeds its creep). */
+	public boolean spent() {
+		return spawned;
+	}
+
+	/** It spread its one new tumor (by its player's order, CreepTumors.direct). */
+	public void spend() {
+		spawned = true;
+		setChanged();
+	}
+
 	/** Planted for a player (null: the wild). */
 	public void setOwner(@org.jetbrains.annotations.Nullable java.util.UUID owner) {
 		this.owner = owner;

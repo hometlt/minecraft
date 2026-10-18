@@ -131,6 +131,37 @@ public final class ColonyNetwork {
 		}
 	}
 
+	/** The add-ons left on the ground in the player's dimension (LiftOff): x, y, z of each site and its mode (tech lab, reactor). */
+	public record AddOnSites(int[] sites) implements CustomPacketPayload {
+		public static final Type<AddOnSites> TYPE = new Type<>(StarMine.id("add_on_sites"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, AddOnSites> CODEC = StreamCodec.of((buf, value) -> buf.writeVarIntArray(value.sites),
+			buf -> new AddOnSites(buf.readVarIntArray(4 * 1024)));
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** Tells the player of the add-ons left on the ground where it is. */
+	public static void sendAddOns(ServerPlayer player) {
+		if (!ServerPlayNetworking.canSend(player, AddOnSites.TYPE)) return;
+		String dimension = player.level().dimension().location().toString();
+		List<Integer> sites = new ArrayList<>();
+		for (Hive hive : dev.starmine.hive.HiveSavedData.get(player.server).all()) {
+			if (!dimension.equals(hive.dimension)) continue;
+			hive.addOns.forEach((at, mode) -> {
+				if (sites.size() < 4 * 1024) sites.addAll(List.of(at.getX(), at.getY(), at.getZ(), mode));
+			});
+		}
+		ServerPlayNetworking.send(player, new AddOnSites(sites.stream().mapToInt(Integer::intValue).toArray()));
+	}
+
+	/** Tells everyone in this level that an add-on was left or taken up. */
+	public static void sendAddOns(net.minecraft.server.level.ServerLevel level) {
+		for (ServerPlayer player : level.players()) sendAddOns(player);
+	}
+
 	/** A base on the map: a race's main base (`race` its name), the player's own ("PLAYER"), the heroic transport ("TRANSPORT"), Amun's shard or rift ("SHARD", "RIFT"). */
 	public record Mark(String race, int x, int z) {
 	}
@@ -185,6 +216,9 @@ public final class ColonyNetwork {
 		PayloadTypeRegistry.playS2C().register(BaseStatus.TYPE, BaseStatus.CODEC);
 		PayloadTypeRegistry.playS2C().register(BaseMarks.TYPE, BaseMarks.CODEC);
 		PayloadTypeRegistry.playS2C().register(UnitRoute.TYPE, UnitRoute.CODEC);
+		PayloadTypeRegistry.playS2C().register(AddOnSites.TYPE, AddOnSites.CODEC);
+		net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> server.execute(() -> sendAddOns(handler.getPlayer())));
+		net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, from, to) -> sendAddOns(player));
 		PayloadTypeRegistry.playC2S().register(UnitCommand.TYPE, UnitCommand.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(UnitCommand.TYPE, (command, context) -> Commands.command(context.player(), command));
 	}

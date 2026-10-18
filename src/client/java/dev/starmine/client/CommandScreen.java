@@ -57,6 +57,10 @@ public final class CommandScreen extends Screen {
 		Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon) {
 			this(slot, label, key, kind, enabled, tooltip, action, icon, ItemStack.EMPTY);
 		}
+
+		Button at(int slot) {
+			return slot == this.slot ? this : new Button(slot, label, key, kind, enabled, tooltip, action, icon, item);
+		}
 	}
 
 	/** Size of the exported icon PNGs (`export-starmine-icons.mjs --size`). */
@@ -541,7 +545,58 @@ public final class CommandScreen extends Screen {
 	 * producers (a building, zerg larvae) train what they make ({@link UnitKind#trains}) with its
 	 * SC2 hotkey, research what they research ({@link Research}) and set a rally point.
 	 */
+	/** The card as shown now, for the harness's check against SC2's card layouts: slot, SC2 button, hotkey per line. */
+	String card() {
+		StringBuilder out = new StringBuilder();
+		for (Button button : buttons())
+			out.append(button.slot()).append('\t').append(button.icon() == null && button.kind() != null ? "@" + button.kind().name() : button.icon()).append('\t').append(button.key() > 0 && button.key() < 0x10000 ? String.valueOf((char) button.key()) : "")
+				.append('\n');
+		return out.toString();
+	}
+
+	/** SC2's slot of a button on a kind's card ("KIND/Button"), from VoidMulti's CardLayouts (assets/starmine/sc2_cards.tsv). */
+	private static final Map<String, Integer> SC2_SLOTS = sc2Slots();
+
+	private static Map<String, Integer> sc2Slots() {
+		Map<String, Integer> slots = new HashMap<>();
+		try (var in = CommandScreen.class.getResourceAsStream("/assets/starmine/sc2_cards.tsv")) {
+			if (in == null) return slots;
+			for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
+				String[] cells = line.trim().split("\t");
+				if (cells.length >= 3 && !cells[0].equals("kind")) slots.putIfAbsent(cells[0] + "/" + cells[2], Integer.parseInt(cells[1]));
+			}
+		} catch (java.io.IOException | NumberFormatException e) {
+			return Map.of();
+		}
+		return slots;
+	}
+
+	/**
+	 * The card: its buttons in the slots SC2 gives them on this kind's card (a barracks' marine, reaper, marauder, ghost
+	 * on the top row, its rally at the end of the middle row…); buttons SC2 has not keep their slot, or the first free one.
+	 */
 	private List<Button> buttons() {
+		List<Button> buttons = cardButtons();
+		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
+		if (page != Page.MAIN || CommandView.heroSelected() || own.isEmpty()) return buttons;
+		String kind = own.get(0).kind.name();
+		List<Button> placed = new ArrayList<>(), rest = new ArrayList<>();
+		java.util.Set<Integer> taken = new java.util.HashSet<>();
+		for (Button button : buttons) {
+			Integer slot = button.icon() != null ? SC2_SLOTS.get(kind + "/" + button.icon())
+				: button.kind() != null ? SC2_SLOTS.get(kind + "/@" + button.kind().name()) : null; // a unit it trains or morphs into
+			if (slot != null && taken.add(slot)) placed.add(button.at(slot));
+			else rest.add(button);
+		}
+		for (Button button : rest) {
+			int slot = button.slot();
+			for (int free = 0; taken.contains(slot) && free < 15; free++) slot = free;
+			if (taken.add(slot)) placed.add(button.at(slot));
+		}
+		return placed;
+	}
+
+	private List<Button> cardButtons() {
 		List<Button> buttons = new ArrayList<>();
 		if (CommandView.heroSelected()) return heroButtons();
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
@@ -691,7 +746,7 @@ public final class CommandScreen extends Screen {
 			case NONE, TOGGLE -> () -> CommandView.send("ability", Vec3.ZERO, -1, ability.id);
 			case UNIT, POINT -> () -> targeting = "ability:" + ability.id;
 		};
-		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run, Sc2Buttons.ability(ability));
+		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run, Sc2Buttons.ability(ability, users.isEmpty() ? selected.get(0).kind : users.get(0).kind));
 	}
 
 	private static Button simple(int slot, String action, UnitKind.Race race, char key, Runnable run) {
@@ -1048,6 +1103,7 @@ public final class CommandScreen extends Screen {
 		lastClick = now;
 		CommandView.inspected = null;
 		CommandView.inspectedBlock = null;
+		CommandView.tumor = null;
 		if (unit == null) {
 			if (CommandView.heroAt(mouseX, mouseY, width, height)) { // the player's own body: the hero
 				CommandView.selectHero();
@@ -1063,6 +1119,14 @@ public final class CommandScreen extends Screen {
 			Minecraft mc = Minecraft.getInstance();
 			if (hit != null && mc.level != null && CommandView.resource(mc.level.getBlockState(hit.getBlockPos()))) {
 				CommandView.inspect(null, hit.getBlockPos());
+				return;
+			}
+			// SC2: the player's own creep tumor is selected; a right click then spreads it there (CreepTumors.direct)
+			net.minecraft.core.BlockPos tumor = hit == null || mc.level == null ? null : nearTumor(mc.level, hit.getBlockPos());
+			if (tumor != null) {
+				CommandView.selection.clear();
+				CommandView.tumor = tumor;
+				mc.gui.setOverlayMessage(Component.translatable("message.starmine.tumor_selected"), false);
 				return;
 			}
 			// owner 18.10: a click on a geyser's mound (its outlet is one small block on top) selects the geyser
@@ -1090,6 +1154,16 @@ public final class CommandScreen extends Screen {
 		CommandView.selection.clear();
 		CommandView.selection.add(unit.getId());
 		page = Page.MAIN;
+	}
+
+	/** The player's own creep tumor at or next to a clicked block, or null. */
+	private static net.minecraft.core.BlockPos nearTumor(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos at) {
+		var player = Minecraft.getInstance().player;
+		for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(at.offset(-1, -1, -1), at.offset(1, 1, 1)))
+			if (level.getBlockState(pos).is(dev.starmine.block.StarMineBlocks.CREEP_TUMOR) && player != null
+				&& level.getBlockEntity(pos) instanceof dev.starmine.block.CreepTumorBlockEntity tumor && player.getUUID().equals(tumor.owner()))
+				return pos.immutable();
+		return null;
 	}
 
 	/** An outlet within 2 blocks of a clicked block, or null. */
@@ -1157,6 +1231,14 @@ public final class CommandScreen extends Screen {
 	private void smart(double mouseX, double mouseY) {
 		if (CommandView.heroSelected()) {
 			heroTarget("move", mouseX, mouseY, true);
+			return;
+		}
+		if (CommandView.tumor != null) { // a selected creep tumor spreads to the clicked creep
+			BlockHitResult hit = CommandView.block(mouseX, mouseY, width, height);
+			if (hit != null) net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new dev.starmine.colony.ColonyNetwork.UnitCommand(new int[0],
+				"tumor", hit.getBlockPos().getX(), hit.getBlockPos().getY(), hit.getBlockPos().getZ(), -1,
+				CommandView.tumor.getX() + "," + CommandView.tumor.getY() + "," + CommandView.tumor.getZ()));
+			CommandView.tumor = null;
 			return;
 		}
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();

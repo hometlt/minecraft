@@ -66,6 +66,8 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 			}
 		}
 		load(manager, "creeptumor");
+		load(manager, "techlab"); // terran add-ons (AddOnRenderer)
+		load(manager, "reactor");
 		for (String name : new String[] {"amun", "voidshard", "voidrift"}) load(manager, name); // the Void's foes (VoidRenderers)
 		if (missing > 0) LOG.warn("StarMine: {} zerg models are missing; import StarCraft II assets with Modkit", missing);
 		LOG.info("StarMine: {} zerg models loaded", MODELS.size());
