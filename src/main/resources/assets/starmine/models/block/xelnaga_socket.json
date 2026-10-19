@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/cube_bottom_top",
+	"textures": {
+		"top": "starmine:block/xelnaga_socket_top",
+		"bottom": "starmine:block/xelnaga_metal",
+		"side": "starmine:block/xelnaga_socket_side"
+	}
+}

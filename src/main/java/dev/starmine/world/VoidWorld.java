@@ -204,9 +204,14 @@ public final class VoidWorld {
 		public final List<Fallen> fallen = new ArrayList<>();
 		/** Owner 19.10: the far squares already looked at (an island made in them or none to make). */
 		public final java.util.Set<Long> farIslands = new java.util.HashSet<>();
-		/** When the world's month of Amun's patience began (game time; -1: not yet), and whether his invasion has begun. */
-		public long amunClock = -1;
+		/** Whether Amun invades some world; when he woke in each (by Artifact.World: the game time his troops come), and the worlds told. */
 		public boolean invading;
+		public final java.util.Map<String, Long> awake = new java.util.LinkedHashMap<>();
+		public final java.util.Set<String> told = new java.util.LinkedHashSet<>();
+		/** Owner 19.10: the xel'naga temples (by Artifact.World): made, their door open, their portal open. */
+		public final java.util.Set<String> temples = new java.util.LinkedHashSet<>(), doors = new java.util.LinkedHashSet<>(), portals = new java.util.LinkedHashSet<>();
+		/** Where each temple stands: the middle of its floor (y: the floor's level, set when it is built). */
+		public final java.util.Map<String, BlockPos> templeSites = new java.util.LinkedHashMap<>();
 
 		/** A freed hero who fell: whose, where it comes back, and when. */
 		public record Fallen(String kind, UUID owner, String dimension, BlockPos home, long due) {
@@ -266,8 +271,17 @@ public final class VoidWorld {
 				fallenList.add(entry);
 			}
 			tag.put("fallen", fallenList);
-			tag.putLong("amunClock", amunClock);
 			tag.putBoolean("invading", invading);
+			CompoundTag awakeTag = new CompoundTag();
+			awake.forEach(awakeTag::putLong);
+			tag.put("awake", awakeTag);
+			tag.put("told", strings(told));
+			tag.put("temples", strings(temples));
+			tag.put("doors", strings(doors));
+			tag.put("portals", strings(portals));
+			CompoundTag siteTag = new CompoundTag();
+			templeSites.forEach((world, pos) -> siteTag.putLong(world, pos.asLong()));
+			tag.put("templeSites", siteTag);
 			return tag;
 		}
 
@@ -291,9 +305,31 @@ public final class VoidWorld {
 				state.fallen.add(new Fallen(entry.getString("kind"), entry.getUUID("owner"), entry.getString("dim"), BlockPos.of(entry.getLong("home")),
 					entry.getLong("due")));
 			}
-			state.amunClock = tag.contains("amunClock") ? tag.getLong("amunClock") : -1;
 			state.invading = tag.getBoolean("invading");
+			CompoundTag awakeTag = tag.getCompound("awake");
+			for (String world : awakeTag.getAllKeys()) state.awake.put(world, awakeTag.getLong(world));
+			if (state.invading && awakeTag.isEmpty() && !tag.contains("told")) { // a world invaded by the old month's clock: the overworld and the Nether go on
+				state.awake.put("OVERWORLD", 0L);
+				state.awake.put("NETHER", 0L);
+				state.told.addAll(state.awake.keySet());
+			}
+			readStrings(tag, "told", state.told);
+			readStrings(tag, "temples", state.temples);
+			readStrings(tag, "doors", state.doors);
+			readStrings(tag, "portals", state.portals);
+			CompoundTag siteTag = tag.getCompound("templeSites");
+			for (String world : siteTag.getAllKeys()) state.templeSites.put(world, BlockPos.of(siteTag.getLong(world)));
 			return state;
+		}
+
+		private static ListTag strings(java.util.Collection<String> values) {
+			ListTag list = new ListTag();
+			for (String value : values) list.add(net.minecraft.nbt.StringTag.valueOf(value));
+			return list;
+		}
+
+		private static void readStrings(CompoundTag tag, String key, java.util.Collection<String> into) {
+			for (Tag t : tag.getList(key, Tag.TAG_STRING)) into.add(t.getAsString());
 		}
 	}
 }

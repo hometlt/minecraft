@@ -1,0 +1,23 @@
+{
+	"name": "Xel'Naga Construct",
+	"icon": "starmine:xelnagaconstruct_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 20,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:xelnagaconstruct",
+			"name": "Xel'Naga Construct",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Xel'Naga Construct",
+			"text": "$(l)Health$(): 250, shields 150$(br)$(l)Damage$(): 14, every 1 s, range 6$(br)$(l)Speed$(): 2.8, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A keeper of the xel'naga temples (Zeratul's co-op avatar): wild, of no side, it fights anyone in its temple and does not leave it."
+		}
+	]
+}

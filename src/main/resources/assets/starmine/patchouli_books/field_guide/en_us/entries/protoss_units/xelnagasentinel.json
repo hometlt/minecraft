@@ -1,0 +1,23 @@
+{
+	"name": "Xel'Naga Sentinel",
+	"icon": "starmine:xelnagasentinel_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 21,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:xelnagasentinel",
+			"name": "Xel'Naga Sentinel",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Xel'Naga Sentinel",
+			"text": "$(l)Health$(): 1100, shields 500$(br)$(l)Damage$(): 40, every 1.4 s, range 1$(br)$(l)Speed$(): 2.4, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The temples' great keeper: slow and hard to kill, its blows strike everything round it."
+		}
+	]
+}

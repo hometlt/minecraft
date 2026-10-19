@@ -936,6 +936,36 @@
 			"death": true
 		},
 		{
+			"model": "xelnagaconstruct",
+			"kind": "XELNAGA_CONSTRUCT",
+			"race": "PROTOSS",
+			"unit": "XelNagaConstructMini",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Coop\\Zeratul\\Units\\Construct_Mini_Zeratul_Coop\\Construct_Mini_Zeratul_Coop.m3",
+			"verify": true
+		},
+		{
+			"model": "xelnagasentinel",
+			"kind": "XELNAGA_SENTINEL",
+			"race": "PROTOSS",
+			"unit": "XelNagaConstructForm",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Coop\\Zeratul\\Units\\Construct_Form_Zeratul_Coop\\Construct_Form_Zeratul_Coop.m3",
+			"verify": true
+		},
+		{
+			"model": "voidmonolith",
+			"kind": "VOID_MONOLITH",
+			"race": "PROTOSS",
+			"unit": "MonolithCannon",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Coop\\Zeratul\\Buildings\\MonolithCannon_Zeratul_Coop\\MonolithCannon_Zeratul_Coop.m3",
+			"verify": true
+		},
+		{
 			"model": "spire_greater",
 			"kind": "SPIRE",
 			"race": "ZERG",

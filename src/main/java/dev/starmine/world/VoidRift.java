@@ -58,7 +58,7 @@ public class VoidRift extends Mob implements Enemy, VoidForces.Member {
 		if (VoidWorld.is(server)) {
 			if (tickCount % EVERY == 20) wave(server);
 		} else if (tickCount % 20 == 0 && AmunInvasion.nearPlayer(server, position()) && (waveIn -= 20) <= 0) { // the invasion's: near the players, as strong as it has grown
-			waveIn = AmunInvasion.every(AmunInvasion.power(server.getServer()));
+			waveIn = AmunInvasion.every(AmunInvasion.power(server));
 			if (AmunInvasion.wave(server, this, waves++ % 2 == 0) > 0) playSound(SoundEvents.ENDERMAN_TELEPORT, 2.0f, 0.5f);
 		}
 	}

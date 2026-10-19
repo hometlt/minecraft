@@ -1,0 +1,23 @@
+{
+	"name": "Конструкт Зел’Нага",
+	"icon": "starmine:xelnagaconstruct_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 20,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:xelnagaconstruct",
+			"name": "Конструкт Зел’Нага",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Конструкт Зел’Нага",
+			"text": "$(l)Здоровье$(): 250, щиты 150$(br)$(l)Урон$(): 14, раз в 1 с, дальность 6$(br)$(l)Скорость$(): 2.8, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Страж храмов зел-нага (аватар Зератула из совместного режима): дикий, ничей, нападает на всех в своём храме и не покидает его."
+		}
+	]
+}

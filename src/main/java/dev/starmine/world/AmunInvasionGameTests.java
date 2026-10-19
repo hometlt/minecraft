@@ -26,28 +26,56 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Owner 17.10: Amun's invasion after a month — shards fall with their rifts, darken the land, leave void shards;
- * his troops fight only the players' side; his workers make the way; the void gate's scale of 16.
+ * Owner 17.10, 19.10: Amun's invasion once a hero's part of a key is taken (in that hero's world, the harder the more
+ * parts) — shards fall with their rifts, darken the land, leave void shards; his troops fight only the players' side;
+ * his workers make the way; the void gate's scale of 16.
  */
 public class AmunInvasionGameTests implements FabricGameTest {
-	@GameTest(template = ARENA, batch = "amunClock", timeoutTicks = 60)
-	public void amunInvadesAfterAMonth(GameTestHelper helper) {
+	/** Owner 19.10: no clock — Amun wakes when the first part of a world's key is taken, in that world only, after a red sky. */
+	@GameTest(template = ARENA, batch = "amunClock", timeoutTicks = 80)
+	public void amunWakesWithTheFirstKey(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		VoidWorld.State state = VoidWorld.State.get(level.getServer());
 		boolean was = state.invading, dead = state.amunDead;
-		long time = level.getDayTime();
-		state.amunDead = false;
-		state.invading = false;
-		level.setDayTime(31L * 24000);
-		AmunInvasion.clockTested = true;
-		helper.runAfterDelay(25, () -> {
-			AmunInvasion.clockTested = false;
-			boolean invading = state.invading;
+		var freed = new java.util.ArrayList<>(state.freed);
+		var awake = new java.util.LinkedHashMap<>(state.awake);
+		var told = new java.util.ArrayList<>(state.told);
+		Runnable restore = () -> {
 			state.invading = was;
 			state.amunDead = dead;
-			level.setDayTime(time);
-			helper.assertTrue(invading, "no invasion after 31 days");
-			helper.succeed();
+			state.freed.clear();
+			state.freed.addAll(freed);
+			state.awake.clear();
+			state.awake.putAll(awake);
+			state.told.clear();
+			state.told.addAll(told);
+		};
+		state.amunDead = false;
+		state.invading = false;
+		state.freed.clear();
+		state.awake.clear();
+		state.told.clear();
+		long day = level.getDayTime();
+		level.setDayTime(day + 40L * 24000); // the old month's clock is gone: no invasion for days alone
+		helper.runAfterDelay(25, () -> {
+			boolean idle = !state.invading && state.awake.isEmpty();
+			state.freed.add("TOSH"); // the Nether's hero lost his part
+			helper.runAfterDelay(25, () -> {
+				boolean nether = state.awake.containsKey("NETHER"), overworld = state.awake.containsKey("OVERWORLD");
+				boolean warned = !AmunInvasion.invading(level.getServer().getLevel(Level.NETHER)); // the red sky first
+				int netherKeys = AmunInvasion.keys(state, Artifact.World.NETHER);
+				state.freed.add("TERRAN"); // Raynor (a ship's hero: by his race), Abathur and Swann: the overworld's
+				state.freed.add("ABATHUR");
+				state.freed.add("SWANN");
+				int overworldKeys = AmunInvasion.keys(state, Artifact.World.OVERWORLD);
+				restore.run();
+				level.setDayTime(day);
+				helper.assertTrue(idle, "Amun woke with no key taken");
+				helper.assertTrue(nether && !overworld, "Amun woke in the wrong world: " + awake);
+				helper.assertTrue(warned, "Amun's troops came with no warning");
+				helper.assertTrue(netherKeys == 1 && overworldKeys == 2, "keys counted " + netherKeys + ", " + overworldKeys);
+				helper.succeed();
+			});
 		});
 	}
 
@@ -166,10 +194,10 @@ public class AmunInvasionGameTests implements FabricGameTest {
 		helper.runAfterDelay(45, () -> {
 			List<StarUnit> troops = level.getEntitiesOfClass(StarUnit.class, round, unit -> unit.getTags().contains(VoidForces.TAG));
 			VoidWorld.State state = VoidWorld.State.get(level.getServer());
-			boolean was = state.invading;
-			state.invading = true;
+			Long was = state.awake.put("OVERWORLD", 0L);
 			boolean marked = AmunInvasion.marks(player).stream().anyMatch(mark -> mark.getKey() && mark.getValue().closerThan(shard.blockPosition(), 2));
-			state.invading = was;
+			if (was == null) state.awake.remove("OVERWORLD");
+			else state.awake.put("OVERWORLD", was);
 			troops.forEach(Entity::discard);
 			shard.discard();
 			level.removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);

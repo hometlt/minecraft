@@ -155,7 +155,11 @@ public enum UnitKind {
 	// ---- owner 17.10: the End's heroes, heroic ships over their bases ----
 	HORNER(           Race.TERRAN,  2000, 0,   2.62,  true,  Attack.RANGED, 12,  0.2,   8,    true,  4.3f, 2.2f,  0x3a5a8a, 0xf0d060),
 	STUKOV(           Race.ZERG,    1800, 0,   2.62,  true,  Attack.SPAWN_BROODLINGS, 30, 1.6, 9, true, 1.15f, 1.87f,  0x3a5a3a, 0x90ff60),
-	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  3.17f, 2.21f,  0xc8a030, 0xff80c0);
+	SELENDIS(         Race.PROTOSS, 1200, 1200, 2.62, true,  Attack.RANGED, 25,  0.5,   9,    true,  3.17f, 2.21f,  0xc8a030, 0xff80c0),
+	// ---- owner 19.10: the xel'naga temples' keepers (Zeratul's co-op avatars and his void monolith): wild, of no base ----
+	XELNAGA_CONSTRUCT(Race.PROTOSS, 250, 150,  2.8,   false, Attack.RANGED, 14,  1.0,   6,    true,  1.2f, 1.8f,    0x2a3a4a, 0x60ffd0),
+	XELNAGA_SENTINEL( Race.PROTOSS, 1100, 500, 2.4,   false, Attack.SPLASH, 40,  1.4,   1,    true,  2.7f, 4.4f,   0x2a3a4a, 0xffe080),
+	VOID_MONOLITH(    Race.PROTOSS, 900, 600,  0,     false, Attack.NONE,   30,  2.0,   12,   true,  2.1f, 2.9f,   0x1a1a2a, 0xa060ff);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -238,7 +242,7 @@ public enum UnitKind {
 			case "HATCHERY", "COMMAND_CENTER", "NEXUS" -> 5;
 			case "ZERG_PLATFORM", "TERRAN_PLATFORM", "PROTOSS_PLATFORM" -> 1;
 			case "SPIRE", "SPINE_CRAWLER", "SPORE_CRAWLER", "NYDUS_CANAL", "SUPPLY_DEPOT", "MISSILE_TURRET", "PYLON", "PHOTON_CANNON", "SHIELD_BATTERY", "DARK_SHRINE",
-				"AUTO_TURRET", "SENSOR_TOWER" -> 2;
+				"AUTO_TURRET", "SENSOR_TOWER", "VOID_MONOLITH" -> 2;
 			default -> 3;
 		};
 	}
@@ -279,7 +283,7 @@ public enum UnitKind {
 			case BROOD_LORD, STUKOV -> Shot.EGG;
 			case VIKING, MISSILE_TURRET, BANSHEE, LIBERATOR, CYCLONE -> Shot.ROCKET; // the thor's cannons and the battlecruiser's lasers stay hitscan
 			case MARAUDER -> Shot.GRENADE;
-			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT -> Shot.PLASMA;
+			case STALKER, IMMORTAL, TEMPEST, PHOTON_CANNON, PHOENIX, ADEPT, XELNAGA_CONSTRUCT -> Shot.PLASMA;
 			default -> race == Race.ZERG ? Shot.ACID : null;
 		};
 	}
@@ -375,6 +379,11 @@ public enum UnitKind {
 	/** Owner 17.10: the heroes guarding the main bases in the overworld — Abathur, Swann, Karax. */
 	public boolean guardian() {
 		return this == ABATHUR || this == SWANN || this == KARAX;
+	}
+
+	/** Owner 19.10: the xel'naga temples' keepers ({@link dev.starmine.world.XelNagaTemple}). */
+	public boolean xelnaga() {
+		return this == XELNAGA_CONSTRUCT || this == XELNAGA_SENTINEL || this == VOID_MONOLITH;
 	}
 
 	/** The guardian of a race's main base. */
@@ -485,16 +494,16 @@ public enum UnitKind {
 
 	/** Buildings that shoot at foes in range: spine and spore crawlers, bunker, missile turret. */
 	public boolean defender() {
-		return this == SPINE_CRAWLER || this == SPORE_CRAWLER || this == BUNKER || this == MISSILE_TURRET || this == PHOTON_CANNON;
+		return this == SPINE_CRAWLER || this == SPORE_CRAWLER || this == BUNKER || this == MISSILE_TURRET || this == PHOTON_CANNON || this == VOID_MONOLITH;
 	}
 
 	/** Defenders that shoot flying foes (spore crawler, missile turret, bunker) and ground ones (spine crawler, bunker). */
 	public boolean antiAir() {
-		return this == SPORE_CRAWLER || this == MISSILE_TURRET || this == BUNKER || this == PHOTON_CANNON;
+		return this == SPORE_CRAWLER || this == MISSILE_TURRET || this == BUNKER || this == PHOTON_CANNON || this == VOID_MONOLITH;
 	}
 
 	public boolean antiGround() {
-		return this == SPINE_CRAWLER || this == BUNKER || this == PHOTON_CANNON;
+		return this == SPINE_CRAWLER || this == BUNKER || this == PHOTON_CANNON || this == VOID_MONOLITH;
 	}
 
 	/** Bio units a medivac heals (not machines, not buildings); the hellbat is both (SC2). */

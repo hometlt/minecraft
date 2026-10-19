@@ -1,0 +1,23 @@
+{
+	"name": "Void Monolith",
+	"icon": "starmine:voidmonolith_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:voidmonolith",
+			"name": "Void Monolith",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Void Monolith",
+			"text": "$(l)Health$(): 900, shields 600$(br)$(l)Damage$(): 30, every 2 s, range 12$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Zeratul's void monolith, standing in the temples' rooms: it strikes ground and air from far off. Break it or go round it."
+		}
+	]
+}

@@ -43,7 +43,9 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * The xel'naga artifact (owner 17.10): each hero of the sky ships carries a part of its key — Kerrigan the
- * zerg part, Raynor the terran, Artanis the protoss ({@link dev.starmine.entity.Heroes#reward}). The three
+ * zerg part, Raynor the terran, Artanis the protoss ({@link dev.starmine.entity.Heroes#reward}); owner 19.10: every hero
+ * carries its world's part of its race ({@link World}, {@link #KEYS}), which also opens that world's
+ * {@link XelNagaTemple}. The three
  * parts stacked on a pedestal, one on another like a beacon on its base, make the artifact: the pedestal
  * lights, a beam goes up, and high in the sky over it a portal to the Void opens ({@link #portalCentre}) —
  * a ring of frame round a pool of portal, flown into from below. Neither can be broken; taking the artifact
@@ -53,7 +55,46 @@ import org.jetbrains.annotations.Nullable;
 public final class Artifact {
 	public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
 	public static final Block PEDESTAL;
+	/** The overworld's parts (the sky ships' heroes' and the guardians'). */
 	public static final Map<UnitKind.Race, Block> PARTS = new EnumMap<>(UnitKind.Race.class);
+	/** Owner 19.10: each world's own three parts, carried by its heroes; its xel'naga temple opens with them ({@link XelNagaTemple}). */
+	public static final Map<World, Map<UnitKind.Race, Block>> KEYS = new EnumMap<>(World.class);
+
+	/** The worlds with heroes, each with its own key. */
+	public enum World {
+		OVERWORLD(""), NETHER("nether_"), END("end_");
+
+		public final String prefix;
+
+		World(String prefix) {
+			this.prefix = prefix;
+		}
+
+		/** The world a level belongs to (the stratosphere is the overworld's sky), or null (the Void). */
+		public static @Nullable World of(Level level) {
+			if (level.dimension() == Level.NETHER) return NETHER;
+			if (level.dimension() == Level.END) return END;
+			return VoidWorld.is(level) ? null : OVERWORLD;
+		}
+
+		/** The world whose heroes include `hero` (null: not a hero with a part). */
+		public static @Nullable World ofHero(UnitKind hero) {
+			return switch (hero) {
+				case KERRIGAN, RAYNOR, ARTANIS, ABATHUR, SWANN, KARAX -> OVERWORLD;
+				case TOSH, ZERATUL, ZAGARA -> NETHER;
+				case HORNER, STUKOV, SELENDIS -> END;
+				default -> null;
+			};
+		}
+
+		public net.minecraft.resources.ResourceKey<Level> dimension() {
+			return switch (this) {
+				case OVERWORLD -> Level.OVERWORLD;
+				case NETHER -> Level.NETHER;
+				case END -> Level.END;
+			};
+		}
+	}
 	public static final Block PORTAL, FRAME;
 	public static final BlockEntityType<Core> CORE;
 	/** Half the side of the portal's pool, and how high over the artifact it opens (at least {@link #PORTAL_MIN_Y}). */
@@ -62,10 +103,19 @@ public final class Artifact {
 	static {
 		PEDESTAL = block("artifact_pedestal", new Pedestal(BlockBehaviour.Properties.of().strength(6.0f, 1200.0f).sound(SoundType.AMETHYST)
 			.requiresCorrectToolForDrops().lightLevel(state -> state.getValue(ACTIVE) ? 15 : 4)), Rarity.RARE);
-		for (UnitKind.Race race : UnitKind.Race.values())
-			PARTS.put(race, block(race.name().toLowerCase(java.util.Locale.ROOT) + "_key_part", new Part(race, BlockBehaviour.Properties.of()
-				.strength(4.0f, 1200.0f).lightLevel(state -> 10).noOcclusion().pushReaction(PushReaction.BLOCK)
-				.sound(race == UnitKind.Race.ZERG ? SoundType.SLIME_BLOCK : race == UnitKind.Race.TERRAN ? SoundType.METAL : SoundType.AMETHYST)), Rarity.EPIC));
+		for (World world : World.values()) {
+			Map<UnitKind.Race, Block> parts = new EnumMap<>(UnitKind.Race.class);
+			for (UnitKind.Race race : UnitKind.Race.values()) {
+				String name = world.prefix + race.name().toLowerCase(java.util.Locale.ROOT) + "_key_part";
+				Block block = Registry.register(BuiltInRegistries.BLOCK, StarMine.id(name), new Part(race, world, BlockBehaviour.Properties.of()
+					.strength(4.0f, 1200.0f).lightLevel(state -> 10).noOcclusion().pushReaction(PushReaction.BLOCK)
+					.sound(race == UnitKind.Race.ZERG ? SoundType.SLIME_BLOCK : race == UnitKind.Race.TERRAN ? SoundType.METAL : SoundType.AMETHYST)));
+				Registry.register(BuiltInRegistries.ITEM, StarMine.id(name), new PartItem(block, new Item.Properties().rarity(Rarity.EPIC).stacksTo(1)));
+				parts.put(race, block);
+			}
+			KEYS.put(world, parts);
+		}
+		PARTS.putAll(KEYS.get(World.OVERWORLD));
 		PORTAL = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("void_portal"), new VoidPortal(BlockBehaviour.Properties.of()
 			.strength(-1.0f, 3600000.0f).noCollission().noLootTable().lightLevel(state -> 13).pushReaction(PushReaction.BLOCK).noOcclusion()));
 		FRAME = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("void_portal_frame"), new Block(BlockBehaviour.Properties.of()
@@ -87,13 +137,24 @@ public final class Artifact {
 	public static void load() {
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
 			entries.accept(PEDESTAL);
-			PARTS.values().forEach(entries::accept);
+			KEYS.values().forEach(parts -> parts.values().forEach(entries::accept));
 		});
 	}
 
-	/** The part a hero leaves. */
+	/** The overworld's part of a race. */
 	public static Item part(UnitKind.Race race) {
 		return PARTS.get(race).asItem();
+	}
+
+	/** A world's part of a race. */
+	public static Item part(World world, UnitKind.Race race) {
+		return KEYS.get(world).get(race).asItem();
+	}
+
+	/** The part a hero carries: its world's, of its race (null: none). */
+	public static @Nullable Item partOf(UnitKind hero) {
+		World world = World.ofHero(hero);
+		return world == null ? null : part(world, hero.race);
 	}
 
 	/** The middle of the portal an artifact on the pedestal at `pedestal` opens. */
@@ -229,14 +290,16 @@ public final class Artifact {
 		}
 	}
 
-	/** A part of the artifact's key. */
+	/** A part of the artifact's key: a race's, of a world. */
 	public static final class Part extends Block {
 		private static final VoxelShape SHAPE = Block.box(2, 0, 2, 14, 16, 14);
 		public final UnitKind.Race race;
+		public final World world;
 
-		Part(UnitKind.Race race, Properties properties) {
+		Part(UnitKind.Race race, World world, Properties properties) {
 			super(properties);
 			this.race = race;
+			this.world = world;
 		}
 
 		@Override
@@ -247,19 +310,41 @@ public final class Artifact {
 		@Override
 		protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState old, boolean moved) {
 			super.onPlace(state, level, pos, old, moved);
-			if (level instanceof ServerLevel server && !old.is(this)) check(server, pos, false);
+			if (level instanceof ServerLevel server && !old.is(this)) {
+				check(server, pos, false);
+				XelNagaTemple.socketChanged(server, pos);
+			}
 		}
 
 		@Override
 		protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState now, boolean moved) {
 			super.onRemove(state, level, pos, now, moved);
-			if (level instanceof ServerLevel server && !now.is(this)) check(server, pos, false);
+			if (level instanceof ServerLevel server && !now.is(this)) {
+				check(server, pos, false);
+				XelNagaTemple.socketChanged(server, pos);
+			}
 		}
 
 		@Override
 		public void animateTick(BlockState state, Level level, BlockPos pos, net.minecraft.util.RandomSource random) {
 			if (random.nextInt(3) == 0)
 				level.addParticle(ParticleTypes.END_ROD, pos.getX() + random.nextDouble(), pos.getY() + random.nextDouble(), pos.getZ() + random.nextDouble(), 0, 0.02, 0);
+		}
+	}
+
+	/** A part in hand: used in the air it tells where its world's xel'naga temple is (owner 19.10: the key shows the way). */
+	static final class PartItem extends BlockItem {
+		PartItem(Block block, Properties properties) {
+			super(block, properties);
+		}
+
+		@Override
+		public net.minecraft.world.InteractionResultHolder<net.minecraft.world.item.ItemStack> use(Level level, net.minecraft.world.entity.player.Player player,
+				net.minecraft.world.InteractionHand hand) {
+			net.minecraft.world.item.ItemStack stack = player.getItemInHand(hand);
+			if (level instanceof ServerLevel server && player instanceof ServerPlayer traveller && getBlock() instanceof Part part)
+				XelNagaTemple.pointTo(server, traveller, part.world);
+			return net.minecraft.world.InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
 		}
 	}
 

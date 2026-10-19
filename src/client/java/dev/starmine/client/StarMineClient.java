@@ -28,6 +28,7 @@ public final class StarMineClient implements ClientModInitializer {
 			Minecraft mc = Minecraft.getInstance();
 			if (!CommandView.active()) mc.execute(() -> CommandView.enter(mc));
 		};
+		AmunSkyClient.register(); // owner 19.10: the red sky of Amun's waking
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.colony.ColonyNetwork.BaseStatus.TYPE,
 			(status, context) -> BaseStatusClient.receive(status));
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.colony.ColonyNetwork.BaseMarks.TYPE,
@@ -94,7 +95,8 @@ public final class StarMineClient implements ClientModInitializer {
 		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
 		BlockEntityRenderers.register(dev.starmine.world.Artifact.CORE, ArtifactRenderer::new); // owner 17.10: the artifact's beam
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
-		for (net.minecraft.world.level.block.Block part : dev.starmine.world.Artifact.PARTS.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
+		for (var parts : dev.starmine.world.Artifact.KEYS.values()) for (net.minecraft.world.level.block.Block part : parts.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.XelNagaTemple.PORTAL, RenderType.translucent()); // owner 19.10
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
 		dev.starmine.block.ArmorBlocks.DOORS.forEach((race, door) -> // owner 19.10: open doors are frames; the protoss gate's field is clear light
 			BlockRenderLayerMap.INSTANCE.putBlock(door, race == UnitKind.Race.PROTOSS ? RenderType.translucent() : RenderType.cutout()));

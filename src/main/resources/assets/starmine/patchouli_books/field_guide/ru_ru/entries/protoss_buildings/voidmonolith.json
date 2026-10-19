@@ -1,0 +1,23 @@
+{
+	"name": "Монолит Пустоты",
+	"icon": "starmine:voidmonolith_spawn_egg",
+	"category": "starmine:protoss_buildings",
+	"sortnum": 16,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:voidmonolith",
+			"name": "Монолит Пустоты",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Монолит Пустоты",
+			"text": "$(l)Здоровье$(): 900, щиты 600$(br)$(l)Урон$(): 30, раз в 2 с, дальность 12$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Монолит Пустоты Зератула стоит в комнатах храмов: бьёт по земле и воздуху издалека. Разрушьте его или обойдите."
+		}
+	]
+}

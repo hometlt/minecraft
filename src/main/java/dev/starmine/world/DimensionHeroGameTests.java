@@ -87,7 +87,8 @@ public class DimensionHeroGameTests implements FabricGameTest {
 		helper.runAfterDelay(20, () -> {
 			boolean freed = zeratul.isAlive() && HeroLiberation.freed(zeratul) && state.freed.contains("ZERATUL");
 			boolean part = level.getEntitiesOfClass(ItemEntity.class, zeratul.getBoundingBox().inflate(4),
-				item -> item.getItem().is(Artifact.part(UnitKind.Race.PROTOSS))).size() == 1;
+				item -> item.getItem().is(Artifact.part(Artifact.World.NETHER, UnitKind.Race.PROTOSS))).size() == 1; // owner 19.10: the Nether's own key
+			String loot = level.getEntitiesOfClass(ItemEntity.class, zeratul.getBoundingBox().inflate(8)).stream().map(i -> i.getItem().toString()).toList().toString();
 			boolean theirs = zeratul.owner().filter(player.getUUID()::equals).isPresent();
 			// freed, it may fall: then it is remembered to come back
 			int before = state.fallen.size();
@@ -104,7 +105,7 @@ public class DimensionHeroGameTests implements FabricGameTest {
 			level.getEntitiesOfClass(ItemEntity.class, zeratul.getBoundingBox().inflate(8)).forEach(Entity::discard);
 			level.removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);
 			helper.assertTrue(freed, "Zeratul was not freed");
-			helper.assertTrue(part, "Zeratul gave no part of the key");
+			helper.assertTrue(part, "Zeratul gave no part of the key: " + loot);
 			helper.assertTrue(theirs, "Zeratul is not the player's");
 			helper.assertTrue(spared, "a hero fell in the minute after it was freed");
 			helper.assertTrue(dead, "a freed hero cannot fall");

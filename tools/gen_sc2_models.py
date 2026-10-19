@@ -44,6 +44,9 @@ SOURCES = {
 	'HORNER': ('Horner', VOID, False),
 	'STUKOV': ('InfestedStukov', VOID, False),
 	'SELENDIS': ('Selendis', VOID, False),
+	'XELNAGA_CONSTRUCT': ('XelNagaConstructMini', VOID, True),
+	'XELNAGA_SENTINEL': ('XelNagaConstructForm', VOID, True),
+	'VOID_MONOLITH': ('MonolithCannon', VOID, True),
 }
 # kinds whose unit draws no model of its own in the game's data (checked 18.10): the model to take instead,
 # a CModel entry of the mod (`sc2Model`) or a file (`sc2ModelPath`), with animation files (`sc2ModelAnims`) the entry lacks. Swann: his Model `Swann` (the armed Swann of
@@ -55,6 +58,10 @@ MODELS = {
 	'HORNER': {'sc2ModelPath': r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer\SMX3_FirstOfficer.m3',
 		'sc2ModelAnims': [r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer_RequiredAnims\SMX3_FirstOfficer_RequiredAnims.m3a']},
 	'ABATHUR': {'sc2ModelPath': 'Assets\\Portraits\\Zerg\\AbathurEx3_Portrait\\AbathurEx3_Portrait.m3'},
+	# owner 19.10: the xel'naga temples' keepers, Zeratul's co-op avatars and void monolith (Base.SC2Assets; no campaign unit draws them)
+	'XELNAGA_CONSTRUCT': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Mini_Zeratul_Coop\\Construct_Mini_Zeratul_Coop.m3'},
+	'XELNAGA_SENTINEL': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Form_Zeratul_Coop\\Construct_Form_Zeratul_Coop.m3'},
+	'VOID_MONOLITH': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Buildings\\MonolithCannon_Zeratul_Coop\\MonolithCannon_Zeratul_Coop.m3'},
 }
 # the mod's own (no SC2 model: drawn from its blocks)
 OWN = {'ZERG_PLATFORM', 'TERRAN_PLATFORM', 'PROTOSS_PLATFORM'}

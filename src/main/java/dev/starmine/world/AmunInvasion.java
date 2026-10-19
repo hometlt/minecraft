@@ -31,8 +31,11 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 /**
- * Amun's invasion (owner 17.10): a world that plays a month (game rule `starmineAmunDays`, 30 Minecraft days) and has
- * not ended Amun is invaded — in the overworld and the Nether:
+ * Amun's invasion (owner 17.10, 19.10): Amun wakes when a player takes the first part of a key from a hero — a world
+ * where nobody fights the commanders is left alone. He invades the world whose heroes lost their parts (the overworld,
+ * the Nether, the End each by its own keys), the harder the more parts were taken there ({@link #keys}): with one, few
+ * small shards, seldom; with three, full waves. Before he comes the sky of that world reddens ({@link #WARNING} ticks,
+ * {@link AmunSky}) and all hear that Amun has woken. Until he is dead:
  * - void shards fall near the players by night ({@link #SHARDS_PER_WORLD} at most in a world, one near each player at a
  *   time): round a shard the light dies (darkness) and Amun's troops grow fierce, and the shard itself sends out his
  *   troops now and then until it is broken ({@link #shardTick}); broken, a shard leaves void shards to make a void gate
@@ -68,9 +71,8 @@ public final class AmunInvasion {
 	private static final DustParticleOptions BLACK = new DustParticleOptions(new Vector3f(0.05f, 0.02f, 0.05f), 1.1f);
 	private static final DustParticleOptions RED = new DustParticleOptions(new Vector3f(0.85f, 0.05f, 0.08f), 0.9f);
 
-	/** In the game tests the invasion starts only when its own test asks ({@link #clockTested}). */
-	static final boolean TESTING = Boolean.getBoolean("fabric-api.gametest");
-	static boolean clockTested;
+	/** Ticks the sky of a world is red before Amun's troops come there. */
+	public static final int WARNING = 200;
 
 	private AmunInvasion() {
 	}
@@ -79,9 +81,45 @@ public final class AmunInvasion {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(AmunInvasion::tick);
 	}
 
-	/** Whether Amun invades the worlds now. */
+	/** Whether Amun invades some world now. */
 	public static boolean invading(MinecraftServer server) {
 		return VoidWorld.State.get(server).invading;
+	}
+
+	/** Whether Amun invades this level now (his troops are there, its warning over). */
+	public static boolean invading(ServerLevel level) {
+		VoidWorld.State state = VoidWorld.State.get(level.getServer());
+		Artifact.World world = Artifact.World.of(level);
+		Long since = world == null ? null : state.awake.get(world.name());
+		return !state.amunDead && since != null && level.getGameTime() >= since;
+	}
+
+	/** The parts of a world's key its heroes have lost: the races of its freed heroes (0-3). */
+	public static int keys(VoidWorld.State state, Artifact.World world) {
+		java.util.Set<UnitKind.Race> races = java.util.EnumSet.noneOf(UnitKind.Race.class);
+		for (String freed : state.freed) {
+			UnitKind hero;
+			try {
+				hero = switch (UnitKind.Race.valueOf(freed)) { // a ship's hero, by its race
+					case ZERG -> UnitKind.KERRIGAN;
+					case TERRAN -> UnitKind.RAYNOR;
+					case PROTOSS -> UnitKind.ARTANIS;
+				};
+			} catch (IllegalArgumentException notRace) {
+				try {
+					hero = UnitKind.valueOf(freed);
+				} catch (IllegalArgumentException unknown) {
+					continue;
+				}
+			}
+			if (Artifact.World.ofHero(hero) == world) races.add(hero.race);
+		}
+		return races.size();
+	}
+
+	/** A hero's part was taken: Amun looks at the worlds with the next second. */
+	static void keyTaken(MinecraftServer server) {
+		VoidWorld.State.get(server).setDirty();
 	}
 
 	static void tick(MinecraftServer server) {
@@ -95,19 +133,29 @@ public final class AmunInvasion {
 			return;
 		}
 		ServerLevel overworld = server.overworld();
-		long days = overworld.getDayTime() / 24000L;
-		if (!state.invading) {
-			if (TESTING && !clockTested) return; // the test world grows old over many runs: its clock starts only for its own test
-			if (days < overworld.getGameRules().getInt(StarMine.AMUN_DAYS)) return;
-			state.invading = true;
-			state.setDirty();
-			for (ServerPlayer player : server.getPlayerList().getPlayers())
-				player.displayClientMessage(Component.translatable("message.starmine.amun_invades"), false);
-		}
+		long now = overworld.getGameTime();
 		int t = server.getTickCount();
-		for (ServerLevel level : new ServerLevel[] {overworld, server.getLevel(Level.NETHER)}) {
-			if (level == null || level.players().isEmpty()) continue;
-			if (t % SHARD_EVERY < 20 && night(overworld.getDayTime())) shards(level); // owner 17.10: they fall by night
+		for (Artifact.World world : Artifact.World.values()) {
+			ServerLevel level = server.getLevel(world.dimension());
+			if (level == null || keys(state, world) == 0) continue;
+			Long since = state.awake.get(world.name());
+			if (since == null) { // owner 19.10: the first part of this world's key is taken — Amun wakes; its sky reddens first
+				state.awake.put(world.name(), now + WARNING);
+				state.invading = true;
+				state.setDirty();
+				for (ServerPlayer player : level.players()) AmunSky.redden(player, WARNING + 100);
+				continue;
+			}
+			if (now < since) continue;
+			if (state.told.add(world.name())) {
+				state.setDirty();
+				for (ServerPlayer player : server.getPlayerList().getPlayers())
+					player.displayClientMessage(Component.translatable("message.starmine.amun_awakened",
+						Component.translatable("world.starmine." + world.name().toLowerCase(java.util.Locale.ROOT))), false);
+			}
+			if (level.players().isEmpty()) continue;
+			if (t % SHARD_EVERY < 20 && night(overworld.getDayTime()) // owner 17.10: they fall by night; with one part, seldom
+				&& (keys(state, world) > 1 || level.random.nextInt(3) == 0)) shards(level);
 			if (t % RAID_EVERY < 20) raid(level);
 			if (t % FERRY_EVERY < 20) ferry(level);
 		}
@@ -115,10 +163,25 @@ public final class AmunInvasion {
 
 	// ---- the invasion's strength ----
 
-	/** How strong the invasion has grown: the days it has gone on (0 the first). */
-	public static int power(MinecraftServer server) {
-		long days = server.overworld().getDayTime() / 24000L;
-		return (int) Math.max(0, days - server.overworld().getGameRules().getInt(StarMine.AMUN_DAYS));
+	/**
+	 * How strong the invasion of a level is (owner 19.10): by the parts of its world's key taken — one: small troops,
+	 * seldom; two: stronger; three: all of them — and a little more each two days it goes on there (up to three).
+	 */
+	public static int power(ServerLevel level) {
+		VoidWorld.State state = VoidWorld.State.get(level.getServer());
+		Artifact.World world = Artifact.World.of(level);
+		if (world == null) return 0;
+		int keys = keys(state, world);
+		if (keys == 0) return 0;
+		Long since = state.awake.get(world.name());
+		int days = since == null ? 0 : (int) Math.max(0, (level.getGameTime() - since) / 48000L);
+		return (keys - 1) * 4 + Math.min(3, days);
+	}
+
+	/** How many of Amun's shards a world holds at most: two for each part of its key taken. */
+	public static int shardsFor(ServerLevel level) {
+		Artifact.World world = Artifact.World.of(level);
+		return world == null ? 0 : Math.min(SHARDS_PER_WORLD, 2 * keys(VoidWorld.State.get(level.getServer()), world));
 	}
 
 	/** Whether it is night at this time of the overworld's day (the Nether keeps the overworld's clock). */
@@ -157,7 +220,7 @@ public final class AmunInvasion {
 		AABB area = source.getBoundingBox().inflate(VoidRift.AREA, 8, VoidRift.AREA);
 		int near = level.getEntitiesOfClass(StarUnit.class, area, unit -> unit.isAlive() && unit.getTags().contains(VoidForces.TAG)).size();
 		if (near >= CAP) return 0;
-		List<UnitKind> wave = troops(power(level.getServer()), level.random);
+		List<UnitKind> wave = troops(power(level), level.random);
 		BlockPos ground = BlockPos.containing(source.getX(), groundOf(level, source.blockPosition()), source.getZ());
 		LivingEntity foe = foe(level, source, 64);
 		int made = 0;
@@ -185,7 +248,7 @@ public final class AmunInvasion {
 	/** The shards and rifts of the invasion a player sees on the minimap: within {@link #PLAYER_REACH} in their world (`true`: a shard). */
 	public static List<java.util.Map.Entry<Boolean, BlockPos>> marks(ServerPlayer player) {
 		List<java.util.Map.Entry<Boolean, BlockPos>> marks = new java.util.ArrayList<>();
-		if (!(player.level() instanceof ServerLevel level) || VoidWorld.is(level) || !invading(level.getServer())) return marks;
+		if (!(player.level() instanceof ServerLevel level) || VoidWorld.is(level) || !invading(level)) return marks;
 		AABB area = player.getBoundingBox().inflate(PLAYER_REACH, 384, PLAYER_REACH);
 		for (VoidShard shard : level.getEntitiesOfClass(VoidShard.class, area, VoidShard::isAlive)) marks.add(java.util.Map.entry(true, shard.blockPosition()));
 		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, area, VoidRift::isAlive)) marks.add(java.util.Map.entry(false, rift.blockPosition()));
@@ -198,9 +261,9 @@ public final class AmunInvasion {
 	static void shards(ServerLevel level) {
 		List<VoidShard> all = level.getEntitiesOfClass(VoidShard.class, new AABB(level.getWorldBorder().getMinX(), level.getMinBuildHeight(),
 			level.getWorldBorder().getMinZ(), level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()), VoidShard::isAlive);
-		int count = all.size();
+		int count = all.size(), most = shardsFor(level);
 		for (ServerPlayer player : level.players()) {
-			if (player.isSpectator() || count >= SHARDS_PER_WORLD) continue;
+			if (player.isSpectator() || count >= most) continue;
 			if (all.stream().anyMatch(shard -> shard.distanceTo(player) < 160)) continue;
 			if (fall(level, player.blockPosition()) != null) count++;
 		}
@@ -216,6 +279,7 @@ public final class AmunInvasion {
 		double angle = level.random.nextDouble() * Math.PI * 2;
 		BlockPos column = near.offset((int) (Math.cos(angle) * distance), 0, (int) (Math.sin(angle) * distance));
 		int ground = groundOf(level, column);
+		if (ground <= level.getMinBuildHeight() + 4) return null; // the End's void: nowhere to stand
 		VoidShard shard = VoidForces.SHARD.create(level);
 		if (shard == null) return null;
 		shard.moveTo(column.getX() + 0.5, ground + 5, column.getZ() + 0.5, 0, 0);
@@ -248,7 +312,7 @@ public final class AmunInvasion {
 		if (!nearPlayer(level, shard.position())) return; // owner 17.10: only near the players
 		shard.waveIn -= 20;
 		if (shard.waveIn <= 0) {
-			shard.waveIn = every(power(level.getServer()));
+			shard.waveIn = every(power(level));
 			wave(level, shard, false);
 		}
 		AABB area = shard.getBoundingBox().inflate(SHARD_REACH);

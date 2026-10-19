@@ -221,9 +221,10 @@ public final class HeroLiberation {
 		level.sendParticles(ParticleTypes.END_ROD, hero.getX(), hero.getY() + hero.getBbHeight() / 2, hero.getZ(), 60, 1, 1, 1, 0.15);
 		level.playSound(null, hero.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 2.0f, 0.8f);
 		for (ItemStack loot : Heroes.reward(hero)) level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), loot));
-		if (hero.kind.dimensionHero() // owner 17.10: the Nether's and the End's heroes carry their world's part of the key
-			|| !hero.kind.guardian() && !data.parts.containsKey(hero.kind.race.name())) // a ship built before the parts stood on it: the part from the hero's hand
-			level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), new ItemStack(Artifact.part(hero.kind.race))));
+		// owner 19.10: every hero carries its world's part of its race (a ship's hero: the part stands on its ship, unless built before)
+		if (hero.kind.dimensionHero() || hero.kind.guardian() || !data.parts.containsKey(hero.kind.race.name()))
+			level.addFreshEntity(new ItemEntity(level, hero.getX(), hero.getY() + 0.5, hero.getZ(), new ItemStack(Artifact.partOf(hero.kind))));
+		AmunInvasion.keyTaken(level.getServer());
 		List<ServerPlayer> audience = level.players().stream().filter(p -> p.distanceTo(hero) <= Heroes.BAR_RANGE * 2).toList();
 		for (ServerPlayer near : audience) dev.starmine.guide.Goals.heroFreed(near, hero.kind);
 		if (hero.kind.guardian()) RaceBases.shipAfterGuardian(level, hero.kind.race); // owner 17.10: its race's ship comes to the stratosphere now

@@ -46,6 +46,8 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	public static boolean allied(Entity a, Entity b) {
 		if (a == b) return true;
 		if (amun(a) || amun(b)) return amun(a) && amun(b);
+		boolean keeperA = a instanceof StarUnit u && u.kind.xelnaga(), keeperB = b instanceof StarUnit v && v.kind.xelnaga();
+		if (keeperA || keeperB) return keeperA && keeperB; // owner 19.10: the temples' keepers side with no one
 		Faction fa = of(a), fb = of(b);
 		if (fa == null || fb == null) return false;
 		if (!fa.wild() || !fb.wild()) return fa.owner != null && fa.owner.equals(fb.owner);

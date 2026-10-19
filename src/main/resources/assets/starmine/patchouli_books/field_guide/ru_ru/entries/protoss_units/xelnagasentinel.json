@@ -1,0 +1,23 @@
+{
+	"name": "Страж Зел’Нага",
+	"icon": "starmine:xelnagasentinel_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 21,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:xelnagasentinel",
+			"name": "Страж Зел’Нага",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Страж Зел’Нага",
+			"text": "$(l)Здоровье$(): 1100, щиты 500$(br)$(l)Урон$(): 40, раз в 1.4 с, дальность 1$(br)$(l)Скорость$(): 2.4, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Большой страж храмов: медленный и живучий, его удары бьют всех вокруг."
+		}
+	]
+}
