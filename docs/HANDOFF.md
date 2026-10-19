@@ -34,6 +34,10 @@
 
 ## Последняя правка
 
+Запас нестабильным тестам: `HeroFightGameTests.abathurNestsEvolvesAndBecomesTheBrutalisk` ждёт гнездо до 15 с
+(TestArena.Timeline) и сразу проверяет эволюцию; `PathfindingGameTests.race` получил `spare` — толпе в проходе
+(`aCrowdSqueezesThroughAPass`) можно двоих отставших.
+
 U1–U5. Упрощения → SC2 (список и оставшиеся сознательные отличия — docs/ABILITIES.md «Отличия от SC2»).
 - `Modes.airWeapon` + `StarUnit.weaponAgainst(target)`: своё оружие против воздуха у тора (джавелины / полезная
   нагрузка; молоты по земле в обоих режимах), королевы, крейсера, буреносца; используют `UnitGoals.Shoot`,

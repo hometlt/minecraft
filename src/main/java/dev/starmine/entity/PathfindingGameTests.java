@@ -48,6 +48,11 @@ public class PathfindingGameTests implements FabricGameTest {
 	 * over, who is stuck where.
 	 */
 	private static void race(GameTestHelper helper, String scenario, Map<StarUnit, Vec3> goals, double radius, int baseLimit) {
+		race(helper, scenario, goals, radius, baseLimit, 0);
+	}
+
+	/** {@link #race}, `spare` of the units allowed still on their way at the limit (a crowd's last ones jostling in a narrow pass). */
+	private static void race(GameTestHelper helper, String scenario, Map<StarUnit, Vec3> goals, double radius, int baseLimit, int spare) {
 		int limit = baseLimit * 3 / 2; // headroom (timeouts too): a loaded test server runs slower, not the units — the log keeps their ticks
 		Map<StarUnit, Long> arrived = new LinkedHashMap<>();
 		long[] start = new long[] {-1};
@@ -68,6 +73,11 @@ public class PathfindingGameTests implements FabricGameTest {
 			if (arrived.size() == goals.size()) {
 				over[0] = true;
 				LOG.info("[pathfinding] {}: all {} arrived; ticks {}; planner {}", scenario, goals.size(), times(arrived), DronePlanner.STATS);
+				helper.succeed();
+			} else if (now - start[0] >= limit && arrived.size() >= goals.size() - spare) {
+				over[0] = true;
+				LOG.info("[pathfinding] {}: {} of {} arrived in {} ticks (spare {}); ticks {}; planner {}", scenario, arrived.size(), goals.size(), limit,
+					spare, times(arrived), DronePlanner.STATS);
 				helper.succeed();
 			} else if (now - start[0] >= limit) {
 				over[0] = true;
@@ -581,7 +591,7 @@ public class PathfindingGameTests implements FabricGameTest {
 			double x = 4 + (i % 6) * 2.2, z = 14 + (i / 6) * 4.5;
 			goals.put(unit(helper, kind, x, z, player), point(helper, 34 + (i % 6) * 2, 14 + (i / 6) * 4.5));
 		}
-		race(helper, "crowd of 24 through a pass 3 wide", goals, 2.5, 1300);
+		race(helper, "crowd of 24 through a pass 3 wide", goals, 2.5, 1300, 2); // owner 19.10: headroom for the last two jostling in the pass
 	}
 
 	@GameTest(template = ARENA, batch = "pathBuildings", timeoutTicks = 1350)

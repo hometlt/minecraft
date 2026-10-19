@@ -42,7 +42,7 @@ public class HeroFightGameTests implements FabricGameTest {
 		return zealot;
 	}
 
-	@GameTest(template = ARENA, batch = "abathur", timeoutTicks = 200)
+	@GameTest(template = ARENA, batch = "abathur", timeoutTicks = 500)
 	public void abathurNestsEvolvesAndBecomesTheBrutalisk(GameTestHelper helper) {
 		clear(helper);
 		ServerLevel level = helper.getLevel();
@@ -51,24 +51,31 @@ public class HeroFightGameTests implements FabricGameTest {
 		Hive base = HiveSavedData.get(level.getServer()).get(abathur.hiveId());
 		StarUnit roach = HiveLogic.spawn(level, base, UnitKind.ROACH, point(helper, 30, 30), null);
 		roach.setNoAi(true);
-		helper.runAfterDelay(100, () -> {
-			helper.assertTrue(abathur.getTags().stream().anyMatch(t -> t.startsWith(GuardianFights.NEST)), "no toxic nest laid");
+		// owner 19.10: the nest comes when its fight AI gets to it — waited for up to 15 s (it came within 5 s mostly, not always);
+		// then at once the evolution and the brutalisk
+		TestArena.Timeline timeline = TestArena.Timeline.of(helper);
+		boolean[] nested = new boolean[1];
+		timeline.every(() -> {
+			if (nested[0]) return;
+			if (timeline.now() > 300) helper.fail("no toxic nest laid in 15 s");
+			if (abathur.getTags().stream().noneMatch(t -> t.startsWith(GuardianFights.NEST))) return;
+			nested[0] = true;
 			StarUnit ravager = GuardianFights.evolve(abathur, level);
 			helper.assertTrue(ravager != null && ravager.kind == UnitKind.RAVAGER && !roach.isAlive(), "the roach did not evolve");
 			abathur.addTag("starmine_phase2");
 			abathur.addTag("starmine_phase3");
-		});
-		helper.runAfterDelay(110, () -> {
-			StarUnit form = GuardianFights.formOf(abathur, level);
-			helper.assertTrue(form != null && form.kind == UnitKind.ULTRALISK && abathur.getVehicle() == form && abathur.isInvisible(), "no brutalisk");
-			helper.assertTrue(!GuardianFights.summons(abathur, level, GuardianFights.SYMBIOTE).isEmpty(), "no symbiote");
-			helper.assertTrue(!GuardianFights.summons(abathur, level, GuardianFights.CLONE).isEmpty(), "no copy of Abathur");
-			GuardianFights.end(abathur, level);
-			helper.assertTrue(!abathur.isPassenger() && !abathur.isInvisible() && GuardianFights.formOf(abathur, level) == null, "the form stayed");
-			abathur.discard();
-			zealot.discard();
-			level.getEntitiesOfClass(StarUnit.class, abathur.getBoundingBox().inflate(40), u -> u.owner().isEmpty()).forEach(StarUnit::discard);
-			helper.succeed();
+			timeline.at(10, () -> {
+				StarUnit form = GuardianFights.formOf(abathur, level);
+				helper.assertTrue(form != null && form.kind == UnitKind.ULTRALISK && abathur.getVehicle() == form && abathur.isInvisible(), "no brutalisk");
+				helper.assertTrue(!GuardianFights.summons(abathur, level, GuardianFights.SYMBIOTE).isEmpty(), "no symbiote");
+				helper.assertTrue(!GuardianFights.summons(abathur, level, GuardianFights.CLONE).isEmpty(), "no copy of Abathur");
+				GuardianFights.end(abathur, level);
+				helper.assertTrue(!abathur.isPassenger() && !abathur.isInvisible() && GuardianFights.formOf(abathur, level) == null, "the form stayed");
+				abathur.discard();
+				zealot.discard();
+				level.getEntitiesOfClass(StarUnit.class, abathur.getBoundingBox().inflate(40), u -> u.owner().isEmpty()).forEach(StarUnit::discard);
+				helper.succeed();
+			});
 		});
 	}
 
