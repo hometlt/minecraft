@@ -5,7 +5,9 @@
 cd "$(dirname "$0")/.." || exit 1
 status=0
 for part in light heavy; do
+	rm -f build/gametest/junit.xml "build/gametest/junit-$part.xml" # no stale report of an earlier run passes for this one
 	./gradlew runGametest -PstarmineGameTests=$part --console=plain || status=1
-	cp build/gametest/junit.xml "build/gametest/junit-$part.xml" 2>/dev/null
+	if [ -f build/gametest/junit.xml ]; then cp build/gametest/junit.xml "build/gametest/junit-$part.xml"
+	else echo "run_gametests: the $part run left no report (the build failed before the tests)" >&2; status=1; fi
 done
 exit $status
