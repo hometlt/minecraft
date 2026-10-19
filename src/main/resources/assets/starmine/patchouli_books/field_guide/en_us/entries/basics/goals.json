@@ -6,7 +6,47 @@
 	"pages": [
 		{
 			"type": "patchouli:text",
-			"text": "Your goals are in the Advancements screen, tab StarMine. $(l)/stargoals$() lists them and the next step; hints come now and then (game rule starmineHints).$(br2)Lost this book? Craft a new one — $(l)a book and a mineral shard$() — or type $(l)/starguide$()."
+			"text": "Your goals are in the Advancements screen, tab StarMine, and on the next pages, each with how to reach it, in the order the journal suggests. $(l)/stargoals$() lists which are done.$(br2)Lost this book? Craft a new one — $(l)a book and a mineral shard$() — or type $(l)/starguide$()."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Adjutant online$(): Craft a command panel (a map, 4 repeaters, 4 comparators) and press B with it: the command view from above.$(br2)$(l)Base established$(): Place a main building (hatchery, command center or nexus) from a spawn egg, or fill a supply platform and call a transport to it.$(br2)$(l)Minerals!$(): Blue mineral crystals hold 500 minerals: take a shard by hand or send workers to mine them."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Vespene gas$(): Vespene is the slow green liquid of the veins and geysers: scoop it with a bucket, or build a gas building on an outlet.$(br2)$(l)In their shoes$(): In the command view select one of your fighters and press U; V leaves it.$(br2)$(l)Hell, It's About Time$(): Train fighters (not workers) until your base counts 20: the base panel shows its army."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Fully Upgraded$(): Weapons and armor upgrades go up to level 3 in the engineering bay, armory, evolution chamber, spire, forge and cybernetics core; level 3 needs the base's top tech.$(br2)$(l)The swarm$(): The zerg lair lies about 480 blocks from where you first appeared; the minimap of the command view marks it Z.$(br2)$(l)Dominion territory$(): The terran base lies about 480 blocks away; the minimap marks it T."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)En Taro Adun$(): The protoss base lies about 480 blocks away; the minimap marks it P.$(br2)$(l)Armored up$(): Kill units of a race: they drop its armor shards. Shards make a suit like vanilla armor.$(br2)$(l)Ability module$(): Modules drop from killed units now and then, or craft one: 3 armor shards, 2 mineral shards and a vespene bucket."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)C-14 Impaler$(): Marshals in villages sell gauss rifles for emeralds; terran armories in dungeons hold them too.$(br2)$(l)Tools of the Trade$(): Race tools are crafted like vanilla ones from a race's armor fragments and sticks: a pickaxe, axe, shovel, hoe, sword or shield (see the field guide).$(br2)$(l)Defense Grid$(): A gauss, needle or photon turret is crafted around a dispenser with a race's armor; put it down and feed it its ammunition."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Shore Leave$(): A race boat is crafted like a vanilla boat from five armor fragments of the race: the terran cabin shields you, the protoss boat rises over the water, the zerg boat dives.$(br2)$(l)Purple Haze$(): Terrazine lakes lie on the Void's islands of riches; it is worth twice vespene.$(br2)$(l)Above the clouds$(): Under each main base a stair leads down to a portal hall. Kill its guards and step into the portal."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Guardians Freed$(): The guardians wait in the great halls under the three race bases near your spawn: beat them to free them.$(br2)$(l)Queen of Blades$(): Kerrigan waits in the head of the leviathan over the zerg lair.$(br2)$(l)Raynor's Raiders$(): Raynor commands the Hyperion over the terran base."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Hierarch$(): Artanis stands under the dome of the mothership over the protoss base.$(br2)$(l)Legend of the Koprulu sector$(): Three heroes, three ships: beat them all.$(br2)$(l)Into the Fire$(): The heroes of the Nether hold arenas in great halls of the Nether; beaten, they join you."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Beyond the Rim$(): The heroes of the End fly over their bases far from the dragon's island; beaten, they join you.$(br2)$(l)Shard of the Void$(): Amun's shards fall at night near players once the invasion begins; break one for void shards.$(br2)$(l)The Key of the Xel'Naga$(): Put a xel'naga pedestal down and stack the three heroes' key parts on it: a portal opens high above."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Into the Void$(): Fly into the portal over the artifact, or send your army onto it.$(br2)$(l)The End of Amun$(): Break every void shard, then bring Amun down."
 		}
 	]
 }

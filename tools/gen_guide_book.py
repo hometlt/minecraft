@@ -49,8 +49,8 @@ CATEGORIES = [
                  'Расы не селятся рядом: стая, захват или нидусов червь одной расы не появляется ближе 96 блоков к дикому другой — её базам, захватам, зданиям и стражам. Волны, набеги и десанты — это атаки, они идут туда, куда посланы.'),
         ]),
         ('goals', t('Goals', 'Цели'), 'minecraft:knowledge_book', [
-            text('Your goals are in the Advancements screen, tab StarMine. $(l)/stargoals$() lists them and the next step; hints come now and then (game rule starmineHints).$(br2)Lost this book? Craft a new one — $(l)a book and a mineral shard$() — or type $(l)/starguide$().',
-                 'Ваши цели — на экране достижений, вкладка StarMine. $(l)/stargoals$() показывает их и следующий шаг; подсказки приходят время от времени (правило starmineHints).$(br2)Потеряли книгу? Скрафтите новую — $(l)книга и осколок минерала$() — или наберите $(l)/starguide$().'),
+            text('Your goals are in the Advancements screen, tab StarMine, and on the next pages, each with how to reach it, in the order the journal suggests. $(l)/stargoals$() lists which are done.$(br2)Lost this book? Craft a new one — $(l)a book and a mineral shard$() — or type $(l)/starguide$().',
+                 'Ваши цели — на экране достижений, вкладка StarMine, и на следующих страницах: каждая с тем, как её выполнить, в порядке, который предлагает журнал. $(l)/stargoals$() показывает, какие выполнены.$(br2)Потеряли книгу? Скрафтите новую — $(l)книга и осколок минерала$() — или наберите $(l)/starguide$().'),
         ]),
         ('models', t('Models', 'Модели'), 'minecraft:armor_stand', [
             text('StarMine carries no Blizzard assets: Modkit takes the models, textures and sounds from your own copy of StarCraft II. Without them every unit and building is drawn by StarMine\'s own stand-in, built of coloured blocks in its race\'s colours — soldiers, beasts, vehicles, ships, walkers and buildings — with glowing eyes, crystals and engines.',
@@ -585,6 +585,24 @@ def pick(page, lang):
     for k, v in page.items():
         out[k] = v[lang] if isinstance(v, dict) and lang in v else v
     return out
+
+def goal_pages():
+    """Owner 19.10: the goals' hints live in the book (no more in the chat): every goal of Goals.Goal in its order, title and hint, three a page."""
+    java = open(os.path.join(ROOT, 'src/main/java/dev/starmine/guide/Goals.java'), encoding='utf8').read()
+    body = re.search(r'enum Goal \{([^;]*);', java).group(1)
+    ids = [g.strip().lower() for g in body.replace('\n', ' ').split(',') if g.strip()]
+    pages = {}
+    for lang in LANG:
+        lines = [f"$(l){LANG[lang]['advancements.starmine.' + g + '.title']}$(): {LANG[lang]['hint.starmine.' + g]}" for g in ids]
+        pages[lang] = [{'type': 'patchouli:text', 'text': '$(br2)'.join(lines[i:i + 3])} for i in range(0, len(lines), 3)]
+    return pages
+
+for _c in CATEGORIES:
+    if _c[0] == 'basics':
+        for _i, (_eid, _name, _icon, _pages) in enumerate(_c[4]):
+            if _eid == 'goals':
+                _extra = goal_pages()
+                _c[4][_i] = (_eid, _name, _icon, {lang: [pick(p, lang) for p in _pages] + _extra[lang] for lang in LANG})
 
 ALL = [dict(id=c[0], name=c[1], desc=c[2], icon=c[3], sort=i, parent=None, entries=c[4]) for i, c in enumerate(CATEGORIES)] + race_categories()
 for lang in ('en_us', 'ru_ru'):

@@ -7,8 +7,6 @@ import dev.starmine.entity.UnitKind;
 import dev.starmine.hive.HiveSavedData;
 import java.util.Map;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.gamerule.v1.GameRuleFactory;
-import net.fabricmc.fabric.api.gamerule.v1.GameRuleRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.CommandSourceStack;
@@ -21,7 +19,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,8 +30,8 @@ import org.jetbrains.annotations.Nullable;
  * shard. Each goal is an
  * advancement with one `minecraft:impossible` criterion, granted here: most are checked every two
  * seconds from what the player has and where they are, the heroes when they die near the player.
- * The first goal not done is the next step: `/stargoals` names it, and with the game rule
- * `starmineHints` on (the default) a hint about it comes every five minutes and when a goal is done.
+ * The first goal not done is the next step: `/stargoals` names it. Owner 19.10: no hints in the chat any more — every
+ * goal's hint is in the field guide (First Steps, Goals).
  */
 public final class Goals {
 	/** The goals in the order the journal suggests them. */
@@ -51,14 +48,10 @@ public final class Goals {
 	}
 
 	public static final net.minecraft.resources.ResourceLocation ROOT = StarMine.id("goals/root");
-	/** Hints about the next goal now and then (on by default). */
-	public static final GameRules.Key<GameRules.BooleanValue> HINTS =
-		GameRuleRegistry.register("starmineHints", GameRules.Category.CHAT, GameRuleFactory.createBooleanRule(true));
 	/** How near (blocks, flat) a race's main base must be to count as found. */
 	public static final double FOUND = 96;
 	/** How high a player must be over a base to be on its sky ship. */
 	public static final int SHIP_Y = 180;
-	public static final int HINT_EVERY = 20 * 60 * 5;
 	/** Fighters (not workers, not buildings) a base must have for the army goal. */
 	public static final int ARMY = 20;
 	/** Owner 19.10: the heroes freed for the group goals (VoidWorld.State.freed keeps them by name). */
@@ -93,13 +86,10 @@ public final class Goals {
 		}));
 	}
 
-	/** Every two seconds: each player's goals that can be seen from what they hold and where they are; a hint now and then. */
+	/** Every two seconds: each player's goals that can be seen from what they hold and where they are. */
 	static void serverTick(MinecraftServer server) {
 		if (server.getTickCount() % 40 != 0) return;
-		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			check(player);
-			if (player.tickCount > 0 && player.tickCount % HINT_EVERY < 40 && server.getGameRules().getBoolean(HINTS)) hint(player);
-		}
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) check(player);
 	}
 
 	/** Grants whatever of the player's goals is true now. */
@@ -189,12 +179,11 @@ public final class Goals {
 		return holder != null && player.getAdvancements().getOrStartProgress(holder).isDone();
 	}
 
-	/** Grants a goal (null: the journal's root); the first time, a hint about the next one follows. */
+	/** Grants a goal (null: the journal's root); the advancement's toast shows it, the guide tells the next one's way. */
 	public static void award(ServerPlayer player, @Nullable Goal goal) {
 		AdvancementHolder holder = holder(player, goal);
 		if (holder == null || player.getAdvancements().getOrStartProgress(holder).isDone()) return;
 		player.getAdvancements().award(holder, "done");
-		if (goal != null && player.getServer().getGameRules().getBoolean(HINTS)) hint(player);
 	}
 
 	/** The first goal not done, or null when all are. */
@@ -202,14 +191,6 @@ public final class Goals {
 		for (Goal goal : Goal.values())
 			if (!done(player, goal)) return goal;
 		return null;
-	}
-
-	/** A hint about the next goal, in the chat. */
-	static void hint(ServerPlayer player) {
-		Goal next = next(player);
-		if (next == null) return;
-		player.sendSystemMessage(Component.translatable("message.starmine.goal_next", Component.translatable("hint.starmine." + next.id))
-			.withStyle(ChatFormatting.GRAY));
 	}
 
 	/** `/stargoals`: every goal, done or not, and the next step. */
