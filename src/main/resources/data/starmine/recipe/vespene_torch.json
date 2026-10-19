@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"V",
+		"S"
+	],
+	"key": {
+		"V": {
+			"item": "starmine:vespene_bucket"
+		},
+		"S": {
+			"item": "minecraft:stick"
+		}
+	},
+	"result": {
+		"id": "starmine:vespene_torch",
+		"count": 4
+	}
+}

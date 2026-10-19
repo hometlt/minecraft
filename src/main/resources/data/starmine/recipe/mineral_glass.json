@@ -1,0 +1,20 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		" M ",
+		"MGM",
+		" M "
+	],
+	"key": {
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"G": {
+			"item": "minecraft:glass"
+		}
+	},
+	"result": {
+		"id": "starmine:mineral_glass",
+		"count": 4
+	}
+}

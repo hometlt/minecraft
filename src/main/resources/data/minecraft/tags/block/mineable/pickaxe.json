@@ -25,6 +25,8 @@
 		"starmine:protoss_armor_wall",
 		"starmine:protoss_armor_plating",
 		"starmine:protoss_armor_panel",
-		"starmine:protoss_door"
+		"starmine:protoss_door",
+		"starmine:vespene_lamp",
+		"starmine:mineral_glass"
 	]
 }

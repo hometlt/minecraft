@@ -170,6 +170,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.ability.BossPowers.load(); // owner 19.10: liquid creep, psi barriers
 		dev.starmine.world.Nydus.load();
 		dev.starmine.mineral.Minerals.load();
+		dev.starmine.block.CraftBlocks.load(); // owner 19.10: vespene torch, lamp, fuel; mineral glass
 		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();

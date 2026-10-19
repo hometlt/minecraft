@@ -1,0 +1,23 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		" I ",
+		"GVG",
+		" I "
+	],
+	"key": {
+		"I": {
+			"item": "minecraft:iron_ingot"
+		},
+		"G": {
+			"item": "minecraft:glass"
+		},
+		"V": {
+			"item": "starmine:vespene_bucket"
+		}
+	},
+	"result": {
+		"id": "starmine:vespene_lamp",
+		"count": 1
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"ingredients": [
+		{
+			"item": "starmine:terran_armor_wall"
+		}
+	],
+	"result": {
+		"id": "starmine:terran_armor_shard",
+		"count": 9
+	}
+}

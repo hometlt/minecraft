@@ -15,6 +15,18 @@
 			"text": "Vespene is a slow green liquid rising in veins from bedrock. A gas building goes on an outlet; a canister of iron and glass carries it."
 		},
 		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:vespene_torch",
+			"text": "A vespene bucket over a stick makes four $(l)vespene torches$(), burning green. Vespene, glass and iron make a $(l)vespene lamp$(), as bright as glowstone.",
+			"recipe2": "starmine:vespene_lamp"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:vespene_fuel",
+			"text": "An empty canister and four buckets of vespene make $(l)vespene fuel$(): 64 smeltings in a furnace (eight coal), and the empty canister comes back. Glass among four mineral shards makes four panes of $(l)mineral glass$(), as strong against blasts as obsidian.",
+			"recipe2": "starmine:mineral_glass"
+		},
+		{
 			"type": "patchouli:text",
 			"text": "Mineral fields stand by most vespene geysers, and underground lie $(l)mineral halls$(): big caves with a flat floor and glowing lichen, a geyser in the middle and 4 to 7 crystals round it.$(br2)Water on vespene makes cobblestone, as on lava (on an outlet the water turns, not the outlet). A vespene outlet open to the sky slowly grows up into a $(l)volcano$() — a block every 3 minutes, a cobblestone cone round it. A gas building put on a volcano breaks it: the cone and the column go and the building stands at the ground."
 		},

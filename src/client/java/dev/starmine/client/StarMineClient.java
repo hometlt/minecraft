@@ -97,6 +97,11 @@ public final class StarMineClient implements ClientModInitializer {
 		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
 		BlockEntityRenderers.register(dev.starmine.world.Artifact.CORE, ArtifactRenderer::new); // owner 17.10: the artifact's beam
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
+		// owner 19.10: crafted blocks — the green-flamed vespene torch, mineral glass
+		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.block.CraftBlocks.VESPENE_TORCH, dev.starmine.block.CraftBlocks.VESPENE_WALL_TORCH);
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.block.CraftBlocks.MINERAL_GLASS, RenderType.translucent());
+		net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(dev.starmine.block.CraftBlocks.VESPENE_FLAME,
+			net.minecraft.client.particle.FlameParticle.Provider::new);
 		for (var parts : dev.starmine.world.Artifact.KEYS.values()) for (net.minecraft.world.level.block.Block part : parts.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.XelNagaTemple.PORTAL, RenderType.translucent()); // owner 19.10
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.ability.BossPowers.LIQUID_CREEP, RenderType.translucent());
