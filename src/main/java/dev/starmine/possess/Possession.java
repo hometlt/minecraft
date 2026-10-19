@@ -168,6 +168,15 @@ public final class Possession {
 		return true;
 	}
 
+	/** Owner 19.10: the session is a craft taken like a car ({@link Vehicles}): when it ends the player stays where it is. */
+	public static void asVehicle(ServerPlayer player) {
+		PossessionData data = PossessionData.get(player.server);
+		CompoundTag session = data.sessions.get(player.getUUID());
+		if (session == null) return;
+		session.putBoolean("Vehicle", true);
+		data.setDirty();
+	}
+
 	/** Ends playing as the unit: it comes back where the player stands (left) or is lost (died); the player is themselves again. */
 	public static void end(ServerPlayer player, boolean died) {
 		MinecraftServer server = player.getServer();
@@ -232,14 +241,16 @@ public final class Possession {
 		LAST_HURT.remove(player.getUUID());
 		player.refreshDimensions();
 		ServerLevel home = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(session.getString("Dim"))));
-		player.teleportTo(home != null ? home : here, session.getDouble("X"), session.getDouble("Y"), session.getDouble("Z"),
+		boolean vehicle = session.getBoolean("Vehicle");
+		if (vehicle) player.teleportTo(here, at.x, at.y, at.z, player.getYRot(), player.getXRot()); // out of the craft where it stood or fell
+		else player.teleportTo(home != null ? home : here, session.getDouble("X"), session.getDouble("Y"), session.getDouble("Z"),
 			session.getFloat("Yaw"), session.getFloat("Pitch"));
 		player.fallDistance = 0;
 		player.clearFire();
 		data.setDirty();
 		PossessNetwork.sendState(player);
-		ServerPlayNetworking.send(player, new PossessNetwork.PilotEnded(died));
-		if (died) player.displayClientMessage(Component.translatable("message.starmine.pilot_died"), true);
+		ServerPlayNetworking.send(player, new PossessNetwork.PilotEnded(died, vehicle));
+		if (died) player.displayClientMessage(Component.translatable(vehicle ? "message.starmine.vehicle_lost" : "message.starmine.pilot_died"), true);
 	}
 
 	// ---- the body ----
@@ -524,6 +535,7 @@ public final class Possession {
 
 	public static void register() {
 		ModuleItem.load();
+		Vehicles.register();
 		PossessNetwork.register();
 		ServerTickEvents.END_SERVER_TICK.register(Possession::tick);
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {

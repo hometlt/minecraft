@@ -61,10 +61,14 @@ public final class PossessNetwork {
 	}
 
 	/** Playing as the unit is over (left, or the unit died): back to the command view. */
-	public record PilotEnded(boolean died) implements CustomPacketPayload {
+	/** Playing as a unit ended (`vehicle`: a craft driven like a car, owner 19.10 — the player stays out of the command view). */
+	public record PilotEnded(boolean died, boolean vehicle) implements CustomPacketPayload {
 		public static final Type<PilotEnded> TYPE = new Type<>(StarMine.id("pilot_ended"));
 		public static final StreamCodec<RegistryFriendlyByteBuf, PilotEnded> CODEC = StreamCodec.of(
-			(buf, ended) -> buf.writeBoolean(ended.died), buf -> new PilotEnded(buf.readBoolean()));
+			(buf, ended) -> {
+				buf.writeBoolean(ended.died);
+				buf.writeBoolean(ended.vehicle);
+			}, buf -> new PilotEnded(buf.readBoolean(), buf.readBoolean()));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {

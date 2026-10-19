@@ -1,5 +1,6 @@
 package dev.starmine.world;
 
+import dev.starmine.block.ArmorBlocks;
 import dev.starmine.creep.CreepGrowth;
 import dev.starmine.entity.UnitKind;
 import java.util.ArrayList;
@@ -27,13 +28,16 @@ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
  * {@link Painter#deferred}: a ship is up to ~90 000 blocks, put over a few dozen ticks.
  */
 public final class SkyShips {
-	public static final double HYPERION_SCALE = 2.4, MOTHERSHIP_SCALE = 2.4, LEVIATHAN_SCALE = 2.2;
+	public static final double HYPERION_SCALE = 4.8, MOTHERSHIP_SCALE = 4.8, LEVIATHAN_SCALE = 4.4; // owner 19.10: twice as large
 
 	private SkyShips() {
 	}
 
 	/** What a ship is: who it wants spawned, its teleporter pad (the cell of the pad block), its boss room's floor middle, its decks. */
-	public record Ship(List<Spawn> spawns, BlockPos pad, BlockPos bossRoom, int decks, int length) {
+	public record Ship(List<Spawn> spawns, BlockPos pad, BlockPos bossRoom, int decks, int length, List<BlockPos> hangars) {
+		public Ship(List<Spawn> spawns, BlockPos pad, BlockPos bossRoom, int decks, int length) {
+			this(spawns, pad, bossRoom, decks, length, List.of());
+		}
 	}
 
 	/** A ship's local frame: `origin` is its middle; x is turned by `turn` quarter turns about y. */
@@ -142,204 +146,142 @@ public final class SkyShips {
 		return false;
 	}
 
+	/** The {@link ShipInterior.Hull} of a frame and a test of a hull's inside (cells not of its shell). */
+	private static ShipInterior.Hull hullOf(Frame frame, Inside inside) {
+		return new ShipInterior.Hull() {
+			@Override
+			public boolean inside(int x, int y, int z) {
+				return inside.test(x, y, z);
+			}
+
+			@Override
+			public void put(int x, int y, int z, BlockState state) {
+				frame.put(x, y, z, state);
+			}
+
+			@Override
+			public BlockPos at(int x, int y, int z) {
+				return frame.at(x, y, z);
+			}
+
+			@Override
+			public Direction facing(Direction local) {
+				return frame.facing(local);
+			}
+		};
+	}
+
+	/** The lowest and highest inside cell of a hull's column (x, z), or {0, -1}. */
+	private static int[] column(Inside inside, int x, int z, int from, int to) {
+		int bottom = Integer.MAX_VALUE, top = Integer.MIN_VALUE;
+		for (int y = from; y <= to; y++)
+			if (inside.test(x, y, z)) {
+				bottom = Math.min(bottom, y);
+				top = Math.max(top, y);
+			}
+		return bottom > top ? new int[] {0, -1} : new int[] {bottom, top};
+	}
+
+	/** A hatch from a ship's top down to its highest deck: an opening and a flight of stairs along it (no ladders). */
+	private static void hatch(Frame frame, int x, int deckFloor, int surface, Direction down, BlockState block, BlockState stair) {
+		int steps = surface - (deckFloor + 1);
+		if (steps <= 0) return;
+		int sx = down.getStepX();
+		frame.box(x - 1, deckFloor + 1, -2, x + sx * (steps + 1), surface + 1, 2, Blocks.AIR.defaultBlockState());
+		frame.stairs(x + sx * steps, deckFloor + 1, -2, steps, 5, down.getOpposite(), block, stair);
+	}
+
+	// ---- Hyperion ----
+
 	/**
-	 * The terran battlecruiser Hyperion (about 185 blocks long, 2.4 times the old one): grey hull with a
-	 * light stripe and a band of windows, a dark belly, a hammerhead prow with a glowing Yamato muzzle,
-	 * swept wings ending in great blue engines, laser turrets, a bridge tower. Inside: two decks the whole
-	 * length (stairs between them fore and aft), bulkheads with doors, a cargo bay with chests, and the
-	 * bridge — the boss room, Raynor's — high under the tower. Its teleporter pad is on the forward deck.
+	 * The terran battlecruiser Hyperion (owner 19.10: twice as large again, about 370 blocks long), of terran armour —
+	 * plain, plated and lit panels — with window bands along its decks, a dark belly, a hammerhead prow with a glowing
+	 * Yamato muzzle, swept wings ending in great blue engines, laser turrets and the bridge tower. Inside
+	 * ({@link ShipInterior}): four decks of rooms off a spine, ramps between them, hangars opening on its flanks — the
+	 * great one amidships — with craft to take, and the boss hall aft on the top decks, Raynor's, behind its gates.
+	 * Its teleporter pad is on the forward deck, a hatch with stairs beside it.
 	 */
 	public static Ship hyperion(Painter painter, BlockPos middle, int turn) {
 		Frame frame = new Frame(painter, middle, turn);
-		double s = HYPERION_SCALE;
+		double s = HYPERION_SCALE, k = s / 2.4;
 		Shape hull = new Shape((int) (-41 * s), (int) (37 * s), (int) (-5 * s), (int) (11 * s), (int) (-20 * s), (int) (20 * s),
 			(x, y, z) -> hyperionHull(x / s, y / s, z / s));
-		BlockState shell = Blocks.GRAY_CONCRETE.defaultBlockState(), stripe = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-			belly = Blocks.POLISHED_DEEPSLATE.defaultBlockState(), trim = Blocks.POLISHED_DIORITE.defaultBlockState(),
+		Inside inside = (x, y, z) -> hull.in(x, y, z) && !hull.shell(x, y, z);
+		BlockState shell = ArmorBlocks.wall(UnitKind.Race.TERRAN, 0), plating = ArmorBlocks.wall(UnitKind.Race.TERRAN, 1),
+			panel = ArmorBlocks.wall(UnitKind.Race.TERRAN, 2), trim = Blocks.IRON_BLOCK.defaultBlockState(),
 			glass = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState(),
-			floor = Blocks.POLISHED_ANDESITE.defaultBlockState(), wall = Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
 			engine = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
-		int lowerFloor = -9, deck = 0, top = (int) Math.floor(3.4 * s); // the main hull's interior: the lower deck from -9, the upper from 0
+		int[] span = column(inside, 0, 0, hull.y0, hull.y0 + hull.sy - 1);
+		int bottom = span[0], top = (int) Math.floor(3.4 * s) - 1;
 		for (int x = hull.x0; x < hull.x0 + hull.sx; x++)
 			for (int y = hull.y0; y < hull.y0 + hull.sy; y++)
 				for (int z = hull.z0; z < hull.z0 + hull.sz; z++) {
 					if (!hull.in(x, y, z)) continue;
 					double X = x / s, Y = y / s, Z = Math.abs(z / s);
-					boolean outside = hull.shell(x, y, z);
 					BlockState state;
-					if (!outside) state = y == deck && X > -28 && X < 24 ? floor : air; // the upper deck's floor over the lower deck
+					if (!hull.shell(x, y, z)) state = air;
 					else if (X < -36 || X <= -29 && Z > 14) state = X < -39 || X < -31 && Z > 14 ? light : trim; // engines' glowing rears
 					else if (Z > 14) state = Painter.sq(Y + 0.5) + Painter.sq(Z - 17) > 4 ? engine : trim; // wing engines: blue glass cowls
 					else if (Y >= 3 && X >= -16 && X <= -4 && y == (int) (8 * s)) state = glass; // the bridge's windows
-					else if (y == 3 && Z >= 5.5 && X > -26 && X < 22 && Math.floorMod(x, 4) != 0) state = glass; // the upper deck's window band
-					else if (y == -6 && Z >= 4.5 && X > -26 && X < 22 && Math.floorMod(x + 1, 4) != 0) state = glass; // lower cabin windows
-					else if (y == -2 && Z >= 5) state = stripe;
-					else if (Y <= -3) state = belly;
-					else if (Z > 6 && Z <= 16 && Y > -1.5 && Y < 0.5) state = Math.floorMod(x + z, 9) == 0 ? trim : stripe; // wings
-					else state = shell;
+					else if (Z >= 4.5 && X > -26 && X < 22 && Math.floorMod(y - bottom, ShipInterior.DECK) == 3 && Math.floorMod(x, 4) != 0) state = glass; // deck windows
+					else if (Y <= -3) state = plating;
+					else if (Z > 6 && Z <= 16 && Y > -1.5 && Y < 0.5) state = Math.floorMod(x + z, 9) == 0 ? trim : panel; // wings
+					else state = Math.floorMod(y, 7) == 0 ? panel : shell;
 					frame.put(x, y, z, state);
 				}
-		// bulkheads with doors across both decks, the bridge's walls
-		int[] bulkheads = {70, 30, -9, -39};
-		for (int bx : bulkheads)
-			for (int y = lowerFloor + 1; y < top; y++)
-				for (int z = -16; z <= 16; z++) {
-					if (!hull.in(bx, y, z) || hull.shell(bx, y, z) || y == deck) continue;
-					int floorY = y < deck ? lowerFloor : deck;
-					boolean door = Math.abs(z) <= 3 && y - floorY <= 5;
-					frame.put(bx, y, z, door ? air : wall);
-				}
-		// Most of the two decks are cabins along a three-block passage; only cargo/hangar stay wide.
-		for (int floorY : new int[] {lowerFloor, deck}) {
-			int ceilingY = floorY == lowerFloor ? deck - 1 : top - 1;
-			for (int side : new int[] {-1, 1}) {
-				for (int x = -46; x <= 29; x++) {
-					int door = Math.floorMod(x + 46, 12);
-					for (int y = floorY + 1; y <= ceilingY; y++) {
-						if (door >= 4 && door <= 5 && y <= floorY + 3) continue;
-						frame.put(x, y, side * 2, y >= floorY + 2 && y <= floorY + 3 ? glass : wall);
-					}
-				}
-				for (int x = -46; x <= 29; x += 12) {
-					for (int y = floorY + 1; y <= ceilingY; y++)
-						for (int az = 3; az <= 14; az++)
-							if (hull.in(x, y, side * az) && !hull.shell(x, y, side * az)) frame.put(x, y, side * az, wall);
-					frame.put(x + 3, floorY + 1, side * 11, Blocks.WHITE_WOOL.defaultBlockState());
-					frame.put(x + 4, floorY + 1, side * 11, Blocks.WHITE_WOOL.defaultBlockState());
-					frame.put(x + 3, floorY + 1, side * 7, Blocks.SPRUCE_SLAB.defaultBlockState());
-				}
-			}
-		}
-		// A single broad lower hangar amidships, with a glazed viewing gallery and a port-side aperture.
-		frame.box(-8, lowerFloor + 1, -12, 26, deck - 1, 12, air);
-		for (int x = -8; x <= 26; x++) {
-			frame.put(x, lowerFloor, -11, Blocks.YELLOW_CONCRETE.defaultBlockState());
-			frame.put(x, lowerFloor, 11, Blocks.YELLOW_CONCRETE.defaultBlockState());
-		}
-		frame.box(2, lowerFloor + 1, -16, 18, -3, -13, air);
-		// Raynor's real bridge is in the tower, not another room on the main deck.
-		int bridgeFloor = 16;
-		frame.box(-37, bridgeFloor, -6, -11, bridgeFloor, 6, floor);
-		frame.box(-36, bridgeFloor + 1, -5, -12, 22, 5, air);
-		frame.box(-37, bridgeFloor + 2, -7, -11, bridgeFloor + 4, -7, glass);
-		frame.box(-37, bridgeFloor + 2, 7, -11, bridgeFloor + 4, 7, glass);
-		frame.box(-11, bridgeFloor + 2, -6, -11, bridgeFloor + 4, 6, glass);
-		frame.box(-19, bridgeFloor + 1, -4, -18, bridgeFloor + 1, 4, Blocks.CYAN_TERRACOTTA.defaultBlockState());
-		frame.put(-25, bridgeFloor + 1, 0, Blocks.SPRUCE_STAIRS.defaultBlockState().setValue(StairBlock.FACING, frame.facing(Direction.EAST)));
-		frame.box(-43, deck + 1, 2, -39, deck + 3, 6, air);
-		frame.box(-39, deck + 1, 4, -13, bridgeFloor + 5, 6, air);
-		frame.stairs(-38, deck + 1, 4, bridgeFloor, 3, Direction.EAST, floor, Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
-		// lights under each deck's ceiling
-		for (int x = (int) (-27 * s); x <= (int) (23 * s); x += 8) {
-			frame.put(x, deck, 0, light);
-			if (hull.in(x, top, 0)) frame.put(x, top, 0, light);
-		}
-		// stairs: the hatch from the forward deck down to the upper deck, upper to lower deck fore and aft
-		int hatch = 50;
-		frame.box(hatch - 1, deck + 1, -2, hatch + top + 1, top + 1, 2, air);
-		frame.stairs(hatch + top, deck + 1, -2, top, 5, Direction.WEST, floor, Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
-		for (int x = hatch - 1; x <= hatch + top + 1; x++) frame.put(x, top, -3, trim);
-		frame.box(36, deck, 7, 46, deck, 10, air);
-		frame.stairs(46, lowerFloor + 1, 7, deck - lowerFloor, 4, Direction.WEST, floor, Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
-		frame.box(-58, deck, -10, -48, deck, -7, air);
-		frame.stairs(-48, lowerFloor + 1, -10, deck - lowerFloor, 4, Direction.WEST, floor, Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
+		ShipInterior in = new ShipInterior(hullOf(frame, (x, y, z) -> inside.test(x, y, z) && Math.abs(z) <= 6.4 * s - 1),
+			painter, UnitKind.Race.TERRAN, (int) (-27 * s), (int) (23 * s), bottom + 1, top, 1);
+		in.build();
+		int deck = in.decks.get(in.decks.size() - 1);
 		// the Yamato muzzle
 		int muzzle = (int) (30.5 * s);
-		for (int y = -3; y <= 3; y++)
-			for (int z = -4; z <= 4; z++) frame.put(muzzle, y, z, Math.abs(z) <= 2 && Math.abs(y) <= 2 ? Blocks.RED_CONCRETE.defaultBlockState() : trim);
-		frame.box(muzzle, -1, -1, muzzle, 1, 1, light);
+		for (int y = -6; y <= 6; y++)
+			for (int z = -8; z <= 8; z++) frame.put(muzzle, y, z, Math.abs(z) <= 4 && Math.abs(y) <= 4 ? Blocks.RED_CONCRETE.defaultBlockState() : trim);
+		frame.box(muzzle, -2, -2, muzzle, 2, 2, light);
 		// laser turrets on the deck, antennae on the bridge
-		for (int x : new int[] {-50, 0, 28}) {
-			int z = x == 0 ? 9 : -9, onTop = hull.top(x, z) + 1;
-			frame.box(x - 2, onTop, z - 2, x + 2, onTop + 1, z + 2, Blocks.POLISHED_BLACKSTONE.defaultBlockState());
-			for (int dx = 3; dx <= 7; dx++) frame.put(x + dx, onTop + 1, z, Blocks.IRON_BARS.defaultBlockState());
+		for (int x : new int[] {-100, 0, 56}) {
+			int z = x == 0 ? 18 : -18, onTop = hull.top(x, z) + 1;
+			frame.box(x - 4, onTop, z - 4, x + 4, onTop + 2, z + 4, Blocks.POLISHED_BLACKSTONE.defaultBlockState());
+			for (int dx = 5; dx <= 14; dx++) frame.box(x + dx, onTop + 1, z, x + dx, onTop + 2, z, Blocks.IRON_BARS.defaultBlockState());
 		}
-		int bridgeTop = hull.top(-24, 0) + 1;
-		frame.box(-24, bridgeTop, 0, -24, bridgeTop + 4, 0, Blocks.END_ROD.defaultBlockState());
-		frame.box(-28, bridgeTop, 2, -28, bridgeTop + 2, 2, Blocks.END_ROD.defaultBlockState());
-		// owner 17.10, more inside: the engine room aft on the upper deck — the reactor core in a cage of pipes, consoles
-		// round it, ducts along the ceiling; and pipes and cable runs along both decks' passages
-		frame.box(-66, deck + 1, -6, -48, top - 1, 6, air);
-		for (int y = deck + 1; y <= top - 1; y++) {
-			frame.box(-58, y, -1, -56, y, 1, y % 3 == 0 ? light : Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState()); // the core
-			for (int[] post : new int[][] {{-59, -2}, {-55, -2}, {-59, 2}, {-55, 2}}) frame.put(post[0], y, post[1], Blocks.IRON_BARS.defaultBlockState());
-		}
-		frame.box(-60, deck + 1, -3, -54, deck + 1, 3, Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState());
-		frame.box(-58, deck + 1, -1, -56, deck + 1, 1, light);
-		for (int x = -65; x <= -49; x += 4) { // consoles along the walls
-			frame.put(x, deck + 1, -6, Blocks.OBSERVER.defaultBlockState());
-			frame.put(x, deck + 2, -6, Blocks.CYAN_STAINED_GLASS_PANE.defaultBlockState());
-			frame.put(x, deck + 1, 6, Blocks.TARGET.defaultBlockState());
-			frame.put(x, deck + 2, 6, Blocks.REDSTONE_LAMP.defaultBlockState().setValue(net.minecraft.world.level.block.RedstoneLampBlock.LIT, true));
-		}
-		for (int x = -66; x <= -48; x++) { // ducts
-			frame.put(x, top - 1, -4, Blocks.WAXED_CUT_COPPER.defaultBlockState());
-			frame.put(x, top - 1, 4, Blocks.WAXED_CUT_COPPER.defaultBlockState());
-		}
-		for (int floorY : new int[] {lowerFloor, deck}) { // pipes and cables along the passages' ceilings
-			int ceilingY = floorY == lowerFloor ? deck - 1 : top - 1;
-			for (int x = -46; x <= 29; x++) {
-				frame.put(x, ceilingY, 1, Blocks.LIGHTNING_ROD.defaultBlockState().setValue(net.minecraft.world.level.block.LightningRodBlock.FACING, frame.facing(Direction.EAST)));
-				if (Math.floorMod(x, 6) == 0) frame.put(x, ceilingY, -1, light);
-			}
-		}
-		// the hangar's craft: a viking and a medivac parked on the deck (spawns below), crates and fuel along its walls
-		for (int x = -6; x <= 24; x += 5) {
-			frame.put(x, lowerFloor + 1, -10, Blocks.BARREL.defaultBlockState());
-			frame.put(x + 1, lowerFloor + 1, 10, Blocks.CYAN_TERRACOTTA.defaultBlockState());
-		}
-		// the cargo bay's chests, the bridge's (the boss's reward is its own drop)
-		painter.chest(frame.at(-64, lowerFloor + 1, 8), BuiltInLootTables.STRONGHOLD_CORRIDOR);
-		painter.chest(frame.at(-64, lowerFloor + 1, -8), FactionLoot.TERRAN);
-		painter.chest(frame.at(-36, deck + 1, -6), FactionLoot.TERRAN);
-		painter.chest(frame.at(-36, deck + 1, 6), BuiltInLootTables.STRONGHOLD_LIBRARY);
-		// the teleporter pad on the forward deck
-		int padX = 64, padTop = hull.top(padX, 0);
+		int bridgeTop = hull.top((int) (-10 * s), 0) + 1;
+		frame.box((int) (-10 * s), bridgeTop, 0, (int) (-10 * s), bridgeTop + 8, 0, Blocks.END_ROD.defaultBlockState());
+		// the teleporter pad on the forward deck, the hatch down beside it
+		int padX = (int) (20 * s), padTop = hull.top(padX, 0);
 		BlockPos pad = frame.at(padX, padTop + 1, 0);
 		Teleporter.pad(painter, pad, UnitKind.Race.TERRAN, Blocks.POLISHED_DIORITE.defaultBlockState());
-
-		List<Spawn> spawns = new ArrayList<>();
+		hatch(frame, padX - 8, deck, hull.top(padX - 8, 0), Direction.WEST, Blocks.POLISHED_ANDESITE.defaultBlockState(),
+			Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState());
+		List<Spawn> spawns = new ArrayList<>(in.spawns);
 		for (int i = 0; i < 4; i++) // the pad's guards
 			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.MARINE : UnitKind.MARAUDER, frame.at(padX - 6 + (i % 2) * 12, padTop + 1, i < 2 ? -6 : 6), pad));
-		int[] halls = {56, 10, -60};
-		for (int hx : halls) {
-			BlockPos lower = frame.at(hx, lowerFloor + 1, 0), upper = frame.at(hx, deck + 1, 0);
-			spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(hx + 3, lowerFloor + 1, 4), lower));
-			spawns.add(Spawn.guard(hx == 10 ? UnitKind.GHOST : UnitKind.MARINE, frame.at(hx - 3, lowerFloor + 1, -4), lower));
-			spawns.add(Spawn.guard(UnitKind.MARAUDER, frame.at(hx, deck + 1, 5), upper));
-		}
-		BlockPos boss = frame.at(-24, bridgeFloor + 1, 0);
+		BlockPos boss = in.boss != null ? in.boss : pad;
 		spawns.add(Spawn.guard(UnitKind.RAYNOR, boss, boss));
-		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, 4), boss));
-		spawns.add(Spawn.guard(UnitKind.MARINE, frame.at(-30, bridgeFloor + 1, -4), boss));
 		int above = (int) (14 * s);
-		BlockPos hangar = frame.at(9, lowerFloor + 1, 0);
-		spawns.add(Spawn.guard(UnitKind.VIKING_ASSAULT, frame.at(4, lowerFloor + 1, -5), hangar)); // parked craft keeping the hangar
-		spawns.add(Spawn.guard(UnitKind.SCV, frame.at(16, lowerFloor + 1, 5), hangar));
-		spawns.add(Spawn.guard(UnitKind.SCV, frame.at(-57, deck + 1, 4), frame.at(-57, deck + 1, 0))); // the engine room's crew
-		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(20, above, 30), pad));
-		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(-40, above, -30), pad));
-		spawns.add(Spawn.guard(UnitKind.BANSHEE, frame.at(-10, above, 34), pad));
-		return new Ship(spawns, pad, boss, 2, hull.sx);
+		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(40, above, 60), pad));
+		spawns.add(Spawn.guard(UnitKind.VIKING, frame.at(-80, above, -60), pad));
+		spawns.add(Spawn.guard(UnitKind.BANSHEE, frame.at(-20, above, 68), pad));
+		spawns.add(Spawn.guard(UnitKind.BANSHEE, frame.at(90, above, -64), pad));
+		return new Ship(spawns, pad, boss, in.decks.size(), hull.sx, List.copyOf(in.hangars));
 	}
 
 	// ---- Mothership ----
 
 	/**
-	 * The protoss mothership (a disc 72 blocks across in a gold ring 120 across): quartz hull with gold
-	 * bands, blue windows round the rim, a great glass dome, six arms out to the ring, a dark vortex below
-	 * that runs down into a long tail of crying obsidian and amethyst with spires around it. Inside the
-	 * disc: two levels joined by stairs; under the dome the boss room, Artanis's, its nexus core a
-	 * column of light. Its teleporter pad is on the top of the disc.
+	 * The protoss mothership (owner 19.10: twice as large again — a disc about 145 across in a gold ring 240 across),
+	 * of protoss armour with gold bands, blue windows round the rim, a great glass dome, six arms out to the ring, a dark
+	 * vortex below running down into a long tail. Inside the disc ({@link ShipInterior}): decks of rooms off a spine,
+	 * ramps, hangars opening through the rim — the great one for a colossus — with craft to take; under the dome the boss
+	 * hall, Artanis's, behind its gates. Its teleporter pad is on the top of the disc, a hatch with stairs beside it.
 	 */
 	public static Ship mothership(Painter painter, BlockPos middle) {
 		Frame frame = new Frame(painter, middle, 0);
 		double s = MOTHERSHIP_SCALE, rx = 15 * s, ry = 3.5 * s;
-		BlockState quartz = Blocks.QUARTZ_BRICKS.defaultBlockState(), smooth = Blocks.SMOOTH_QUARTZ.defaultBlockState(),
-			gold = Blocks.YELLOW_TERRACOTTA.defaultBlockState(), light = Blocks.SEA_LANTERN.defaultBlockState(),
-			window = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), air = Blocks.AIR.defaultBlockState(),
-			floor = Blocks.CHISELED_QUARTZ_BLOCK.defaultBlockState(), lapis = Blocks.BLUE_TERRACOTTA.defaultBlockState();
-		int r0 = (int) Math.ceil(rx), h0 = (int) Math.ceil(ry), mid = -1;
+		BlockState armour = ArmorBlocks.wall(UnitKind.Race.PROTOSS, 0), plating = ArmorBlocks.wall(UnitKind.Race.PROTOSS, 1),
+			panel = ArmorBlocks.wall(UnitKind.Race.PROTOSS, 2), gold = Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+			light = Blocks.SEA_LANTERN.defaultBlockState(), window = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+			air = Blocks.AIR.defaultBlockState(), smooth = Blocks.SMOOTH_QUARTZ.defaultBlockState();
+		int r0 = (int) Math.ceil(rx), h0 = (int) Math.ceil(ry);
 		double dome = 7 * s, domeH = 6 * s;
 		Shape disc = new Shape(-r0, r0, -h0, h0 + (int) domeH + 4, -r0, r0, (x, y, z) -> {
 			double r = Math.sqrt(x * x + z * z);
@@ -353,56 +295,46 @@ public final class SkyShips {
 					double r = Math.sqrt(x * x + z * z);
 					boolean domeCell = y > 0 && Painter.sq(r / rx) + Painter.sq(y / ry) > 1;
 					BlockState state;
-					if (!disc.shell(x, y, z)) state = y == mid && r > 3 ? floor : air; // the upper level's floor over the lower one
+					if (!disc.shell(x, y, z)) state = air;
 					else if (domeCell) state = window;
-					else if (y >= 1 && Math.abs(r - 28.5) < 1.2) state = gold;
-					else if (Math.abs(y) <= 1 && r > 31 && Math.floorMod((int) Math.round(Math.toDegrees(Math.atan2(z, x))), 20) < 6) state = window;
-					else if (y < 0 && Math.abs(r - 20) < 0.8) state = lapis;
-					else state = y < 0 ? smooth : quartz;
+					else if (y >= 1 && Math.abs(r - 57) < 1.6) state = gold;
+					else if (Math.abs(y) <= 2 && r > 62 && Math.floorMod((int) Math.round(Math.toDegrees(Math.atan2(z, x))), 20) < 6) state = window;
+					else if (y < 0 && Math.abs(r - 40) < 1.2) state = panel;
+					else state = y < 0 ? plating : armour;
 					frame.put(x, y, z, state);
 				}
-		// the dome's floor is the boss room's: a ring wall on the upper level marks it, with doors east and west
-		int room = (int) dome;
-		for (int a = 0; a < 360; a += 2) {
-			double rad = Math.toRadians(a);
-			int x = (int) Math.round(Math.cos(rad) * room), z = (int) Math.round(Math.sin(rad) * room);
-			boolean door = a < 12 || a > 348 || Math.abs(a - 180) < 12;
-			for (int y = mid + 1; y <= mid + 6; y++) if (!door && disc.in(x, y, z) && !disc.shell(x, y, z)) frame.put(x, y, z, quartz);
-		}
-		for (int y = mid + 1; y <= (int) (8 * s); y++) frame.put(0, y, 0, y == (int) (8 * s) ? Blocks.END_ROD.defaultBlockState() : light); // the nexus core
-		frame.box(-2, mid + 1, -2, 2, mid + 1, 2, gold);
-		// stairs: the hatch from the top down to the upper level, the upper level to the lower one
-		int hatch = 22, topY = disc.top(hatch, 0);
-		frame.box(hatch - 1, mid + 1, -2, hatch + topY - mid + 1, topY, 2, air);
-		frame.stairs(hatch, mid + 1, -2, topY - mid, 5, Direction.EAST, smooth, Blocks.QUARTZ_STAIRS.defaultBlockState());
-		int lower = disc.bottom(0, -14) + 1;
-		frame.box(-14, mid, -20, -6, mid, -16, air);
-		frame.stairs(-6, lower, -20, mid - lower + 1, 5, Direction.WEST, smooth, Blocks.QUARTZ_STAIRS.defaultBlockState());
+		Inside inside = (x, y, z) -> disc.in(x, y, z) && !disc.shell(x, y, z);
+		int bottom = column(inside, 0, 0, -h0, h0)[0];
+		ShipInterior in = new ShipInterior(hullOf(frame, inside), painter, UnitKind.Race.PROTOSS, (int) (-rx + 10), (int) (rx - 10), bottom + 1, (int) ry - 2,
+			(int) ((rx - 10) / ShipInterior.ROOM) - 1);
+		in.build();
+		int deck = in.decks.get(in.decks.size() - 1);
+		for (int y = deck + 1; y <= (int) (8 * s); y++) frame.put(0, y, 0, y == (int) (8 * s) ? Blocks.END_ROD.defaultBlockState() : light); // the nexus core
 		// the outer ring and six arms
 		double ring = 21 * s, tube = 1.6 * s;
-		for (int a = 0; a < 360 * 4; a++) {
-			double rad = Math.toRadians(a / 4.0);
+		for (int a = 0; a < 360 * 8; a++) {
+			double rad = Math.toRadians(a / 8.0);
 			for (double t = -tube; t <= tube; t += 0.5)
 				for (double v = -tube; v <= tube; v += 0.5) {
 					if (Painter.sq(t / tube) + Painter.sq(v / (tube * 0.85)) > 1) continue;
 					int x = (int) Math.round(Math.cos(rad) * (ring + t)), z = (int) Math.round(Math.sin(rad) * (ring + t)), y = (int) Math.round(v);
-					frame.put(x, y, z, a % 60 == 0 && y == 0 ? light : gold);
+					frame.put(x, y, z, a % 120 == 0 && y == 0 ? light : gold);
 				}
 		}
 		for (int arm = 0; arm < 6; arm++) {
 			double rad = Math.toRadians(arm * 60 + 30);
 			for (double r = rx - 1; r <= ring - tube + 1; r += 0.5)
-				for (double w = -2.5; w <= 2.5; w += 0.5) {
+				for (double w = -5; w <= 5; w += 0.5) {
 					int x = (int) Math.round(Math.cos(rad) * r - Math.sin(rad) * w), z = (int) Math.round(Math.sin(rad) * r + Math.cos(rad) * w);
 					frame.put(x, 0, z, smooth);
 					frame.put(x, -1, z, smooth);
 					if (Math.abs(w) < 0.6) frame.put(x, 1, z, Math.floorMod((int) r, 6) == 0 ? light : gold);
 				}
 		}
-		// the vortex below, running down into a long tail with spires around it
-		int vortex = (int) (10 * s), tail = vortex + 26;
+		// the vortex below, running down into a long tail
+		int vortex = (int) (10 * s), tail = vortex + 52;
 		for (int depth = 1; depth <= tail; depth++) {
-			double radius = depth <= vortex ? 6.5 * s * (1 - depth / (vortex + 4.0)) : 3.5 * (1 - (depth - vortex) / (double) (tail - vortex + 2)) + 0.6;
+			double radius = depth <= vortex ? 6.5 * s * (1 - depth / (vortex + 4.0)) : 7 * (1 - (depth - vortex) / (double) (tail - vortex + 2)) + 0.6;
 			int r = (int) Math.ceil(radius);
 			for (int x = -r; x <= r; x++)
 				for (int z = -r; z <= r; z++)
@@ -410,60 +342,21 @@ public final class SkyShips {
 						frame.put(x, (int) -ry - depth + 2, z, x * x + z * z <= Math.max(1, radius * radius / 4) ? Blocks.AMETHYST_BLOCK.defaultBlockState()
 							: Blocks.CRYING_OBSIDIAN.defaultBlockState());
 		}
-		frame.put(0, (int) -ry - tail + 1, 0, Blocks.END_ROD.defaultBlockState());
-		for (int spire = 0; spire < 6; spire++) {
-			double rad = Math.toRadians(spire * 60);
-			int x = (int) Math.round(Math.cos(rad) * 13), z = (int) Math.round(Math.sin(rad) * 13), from = disc.bottom(x, z) - 1;
-			for (int d = 0; d < 10 + spire % 3 * 3; d++) frame.put(x, from - d, z, d % 4 == 3 ? light : Blocks.PURPUR_PILLAR.defaultBlockState());
-		}
-		// owner 17.10, more inside: the lower level split into six technical rooms by walls with doors, each with a
-		// khaydarin power crystal on a golden plinth, consoles of light along its wall
-		for (int wall = 0; wall < 6; wall++) {
-			double rad = Math.toRadians(wall * 60 + 30);
-			for (double r = 10; r <= rx - 2; r += 0.5) {
-				int x = (int) Math.round(Math.cos(rad) * r), z = (int) Math.round(Math.sin(rad) * r);
-				for (int y = lower; y < mid; y++) {
-					if (!disc.in(x, y, z) || disc.shell(x, y, z)) continue;
-					boolean door = Math.abs(r - 18) < 1.6 && y - lower <= 3;
-					frame.put(x, y, z, door ? air : smooth);
-				}
-			}
-			double centre = Math.toRadians(wall * 60);
-			int cx = (int) Math.round(Math.cos(centre) * 24), cz = (int) Math.round(Math.sin(centre) * 24);
-			if (!disc.in(cx, lower, cz)) continue;
-			frame.put(cx, lower, cz, gold);
-			frame.put(cx, lower + 1, cz, Blocks.AMETHYST_BLOCK.defaultBlockState());
-			frame.put(cx, lower + 2, cz, Blocks.AMETHYST_CLUSTER.defaultBlockState());
-			int wx = (int) Math.round(Math.cos(centre) * (rx - 3)), wz = (int) Math.round(Math.sin(centre) * (rx - 3));
-			if (disc.in(wx, lower + 1, wz) && !disc.shell(wx, lower + 1, wz)) frame.put(wx, lower + 1, wz, light);
-		}
-		painter.chest(frame.at(16, lower, 6), BuiltInLootTables.END_CITY_TREASURE);
-		painter.chest(frame.at(-16, lower, 6), FactionLoot.PROTOSS);
-		painter.chest(frame.at(-4, mid + 1, -4), FactionLoot.PROTOSS);
-		painter.chest(frame.at(4, mid + 1, 4), BuiltInLootTables.END_CITY_TREASURE);
-		// the teleporter pad on the top of the disc
-		int padX = -24, padTop = disc.top(padX, 0);
+		// the teleporter pad on the top of the disc, the hatch down beside it
+		int padX = (int) (-rx * 0.6), padTop = disc.top(padX, 0);
 		BlockPos pad = frame.at(padX, padTop + 1, 0);
 		Teleporter.pad(painter, pad, UnitKind.Race.PROTOSS, gold);
-
-		List<Spawn> spawns = new ArrayList<>();
+		hatch(frame, padX + 8, deck, disc.top(padX + 8, 0), Direction.EAST, smooth, Blocks.QUARTZ_STAIRS.defaultBlockState());
+		List<Spawn> spawns = new ArrayList<>(in.spawns);
 		for (int i = 0; i < 4; i++)
 			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.ZEALOT : UnitKind.STALKER, frame.at(padX + (i % 2 == 0 ? -5 : 5), padTop + 1, i < 2 ? -5 : 5), pad));
-		BlockPos upper = frame.at(18, mid + 1, 0), down = frame.at(0, lower, 18);
-		for (int i = 0; i < 4; i++) {
-			double rad = Math.toRadians(i * 90 + 45);
-			int x = (int) Math.round(Math.cos(rad) * 18), z = (int) Math.round(Math.sin(rad) * 18);
-			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.STALKER : UnitKind.ADEPT, frame.at(x, mid + 1, z), upper));
-			spawns.add(Spawn.guard(i == 0 ? UnitKind.HIGH_TEMPLAR : i == 1 ? UnitKind.DARK_TEMPLAR : UnitKind.ZEALOT, frame.at(x, lower, z), down));
-		}
-		BlockPos boss = frame.at(4, mid + 1, 0);
+		BlockPos boss = in.boss != null ? in.boss : pad;
 		spawns.add(Spawn.guard(UnitKind.ARTANIS, boss, boss));
-		spawns.add(Spawn.guard(UnitKind.ZEALOT, frame.at(-4, mid + 1, 4), boss));
-		spawns.add(Spawn.guard(UnitKind.ZEALOT, frame.at(-4, mid + 1, -4), boss));
-		spawns.add(Spawn.guard(UnitKind.PHOENIX, frame.at(44, 20, 0), pad));
-		spawns.add(Spawn.guard(UnitKind.PHOENIX, frame.at(-44, 20, 0), pad));
-		spawns.add(Spawn.guard(UnitKind.VOID_RAY, frame.at(0, 24, 44), pad));
-		return new Ship(spawns, pad, boss, 2, (int) (2 * (ring + tube)));
+		spawns.add(Spawn.guard(UnitKind.PHOENIX, frame.at(90, 30, 0), pad));
+		spawns.add(Spawn.guard(UnitKind.PHOENIX, frame.at(-90, 30, 0), pad));
+		spawns.add(Spawn.guard(UnitKind.VOID_RAY, frame.at(0, 34, 90), pad));
+		spawns.add(Spawn.guard(UnitKind.VOID_RAY, frame.at(0, 34, -90), pad));
+		return new Ship(spawns, pad, boss, in.decks.size(), (int) (2 * (ring + tube)), List.copyOf(in.hangars));
 	}
 
 	// ---- Leviathan ----
@@ -493,11 +386,11 @@ public final class SkyShips {
 	}
 
 	/**
-	 * A zerg leviathan (about 185 blocks long, 2.2 times the old one; owner 16.10: all of zerg flesh, some of
-	 * it glowing, bone spines and teeth, long tentacles hanging and curling below). Inside, no stairs: a
-	 * chaotic network of passages wound through the flesh ({@link #burrow}), from the chamber of its
-	 * teleporter pad amidships to the boss room in the head — Kerrigan's — with eggs, a chest, roaches,
-	 * hydralisks and a queen on creep along the way.
+	 * A zerg leviathan (owner 19.10: twice as large again, about 370 blocks long): a hide of zerg flesh {@link #HIDE}
+	 * thick, some of it glowing, bone spines and teeth, long tentacles hanging and curling below. Inside
+	 * ({@link ShipInterior}): decks of flesh, chambers off a spine closed by sphincters, ramps of flesh slabs (no stairs),
+	 * nests opening through its flanks, eggs and creep; the boss hall in the head — Kerrigan's — behind its sphincters.
+	 * Its teleporter pad is on the second deck amidships.
 	 */
 	public static Ship leviathan(Painter painter, BlockPos middle, int turn) {
 		Frame frame = new Frame(painter, middle, turn);
@@ -505,174 +398,92 @@ public final class SkyShips {
 		double s = LEVIATHAN_SCALE;
 		BlockState flesh = dev.starmine.block.StarMineBlocks.ZERG_FLESH.defaultBlockState(),
 			glow = dev.starmine.block.StarMineBlocks.GLOWING_ZERG_FLESH.defaultBlockState(),
-			bone = Blocks.BONE_BLOCK.defaultBlockState(), air = Blocks.AIR.defaultBlockState();
+			chitin = ArmorBlocks.wall(UnitKind.Race.ZERG, 1), bone = Blocks.BONE_BLOCK.defaultBlockState();
 		int x0 = (int) (-42 * s), x1 = (int) (42 * s);
-		// the body, solid
+		// the hide: flesh, an outer skin of chitin plates here and there
 		for (int x = x0; x <= x1; x++) {
 			double[] section = section(x);
 			int ry = (int) Math.ceil(section[2]) + 1, rz = (int) Math.ceil(section[3]) + 1;
 			for (int y = (int) Math.floor(section[0]) - ry; y <= section[0] + ry; y++)
-				for (int z = (int) Math.floor(section[1]) - rz; z <= section[1] + rz; z++)
-					if (leviathanInside(x, y, z, 0)) frame.put(x, y, z, random.nextInt(16) == 0 ? glow : flesh);
-			// teeth round the maw
-			if (x >= (int) (33 * s) && x <= (int) (41 * s) && x % 2 == 1)
+				for (int z = (int) Math.floor(section[1]) - rz; z <= section[1] + rz; z++) {
+					if (!leviathanInside(x, y, z, 0) || leviathanInside(x, y, z, HIDE)) continue;
+					boolean skin = !leviathanInside(x, y, z, 1);
+					frame.put(x, y, z, skin && Math.floorMod(x * 3 + y * 5 + z, 17) == 0 ? chitin : random.nextInt(16) == 0 ? glow : flesh);
+				}
+			if (x >= (int) (33 * s) && x <= (int) (41 * s) && x % 3 == 1) // teeth round the maw
 				for (int side = -1; side <= 1; side += 2)
-					frame.put(x, (int) Math.round(section[0]), (int) Math.round(section[1] + side * section[3] * 0.55), bone);
-			// spines along the back
-			if (x > (int) (-30 * s) && x < (int) (30 * s) && Math.floorMod(x, 13) == 0) {
-				int top = (int) Math.round(section[0] + section[2]), height = 5 + random.nextInt(6);
-				for (int h = 1; h <= height; h++) frame.put(x, top + h, (int) Math.round(section[1]), bone);
+					for (int t = 0; t < 3; t++) frame.put(x, (int) Math.round(section[0]) - t, (int) Math.round(section[1] + side * section[3] * 0.55), bone);
+			if (x > (int) (-30 * s) && x < (int) (30 * s) && Math.floorMod(x, 21) == 0) { // spines along the back
+				int top = (int) Math.round(section[0] + section[2]), height = 10 + random.nextInt(10);
+				for (int h = 1; h <= height; h++) frame.box(x, top + h, (int) Math.round(section[1]), x + (h < height / 2 ? 1 : 0), top + h, (int) Math.round(section[1]), bone);
 			}
 		}
 		// tentacles: long, hanging, curling out and back; thick at the root
-		for (int x = (int) (-20 * s); x < (int) (30 * s); x += 15) {
+		for (int x = (int) (-20 * s); x < (int) (30 * s); x += 26) {
 			double[] section = section(x);
 			for (int side = -1; side <= 1; side += 2) {
 				double cx = x, cy = section[0] - section[2] + 1, cz = section[1] + side * section[3] * 0.45;
-				int length = 22 + random.nextInt(14);
+				int length = 44 + random.nextInt(28);
 				double phase = random.nextDouble() * Math.PI * 2;
 				for (int t = 0; t <= length; t++) {
-					double f = t / (double) length, radius = 2.6 * (1 - f) + 0.7;
-					double px = cx + Math.sin(phase + t / 5.0) * 3, py = cy - t * (1 - 0.35 * f * f),
-						pz = cz + side * (f * f * 10 + Math.sin(phase + t / 7.0) * 2);
+					double f = t / (double) length, radius = 5 * (1 - f) + 1.2;
+					double px = cx + Math.sin(phase + t / 9.0) * 6, py = cy - t * (1 - 0.35 * f * f),
+						pz = cz + side * (f * f * 20 + Math.sin(phase + t / 12.0) * 4);
 					int r = (int) Math.ceil(radius);
 					for (int dx = -r; dx <= r; dx++)
 						for (int dy = -r; dy <= r; dy++)
 							for (int dz = -r; dz <= r; dz++)
-								if (dx * dx + dy * dy + dz * dz <= radius * radius)
-									frame.put((int) Math.round(px) + dx, (int) Math.round(py) + dy, (int) Math.round(pz) + dz,
-										(t + dy) % 7 == 0 ? glow : flesh);
-					if (t == length) frame.put((int) Math.round(px), (int) Math.round(py) - r - 1, (int) Math.round(pz), Blocks.WEEPING_VINES.defaultBlockState());
+								if (dx * dx + dy * dy + dz * dz <= radius * radius && (dx * dx + dy * dy + dz * dz >= (radius - 1.5) * (radius - 1.5) || t % 4 == 0))
+									frame.put((int) Math.round(px) + dx, (int) Math.round(py) + dy, (int) Math.round(pz) + dz, (t + dy) % 7 == 0 ? glow : flesh);
 				}
 			}
 		}
 		// eyes
 		double[] head = section((int) (36 * s));
 		for (int side = -1; side <= 1; side += 2)
-			frame.box((int) (36 * s), (int) Math.round(head[0] + 4), (int) Math.round(head[1] + side * (head[3] - 1)),
-				(int) (36 * s) + 2, (int) Math.round(head[0] + 5), (int) Math.round(head[1] + side * (head[3] - 1)), glow);
-		// the inside: the pad's chamber amidships, the boss room in the head, passages winding between and about
-		java.util.Set<Long> hollow = new java.util.HashSet<>();
-		int padX = (int) (-6 * s), bossX = (int) (31 * s);
-		double[] amid = section(padX), skull = section(bossX);
-		chamber(hollow, padX, amid[0], amid[1], 6, 4.5);
-		chamber(hollow, bossX, skull[0], skull[1], 7, 5);
-		java.util.List<double[]> reached = new java.util.ArrayList<>();
-		reached.add(new double[] {padX, amid[0], amid[1]});
-		reached.add(new double[] {bossX, skull[0], skull[1]});
-		burrow(hollow, random, new double[] {padX, amid[0], amid[1]}, new double[] {bossX, skull[0], skull[1]}, reached); // pad to boss, winding
-		for (int i = 0; i < 7; i++) { // and more passages from anywhere already open, every way
-			double[] from = reached.get(random.nextInt(reached.size()));
-			int tx = x0 + 12 + random.nextInt(x1 - x0 - 24);
-			double[] to = section(tx);
-			burrow(hollow, random, from, new double[] {tx, to[0] + (random.nextDouble() - 0.5) * to[2], to[1] + (random.nextDouble() - 0.5) * to[3]}, reached);
-		}
-		List<BlockPos> floor = new ArrayList<>();
-		for (long cell : hollow) {
-			int x = BlockPos.getX(cell), y = BlockPos.getY(cell), z = BlockPos.getZ(cell);
-			frame.put(x, y, z, air);
-			if (!hollow.contains(BlockPos.asLong(x, y - 1, z))) floor.add(frame.at(x, y, z));
-		}
-		// the pad on the chamber's floor
-		int padY = (int) Math.round(amid[0]), padZ = (int) Math.round(amid[1]);
-		while (hollow.contains(BlockPos.asLong(padX, padY - 1, padZ))) padY--;
-		BlockPos pad = frame.at(padX, padY, padZ);
+			frame.box((int) (36 * s), (int) Math.round(head[0] + 6), (int) Math.round(head[1] + side * (head[3] - 1)),
+				(int) (36 * s) + 4, (int) Math.round(head[0] + 9), (int) Math.round(head[1] + side * (head[3] - 1)), glow);
+		Inside inside = (x, y, z) -> leviathanInside(x, y, z, HIDE) && Math.abs(z - section0(x)) <= 40;
+		double[] amid = section(0);
+		int bottom = (int) Math.round(amid[0] - amid[2] + HIDE + 2);
+		ShipInterior in = new ShipInterior(hullOf(frame, inside), painter, UnitKind.Race.ZERG, (int) (-26 * s), (int) (30 * s), bottom,
+			(int) Math.round(amid[0] + amid[2] - HIDE - 2), 99);
+		in.build();
+		// the pad on the second deck amidships
+		int padDeck = in.decks.get(Math.min(1, in.decks.size() - 1));
+		BlockPos pad = frame.at((int) (-6 * s), padDeck + 1, 0);
 		Teleporter.pad(painter, pad, UnitKind.Race.ZERG, flesh);
-		// creep on the floors, eggs, a chest, guards
-		List<Spawn> spawns = new ArrayList<>();
-		List<BlockPos> lining = List.copyOf(floor);
-		painter.then(() -> {
-			for (BlockPos pos : lining) CreepGrowth.lineCavity(painter.level(), pos);
-		});
-		List<BlockPos> away = floor.stream().filter(pos -> pos.distSqr(pad) > 12 * 12).toList();
-		if (!away.isEmpty()) {
-			painter.chest(away.get(random.nextInt(away.size())), BuiltInLootTables.ANCIENT_CITY);
-			for (int i = 0; i < 2; i++) painter.chest(away.get(random.nextInt(away.size())), FactionLoot.ZERG);
-			// pools of liquid creep sunk into the floors, 3 x 3 where the floor under them is whole
-			for (int i = 0; i < 4; i++) {
-				BlockPos at = away.get(random.nextInt(away.size())).below();
-				painter.then(() -> {
-					for (int dx = -1; dx <= 1; dx++)
-						for (int dz = -1; dz <= 1; dz++) {
-							BlockPos pool = at.offset(dx, 0, dz);
-							if (painter.stateAt(pool.below()).isAir() || painter.stateAt(pool.above()).isSolid()) return;
-						}
-					for (int dx = -1; dx <= 1; dx++)
-						for (int dz = -1; dz <= 1; dz++)
-							painter.level().setBlock(at.offset(dx, 0, dz), dev.starmine.block.StarMineBlocks.LIQUID_CREEP.defaultBlockState(), 2);
-				});
-			}
-			for (int i = 0; i < 6; i++) {
-				BlockPos at = away.get(random.nextInt(away.size()));
-				UnitKind brood = i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.HYDRALISK;
-				spawns.add(new Spawn(UnitKind.EGG, at, at, brood, brood == UnitKind.ZERGLING ? 2 : 1));
-			}
-			for (int i = 0; i < 8; i++) {
-				BlockPos at = away.get(random.nextInt(away.size()));
-				spawns.add(Spawn.guard(i == 0 ? UnitKind.QUEEN : i < 4 ? UnitKind.ROACH : UnitKind.HYDRALISK, at, at));
-			}
-		}
+		List<Spawn> spawns = new ArrayList<>(in.spawns);
 		for (int i = 0; i < 4; i++)
-			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.ROACH, frame.at(padX + (i % 2 == 0 ? -4 : 4), padY, padZ + (i < 2 ? -3 : 3)), pad));
-		int bossY = (int) Math.round(skull[0]), bossZ = (int) Math.round(skull[1]);
-		while (hollow.contains(BlockPos.asLong(bossX, bossY - 1, bossZ))) bossY--;
-		BlockPos boss = frame.at(bossX, bossY, bossZ);
+			spawns.add(Spawn.guard(i % 2 == 0 ? UnitKind.ZERGLING : UnitKind.ROACH, frame.at((int) (-6 * s) + (i % 2 == 0 ? -5 : 5), padDeck + 1, i < 2 ? -2 : 2), pad));
+		BlockPos boss = in.boss != null ? in.boss : pad;
 		spawns.add(Spawn.guard(UnitKind.KERRIGAN, boss, boss));
-		spawns.add(Spawn.guard(UnitKind.ZERGLING, frame.at(bossX + 2, bossY, bossZ + 2), boss));
-		spawns.add(Spawn.guard(UnitKind.ZERGLING, frame.at(bossX - 2, bossY, bossZ - 2), boss));
-		int above = (int) Math.round(section(0)[0] + section(0)[2]) + 18;
+		// creep on the floors once the blocks are in
+		painter.then(() -> {
+			var level = painter.level();
+			for (int deckY : in.decks)
+				for (int x = (int) (-26 * s); x <= (int) (30 * s); x += 1)
+					for (int z = -36; z <= 36; z++) {
+						if (!inside.test(x, deckY + 1, z) || random.nextInt(3) != 0) continue;
+						BlockPos cell = frame.at(x, deckY + 1, z);
+						if (level.getBlockState(cell).isAir()) CreepGrowth.lineCavity(level, cell);
+					}
+		});
+		int above = (int) Math.round(amid[0] + amid[2]) + 30;
 		for (int i = 0; i < 6; i++) {
 			UnitKind kind = i < 4 ? UnitKind.MUTALISK : UnitKind.CORRUPTOR;
-			spawns.add(Spawn.guard(kind, frame.at((int) ((-20 + i * 9) * s), above, (i % 2 == 0 ? 1 : -1) * 34), pad));
+			spawns.add(Spawn.guard(kind, frame.at((int) ((-20 + i * 9) * s), above, (i % 2 == 0 ? 1 : -1) * 68), pad));
 		}
-		spawns.add(Spawn.guard(UnitKind.BROOD_LORD, frame.at((int) (-30 * s), above + 6, 0), pad));
-		return new Ship(spawns, pad, boss, 1, x1 - x0 + 1);
+		spawns.add(Spawn.guard(UnitKind.BROOD_LORD, frame.at((int) (-30 * s), above + 10, 0), pad));
+		return new Ship(spawns, pad, boss, in.decks.size(), x1 - x0 + 1, List.copyOf(in.hangars));
 	}
 
-	/** A round chamber in the leviathan about (x, y, z): `radius` across, `half` high, flat-bottomed. */
-	private static void chamber(java.util.Set<Long> hollow, int x, double y, double z, double radius, double half) {
-		int r = (int) Math.ceil(radius), h = (int) Math.ceil(half);
-		for (int dx = -r; dx <= r; dx++)
-			for (int dy = -h + 1; dy <= h; dy++)
-				for (int dz = -r; dz <= r; dz++) {
-					if (Painter.sq(dx / radius) + Painter.sq(Math.max(0, dy) / half) + Painter.sq(dz / radius) > 1) continue;
-					int cx = x + dx, cy = (int) Math.round(y) + dy, cz = (int) Math.round(z) + dz;
-					if (leviathanInside(cx, cy, cz, 2)) hollow.add(BlockPos.asLong(cx, cy, cz));
-				}
-	}
+	/** How thick the leviathan's hide is. */
+	static final int HIDE = 4;
 
-	/**
-	 * A passage wound through the flesh from `from` toward `to`: it wanders (never quite straight, never
-	 * steep — walkable, no stairs), turns back from the walls, about 5 across. Points it passes join `reached`.
-	 */
-	private static void burrow(java.util.Set<Long> hollow, RandomSource random, double[] from, double[] to, java.util.List<double[]> reached) {
-		double x = from[0], y = from[1], z = from[2];
-		double yaw = Math.atan2(to[2] - z, to[0] - x);
-		for (int step = 0; step < 400; step++) {
-			double dx = to[0] - x, dz = to[2] - z, dy = to[1] - y;
-			double distance = Math.sqrt(dx * dx + dz * dz);
-			if (distance < 3 && Math.abs(dy) < 3) break;
-			double want = Math.atan2(dz, dx), turn = Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw));
-			yaw += turn * 0.25 + (random.nextDouble() - 0.5) * 1.1; // drawn to its end, wandering on the way
-			double climb = Mth.clamp(dy / Math.max(4, distance), -0.45, 0.45) + (random.nextDouble() - 0.5) * 0.3;
-			double nx = x + Math.cos(yaw), ny = y + climb, nz = z + Math.sin(yaw);
-			if (!leviathanInside((int) Math.round(nx), (int) Math.round(ny), (int) Math.round(nz), 4)) {
-				yaw += Math.PI * (0.4 + random.nextDouble() * 0.4) * (random.nextBoolean() ? 1 : -1); // a wall: turn away
-				continue;
-			}
-			x = nx;
-			y = ny;
-			z = nz;
-			double radius = 2.3 + random.nextDouble() * 0.8;
-			int r = (int) Math.ceil(radius);
-			for (int ox = -r; ox <= r; ox++)
-				for (int oy = -1; oy <= r + 1; oy++) // flat-ish below, high above: room to walk
-					for (int oz = -r; oz <= r; oz++) {
-						if (ox * ox + Math.max(0, oy - 1) * Math.max(0, oy - 1) + oz * oz > radius * radius) continue;
-						int cx = (int) Math.round(x) + ox, cy = (int) Math.round(y) + oy, cz = (int) Math.round(z) + oz;
-						if (leviathanInside(cx, cy, cz, 2)) hollow.add(BlockPos.asLong(cx, cy, cz));
-					}
-			if (step % 6 == 0) reached.add(new double[] {x, y, z});
-		}
+	/** The middle (z) of the leviathan's body at local x, 0 past its ends. */
+	private static double section0(int x) {
+		double[] section = section(x);
+		return section == null ? 0 : section[1];
 	}
 }

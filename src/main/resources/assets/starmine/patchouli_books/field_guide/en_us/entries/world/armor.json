@@ -1,0 +1,24 @@
+{
+	"name": "Armour and Doors",
+	"icon": "starmine:terran_armor_wall",
+	"category": "starmine:world",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_armor_wall",
+			"text": "Nine armour shards of a race make its $(l)armour wall$(): as hard as obsidian, and far tougher than any stone against weapons and blasts. At a stonecutter it becomes plating or a lit panel and back. The sky ships and the bases' foundations are built of it.",
+			"recipe2": "starmine:zerg_armor_wall"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_door",
+			"text": "A race's $(l)door$(): a zerg sphincter (flesh and shards), a terran airlock (iron), a protoss shield gate (gold). Doors side by side are one door, 2 x 2 or 3 x 3: it opens whole when you or your units come near (another's door does not open for you), and breaking any block of it breaks it all.",
+			"recipe2": "starmine:protoss_door"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Weapons wear blocks$(): every shot cracks the block it hits, as a tool does, until it breaks; the cracks stay and heal a step every 20 seconds. Any block but the unbreakable can be shot through — armour takes the longest.$(br2)On the terrans' and protoss' sky ships stand $(l)craft no one mans$(): right-click one empty-handed to take it and drive it; destroyed, it throws you out where it fell."
+		}
+	]
+}

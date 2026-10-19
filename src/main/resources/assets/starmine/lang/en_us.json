@@ -1236,6 +1236,8 @@
 	"item.starmine.ghost_agent_spawn_egg": "Ghost Spawn Egg",
 	"message.starmine.boss_phase.2": "%s calls its guard!",
 	"message.starmine.boss_phase.3": "%s is enraged!",
+	"message.starmine.vehicle_taken": "You take the %s",
+	"message.starmine.vehicle_lost": "Your craft is destroyed: you are out",
 	"entity.starmine.brutalisk": "Brutalisk",
 	"entity.starmine.archive_guardian": "Archive Guardian",
 	"entity.starmine.symbiote": "Symbiote",

@@ -1236,6 +1236,8 @@
 	"item.starmine.ghost_agent_spawn_egg": "Яйцо призыва призрака",
 	"message.starmine.boss_phase.2": "%s зовёт стражу!",
 	"message.starmine.boss_phase.3": "%s в ярости!",
+	"message.starmine.vehicle_taken": "Вы угнали: %s",
+	"message.starmine.vehicle_lost": "Машина уничтожена: вы выбрались",
 	"entity.starmine.brutalisk": "Бруталиск",
 	"entity.starmine.archive_guardian": "Страж архивов",
 	"entity.starmine.symbiote": "Симбионт",

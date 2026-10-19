@@ -54,25 +54,39 @@ public class StructureGameTests implements FabricGameTest {
 		helper.succeed();
 	}
 
-	/** Inspect placed blocks: chests flush deferred plans, so a partial in-memory plan is not evidence. */
-	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 80)
-	public void hyperionHasCabinsHangarAndRaisedBridge(GameTestHelper helper) {
-		Painter painter = new Painter(helper.getLevel(), RandomSource.create(42));
-		BlockPos middle = far(helper, 4000).above(40);
-		painter.load(middle, 112);
+	/**
+	 * Owner 19.10: the Hyperion twice as large — four decks, hangars open to the outside (one twice as long), craft to take
+	 * in them, the boss hall behind its gates, no ladders or scaffolding.
+	 */
+	@GameTest(template = ARENA, batch = "layoutChanges", timeoutTicks = 200)
+	public void hyperionHasDecksHangarsAndAHall(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		Painter painter = Painter.deferred(level, RandomSource.create(42));
+		BlockPos middle = far(helper, 4000).above(60);
+		painter.load(middle, 200);
 		SkyShips.Ship ship = SkyShips.hyperion(painter, middle, 0);
-		helper.assertTrue(painter.stateAt(middle.offset(0, 2, 0)).isAir(), "central passage blocked");
-		helper.assertTrue(painter.stateAt(middle.offset(0, 2, 2)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no cabin glazing");
-		helper.assertTrue(painter.stateAt(middle.offset(2, 2, 7)).is(Blocks.LIGHT_GRAY_CONCRETE), "no cabin partitions");
-		helper.assertTrue(painter.stateAt(middle.offset(0, -5, 8)).isAir(), "hangar blocked");
-		helper.assertTrue(painter.stateAt(middle.offset(0, -9, 11)).is(Blocks.YELLOW_CONCRETE), "hangar markings absent");
-		helper.assertTrue(painter.stateAt(middle.offset(0, -6, 14)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no exterior lower cabin window");
-		helper.assertTrue(ship.bossRoom().equals(middle.offset(-24, 17, 0)), "Raynor not on the bridge");
-		helper.assertTrue(painter.stateAt(ship.bossRoom().below()).is(Blocks.POLISHED_ANDESITE), "Raynor has no floor");
-		helper.assertTrue(painter.stateAt(middle.offset(-11, 19, 0)).is(Blocks.LIGHT_BLUE_STAINED_GLASS), "no bridge window");
-		for (int y = -60; y < -12; y++)
-			helper.assertTrue(!painter.stateAt(middle.offset(0, y, 0)).is(Blocks.SCAFFOLDING)
-				&& !painter.stateAt(middle.offset(0, y, 0)).is(Blocks.LADDER), "external access to ship");
+		painter.start();
+		Painter.finishAll();
+		helper.assertTrue(ship.decks() >= 4, "only " + ship.decks() + " decks");
+		helper.assertTrue(ship.hangars().size() >= 3, "only " + ship.hangars().size() + " hangars");
+		for (BlockPos hangar : ship.hangars()) {
+			helper.assertTrue(level.getBlockState(hangar).isAir() && level.getBlockState(hangar.above(10)).isAir(), "a hangar is not tall: " + hangar.toShortString());
+			boolean out = false;
+			for (int side = -1; side <= 1 && !out; side += 2) {
+				boolean clear = true;
+				for (int dz = 0; dz < 60 && clear; dz++) clear = level.getBlockState(hangar.offset(0, 2, side * dz)).isAir();
+				out = clear;
+			}
+			helper.assertTrue(out, "a hangar does not open to the outside: " + hangar.toShortString());
+		}
+		helper.assertTrue(ship.spawns().stream().filter(sp -> dev.starmine.possess.Vehicles.parked(sp.kind(), sp.brood())).count() >= 4, "too few craft to take");
+		helper.assertTrue(!level.getBlockState(ship.bossRoom().below()).isAir() && level.getBlockState(ship.bossRoom().above(3)).isAir(), "no boss hall");
+		long gates = 0;
+		for (BlockPos pos : BlockPos.betweenClosed(ship.bossRoom().offset(-30, 0, -3), ship.bossRoom().offset(30, 6, 3)))
+			if (level.getBlockState(pos).getBlock() instanceof dev.starmine.block.ArmorDoorBlock) gates++;
+		helper.assertTrue(gates >= 20, "the boss hall has no gates: " + gates);
+		for (int y = -80; y < -20; y++)
+			helper.assertTrue(!level.getBlockState(middle.offset(0, y, 0)).is(Blocks.SCAFFOLDING) && !level.getBlockState(middle.offset(0, y, 0)).is(Blocks.LADDER), "external access to ship");
 		helper.succeed();
 	}
 
@@ -189,8 +203,8 @@ public class StructureGameTests implements FabricGameTest {
 		int i = 0;
 		for (String name : new String[] {"hyperion", "mothership", "leviathan"}) {
 			Painter painter = Painter.deferred(level, RandomSource.create(3 + i));
-			BlockPos middle = base.offset(i++ * 260, 0, 0);
-			painter.load(middle, 112);
+			BlockPos middle = base.offset(i++ * 600, 0, 0);
+			painter.load(middle, 200);
 			SkyShips.Ship ship = switch (name) {
 				case "hyperion" -> SkyShips.hyperion(painter, middle, 0);
 				case "mothership" -> SkyShips.mothership(painter, middle);
@@ -200,10 +214,10 @@ public class StructureGameTests implements FabricGameTest {
 				name + ": built before its ticks");
 			painter.start();
 			Painter.finishAll();
-			int length = name.equals("mothership") ? 100 : 160;
+			int length = name.equals("mothership") ? 200 : 320; // owner 19.10: twice as large
 			helper.assertTrue(ship.length() >= length, name + " is " + ship.length() + " blocks long, under " + length);
 			helper.assertTrue(painter.placed() > 15000, name + " has only " + painter.placed() + " blocks");
-			if (!name.equals("leviathan")) helper.assertTrue(ship.decks() >= 2, name + " has " + ship.decks() + " decks");
+			helper.assertTrue(ship.decks() >= 3, name + " has " + ship.decks() + " decks");
 			helper.assertTrue(level.getBlockState(ship.pad()).getBlock() instanceof Teleporter, name + ": no teleporter pad at " + ship.pad().toShortString());
 			UnitKind hero = name.equals("hyperion") ? UnitKind.RAYNOR : name.equals("mothership") ? UnitKind.ARTANIS : UnitKind.KERRIGAN;
 			helper.assertTrue(ship.spawns().stream().anyMatch(spawn -> spawn.kind() == hero && spawn.pos().equals(ship.bossRoom())), name + ": no " + hero.id);
@@ -211,12 +225,12 @@ public class StructureGameTests implements FabricGameTest {
 				helper.assertTrue(!level.getBlockState(ship.bossRoom().above(up)).isSolid(), name + ": the boss room is not open at " + ship.bossRoom().above(up).toShortString());
 			helper.assertTrue(ship.spawns().size() >= 15 && ship.spawns().stream().anyMatch(spawn -> spawn.kind().flying), name + " has " + ship.spawns().size() + " guards");
 			int scaffolds = 0;
-			for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-110, -60, -70), middle.offset(110, 40, 70)))
+			for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-200, -100, -120), middle.offset(200, 60, 120)))
 				if (level.getBlockState(pos).is(Blocks.SCAFFOLDING)) scaffolds++;
 			helper.assertTrue(scaffolds == 0, name + " has " + scaffolds + " scaffolding blocks");
 			if (name.equals("leviathan")) { // owner 16.10: flesh through and through, passages without stairs
 				int stairs = 0, flesh = 0;
-				for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-110, -60, -70), middle.offset(110, 40, 70))) {
+				for (BlockPos pos : BlockPos.betweenClosed(middle.offset(-200, -100, -120), middle.offset(200, 60, 120))) {
 					BlockState state = level.getBlockState(pos);
 					if (state.getBlock() instanceof net.minecraft.world.level.block.StairBlock) stairs++;
 					if (state.is(dev.starmine.block.StarMineBlocks.ZERG_FLESH) || state.is(dev.starmine.block.StarMineBlocks.GLOWING_ZERG_FLESH)) flesh++;
@@ -225,10 +239,6 @@ public class StructureGameTests implements FabricGameTest {
 				helper.assertTrue(flesh > 15000, "the leviathan has only " + flesh + " flesh blocks");
 			}
 		}
-		// the Hyperion's two decks: the upper deck's floor over the lower one, both open
-		BlockPos hyperion = base;
-		helper.assertTrue(level.getBlockState(hyperion.offset(10, 0, 0)).is(Blocks.POLISHED_ANDESITE), "no upper deck floor");
-		helper.assertTrue(level.getBlockState(hyperion.offset(10, -4, 0)).isAir() && level.getBlockState(hyperion.offset(10, 3, 0)).isAir(), "the decks are not open");
 		helper.succeed();
 	}
 

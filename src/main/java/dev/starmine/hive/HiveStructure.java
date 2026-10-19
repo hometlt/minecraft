@@ -246,7 +246,8 @@ public final class HiveStructure {
 			level.addFreshEntity(main);
 		} else if (p.hall() != null) {
 			StarUnit mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
-			if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
+			if (mob != null && p.brood() != null && dev.starmine.possess.Vehicles.parked(p.kind(), p.brood())) dev.starmine.possess.Vehicles.park(mob); // owner 19.10
+			else if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
 		} else if (hive != null) {
 			StarUnit made = HiveLogic.spawn(level, hive, p.kind(), at, null);
 			if (p.kind().building()) hive.join(p.kind());

@@ -315,7 +315,7 @@ public final class RaceBases {
 				painter.set(centre.offset(dx, -1, dz), state);
 			}
 		// owner 19.10: every building on a pedestal a block high with stairs round it
-		BlockState top = terran ? Blocks.POLISHED_ANDESITE.defaultBlockState() : Blocks.CHISELED_SANDSTONE.defaultBlockState();
+		BlockState top = dev.starmine.block.ArmorBlocks.wall(race, 1); // owner 19.10: the bases' foundations of the race's armour
 		BlockState stairs = terran ? Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState() : Blocks.SMOOTH_SANDSTONE_STAIRS.defaultBlockState();
 		List<double[]> taken = new ArrayList<>(); // x, z, half width: the buildings' places, kept clear of lamps
 		java.util.function.BiConsumer<UnitKind, BlockPos> structure = (kind, at) -> {

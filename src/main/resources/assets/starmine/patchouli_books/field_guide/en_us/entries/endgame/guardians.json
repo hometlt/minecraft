@@ -10,7 +10,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "A threatened guardian calls its base's army to it. $(l)Karax$() sends air drones and warps in photon cannons for a while; at 2/3 health he raises two $(l)khaydarin monoliths$() that shoot from afar through up to 3 blocks (break the crystal on top); at 1/3 the Spear of Adun's $(l)purifier beam$() follows you, cutting blocks — run.$(br2)$(l)Swann$() fires grenades and lays $(l)mines$() that blow up 5 blocks round; at 2/3 he sets up $(l)flaming Betties$(); at 1/3 he calls $(l)Odin$(), whose barrage breaks blocks and who once drops a nuke — leave the red dot."
+			"text": "A threatened guardian calls its base's army to it. $(l)Karax$() sends air drones and warps in photon cannons for a while; at 2/3 health he raises two $(l)khaydarin monoliths$() that shoot from afar through up to 3 blocks (break the crystal on top); at 1/3 the Spear of Adun's $(l)purifier beam$() follows you, cutting blocks — run.$(br2)$(l)Swann$() fires grenades and lays $(l)mines$() that blow up 5 blocks round; at 2/3 he sets up $(l)flaming Betties$(); at 1/3 he climbs into $(l)Odin$(), whose barrage breaks blocks and who once drops a nuke — leave the red dot.$(br2)$(l)Abathur$() lays toxic nests (seen a moment, then only by a detector), evolves his units, roots you with tentacles; his hall's creep tumors heal him — burn them. At 1/3 he becomes a leaping $(l)brutalisk$() with a symbiote and sheds a copy of himself; Karax flies a low $(l)archive guardian$(). The great forms break the blocks in their way."
 		},
 		{
 			"type": "patchouli:text",

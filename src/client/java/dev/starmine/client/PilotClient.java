@@ -51,7 +51,7 @@ public final class PilotClient {
 		ClientPlayNetworking.registerGlobalReceiver(PossessNetwork.PilotEnded.TYPE, (ended, context) -> {
 			Minecraft mc = context.client();
 			if (mc.player != null) mc.player.refreshDimensions();
-			if (mc.player != null && dev.starmine.colony.CommandPanel.carried(mc.player) && !CommandView.active()) CommandView.enter(mc);
+			if (!ended.vehicle() && mc.player != null && dev.starmine.colony.CommandPanel.carried(mc.player) && !CommandView.active()) CommandView.enter(mc);
 		});
 	}
 
