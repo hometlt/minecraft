@@ -46,4 +46,43 @@ public class AmmoGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "turretFires", timeoutTicks = 160)
+	public void aTurretShootsMonstersAndMonstersGoForIt(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		for (Turrets.Kind kind : Turrets.Kind.values())
+			helper.assertTrue(level.getServer().getRecipeManager().byKey(ResourceLocation.fromNamespaceAndPath("starmine", kind.id())).isPresent(), "no recipe " + kind.id());
+		Turrets.Turret turret = Turrets.TYPES.get(Turrets.Kind.GAUSS).create(level);
+		BlockPos at = helper.absolutePos(new BlockPos(10, 2, 24));
+		turret.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+		level.addFreshEntity(turret);
+		turret.round = new ItemStack(Guns.GAUSS_AMMO);
+		turret.setRounds(20);
+		net.minecraft.world.entity.monster.Zombie standing = EntityType.ZOMBIE.create(level);
+		standing.moveTo(at.getX() + 7.5, at.getY(), at.getZ() + 0.5, 90, 0);
+		standing.setNoAi(true);
+		level.addFreshEntity(standing);
+		// an empty turret elsewhere: a zombie goes for it unprovoked
+		Turrets.Turret empty = Turrets.TYPES.get(Turrets.Kind.PHOTON).create(level);
+		empty.moveTo(at.getX() + 20.5, at.getY(), at.getZ() - 14.5, 0, 0);
+		level.addFreshEntity(empty);
+		net.minecraft.world.entity.monster.Zombie hunter = EntityType.ZOMBIE.create(level);
+		hunter.moveTo(at.getX() + 20.5, at.getY(), at.getZ() - 8.5, 0, 0);
+		level.addFreshEntity(hunter);
+		float health = standing.getHealth();
+		helper.runAfterDelay(120, () -> {
+			boolean shot = standing.getHealth() < health || !standing.isAlive();
+			int left = turret.rounds();
+			boolean hunted = hunter.getTarget() == empty;
+			standing.discard();
+			hunter.discard();
+			turret.discard();
+			empty.discard();
+			helper.assertTrue(shot, "the gauss turret did not shoot the zombie");
+			helper.assertTrue(left < 20, "the turret fired without spending rounds");
+			helper.assertTrue(hunted, "the zombie does not go for the turret");
+			helper.succeed();
+		});
+	}
 }

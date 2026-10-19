@@ -1,0 +1,27 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" P ",
+		"RDR",
+		" I "
+	],
+	"key": {
+		"P": {
+			"item": "starmine:terran_armor_slab"
+		},
+		"R": {
+			"item": "minecraft:redstone"
+		},
+		"D": {
+			"item": "minecraft:dispenser"
+		},
+		"I": {
+			"item": "minecraft:iron_ingot"
+		}
+	},
+	"result": {
+		"id": "starmine:gauss_turret",
+		"count": 1
+	}
+}

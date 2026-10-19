@@ -174,6 +174,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.gear.RaceTools.load(); // owner 19.10: the races' tools and shields
 		dev.starmine.gear.RepairTools.load(); // owner 19.10: the races' repair tools
 		dev.starmine.gear.Ammo.load(); // owner 19.10: needles, gauss rounds, energy charges; dispensers fire them
+		dev.starmine.gear.Turrets.load(); // owner 19.10: the races' turrets
 		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();
@@ -186,8 +187,11 @@ public final class StarMine implements ModInitializer {
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new dev.starmine.colony.Costs());
 		// owner: hostile mobs (creepers, zombies, skeletons...) attack zerg as zerg attack them
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
-			if (entity instanceof Monster monster && !(entity instanceof StarUnit))
+			if (entity instanceof Monster monster && !(entity instanceof StarUnit)) {
 				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, StarUnit.class, true));
+				// owner 19.10: and the players' turrets
+				((MobAccessor) monster).starmine$targetSelector().addGoal(3, new NearestAttackableTargetGoal<>(monster, dev.starmine.gear.Turrets.Turret.class, true));
+			}
 		});
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.hive.HiveStructure::tick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.RaceBases::tick);

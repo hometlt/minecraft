@@ -107,6 +107,7 @@ public final class StarMineClient implements ClientModInitializer {
 		RaceShieldRenderer.register(); // owner 19.10: the races' shields
 		ClientWear.register(); // owner 19.10: blocks keep their damage; mining starts from it
 		net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.starmine.gear.Ammo.SHOT, net.minecraft.client.renderer.entity.ThrownItemRenderer::new); // owner 19.10: rounds in flight
+		for (var type : dev.starmine.gear.Turrets.TYPES.values()) net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(type, TurretRenderer::new); // owner 19.10
 		net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(dev.starmine.block.CraftBlocks.VESPENE_FLAME,
 			net.minecraft.client.particle.FlameParticle.Provider::new);
 		for (var parts : dev.starmine.world.Artifact.KEYS.values()) for (net.minecraft.world.level.block.Block part : parts.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());

@@ -1,0 +1,27 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" S ",
+		"MDM",
+		" V "
+	],
+	"key": {
+		"S": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"D": {
+			"item": "minecraft:dispenser"
+		},
+		"V": {
+			"item": "starmine:vespene_bucket"
+		}
+	},
+	"result": {
+		"id": "starmine:photon_turret",
+		"count": 1
+	}
+}

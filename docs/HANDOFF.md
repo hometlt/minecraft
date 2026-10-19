@@ -20,15 +20,16 @@
 
 ## Последняя правка
 
-R4a. Боеприпасы — `gear/Ammo.java`.
-- Предметы `Ammo.Round implements ProjectileItem`: костяная и ядовитая игла, энергозаряд и `Guns.GAUSS_AMMO` (теперь
-  тоже `Round`). Раздатчики стреляют ими (`DispenserBlock.registerProjectileBehavior`).
-- Снаряд в полёте — `Ammo.Shot`; клиент рисует его `ThrownItemRenderer`. Огонь из кода — `Ammo.fire(...)`, им
-  воспользуются турели в R4b.
-- Ассеты и рецепты — `tools/gen_ammo_turrets.py`, тест — `gear/AmmoGameTests`.
-- Ядовитые иглы: 7 игл → 7, потому что 8 игл с глазом и веспеном не помещаются в сетку 3×3.
-- Дальше: R4b — турели (гаусс, игольная, фотонная). Это мобы, на которых агрессивны монстры; патроны в них — правым
-  кликом.
+R4b. Турели — `gear/Turrets.java`: гаусс, игольная, фотонная.
+- Сама турель — сущность `Turrets.Turret extends Mob`, ставится предметом `Turrets.Placer`. Снаряды хранятся в ней:
+  вид — `round`, число — синхронизированное `ROUNDS`; заряжаются правым кликом.
+- Цели — `Enemy` в 12 блоках на виду, кроме юнитов владельца и игроков; стреляет через `Ammo.fire`.
+- Монстры нападают на турели: цель добавляется в `StarMine` (`ENTITY_LOAD`, `MobAccessor`).
+- Рисует `client/TurretRenderer`: полублок брони расы и раздатчик, который поворачивается к цели.
+- Рецепты — `tools/gen_ammo_turrets.py`, тест — `AmmoGameTests.aTurretShootsMonstersAndMonstersGoForIt`.
+- Дальше: R4c — стазисная ловушка протоссов и токсичное гнездо Абатура.
+
+R4a (до того): боеприпасы `gear/Ammo.java`.
 
 R3c (до того): строительные бронеблоки, `ArmorBlocks.BUILDING_BLOCKS`, `tools/gen_armor_building.py`.
 R3b (до того): ремонтные инструменты `gear/RepairTools.java`.
