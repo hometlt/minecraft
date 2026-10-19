@@ -85,4 +85,41 @@ public class AmmoGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "traps", timeoutTicks = 200)
+	public void trapsSpringOnFoes(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		for (String id : new String[] {"stasis_trap", "toxic_nest"})
+			helper.assertTrue(level.getServer().getRecipeManager().byKey(ResourceLocation.fromNamespaceAndPath("starmine", id)).isPresent(), "no recipe " + id);
+		BlockPos trap = helper.absolutePos(new BlockPos(8, 2, 36)), nest = trap.east(12);
+		level.setBlock(trap, Traps.STASIS_TRAP.defaultBlockState(), Block.UPDATE_ALL);
+		level.setBlock(nest, Traps.TOXIC_NEST.defaultBlockState(), Block.UPDATE_ALL);
+		net.minecraft.world.entity.monster.Zombie held = EntityType.ZOMBIE.create(level), stepping = EntityType.ZOMBIE.create(level);
+		held.moveTo(trap.getX() + 2.5, trap.getY(), trap.getZ() + 0.5, 0, 0);
+		stepping.moveTo(nest.getX() + 0.5, nest.getY(), nest.getZ() + 0.5, 0, 0);
+		for (var zombie : new net.minecraft.world.entity.monster.Zombie[] {held, stepping}) {
+			zombie.setNoAi(true);
+			level.addFreshEntity(zombie);
+		}
+		float health = stepping.getHealth();
+		boolean[] caught = {false};
+		helper.runAfterDelay(20, () -> caught[0] = BlockPos.betweenClosedStream(new net.minecraft.world.phys.AABB(held.blockPosition()).inflate(2))
+			.anyMatch(at -> level.getBlockState(at).is(Traps.STASIS_FIELD)));
+		helper.runAfterDelay(Traps.STASIS_TICKS + 40, () -> {
+			boolean gone = BlockPos.betweenClosedStream(new net.minecraft.world.phys.AABB(held.blockPosition()).inflate(2)).noneMatch(at -> level.getBlockState(at).is(Traps.STASIS_FIELD));
+			boolean burst = !level.getBlockState(nest).is(Traps.TOXIC_NEST) && (stepping.getHealth() < health || !stepping.isAlive());
+			boolean creep = BlockPos.betweenClosedStream(new net.minecraft.world.phys.AABB(nest).inflate(2, 1, 2)).anyMatch(at -> dev.starmine.block.StarMineBlocks.isCreep(level.getBlockState(at)));
+			held.discard();
+			stepping.discard();
+			level.setBlock(trap, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			for (BlockPos at : BlockPos.betweenClosed(nest.offset(-3, -1, -3), nest.offset(3, 1, 3)))
+				if (dev.starmine.block.StarMineBlocks.isCreep(level.getBlockState(at))) level.setBlock(at, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			helper.assertTrue(caught[0], "the stasis trap did not shut the zombie in");
+			helper.assertTrue(gone, "the stasis did not pass");
+			helper.assertTrue(burst, "the toxic nest did not burst under the zombie");
+			helper.assertTrue(creep, "the toxic nest threw no creep");
+			helper.succeed();
+		});
+	}
 }

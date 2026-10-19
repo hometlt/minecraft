@@ -32,6 +32,12 @@
 		},
 		{
 			"type": "patchouli:crafting",
+			"recipe": "starmine:stasis_trap",
+			"text": "$(l)Traps$(): the protoss stasis trap (a dispenser, a protoss armour slab, an ender pearl, minerals) shuts a foe within 2.5 blocks in stasis for 5 s, then rests 30 s. Abathur's $(l)toxic nest$() (a zerg shard, gunpowder, a spider eye, zerg flesh) lies flat like the ground and bursts under a foe — harm and poison round it, no block broken — throwing creep about. Foes are monsters, the wild and other players; your units are spared.",
+			"recipe2": "starmine:toxic_nest"
+		},
+		{
+			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_repair_tool",
 			"text": "Two shards, as shears are made, make a race's $(l)repair tool$(): it mends a quarter of a block's kept damage a use. The terran one mends what is mechanical (terran armour, metal), the zerg mender what lives (zerg armour, flesh, creep, wood, wool, bone), the protoss restorer brings protoss blocks' shields back.",
 			"recipe2": "starmine:zerg_repair_tool"

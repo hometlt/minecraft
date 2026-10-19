@@ -1,0 +1,22 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "starmine:zerg_armor_shard"
+		},
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "minecraft:spider_eye"
+		},
+		{
+			"item": "starmine:zerg_flesh"
+		}
+	],
+	"result": {
+		"id": "starmine:toxic_nest",
+		"count": 1
+	}
+}

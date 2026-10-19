@@ -175,6 +175,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.gear.RepairTools.load(); // owner 19.10: the races' repair tools
 		dev.starmine.gear.Ammo.load(); // owner 19.10: needles, gauss rounds, energy charges; dispensers fire them
 		dev.starmine.gear.Turrets.load(); // owner 19.10: the races' turrets
+		dev.starmine.gear.Traps.load(); // owner 19.10: the stasis trap, Abathur's toxic nest
 		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();

@@ -1,0 +1,27 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" P ",
+		"MDM",
+		" E "
+	],
+	"key": {
+		"P": {
+			"item": "starmine:protoss_armor_slab"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"D": {
+			"item": "minecraft:dispenser"
+		},
+		"E": {
+			"item": "minecraft:ender_pearl"
+		}
+	},
+	"result": {
+		"id": "starmine:stasis_trap",
+		"count": 1
+	}
+}

@@ -48,6 +48,7 @@
 		"starmine:protoss_armor_fence",
 		"starmine:protoss_armor_trapdoor",
 		"starmine:protoss_porthole",
-		"starmine:protoss_armor_bars"
+		"starmine:protoss_armor_bars",
+		"starmine:stasis_trap"
 	]
 }

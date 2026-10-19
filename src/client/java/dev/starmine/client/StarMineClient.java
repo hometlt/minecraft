@@ -100,6 +100,8 @@ public final class StarMineClient implements ClientModInitializer {
 		// owner 19.10: crafted blocks — the green-flamed vespene torch, mineral glass
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.block.CraftBlocks.VESPENE_TORCH, dev.starmine.block.CraftBlocks.VESPENE_WALL_TORCH);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.block.CraftBlocks.MINERAL_GLASS, RenderType.translucent());
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.gear.Traps.STASIS_FIELD, RenderType.translucent()); // owner 19.10
+		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.gear.Traps.STASIS_TRAP, dev.starmine.gear.Traps.TOXIC_NEST);
 		for (var race : dev.starmine.block.ArmorBlocks.BUILDING_BLOCKS.values()) { // owner 19.10: trapdoors, portholes and bars see through
 			BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), race.get("armor_trapdoor"), race.get("armor_bars"));
 			BlockRenderLayerMap.INSTANCE.putBlock(race.get("porthole"), RenderType.translucent());

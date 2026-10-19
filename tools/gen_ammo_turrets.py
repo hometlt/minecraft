@@ -1,5 +1,6 @@
 """Owner 19.10: the races' rounds (bone and toxic needles, energy charges; gauss rounds of gunpowder too) and turrets
-(gauss, needle, photon) — icons drawn here, item models, recipes.
+(gauss, needle, photon), the stasis trap and Abathur's toxic nest — textures drawn here, models, blockstates, loot,
+recipes.
 Run from the repository root: python tools/gen_ammo_turrets.py"""
 import io
 import json
@@ -63,7 +64,55 @@ def turret(base, light, glow):
     return img
 
 
+def traps():
+    blocks = os.path.join(ASSETS, 'textures', 'block')
+    trap = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            d = abs(x - 7.5) + abs(y - 7.5)
+            c = (64, 160, 255) if d < 3 else (236, 224, 196) if d < 5 else (200, 160, 48) if (x + y) % 4 else (150, 116, 30)
+            trap.putpixel((x, y), c + (255,))
+    trap.save(os.path.join(blocks, 'stasis_trap.png'))
+    field = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            edge = x in (0, 15) or y in (0, 15)
+            field.putpixel((x, y), (120, 200, 255, 200) if edge else (90, 170, 255, 90 if (x * 7 + y * 3) % 11 else 140))
+    field.save(os.path.join(blocks, 'stasis_field.png'))
+    nest = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            k = ((x * 13 + y * 7) % 9) / 9
+            c = (int(92 + 30 * k), int(70 + 20 * k), int(48 + 10 * k))  # the ground's brown
+            if (x * 5 + y * 11) % 17 == 0:
+                c = (130, 200, 60)  # the poison in it, a speck here and there
+            nest.putpixel((x, y), c + (255,))
+    nest.save(os.path.join(blocks, 'toxic_nest.png'))
+    states = os.path.join(ASSETS, 'blockstates')
+    models = os.path.join(ASSETS, 'models')
+    for name in ('stasis_trap', 'stasis_field', 'toxic_nest'):
+        write(os.path.join(states, name + '.json'), {'variants': {'': {'model': 'starmine:block/' + name}}})
+    write(os.path.join(models, 'block', 'stasis_trap.json'), {'parent': 'minecraft:block/pressure_plate_up', 'textures': {'texture': 'starmine:block/stasis_trap'}})
+    write(os.path.join(models, 'block', 'stasis_field.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': 'starmine:block/stasis_field'}})
+    write(os.path.join(models, 'block', 'toxic_nest.json'), {'parent': 'minecraft:block/carpet', 'textures': {'wool': 'starmine:block/toxic_nest'}})
+    for name in ('stasis_trap', 'toxic_nest'):
+        write(os.path.join(models, 'item', name + '.json'), {'parent': 'starmine:block/' + name})
+        write(os.path.join(DATA, 'loot_table', 'blocks', name + '.json'), {
+            'type': 'minecraft:block', 'pools': [{'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': 'starmine:' + name}],
+                                                  'conditions': [{'condition': 'minecraft:survives_explosion'}]}]})
+    item = lambda name: {'item': name}
+    write(os.path.join(DATA, 'recipe', 'stasis_trap.json'), {
+        'type': 'minecraft:crafting_shaped', 'category': 'equipment', 'pattern': [' P ', 'MDM', ' E '],
+        'key': {'P': item('starmine:protoss_armor_slab'), 'M': item('starmine:mineral_shard'), 'D': item('minecraft:dispenser'),
+                'E': item('minecraft:ender_pearl')}, 'result': {'id': 'starmine:stasis_trap', 'count': 1}})
+    write(os.path.join(DATA, 'recipe', 'toxic_nest.json'), {
+        'type': 'minecraft:crafting_shapeless', 'category': 'equipment',
+        'ingredients': [item('starmine:zerg_armor_shard'), item('minecraft:gunpowder'), item('minecraft:spider_eye'), item('starmine:zerg_flesh')],
+        'result': {'id': 'starmine:toxic_nest', 'count': 1}})
+
+
 def main():
+    traps()
     icons = {'bone_needle': needle((255, 255, 240), (226, 218, 190)), 'toxic_needle': needle((150, 240, 60), (190, 210, 120)),
              'energy_charge': charge()}
     for name, img in icons.items():
