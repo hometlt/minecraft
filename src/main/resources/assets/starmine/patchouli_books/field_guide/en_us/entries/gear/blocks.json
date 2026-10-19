@@ -1,0 +1,22 @@
+{
+	"name": "Blocks and Items",
+	"icon": "starmine:terrazine_bucket",
+	"category": "starmine:gear",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:terrazine_bucket",
+			"text": "Terrazine: a violet liquid of the Void's rich islands, worth twice vespene; a gas building on its outlet or a bucket takes it. Liquid creep (a bucket of it too) lies in zerg tunnels: zerg run four times as fast in it."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:void_stone_bricks",
+			"text": "Void stone, its bricks and void crystals build the islands of the Void; the crystals glow. The race portals and the nydus orifice belong to the bases: a portal leads into its race's sky ship while its guards live; a nydus worm comes out of an orifice."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The $(l)nuclear missile$() is a thing of its own: it rises out of a ghost academy, flies out of sight and comes down on the ghost's red dot. You can shoot it down. Larvae wait by hatcheries for the card to turn them into eggs; an egg hatches its unit when its time is up."
+		}
+	]
+}

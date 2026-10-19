@@ -1,0 +1,21 @@
+{
+	"name": "Amun's Invasion",
+	"icon": "starmine:void_shard",
+	"category": "starmine:world",
+	"sortnum": 5,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Amun sleeps while nobody fights the commanders. He $(l)wakes when you take the first part of a key$() from a hero, and comes into $(l)that hero's world$() — the overworld, the Nether or the End, each by its own keys. First the sky there turns blood red and everyone hears that Amun has woken; then by night $(l)void shards$() fall near you, darkening the land round them and making his troops fierce, and $(l)rifts$() open by them, sending out his troops of all three races; the shard itself sends out troops now and then until you break it.$(br2)The more parts of a world's key you have taken, the harder he presses there: with one, a shard or two, seldom, and small troops; with three, full waves of every kind. It grows a little more each two days. Shards and rifts work only within 16 chunks of a player and show on the minimap. They fight only you and your units — the races leave them be — and every few minutes march on your bases."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "His workers make the way wherever you are: they tunnel, bridge and build steps; where there is no way by land, his transports carry the troops over. His troops wear his curse, black and red, and leave nothing — no experience, no loot — like everything that dies in the Void."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:void_gate",
+			"text": "A broken shard leaves $(l)void shards$(); the Void's crystals hold them too. Eight round an ender eye make a $(l)void gate$(): used, it takes you and your units near it into the Void, and a gate in the Void takes you out. The Void is small: a block there is 16 of the overworld's."
+		}
+	]
+}

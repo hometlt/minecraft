@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/root",
+  "display": {
+    "icon": {
+      "id": "starmine:void_shard"
+    },
+    "title": {
+      "translate": "advancements.starmine.void_shard.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.void_shard.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

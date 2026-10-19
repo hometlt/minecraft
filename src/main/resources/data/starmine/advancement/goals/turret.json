@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/race_tool",
+  "display": {
+    "icon": {
+      "id": "starmine:gauss_turret"
+    },
+    "title": {
+      "translate": "advancements.starmine.turret.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.turret.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

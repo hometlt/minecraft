@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/own_base",
+  "display": {
+    "icon": {
+      "id": "starmine:engineeringbay_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.starmine.upgrade.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.upgrade.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

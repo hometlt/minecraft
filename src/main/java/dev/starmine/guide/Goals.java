@@ -28,7 +28,9 @@ import org.jetbrains.annotations.Nullable;
 /**
  * The journal of goals (owner 16.10, item 7): the StarMine tab of the advancements screen (L) — get a
  * command panel, found a base, mine minerals and vespene, take control of a unit, find the three races'
- * bases, a suit, a module, a gauss rifle, reach a sky ship, beat the three heroes. Each goal is an
+ * bases, a suit, a module, a gauss rifle, reach a sky ship, beat the three heroes; owner 19.10: an army of 20, an upgrade at
+ * level 3, a race tool, a turret, a race boat, terrazine, the guardians freed, the heroes of the Nether and the End, a void
+ * shard. Each goal is an
  * advancement with one `minecraft:impossible` criterion, granted here: most are checked every two
  * seconds from what the player has and where they are, the heroes when they die near the player.
  * The first goal not done is the next step: `/stargoals` names it, and with the game rule
@@ -37,8 +39,9 @@ import org.jetbrains.annotations.Nullable;
 public final class Goals {
 	/** The goals in the order the journal suggests them. */
 	public enum Goal {
-		COMMAND_PANEL, OWN_BASE, MINERALS, VESPENE, POSSESS, FIND_ZERG, FIND_TERRAN, FIND_PROTOSS, SUIT, MODULE, GAUSS_RIFLE, SKY_SHIP,
-		KERRIGAN, RAYNOR, ARTANIS, ALL_HEROES, ARTIFACT, VOID, AMUN;
+		COMMAND_PANEL, OWN_BASE, MINERALS, VESPENE, POSSESS, ARMY, UPGRADE, FIND_ZERG, FIND_TERRAN, FIND_PROTOSS, SUIT, MODULE, GAUSS_RIFLE,
+		RACE_TOOL, TURRET, RACE_BOAT, TERRAZINE, SKY_SHIP, GUARDIANS, KERRIGAN, RAYNOR, ARTANIS, ALL_HEROES, NETHER_HEROES, END_HEROES, VOID_SHARD,
+		ARTIFACT, VOID, AMUN;
 
 		public final String id = name().toLowerCase();
 
@@ -56,6 +59,11 @@ public final class Goals {
 	/** How high a player must be over a base to be on its sky ship. */
 	public static final int SHIP_Y = 180;
 	public static final int HINT_EVERY = 20 * 60 * 5;
+	/** Fighters (not workers, not buildings) a base must have for the army goal. */
+	public static final int ARMY = 20;
+	/** Owner 19.10: the heroes freed for the group goals (VoidWorld.State.freed keeps them by name). */
+	static final java.util.List<String> GUARDIAN_NAMES = java.util.List.of("ABATHUR", "SWANN", "KARAX"),
+		NETHER_NAMES = java.util.List.of("TOSH", "ZERATUL", "ZAGARA"), END_NAMES = java.util.List.of("HORNER", "STUKOV", "SELENDIS");
 	private static final Map<UnitKind, Goal> HEROES = Map.of(UnitKind.KERRIGAN, Goal.KERRIGAN, UnitKind.RAYNOR, Goal.RAYNOR, UnitKind.ARTANIS, Goal.ARTANIS);
 
 	private Goals() {
@@ -101,7 +109,16 @@ public final class Goals {
 		boolean piloting = dev.starmine.possess.Possession.piloting(player);
 		if (has(inventory, stack -> stack.is(dev.starmine.colony.CommandPanel.ITEM))) award(player, Goal.COMMAND_PANEL);
 		HiveSavedData data = HiveSavedData.get(player.getServer());
-		if (data.baseOf(player.getUUID(), player.serverLevel().dimension().location().toString()) != null) award(player, Goal.OWN_BASE);
+		dev.starmine.hive.Hive base = data.baseOf(player.getUUID(), player.serverLevel().dimension().location().toString());
+		if (base != null) {
+			award(player, Goal.OWN_BASE);
+			int army = 0;
+			for (Map.Entry<UnitKind, Integer> member : base.members.entrySet())
+				if (!member.getKey().structure() && !member.getKey().worker() && member.getKey() != UnitKind.LARVA) army += member.getValue();
+			if (army >= ARMY) award(player, Goal.ARMY);
+			for (dev.starmine.race.Research research : dev.starmine.race.Research.values())
+				if (base.levels.getOrDefault(research.id(), 0) >= 3) award(player, Goal.UPGRADE);
+		}
 		if (has(inventory, stack -> stack.is(dev.starmine.mineral.Minerals.SHARD))) award(player, Goal.MINERALS);
 		if (has(inventory, stack -> stack.is(dev.starmine.vespene.Vespene.BUCKET))) award(player, Goal.VESPENE);
 		if (piloting) award(player, Goal.POSSESS);
@@ -110,6 +127,17 @@ public final class Goals {
 			award(player, Goal.SUIT);
 		if (!piloting && has(inventory, stack -> stack.getItem() instanceof dev.starmine.possess.ModuleItem)) award(player, Goal.MODULE);
 		if (has(inventory, stack -> stack.is(dev.starmine.gear.Guns.GAUSS_RIFLE))) award(player, Goal.GAUSS_RIFLE);
+		if (has(inventory, stack -> dev.starmine.gear.RaceTools.ITEMS.values().stream().anyMatch(tools -> tools.containsValue(stack.getItem()))))
+			award(player, Goal.RACE_TOOL);
+		if (player.getVehicle() instanceof dev.starmine.gear.RaceBoats.RaceBoat) award(player, Goal.RACE_BOAT);
+		if (has(inventory, stack -> stack.is(dev.starmine.vespene.Vespene.TERRAZINE_BUCKET))) award(player, Goal.TERRAZINE);
+		if (has(inventory, stack -> stack.is(dev.starmine.world.VoidGate.SHARD))) award(player, Goal.VOID_SHARD);
+		if (!player.serverLevel().getEntitiesOfClass(dev.starmine.gear.Turrets.Turret.class, player.getBoundingBox().inflate(32),
+			turret -> player.getUUID().equals(turret.owner())).isEmpty()) award(player, Goal.TURRET);
+		java.util.Set<String> freed = dev.starmine.world.VoidWorld.State.get(player.getServer()).freed;
+		if (freed.containsAll(GUARDIAN_NAMES)) award(player, Goal.GUARDIANS);
+		if (freed.containsAll(NETHER_NAMES)) award(player, Goal.NETHER_HEROES);
+		if (freed.containsAll(END_NAMES)) award(player, Goal.END_HEROES);
 		if (player.level().dimension() == Level.OVERWORLD) {
 			for (Map.Entry<UnitKind.Race, BlockPos> site : sites(data).entrySet()) {
 				double dx = player.getX() - site.getValue().getX(), dz = player.getZ() - site.getValue().getZ();

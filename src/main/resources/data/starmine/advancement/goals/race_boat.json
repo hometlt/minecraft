@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/race_tool",
+  "display": {
+    "icon": {
+      "id": "starmine:terran_boat"
+    },
+    "title": {
+      "translate": "advancements.starmine.race_boat.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.race_boat.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

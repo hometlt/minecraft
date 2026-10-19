@@ -1,0 +1,16 @@
+{
+	"name": "Amun's Hold",
+	"icon": "minecraft:wither_rose",
+	"category": "starmine:heroes",
+	"sortnum": 8,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The three heroes fight for Amun: black and red motes swirl round them. Their arena on the ship cannot be broken, and they never leave it. $(l)Beaten, a hero does not die$(): at a tenth of its health Amun's hold breaks, the hero says so, and it goes over to you $(l)with its whole base and army$() (joined to your base when you have one there). The hero stays on its ship."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Each hero's $(l)part of the artifact's key$() stands beside it on the arena. While Amun holds the hero it cannot be broken; once the hero is free, take it."
+		}
+	]
+}

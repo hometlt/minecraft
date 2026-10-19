@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/all_heroes",
+  "display": {
+    "icon": {
+      "id": "starmine:horner_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.starmine.end_heroes.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.end_heroes.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

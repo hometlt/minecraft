@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/vespene",
+  "display": {
+    "icon": {
+      "id": "starmine:terrazine_bucket"
+    },
+    "title": {
+      "translate": "advancements.starmine.terrazine.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.terrazine.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

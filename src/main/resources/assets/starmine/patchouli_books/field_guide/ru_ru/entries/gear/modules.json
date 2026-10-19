@@ -2,7 +2,7 @@
 	"name": "Модули способностей",
 	"icon": "starmine:module_stimpack",
 	"category": "starmine:gear",
-	"sortnum": 4,
+	"sortnum": 1,
 	"pages": [
 		{
 			"type": "patchouli:text",

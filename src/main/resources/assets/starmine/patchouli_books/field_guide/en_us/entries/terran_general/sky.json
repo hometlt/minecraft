@@ -6,11 +6,7 @@
 	"pages": [
 		{
 			"type": "patchouli:text",
-			"text": "The stratosphere is a world of its own above the overworld: black sky and stars, the huge Earth below across the horizon, the same sun, moon, day and night. You cannot fly up alone: ride a flying unit (or play as one, or sit in a transport) above height 300 and you arrive in the stratosphere over the same place. Whatever falls below its floor drops back into the overworld high over the same place; a player falls slowly for 30 seconds."
-		},
-		{
-			"type": "patchouli:text",
-			"text": "High in the stratosphere above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks of cabins and passages, a hangar, an engine room with the reactor core and a hold of chests. Destroy the base's main building: a portal to the ship opens where it stood (the portal hall under the base wakes too); kill the guards round it and step in."
+			"text": "High in the stratosphere above the base hangs the battlecruiser Hyperion: a hull with a hammer nose, a bridge, turrets and engines, two decks of cabins and passages, a hangar, an engine room with the reactor core and a hold of chests. Raynor holds its bridge; the way in — see The Stratosphere."
 		}
 	]
 }

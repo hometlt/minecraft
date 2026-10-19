@@ -2,7 +2,7 @@
 	"name": "Оружие",
 	"icon": "starmine:gauss_rifle",
 	"category": "starmine:gear",
-	"sortnum": 5,
+	"sortnum": 2,
 	"pages": [
 		{
 			"type": "patchouli:crafting",

@@ -2,7 +2,7 @@
 	"name": "Артефакт зел-нага",
 	"icon": "starmine:artifact_pedestal",
 	"category": "starmine:endgame",
-	"sortnum": 11,
+	"sortnum": 0,
 	"pages": [
 		{
 			"type": "patchouli:image",

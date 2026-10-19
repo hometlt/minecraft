@@ -1,0 +1,20 @@
+{
+	"name": "The Xel'Naga Temples",
+	"icon": "starmine:xelnaga_glyph",
+	"category": "starmine:world",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Every world with heroes keeps $(l)one xel'naga temple$(): the overworld's 50-100 chunks from the spawn, the Nether's grown into its rock a few hundred blocks out, the End's on an island far out beyond the dragon. $(l)Each hero carries a part of its world's key$() — the overworld's guardians and ships' heroes, the Nether's and the End's heroes — and each world's key is its own. Use a part in the air: it tells how far its temple is, and which way."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A great pyramid of $(l)xel'naga metal$(), which nothing breaks. A wide passage leads in from the south to its $(l)door$(): nothing breaks it either — only a part of that world's key opens it (use it on the door). Inside, a $(l)labyrinth$() of rooms and passages ten blocks wide and fourteen high — an army passes, thors and colossi, flyers too — kept by $(l)xel'naga constructs, sentinels and void monoliths$(), who fight anyone who comes in. Chests wait in some dead ends."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "In its middle lies the $(l)hall of keys$(): three sockets before a huge triangle of glowing signs. Set a part of that world's key on each socket — zerg, terran and protoss — and the $(l)portal$() in the triangle opens; take one off and it closes. Walk in, with your army round you (16 blocks), or send your units onto it: you come out in the Void by that world's triangle beside its first island. Each temple has its own triangle there, so through the Void you go from any world whose temple is open to any other."
+		}
+	]
+}

@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/sky_ship",
+  "display": {
+    "icon": {
+      "id": "starmine:karax_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.starmine.guardians.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.guardians.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -2,7 +2,7 @@
 	"name": "Amun",
 	"icon": "minecraft:dragon_egg",
 	"category": "starmine:endgame",
-	"sortnum": 16,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:image",

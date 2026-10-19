@@ -1,0 +1,22 @@
+{
+  "parent": "starmine:goals/own_base",
+  "display": {
+    "icon": {
+      "id": "starmine:marine_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.starmine.army.title"
+    },
+    "description": {
+      "translate": "advancements.starmine.army.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

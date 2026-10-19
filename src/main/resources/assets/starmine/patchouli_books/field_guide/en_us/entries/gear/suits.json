@@ -7,6 +7,54 @@
 		{
 			"type": "patchouli:text",
 			"text": "Units killed by you or your army drop armor shards of their race, sometimes an ability module. Shards make a race suit, crafted like vanilla armor.$(br2)Terran: as strong as diamond.$(br)Protoss: shields that come back.$(br)Zerg: regeneration, faster on creep."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Terran armor shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As strong as diamond, hard to knock back; its modules work in the full suit."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_helmet",
+			"text": "Helmet and chestplate.",
+			"recipe2": "starmine:terran_chestplate"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_leggings",
+			"text": "Leggings and boots.",
+			"recipe2": "starmine:terran_boots"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Protoss armor shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As iron; the full suit gives shields of 4 hearts that come back 7 seconds after the last hit."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:protoss_helmet",
+			"text": "Helmet and chestplate.",
+			"recipe2": "starmine:protoss_chestplate"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:protoss_leggings",
+			"text": "Leggings and boots.",
+			"recipe2": "starmine:protoss_boots"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Zerg chitin shards in the shapes of vanilla armor: helmet 5, chestplate 8, leggings 7, boots 4. As iron; the full suit regenerates a heart every 4 seconds, four times faster on creep."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_helmet",
+			"text": "Helmet and chestplate.",
+			"recipe2": "starmine:zerg_chestplate"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_leggings",
+			"text": "Leggings and boots.",
+			"recipe2": "starmine:zerg_boots"
 		}
 	]
 }

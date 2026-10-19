@@ -1,0 +1,20 @@
+{
+	"name": "The Stratosphere",
+	"icon": "minecraft:elytra",
+	"category": "starmine:world",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/stratosphere.png"
+			],
+			"border": true,
+			"text": "The Hyperion over the Earth."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A world of its own above the overworld: black sky and stars, the huge Earth below across the horizon, the same sun, moon, day and night. The leviathan, the Hyperion and the mothership hang there over their bases.$(br2)You cannot fly up alone: ride a flying unit (or play as one, or sit in a transport) above height 300. Whatever falls below its floor comes down into the overworld high over the same place; a player falls slowly for 30 seconds.$(br2)$(l)The way aboard$(): destroy a race base's main building (the hatchery of the lair, a command center, a nexus) — a portal to its ship opens where it stood (the portal hall under the base wakes too); kill the guards round it and step in. Once its guardian is freed, the heroic transport flies you up as well (see Guardians of the Bases)."
+		}
+	]
+}

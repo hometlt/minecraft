@@ -1,0 +1,23 @@
+{
+	"name": "Heroes' Helmets",
+	"icon": "starmine:kerrigan_crown",
+	"category": "starmine:heroes",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:kerrigan_crown",
+			"text": "Kerrigan's Crown: a piece of the zerg suit with a perk of its own — regeneration in any armor, a heart every 2 seconds (faster on creep). With the whole zerg suit it heals twice as fast."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:raynor_helmet",
+			"text": "Raynor's Helmet: a piece of the terran suit with heavy plating — 6 armor and 4 toughness instead of 3 and 2, and steadier against knockback."
+		},
+		{
+			"type": "patchouli:spotlight",
+			"item": "starmine:artanis_helmet",
+			"text": "Artanis's Helmet: a piece of the protoss suit; in the whole suit its shields come back three times faster and twice as soon after a hit."
+		}
+	]
+}

@@ -1,6 +1,6 @@
 {
-	"name": "Bosses, Artifact, Void",
-	"description": "The heroes, their helmets, the xel'naga artifact, the stratosphere and the Void.",
+	"name": "Artifact and the Void",
+	"description": "The xel'naga artifact, the strike force, the Void and Amun.",
 	"icon": "starmine:artifact_pedestal",
-	"sortnum": 4
+	"sortnum": 5
 }

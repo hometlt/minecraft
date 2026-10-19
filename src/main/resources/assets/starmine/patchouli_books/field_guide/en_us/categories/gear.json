@@ -1,6 +1,6 @@
 {
-	"name": "Suits, Modules, Guns",
-	"description": "Crafting schemes of the gear.",
+	"name": "Gear and Crafting",
+	"description": "Suits, modules, guns, race tools, armour blocks and other crafts.",
 	"icon": "starmine:terran_chestplate",
 	"sortnum": 2
 }

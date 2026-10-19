@@ -1,0 +1,12 @@
+{
+	"name": "Upgrades",
+	"icon": "starmine:engineeringbay_spawn_egg",
+	"category": "starmine:base",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Each level of a weapons upgrade adds about a tenth of a strike (at least 1) to every strike of the units it is for; each armor level is 1 armor, taken off every strike that reaches health (light units have little armor, armored ones more; bonus damage against light or armored comes on top). Shields: 1 shield armor and a tenth more shields a level. The unit panel shows a unit's levels."
+		}
+	]
+}

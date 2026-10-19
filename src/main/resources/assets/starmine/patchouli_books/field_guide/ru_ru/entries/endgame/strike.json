@@ -2,7 +2,7 @@
 	"name": "Ударная армия",
 	"icon": "starmine:artifact_pedestal",
 	"category": "starmine:endgame",
-	"sortnum": 13,
+	"sortnum": 1,
 	"pages": [
 		{
 			"type": "patchouli:text",
