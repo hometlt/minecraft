@@ -107,6 +107,12 @@ public final class StarMineClient implements ClientModInitializer {
 			BlockRenderLayerMap.INSTANCE.putBlock(race.get("porthole"), RenderType.translucent());
 		}
 		RaceShieldRenderer.register(); // owner 19.10: the races' shields
+		for (var finder : new net.minecraft.world.item.Item[] {dev.starmine.gear.Finders.MINERAL_COMPASS, dev.starmine.gear.Finders.VESPENE_DETECTOR}) // owner 19.10: their needles
+			net.minecraft.client.renderer.item.ItemProperties.register(finder, net.minecraft.resources.ResourceLocation.withDefaultNamespace("angle"),
+				new net.minecraft.client.renderer.item.CompassItemPropertyFunction((level, stack, entity) -> {
+					var mark = stack.get(net.minecraft.core.component.DataComponents.LODESTONE_TRACKER);
+					return mark == null ? null : mark.target().orElse(null);
+				}));
 		ClientWear.register(); // owner 19.10: blocks keep their damage; mining starts from it
 		net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(dev.starmine.gear.Ammo.SHOT, net.minecraft.client.renderer.entity.ThrownItemRenderer::new); // owner 19.10: rounds in flight
 		for (var type : dev.starmine.gear.Turrets.TYPES.values()) net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(type, TurretRenderer::new); // owner 19.10

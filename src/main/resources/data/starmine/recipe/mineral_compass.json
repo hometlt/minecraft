@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" M ",
+		"MCM",
+		" M "
+	],
+	"key": {
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"C": {
+			"item": "minecraft:compass"
+		}
+	},
+	"result": {
+		"id": "starmine:mineral_compass",
+		"count": 1
+	}
+}

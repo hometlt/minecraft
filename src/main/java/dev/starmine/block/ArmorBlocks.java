@@ -111,6 +111,11 @@ public final class ArmorBlocks {
 		return false;
 	}
 
+	/** Another of a race's blocks (its chest) under its race's ways ({@link BlockWear}). */
+	public static void addRaceBlock(Block block, UnitKind.Race race) {
+		RACE_OF.put(block, race);
+	}
+
 	/** The race a block belongs to (its armour), or null. */
 	public static @org.jetbrains.annotations.Nullable UnitKind.Race raceOf(Block block) {
 		return RACE_OF.get(block);

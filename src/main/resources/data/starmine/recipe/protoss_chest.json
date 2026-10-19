@@ -1,0 +1,24 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"PMP",
+		"MCM",
+		"PMP"
+	],
+	"key": {
+		"P": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"M": {
+			"item": "starmine:mineral_shard"
+		},
+		"C": {
+			"item": "minecraft:chest"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_chest",
+		"count": 1
+	}
+}

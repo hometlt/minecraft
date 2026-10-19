@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/orientable",
+	"textures": {
+		"front": "starmine:block/zerg_chest_front",
+		"side": "starmine:block/zerg_chest_side",
+		"top": "starmine:block/zerg_chest_top"
+	}
+}

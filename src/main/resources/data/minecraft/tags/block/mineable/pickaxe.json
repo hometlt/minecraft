@@ -49,6 +49,9 @@
 		"starmine:protoss_armor_trapdoor",
 		"starmine:protoss_porthole",
 		"starmine:protoss_armor_bars",
-		"starmine:stasis_trap"
+		"starmine:stasis_trap",
+		"starmine:zerg_chest",
+		"starmine:terran_safe",
+		"starmine:protoss_chest"
 	]
 }

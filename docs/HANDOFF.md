@@ -20,13 +20,16 @@
 
 ## Последняя правка
 
-R4c. Ловушки — `gear/Traps.java`.
-- Стазисная ловушка (`STASIS_TRAP`) запирает противника в оболочку `STASIS_FIELD`. Оболочка убирает себя
-  запланированным тиком, как псионные стены.
-- Токсичное гнездо (`TOXIC_NEST`) срабатывает от `entityInside` и проверяет свою клетку каждые 5 тиков.
-- Владелец ловушки хранится в `Traps.Setter` (блок-сущность).
-- Ассеты, рецепты и лут — `tools/gen_ammo_turrets.py`, тест — `AmmoGameTests.trapsSpringOnFoes`.
-- В рецептах слизь заменена плотью зергов: слизь не бывает предметом.
+R5a. Искатели и сундуки рас.
+- `gear/Finders.java`: минеральный компас и детектор веспена. Цель хранится как `LODESTONE_TRACKER` предмета, и
+  стрелку крутит ванильная `CompassItemPropertyFunction` (регистрация «angle» в `StarMineClient`). Модели — кадры
+  ванильного компаса и обод своего цвета.
+- `gear/RaceChests.java`: свой контейнер на 27 ячеек (`Store`); сундуки внесены в `ArmorBlocks.RACE_OF` через
+  `addRaceBlock`.
+- Ассеты — `tools/gen_finders_chests.py`, тест — `RaceToolGameTests.findersPointAndChestsKeep`.
+- Дальше: R5b — лодки трёх рас.
+
+R4c (до того): ловушки `gear/Traps.java`.
 
 R4b (до того): турели `gear/Turrets.java`, `client/TurretRenderer`.
 R4a (до того): боеприпасы `gear/Ammo.java`.

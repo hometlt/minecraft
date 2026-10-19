@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"###",
+		"#C#",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"C": {
+			"item": "minecraft:chest"
+		}
+	},
+	"result": {
+		"id": "starmine:terran_safe",
+		"count": 1
+	}
+}

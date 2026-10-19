@@ -59,4 +59,33 @@ public class RaceToolGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "findersChests", timeoutTicks = 60)
+	public void findersPointAndChestsKeep(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		for (String id : new String[] {"mineral_compass", "vespene_detector", "zerg_chest", "terran_safe", "protoss_chest"})
+			helper.assertTrue(level.getServer().getRecipeManager().byKey(ResourceLocation.fromNamespaceAndPath("starmine", id)).isPresent(), "no recipe " + id);
+		net.minecraft.core.BlockPos core = helper.absolutePos(new net.minecraft.core.BlockPos(30, 2, 30));
+		helper.assertTrue(dev.starmine.mineral.Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, net.minecraft.world.level.block.Block.UPDATE_ALL)),
+			"no crystal placed");
+		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
+		net.minecraft.core.BlockPos from = helper.absolutePos(new net.minecraft.core.BlockPos(4, 2, 4));
+		player.teleportTo(from.getX() + 0.5, from.getY(), from.getZ() + 0.5);
+		net.minecraft.core.BlockPos found = Finders.nearest(level, from, false);
+		// a chest keeps what is put in, gives it back broken, and is its race's
+		net.minecraft.core.BlockPos at = from.east(2);
+		level.setBlock(at, RaceChests.BLOCKS.get(UnitKind.Race.ZERG).defaultBlockState(), net.minecraft.world.level.block.Block.UPDATE_ALL);
+		if (level.getBlockEntity(at) instanceof RaceChests.Store store) store.setItem(5, new ItemStack(net.minecraft.world.item.Items.DIAMOND, 3));
+		level.destroyBlock(at, true);
+		boolean dropped = !level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(at).inflate(2),
+			e -> e.getItem().is(net.minecraft.world.item.Items.DIAMOND)).isEmpty();
+		level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(at).inflate(3)).forEach(Entity::discard);
+		level.removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);
+		helper.assertTrue(found != null && found.closerThan(core, 3), "the mineral compass finds " + found + ", not the crystal at " + core);
+		helper.assertTrue(dropped, "the zerg chest did not give back what it held");
+		helper.assertTrue(dev.starmine.block.ArmorBlocks.raceOf(RaceChests.BLOCKS.get(UnitKind.Race.TERRAN)) == UnitKind.Race.TERRAN, "the terran safe is not terran");
+		helper.assertTrue(RaceChests.BLOCKS.get(UnitKind.Race.TERRAN).getExplosionResistance() >= 1200, "the terran safe is not blast-proof");
+		helper.succeed();
+	}
 }

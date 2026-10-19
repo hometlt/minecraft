@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "starmine:block/zerg_chest"
+		},
+		"facing=east": {
+			"model": "starmine:block/zerg_chest",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "starmine:block/zerg_chest",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "starmine:block/zerg_chest",
+			"y": 270
+		}
+	}
+}

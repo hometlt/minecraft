@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "starmine:block/terran_safe"
+		},
+		"facing=east": {
+			"model": "starmine:block/terran_safe",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "starmine:block/terran_safe",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "starmine:block/terran_safe",
+			"y": 270
+		}
+	}
+}

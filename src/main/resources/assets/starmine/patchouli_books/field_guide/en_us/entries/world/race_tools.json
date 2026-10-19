@@ -38,6 +38,12 @@
 		},
 		{
 			"type": "patchouli:crafting",
+			"recipe": "starmine:mineral_compass",
+			"text": "The $(l)mineral compass$() (a compass among four mineral shards) points to the nearest mineral field within 128 blocks; the $(l)vespene detector$() (a compass, vespene, redstone) to the nearest vespene vein. The races' chests hold 27 stacks: the zerg chest (eight zerg shards) heals, the terran safe (a chest among eight terran shards) takes blasts, the protoss chest (a chest, minerals, protoss shards) is shielded.",
+			"recipe2": "starmine:vespene_detector"
+		},
+		{
+			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_repair_tool",
 			"text": "Two shards, as shears are made, make a race's $(l)repair tool$(): it mends a quarter of a block's kept damage a use. The terran one mends what is mechanical (terran armour, metal), the zerg mender what lives (zerg armour, flesh, creep, wood, wool, bone), the protoss restorer brings protoss blocks' shields back.",
 			"recipe2": "starmine:zerg_repair_tool"

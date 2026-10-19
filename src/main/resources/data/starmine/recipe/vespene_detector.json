@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "minecraft:compass"
+		},
+		{
+			"item": "starmine:vespene_bucket"
+		},
+		{
+			"item": "minecraft:redstone"
+		}
+	],
+	"result": {
+		"id": "starmine:vespene_detector",
+		"count": 1
+	}
+}
