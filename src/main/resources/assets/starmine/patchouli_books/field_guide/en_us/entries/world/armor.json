@@ -18,7 +18,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "$(l)Weapons wear blocks$(): every shot cracks the block it hits, as a tool does, until it breaks; the cracks stay and heal a step every 20 seconds. Any block but the unbreakable can be shot through — armour takes the longest.$(br2)On the terrans' and protoss' sky ships stand $(l)craft no one mans$(): right-click one empty-handed to take it and drive it; destroyed, it throws you out where it fell."
+			"text": "$(l)Weapons wear blocks$(): every shot cracks the block it hits, as a tool does, until it breaks. The cracks stay — saved with the world, they do not pass by themselves — and so does the work on a block you began to mine and left. Zerg armour heals itself, terran armour is half again as tough and shrugs off blasts, a protoss block's shield takes its first 5 hits and comes back 30 s after the last. Any block but the unbreakable can be shot through — armour takes the longest.$(br2)On the terrans' and protoss' sky ships stand $(l)craft no one mans$(): right-click one empty-handed to take it and drive it; destroyed, it throws you out where it fell."
 		}
 	]
 }

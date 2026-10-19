@@ -33,6 +33,8 @@ public final class ArmorBlocks {
 	public static final Map<UnitKind.Race, List<Block>> WALLS = new EnumMap<>(UnitKind.Race.class);
 	public static final Map<UnitKind.Race, ArmorDoorBlock> DOORS = new EnumMap<>(UnitKind.Race.class);
 	public static final BlockEntityType<ArmorDoorBlock.Owner> DOOR_ENTITY;
+	/** Every race's block (walls, doors, building blocks) and its race: their ways under wear ({@link BlockWear}). */
+	private static final Map<Block, UnitKind.Race> RACE_OF = new java.util.HashMap<>();
 	/** As hard as obsidian, harder still against blasts. */
 	public static final float HARDNESS = 50, RESISTANCE = 3600;
 
@@ -47,12 +49,14 @@ public final class ArmorBlocks {
 				walls.add(wall);
 			}
 			WALLS.put(race, walls);
+			walls.forEach(wall -> RACE_OF.put(wall, race));
 			ArmorDoorBlock door = register(name + "_door", new ArmorDoorBlock(race, BlockBehaviour.Properties.of().strength(HARDNESS, RESISTANCE)
 				.requiresCorrectToolForDrops().sound(sound).noOcclusion().pushReaction(PushReaction.BLOCK)
 				.isViewBlocking((state, level, pos) -> !state.getValue(ArmorDoorBlock.OPEN))
 				.isSuffocating((state, level, pos) -> !state.getValue(ArmorDoorBlock.OPEN))
 				.lightLevel(state -> race == UnitKind.Race.PROTOSS && !state.getValue(ArmorDoorBlock.OPEN) ? 7 : 0)));
 			DOORS.put(race, door);
+			RACE_OF.put(door, race);
 		}
 		DOOR_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, StarMine.id("armor_door"),
 			BlockEntityType.Builder.of(ArmorDoorBlock.Owner::new, DOORS.values().toArray(new Block[0])).build(null));
@@ -82,6 +86,11 @@ public final class ArmorBlocks {
 		if (state.getBlock() instanceof ArmorDoorBlock) return true;
 		for (List<Block> walls : WALLS.values()) if (walls.contains(state.getBlock())) return true;
 		return false;
+	}
+
+	/** The race a block belongs to (its armour), or null. */
+	public static @org.jetbrains.annotations.Nullable UnitKind.Race raceOf(Block block) {
+		return RACE_OF.get(block);
 	}
 
 	/** A race's armour wall of a look (0 plain, 1 plated, 2 panel). */

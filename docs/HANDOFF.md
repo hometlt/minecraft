@@ -20,14 +20,18 @@
 
 ## Последняя правка
 
-R2. Инструменты и щиты рас — `gear/RaceTools.java`. Свой `Tier` на расу: уровень железа, 250 / 375 / 250 использований.
-- Самопочинка зергов — по игровому времени (`MEND_TICKS` 200, на слизи `CREEP_MEND_TICKS` 60).
-- Энергощит протоссов — счётчик в `CUSTOM_DATA` предмета; износ перехватывает миксин `ItemStackWearMixin`.
-- Терранский щит ослабляет взрывы — миксин `BlastShieldMixin`.
-- Щиты рисует `client/RaceShieldRenderer` (модель ванильного щита, текстуры `textures/entity/shield/<раса>.png`).
-- Ассеты и рецепты генерирует `tools/gen_race_tools.py`; теги инструментов он дописывает, а не перезаписывает.
-- Тест — `gear/RaceToolGameTests`. «Органическая почва» мотыги зергов сделана как пашня с постоянной влагой.
+R3a. Урон блоков сохраняется. `block/BlockWear` хранит его в `SavedData` каждого мира (`starmine_block_wear`) и сам
+не лечит.
+- Правила рас — по `ArmorBlocks.raceOf(block)`: зерги заживают (`ZERG_HEAL`), терраны ×1,5 прочности и половина
+  урона от `strike` (взрывы, лучи), протоссы — щит на `SHIELD_HITS` ударов.
+- Брошенная добыча сохраняется: `mixin/ServerMiningMixin` (ABORT записывает прогресс, START сдвигает начало добычи).
+  Клиент получает износ пакетом `BlockWear.Sync` (`client/ClientWear`), и `mixin/client/ClientMiningMixin` начинает
+  добычу с него.
+- Тест — `block/BlockWearGameTests`. У мок-игрока в тестах `gameMode.tick()` надо вызывать вручную.
+- Дальше: R3b — ремонтные инструменты (`BlockWear.mend` / `recharge` уже есть); R3c — строительные бронеблоки
+  (регистрировать их в `ArmorBlocks.RACE_OF`).
 
+R2 (до того): `gear/RaceTools.java`, `tools/gen_race_tools.py`, тест `gear/RaceToolGameTests`.
 R1 (до того): `block/CraftBlocks.java`, `tools/gen_craft_blocks.py`, тест `block/CraftGameTests`.
 
 ## Что уже было (не делать заново)
