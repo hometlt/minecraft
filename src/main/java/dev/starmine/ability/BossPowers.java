@@ -53,7 +53,7 @@ import org.joml.Vector3f;
 public final class BossPowers {
 	public static final Block LIQUID_CREEP = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("liquid_creep"), new Pool(BlockBehaviour.Properties.of()
 		.strength(0.1f).noOcclusion().noLootTable().sound(SoundType.SLIME_BLOCK).lightLevel(state -> 5).pushReaction(PushReaction.DESTROY)));
-	public static final Block PSI_BARRIER = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("psi_barrier"), new Block(BlockBehaviour.Properties.of()
+	public static final Block PSI_BARRIER = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("psi_barrier"), new Barrier(BlockBehaviour.Properties.of()
 		.strength(-1.0f, 3600000.0f).noOcclusion().noLootTable().lightLevel(state -> 12).pushReaction(PushReaction.BLOCK).sound(SoundType.AMETHYST)));
 	/** Kerrigan heals this share of her health a second in a pool; pools: how many, how far from her place. */
 	public static final float POOL_HEAL = 0.02f;
@@ -334,19 +334,35 @@ public final class BossPowers {
 		if (way.lengthSqr() < 1e-4) way = new Vec3(1, 0, 0);
 		way = way.normalize();
 		Vec3 side = new Vec3(-way.z, 0, way.x);
-		List<BlockPos> made = new ArrayList<>();
 		for (Vec3 centre : new Vec3[] {between, between.add(side.scale(8)).add(way.scale(3))})
 			for (int w = -3; w <= 3; w++)
 				for (int up = 0; up < 3; up++) {
 					BlockPos at = BlockPos.containing(centre.add(side.scale(w))).above(up);
 					if (!level.getBlockState(at).isAir() || at.closerThan(foe.blockPosition(), 1.5) || at.closerThan(hero.blockPosition(), 1.5)) continue;
 					level.setBlock(at, PSI_BARRIER.defaultBlockState(), Block.UPDATE_ALL);
-					made.add(at);
 				}
 		level.playSound(null, BlockPos.containing(between), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.5f, 1.6f);
-		Delayed.after(level, BARRIER_TICKS, () -> {
-			for (BlockPos at : made) if (level.getBlockState(at).is(PSI_BARRIER)) level.setBlock(at, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-		});
+	}
+
+	/**
+	 * A wall of psionic force: unbreakable, it takes itself away {@link #BARRIER_TICKS} after it is placed — by a scheduled
+	 * tick, saved with its chunk, so no wall outlives a server stopped mid-fight.
+	 */
+	static final class Barrier extends Block {
+		Barrier(Properties properties) {
+			super(properties);
+		}
+
+		@Override
+		protected void onPlace(BlockState state, net.minecraft.world.level.Level level, BlockPos pos, BlockState old, boolean moved) {
+			super.onPlace(state, level, pos, old, moved);
+			if (!level.isClientSide) level.scheduleTick(pos, this, BARRIER_TICKS);
+		}
+
+		@Override
+		protected void tick(BlockState state, ServerLevel level, BlockPos pos, net.minecraft.util.RandomSource random) {
+			level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+		}
 	}
 
 	/** The Spear of Adun: `lines` purifier lines from orbit across the place of the foe. */
