@@ -499,6 +499,7 @@
 	"ability.starmine.salvage.tip": "Takes the bunker down in 5 s: its garrison walks out, 75 % of its cost back",
 	"message.starmine.no_ability": "These units cannot do that",
 	"message.starmine.busy": "The unit is busy",
+	"command.starmine.autocast": "Right-click: cast by itself (on/off)",
 	"message.starmine.tumor_selected": "Creep tumor: right-click creep within its reach to spread it",
 	"message.starmine.tumor_spent": "This tumor has already spread",
 	"message.starmine.tumor_far": "Not on creep within the tumor's reach",

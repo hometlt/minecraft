@@ -40,13 +40,15 @@ final class AbilityAi {
 	private AbilityAi() {
 	}
 
-	static void think(StarUnit unit, ServerLevel level) {
+	/** Its abilities a second; `autocast` set: a player's unit, only those it casts by itself. */
+	static void think(StarUnit unit, ServerLevel level, @Nullable AbilityState autocast) {
 		AbilityState state = unit.abilities;
 		if (state.changingMode() || state.channelling() || state.pending != null || Ability.of(unit.kind).isEmpty()) return;
 		LivingEntity target = unit.getTarget();
 		if (target != null && !target.isAlive()) target = null;
 		state.calmTicks = target == null && !foeWithin(unit, 12) ? state.calmTicks + 20 : 0;
 		for (Ability ability : Ability.of(unit.kind)) {
+			if (autocast != null && !autocast.autocasts(ability)) continue;
 			if (Abilities.refusal(unit, ability) != null) continue;
 			if (decide(unit, level, ability, target, state)) return; // one spell a second
 		}

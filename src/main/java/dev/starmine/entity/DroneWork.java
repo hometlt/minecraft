@@ -374,6 +374,10 @@ final class DroneWork extends Goal {
 	private void seek(ServerLevel level, boolean griefing) {
 		if (--seekCooldown > 0) return;
 		seekCooldown = 40;
+		if (commanded() && !drone.abilities.autoGather) { // owner 19.10: its gather autocast is off — it waits for orders
+			drone.getNavigation().stop();
+			return;
+		}
 		BlockPos gas = freeGasBuilding(level);
 		if (gas != null) {
 			startGas(gas);

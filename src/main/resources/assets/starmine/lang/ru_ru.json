@@ -499,6 +499,7 @@
 	"ability.starmine.salvage.tip": "Разбирает бункер за 5 с: гарнизон выходит, 75 % цены возвращается",
 	"message.starmine.no_ability": "Эти юниты так не умеют",
 	"message.starmine.busy": "Юнит занят",
+	"command.starmine.autocast": "Правый клик: автоприменение (вкл/выкл)",
 	"message.starmine.tumor_selected": "Опухоль слизи: правый клик по слизи в её радиусе — распространить",
 	"message.starmine.tumor_spent": "Эта опухоль уже распространилась",
 	"message.starmine.tumor_far": "Не на слизи в радиусе опухоли",

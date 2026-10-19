@@ -124,7 +124,30 @@ public final class AbilityState {
 		return interceptors;
 	}
 
+	/**
+	 * Owner 19.10: abilities a player's unit casts by itself (a right click on its button toggles it, SC2 autocast), by
+	 * the wild units' rules ({@link AbilityAi}); null until changed: SC2's defaults ({@link Ability#autocastByDefault}).
+	 */
+	private @Nullable java.util.EnumSet<Ability> autocast;
+	/** A player's worker seeks resources by itself when idle (owner 19.10: the gather button's autocast); on by default. */
+	public boolean autoGather = true;
+
+	public boolean autocasts(Ability ability) {
+		return autocast != null ? autocast.contains(ability) : ability.autocastByDefault();
+	}
+
+	public void setAutocast(dev.starmine.entity.UnitKind kind, Ability ability, boolean on) {
+		if (autocast == null) {
+			autocast = java.util.EnumSet.noneOf(Ability.class);
+			for (Ability each : Ability.of(kind)) if (each.autocastByDefault()) autocast.add(each);
+		}
+		if (on) autocast.add(ability);
+		else autocast.remove(ability);
+	}
+
 	public void save(CompoundTag tag) {
+		if (autocast != null) tag.putString("StarMineAutocast", String.join(",", autocast.stream().map(ability -> ability.id).toList()));
+		if (!autoGather) tag.putBoolean("StarMineNoAutoGather", true);
 		CompoundTag ready = new CompoundTag();
 		readyAt.forEach((ability, time) -> ready.putLong(ability.id, time));
 		if (!ready.isEmpty()) tag.put("StarMineReady", ready);
@@ -168,6 +191,13 @@ public final class AbilityState {
 	}
 
 	public void load(CompoundTag tag) {
+		autocast = null;
+		if (tag.contains("StarMineAutocast")) {
+			autocast = java.util.EnumSet.noneOf(Ability.class);
+			for (String id : tag.getString("StarMineAutocast").split(","))
+				for (Ability ability : Ability.values()) if (ability.id.equals(id)) autocast.add(ability);
+		}
+		autoGather = !tag.getBoolean("StarMineNoAutoGather");
 		readyAt.clear();
 		CompoundTag ready = tag.getCompound("StarMineReady");
 		for (String key : ready.getAllKeys()) {

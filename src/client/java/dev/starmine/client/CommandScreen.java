@@ -52,14 +52,25 @@ public final class CommandScreen extends Screen {
 	private static final int CELL = 34, GAP = 2;
 	private enum Page { MAIN, BUILD, ADVANCED, HALLUCINATION }
 
+	/** A card button; `auto`: what a right click on it toggles to cast by itself (an ability's id, "gather"), or null. */
 	private record Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon,
-			ItemStack item) {
+			ItemStack item, String auto) {
 		Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon) {
-			this(slot, label, key, kind, enabled, tooltip, action, icon, ItemStack.EMPTY);
+			this(slot, label, key, kind, enabled, tooltip, action, icon, ItemStack.EMPTY, null);
+		}
+
+		Button(int slot, Component label, int key, UnitKind kind, boolean enabled, List<Component> tooltip, Runnable action, String icon, ItemStack item) {
+			this(slot, label, key, kind, enabled, tooltip, action, icon, item, null);
+		}
+
+		Button autocast(String id) {
+			List<Component> lines = new ArrayList<>(tooltip);
+			lines.add(Component.translatable("command.starmine.autocast").withColor(0xFFD0A040));
+			return new Button(slot, label, key, kind, enabled, lines, action, icon, item, id);
 		}
 
 		Button at(int slot) {
-			return slot == this.slot ? this : new Button(slot, label, key, kind, enabled, tooltip, action, icon, item);
+			return slot == this.slot ? this : new Button(slot, label, key, kind, enabled, tooltip, action, icon, item, auto);
 		}
 	}
 
@@ -163,6 +174,11 @@ public final class CommandScreen extends Screen {
 				graphics.drawCenteredString(font, text.length() > 6 ? text.substring(0, 6) : text, at[0] + CELL / 2, at[1] + 13, button.enabled ? 0xFFFFFFFF : 0xFF909090);
 			}
 			if (button.key > 0) graphics.drawString(font, keyName(button.key), at[0] + 2, at[1] + CELL - 9, 0xFFFFD040);
+			if (button.auto != null && autocasting(button.auto)) { // SC2: a turning gold frame round an autocast button
+				int phase = (int) (System.currentTimeMillis() / 120 % 4);
+				graphics.renderOutline(at[0] + 1, at[1] + 1, CELL - 2, CELL - 2, phase % 2 == 0 ? 0xFFFFC030 : 0xFFE09020);
+				graphics.renderOutline(at[0] + 2, at[1] + 2, CELL - 4, CELL - 4, phase < 2 ? 0xC0FFC030 : 0x60FFC030);
+			}
 			if (button.item != ItemStack.EMPTY && Minecraft.getInstance().player != null
 				&& Minecraft.getInstance().player.getInventory().selected == button.slot - 5) // the right hand
 				graphics.renderOutline(at[0] + 1, at[1] + 1, CELL - 2, CELL - 2, 0xFFFFFFFF);
@@ -643,7 +659,7 @@ public final class CommandScreen extends Screen {
 			buttons.add(simple(3, "patrol", race, 'P', () -> targeting = "patrol"));
 			buttons.add(simple(4, "attack", race, 'A', () -> targeting = "attack"));
 			if (worker != null) {
-				buttons.add(simple(5, "gather", race, 'G', () -> targeting = "gather"));
+				buttons.add(simple(5, "gather", race, 'G', () -> targeting = "gather").autocast("gather"));
 				buttons.add(simple(6, "return", race, 'C', () -> CommandView.send("return", Vec3.ZERO, -1, null)));
 				buttons.add(simple(10, "build", race, 'B', () -> page = Page.BUILD));
 				if (worker.kind.race.rules().buildings().size() > 10) buttons.add(simple(11, "advanced", race, 'V', () -> page = Page.ADVANCED));
@@ -746,7 +762,8 @@ public final class CommandScreen extends Screen {
 			case NONE, TOGGLE -> () -> CommandView.send("ability", Vec3.ZERO, -1, ability.id);
 			case UNIT, POINT -> () -> targeting = "ability:" + ability.id;
 		};
-		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run, Sc2Buttons.ability(ability, users.isEmpty() ? selected.get(0).kind : users.get(0).kind));
+		return new Button(slot, label, ability.hotkey, null, energy, tooltip, run, Sc2Buttons.ability(ability, users.isEmpty() ? selected.get(0).kind : users.get(0).kind))
+			.autocast(ability.id);
 	}
 
 	private static Button simple(int slot, String action, UnitKind.Race race, char key, Runnable run) {
@@ -943,8 +960,25 @@ public final class CommandScreen extends Screen {
 		return true;
 	}
 
+	/** Whether the selected units that can cast `id` cast it by themselves. */
+	private static boolean autocasting(String id) {
+		List<StarUnit> able = CommandView.selected().stream().filter(CommandView::own)
+			.filter(unit -> id.equals("gather") ? unit.kind.worker() : dev.starmine.ability.Ability.of(unit.kind).stream().anyMatch(a -> a.id.equals(id))).toList();
+		return !able.isEmpty() && able.stream().allMatch(unit -> unit.autocasts(id));
+	}
+
 	@Override
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && onCard(mouseX, mouseY)) { // owner 19.10: a right click on a button toggles its autocast
+			for (Button b : buttons()) {
+				int[] at = cell(b.slot);
+				if (mouseX >= at[0] && mouseX < at[0] + CELL && mouseY >= at[1] && mouseY < at[1] + CELL) {
+					if (b.auto != null) CommandView.send("autocast", Vec3.ZERO, -1, b.auto);
+					break;
+				}
+			}
+			return true;
+		}
 		if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) { // owner 17.10: held on the minimap, the middle button drags the map
 			mapGrab = CommandMinimap.contains(mouseX, mouseY, height);
 			return true;

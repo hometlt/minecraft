@@ -337,7 +337,11 @@ public final class Abilities {
 		else if (state.pending != null) approach(unit, level, state);
 		Passives.tick(unit, level);
 		if (state.unloadAt != null) Transport.tick(unit, level);
-		if (unit.tickCount % 20 == 11 && unit.owner().isEmpty() && unit.pilot() == null) AbilityAi.think(unit, level);
+		if (unit.tickCount % 20 == 11 && unit.pilot() == null) {
+			if (unit.owner().isEmpty()) AbilityAi.think(unit, level, null);
+			else AbilityAi.think(unit, level, state); // owner 19.10: a player's unit casts its autocast abilities itself
+			unit.syncAutocast();
+		}
 	}
 
 	private static void channel(StarUnit unit, ServerLevel level, AbilityState state) {

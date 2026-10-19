@@ -229,6 +229,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Protoss: whether a pylon powers this building (checked each second). */
 	private boolean powered = true;
 	private static final EntityDataAccessor<String> QUEUE_IDS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
+	/** Its autocast abilities' ids and "gather" (owner 19.10), for the command card's gold frames. */
+	private static final EntityDataAccessor<String> AUTOCAST = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.STRING);
 	/** Abilities (owner 14.10, dev.starmine.ability): energy (SC2 units), cloaked, seen by a foe's detector, mode (a sieged tank). */
 	private static final EntityDataAccessor<Float> ENERGY = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Boolean> CLOAKED = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.BOOLEAN);
@@ -872,6 +874,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(UPGRADES, 0);
 		builder.define(PROGRESS, 0);
 		builder.define(QUEUE_IDS, "");
+		builder.define(AUTOCAST, "");
 		builder.define(ENERGY, 0f);
 		builder.define(CLOAKED, false);
 		builder.define(REVEALED, false);
@@ -2350,5 +2353,19 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public String queueIds() {
 		return this.entityData.get(QUEUE_IDS);
+	}
+
+	/** Whether it casts this (an ability's id, or "gather" for a worker) by itself: both sides. */
+	public boolean autocasts(String id) {
+		return java.util.Arrays.asList(this.entityData.get(AUTOCAST).split(",")).contains(id);
+	}
+
+	/** Its autocasts to the clients (when they changed). */
+	public void syncAutocast() {
+		List<String> ids = new ArrayList<>();
+		for (dev.starmine.ability.Ability ability : dev.starmine.ability.Ability.of(kind)) if (abilities.autocasts(ability)) ids.add(ability.id);
+		if (kind.worker() && abilities.autoGather) ids.add("gather");
+		String now = String.join(",", ids);
+		if (!now.equals(this.entityData.get(AUTOCAST))) this.entityData.set(AUTOCAST, now);
 	}
 }

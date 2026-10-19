@@ -184,4 +184,31 @@ public class PlatformGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 19.10, SC2 autocast: a zealot's charge is on from the start, repair is not; a right click on the button toggles them. */
+	@GameTest(template = ARENA, batch = "autocast", timeoutTicks = 40)
+	public void aRightClickTogglesAutocast(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		java.util.UUID player = java.util.UUID.randomUUID();
+		StarUnit zealot = dev.starmine.ability.TestArena.unit(helper, UnitKind.ZEALOT, 10, 10, player);
+		StarUnit scv = dev.starmine.ability.TestArena.unit(helper, UnitKind.SCV, 20, 10, player);
+		zealot.setNoAi(true);
+		scv.setNoAi(true);
+		dev.starmine.ability.Ability charge = dev.starmine.ability.Ability.CHARGE, repair = dev.starmine.ability.Ability.REPAIR;
+		helper.assertTrue(zealot.abilities.autocasts(charge), "a zealot's charge is not on by itself");
+		helper.assertFalse(scv.abilities.autocasts(repair), "an SCV repairs by itself from the start");
+		helper.assertTrue(scv.abilities.autoGather, "a worker does not seek resources by itself from the start");
+		Commands.autocast(java.util.List.of(zealot, scv), "charge");
+		Commands.autocast(java.util.List.of(zealot, scv), "repair");
+		Commands.autocast(java.util.List.of(zealot, scv), "gather");
+		helper.assertFalse(zealot.abilities.autocasts(charge), "the charge stayed on");
+		helper.assertTrue(scv.abilities.autocasts(repair) && scv.autocasts("repair"), "repair did not turn on");
+		helper.assertFalse(scv.abilities.autoGather || scv.autocasts("gather"), "gathering by itself did not turn off");
+		var tag = new net.minecraft.nbt.CompoundTag();
+		scv.abilities.save(tag);
+		var loaded = new dev.starmine.ability.AbilityState();
+		loaded.load(tag);
+		helper.assertTrue(loaded.autocasts(repair) && !loaded.autoGather, "the autocasts were not saved");
+		helper.succeed();
+	}
 }

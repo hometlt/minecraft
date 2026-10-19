@@ -35,6 +35,25 @@ public final class Commands {
 	 * SC2: workers sent to their own unfinished terran building (its SCV called away, the order cancelled) go on
 	 * building it — the nearest SCV takes it up again; the others, and a finished building, just a move there.
 	 */
+	/**
+	 * Owner 19.10, SC2 autocast: a right click on an ability's button (or a worker's gather) turns it on for the selected
+	 * units that have it, or off when it is on for all of them.
+	 */
+	static void autocast(List<StarUnit> units, String id) {
+		boolean gather = id.equals("gather");
+		dev.starmine.ability.Ability ability = gather ? null
+			: java.util.Arrays.stream(dev.starmine.ability.Ability.values()).filter(a -> a.id.equals(id)).findFirst().orElse(null);
+		if (!gather && ability == null) return;
+		List<StarUnit> able = units.stream().filter(unit -> gather ? unit.kind.worker() : ability.users().contains(unit.kind)).toList();
+		if (able.isEmpty()) return;
+		boolean on = !able.stream().allMatch(unit -> gather ? unit.abilities.autoGather : unit.abilities.autocasts(ability));
+		for (StarUnit unit : able) {
+			if (gather) unit.abilities.autoGather = on;
+			else unit.abilities.setAutocast(unit.kind, ability, on);
+			unit.syncAutocast();
+		}
+	}
+
 	static void resumeConstruction(ServerLevel level, Hive base, List<StarUnit> workers, List<StarUnit> mobile, int target, Vec3 at) {
 		StarUnit building = level.getEntity(target) instanceof StarUnit found && found.isAlive() && base.id.equals(found.hiveId()) ? found : null;
 		StarUnit builder = building == null || !building.underConstruction() ? null
@@ -78,6 +97,7 @@ public final class Commands {
 				formation(lifted, StarUnit.Order.MOVE, at);
 			}
 			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
+			case "autocast" -> autocast(units, command.arg());
 			case "construct" -> resumeConstruction(level, base, workers, mobile, command.target(), at);
 			case "tumor" -> { // SC2: the player's creep tumor (the arg: x,y,z) spreads once to a creep cell in its reach
 				String[] xyz = command.arg().split(",");

@@ -152,6 +152,11 @@ public enum Ability {
 	}
 
 	/** The kinds that have it. */
+	/** SC2's autocast that is on when the unit comes: a zealot's charge (repair and the rest wait for the player). */
+	public boolean autocastByDefault() {
+		return this == CHARGE;
+	}
+
 	public List<UnitKind> users() {
 		return switch (this) {
 			case GREATER_SPIRE -> List.of(SPIRE);
