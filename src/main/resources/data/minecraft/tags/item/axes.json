@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_axe",
+		"starmine:terran_axe",
+		"starmine:protoss_axe"
+	]
+}

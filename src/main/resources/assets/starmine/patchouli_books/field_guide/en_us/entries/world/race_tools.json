@@ -1,0 +1,28 @@
+{
+	"name": "Race Tools",
+	"icon": "starmine:protoss_pickaxe",
+	"category": "starmine:world",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A race's armour shards and sticks make its pickaxe, axe, shovel, hoe and sword, as iron ones are made; five shards round an iron ingot make its shield. All are of iron's level and mended with the race's shards.$(br2)$(l)Zerg$() (250 uses): living chitin mends itself, a use every 10 s, three times as fast on creep. The axe bites wood a little faster, the shovel digs creep fast, the hoe makes soil that never dries, the sword poisons one blow in five."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Terrans$() (375 uses): plain steel, half again as tough; the terran shield held takes blasts better (60 % of their damage).$(br2)$(l)Protoss$() (250 uses): an energy shield takes the first 30 wears of the tool; 30 s after the last it is whole again."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_pickaxe",
+			"text": "The zerg pickaxe and sword.",
+			"recipe2": "starmine:zerg_sword"
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:protoss_shield",
+			"text": "The protoss shield and pickaxe.",
+			"recipe2": "starmine:protoss_pickaxe"
+		}
+	]
+}

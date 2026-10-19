@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_hoe",
+		"starmine:terran_hoe",
+		"starmine:protoss_hoe"
+	]
+}

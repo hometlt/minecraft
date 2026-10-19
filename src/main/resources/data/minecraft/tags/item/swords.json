@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_sword",
+		"starmine:terran_sword",
+		"starmine:protoss_sword"
+	]
+}

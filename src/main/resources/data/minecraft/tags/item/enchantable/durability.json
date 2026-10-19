@@ -12,6 +12,9 @@
 		"starmine:protoss_helmet",
 		"starmine:protoss_chestplate",
 		"starmine:protoss_leggings",
-		"starmine:protoss_boots"
+		"starmine:protoss_boots",
+		"starmine:zerg_shield",
+		"starmine:terran_shield",
+		"starmine:protoss_shield"
 	]
 }

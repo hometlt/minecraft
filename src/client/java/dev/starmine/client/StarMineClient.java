@@ -100,6 +100,7 @@ public final class StarMineClient implements ClientModInitializer {
 		// owner 19.10: crafted blocks — the green-flamed vespene torch, mineral glass
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.block.CraftBlocks.VESPENE_TORCH, dev.starmine.block.CraftBlocks.VESPENE_WALL_TORCH);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.block.CraftBlocks.MINERAL_GLASS, RenderType.translucent());
+		RaceShieldRenderer.register(); // owner 19.10: the races' shields
 		net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(dev.starmine.block.CraftBlocks.VESPENE_FLAME,
 			net.minecraft.client.particle.FlameParticle.Provider::new);
 		for (var parts : dev.starmine.world.Artifact.KEYS.values()) for (net.minecraft.world.level.block.Block part : parts.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());

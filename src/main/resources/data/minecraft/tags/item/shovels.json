@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_shovel",
+		"starmine:terran_shovel",
+		"starmine:protoss_shovel"
+	]
+}

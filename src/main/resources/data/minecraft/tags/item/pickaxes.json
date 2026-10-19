@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_pickaxe",
+		"starmine:terran_pickaxe",
+		"starmine:protoss_pickaxe"
+	]
+}

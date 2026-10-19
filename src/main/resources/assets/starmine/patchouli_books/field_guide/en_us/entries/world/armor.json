@@ -2,7 +2,7 @@
 	"name": "Armour and Doors",
 	"icon": "starmine:terran_armor_wall",
 	"category": "starmine:world",
-	"sortnum": 3,
+	"sortnum": 4,
 	"pages": [
 		{
 			"type": "patchouli:crafting",

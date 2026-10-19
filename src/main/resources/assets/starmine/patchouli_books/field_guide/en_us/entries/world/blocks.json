@@ -2,7 +2,7 @@
 	"name": "Blocks and Items",
 	"icon": "starmine:terrazine_bucket",
 	"category": "starmine:world",
-	"sortnum": 4,
+	"sortnum": 5,
 	"pages": [
 		{
 			"type": "patchouli:spotlight",
