@@ -124,24 +124,50 @@ public final class TerranAbilities {
 	}
 
 	/**
-	 * The nuke lands: SC2 300 (+200 to buildings) near the middle, less further out, to everyone; a shallow crater
-	 * under the game rule `starmineNukeGriefing` (on by default).
+	 * The nuke lands: SC2 300 (+200 to buildings) near the middle, less further out, to everyone (owner 19.10: the harm is
+	 * SC2's alone — a marine dies, a thor lives with a quarter); a great blast and a crater as wide as its middle, its
+	 * blocks broken as the game rule `starmineNukeGriefing` says (on by default), the blasts themselves hurting no one.
 	 */
 	static void nuke(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
-		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, point.x, point.y + 1, point.z, 4, 2, 1, 2, 0);
-		level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, point.x, point.y + 2, point.z, 60, 3, 4, 3, 0.05);
-		level.playSound(null, point.x, point.y, point.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 6f, 0.5f);
+		level.sendParticles(ParticleTypes.FLASH, point.x, point.y + 3, point.z, 3, 1, 1, 1, 0);
+		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, point.x, point.y + 1, point.z, 14, NUKE_RADIUS / 3, 1.5, NUKE_RADIUS / 3, 0);
+		level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, point.x, point.y + 6, point.z, 160, 2.5, 8, 2.5, 0.06); // the stem
+		level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, point.x, point.y + 18, point.z, 160, 7, 2, 7, 0.03); // the cap
+		level.sendParticles(ParticleTypes.LAVA, point.x, point.y + 1, point.z, 60, NUKE_RADIUS / 4, 1, NUKE_RADIUS / 4, 0.3);
+		level.playSound(null, point.x, point.y, point.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 12f, 0.4f);
+		level.playSound(null, point.x, point.y, point.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 10f, 0.5f);
 		for (LivingEntity other : Abilities.around(unit, point, NUKE_RADIUS, false)) {
 			double distance = Abilities.horizontal(other.position(), point) / BLOCKS_PER_UNIT;
 			double share = distance <= 4 ? 1 : distance <= 6 ? 0.5 : 0.25;
 			double damage = NUKE_DAMAGE + (other instanceof StarUnit star && star.kind.structure() ? NUKE_STRUCTURE : 0);
 			other.hurt(unit.attackSource(), (float) (damage * share * SCALE));
 		}
-		// owner 17.10: the land is only scarred (a shallow crater), the living suffer; the game rule off leaves the land be
-		level.explode(unit, point.x, point.y + 0.5, point.z, 3f,
-			level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE);
+		// owner 19.10: a great blast — a crater over its middle (9 blocks round) and a ring of blasts round it; the game rule off
+		// leaves the land be. The blasts hurt no one: the harm above is SC2's
+		Level.ExplosionInteraction blocks = level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE;
+		level.explode(unit, null, HARMLESS, point.x, point.y + 0.5, point.z, NUKE_BLAST, false, blocks);
+		for (int i = 0; i < 6; i++) {
+			double angle = i * Math.PI / 3, r = 4 * BLOCKS_PER_UNIT / 2;
+			level.explode(unit, null, HARMLESS, point.x + Math.cos(angle) * r, point.y + 0.5, point.z + Math.sin(angle) * r, NUKE_RING_BLAST, false, blocks);
+		}
 	}
+
+	/** The nuke's blasts: its middle's (a crater about 9 blocks round) and the ring's round it. */
+	public static final float NUKE_BLAST = 7f, NUKE_RING_BLAST = 4.5f;
+
+	/** Blasts that break blocks and throw no one about, hurting nobody (the nuke's harm is counted apart, SC2's). */
+	private static final net.minecraft.world.level.ExplosionDamageCalculator HARMLESS = new net.minecraft.world.level.ExplosionDamageCalculator() {
+		@Override
+		public boolean shouldDamageEntity(net.minecraft.world.level.Explosion explosion, net.minecraft.world.entity.Entity entity) {
+			return false;
+		}
+
+		@Override
+		public float getKnockbackMultiplier(net.minecraft.world.entity.Entity entity) {
+			return 0f;
+		}
+	};
 
 	/** SC2 lock on: 400 damage over 14 s while the target stays within 15. */
 	public static final double LOCK_DAMAGE = 400, LOCK_RANGE = 15 * BLOCKS_PER_UNIT;

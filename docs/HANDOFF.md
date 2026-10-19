@@ -34,6 +34,10 @@
 
 ## Последняя правка
 
+V3. Ядерный удар (`TerranAbilities.nuke`): урон SC2 как был; большой взрыв (центр `NUKE_BLAST` 7 и кольцо из шести по
+`NUKE_RING_BLAST` 4,5) через `ExplosionDamageCalculator HARMLESS` — ломает блоки по `starmineNukeGriefing`, сам не
+ранит и не отбрасывает; вспышка, гриб дыма. Тест `TerranAbilityGameTests.nukeHarmsAsInSc2AndBreaksTheGround`.
+
 V1–V2 (владелец 19.10). Подменыш: войска другой стороны → облик их базового солдата; игрок без армии → облик игрока;
 жители → облик жителя, остаётся в деревне; облик меняется, когда те, за кем шёл, ушли (`Changeling.firstSeen/look`).
 Цвета команд: `faction/TeamColors` (дикие расы, Амун, зел-нага, игроки по UUID), синхронизируемый `StarUnit.teamColor`;

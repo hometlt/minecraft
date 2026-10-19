@@ -297,6 +297,26 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 19.10: the nuke's harm is SC2's (a marine dies, a thor keeps about a quarter), its great blast breaks the ground (the game rule on) and hurts no one more. */
+	@GameTest(template = ARENA, batch = "terranNukeBlast", timeoutTicks = 100)
+	public void nukeHarmsAsInSc2AndBreaksTheGround(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		StarUnit ghost = unit(helper, UnitKind.GHOST, 4, 4, UUID.randomUUID());
+		StarUnit thor = unit(helper, UnitKind.THOR, 24, 24, null), marine = unit(helper, UnitKind.MARINE, 26, 24, null);
+		StarUnit far = unit(helper, UnitKind.MARINE, 24 + 7 * UnitKind.BLOCKS_PER_UNIT, 24, null);
+		for (StarUnit unit : new StarUnit[] {ghost, thor, marine, far}) unit.setNoAi(true);
+		level.getGameRules().getRule(dev.starmine.StarMine.NUKE_GRIEFING).set(true, level.getServer());
+		helper.runAfterDelay(2, () -> {
+			TerranAbilities.nuke(ghost, level, point(helper, 24, 24));
+			helper.assertTrue(!marine.isAlive() && !far.isAlive(), "a marine lived through a nuke (SC2: 300 in the middle, 150 further out)");
+			float left = thor.getHealth() / thor.getMaxHealth();
+			helper.assertTrue(thor.isAlive() && left > 0.15f && left < 0.35f, "the thor (SC2 400) keeps " + left + " of its health, not about a quarter");
+			helper.assertTrue(level.getBlockState(helper.absolutePos(new BlockPos(24, 1, 24))).isAir(), "no crater under the nuke");
+			helper.succeed();
+		});
+	}
+
 	/** Owner 17.10: an order to the guiding ghost lets the nuke go: the missile dies in the air with a small blast, nothing below is hurt. */
 	@GameTest(template = ARENA, batch = "terranNukeCancel", timeoutTicks = 300)
 	public void aCancelledNukeDies(GameTestHelper helper) {
