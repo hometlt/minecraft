@@ -34,6 +34,12 @@
 
 ## Последняя правка
 
+W. Подсказки целей убраны из чата (правила `starmineHints` нет) — в справочнике «Первые шаги» → «Цели» каждая цель
+с подсказкой (`gen_guide_book.goal_pages` читает `Goals.Goal`); книга крафтится из книги и осколка минерала (рецепт был).
+Наёмники — `gear/Mercenaries`: 8 рот SC2 (контракты-предметы), шериф продаёт «Боевых свиней» и две роты на выбор
+(`Townsfolk.MERCENARY_OFFERS`); ветераны: тег `starmine_mercenary`, +30 % здоровья, +20 % урона (`Passives.bonus`).
+Аудит исследований SC2: все исследования мультиплеера LotV есть и действуют, добавлять нечего.
+
 V3. Ядерный удар (`TerranAbilities.nuke`): урон SC2 как был; большой взрыв (центр `NUKE_BLAST` 7 и кольцо из шести по
 `NUKE_RING_BLAST` 4,5) через `ExplosionDamageCalculator HARMLESS` — ломает блоки по `starmineNukeGriefing`, сам не
 ранит и не отбрасывает; вспышка, гриб дыма. Тест `TerranAbilityGameTests.nukeHarmsAsInSc2AndBreaksTheGround`.

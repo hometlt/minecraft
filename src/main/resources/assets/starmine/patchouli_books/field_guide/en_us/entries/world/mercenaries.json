@@ -1,0 +1,12 @@
+{
+	"name": "Mercenaries",
+	"icon": "minecraft:paper",
+	"category": "starmine:world",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A sheriff by his house hires out terran mercenaries (SC2's mercenary compound): the $(l)War Pigs$() (4 marines) always, and two other companies of his pick — $(l)Devil Dogs$() (3 hellbats), $(l)Hammer Securities$() (3 marauders), $(l)Spartan Company$() (2 cyclones), $(l)Siege Breakers$() (2 siege tanks), $(l)Hel's Angels$() (3 vikings), $(l)Dusk Wings$() (2 banshees), $(l)Jackson's Revenge$() (a battlecruiser). A contract costs mineral shards (and mostly a bucket of vespene).$(br2)Use it: the company lands by drop pods round you, yours, in your base if you have one (taking its supply). They are veterans: a third more health, a fifth more damage, their company's name on them."
+		}
+	]
+}

@@ -38,6 +38,37 @@ public class GearGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 19.10: a sheriff hires out mercenaries; a contract lands its company, the player's, veterans hitting harder. */
+	@GameTest(template = ARENA, batch = "gearMercenaries", timeoutTicks = 60)
+	public void mercenariesAnswerTheirContract(GameTestHelper helper) {
+		TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		Townsfolk sheriff = helper.spawn(Guns.SHERIFF, new BlockPos(6, 2, 10));
+		sheriff.setNoAi(true);
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		Vec3 at = TestArena.point(helper, 24, 24);
+		player.teleportTo(at.x, at.y, at.z);
+		helper.runAfterDelay(2, () -> {
+			try {
+				long contracts = sheriff.getOffers().stream().filter(offer -> Mercenaries.CONTRACTS.containsValue(offer.getResult().getItem())).count();
+				helper.assertTrue(contracts == Townsfolk.MERCENARY_OFFERS, "the sheriff hires out " + contracts + " companies");
+				var pigs = Mercenaries.call(level, player, Mercenaries.Company.WAR_PIGS);
+				helper.assertTrue(pigs.size() == 4, "the War Pigs are " + pigs.size());
+				for (var marine : pigs) {
+					helper.assertTrue(marine.owner().filter(player.getUUID()::equals).isPresent(), "a mercenary is not the player's");
+					helper.assertTrue(marine.getMaxHealth() > dev.starmine.entity.UnitKind.MARINE.health * 1.25, "no veteran's health: " + marine.getMaxHealth());
+				}
+				dev.starmine.entity.StarUnit plain = TestArena.unit(helper, dev.starmine.entity.UnitKind.MARINE, 30, 30, player.getUUID());
+				dev.starmine.entity.StarUnit target = TestArena.unit(helper, dev.starmine.entity.UnitKind.ZERGLING, 34, 34, null);
+				helper.assertTrue(dev.starmine.ability.Passives.bonus(pigs.get(0), target) > dev.starmine.ability.Passives.bonus(plain, target),
+					"a mercenary hits no harder");
+				helper.succeed();
+			} finally {
+				player.discard();
+			}
+		});
+	}
+
 	/** Owner 17.10: every weapon of the light infantry is crafted. */
 	@GameTest(template = ARENA, batch = "gearRecipes", timeoutTicks = 20)
 	public void infantryWeaponsAreCrafted(GameTestHelper helper) {
@@ -135,7 +166,7 @@ public class GearGameTests implements FabricGameTest {
 		helper.assertTrue(sheriff.getMainHandItem().is(Guns.GAUSS_RIFLE), "the sheriff holds " + sheriff.getMainHandItem());
 		helper.assertTrue(sheriff.hasRestriction() && sheriff.getRestrictCenter().equals(site), "the sheriff does not keep to his house");
 		var offers = sheriff.getOffers();
-		helper.assertTrue(offers.size() == Townsfolk.SHERIFF_OFFERS && offers.stream().allMatch(o -> o.getCostA().is(dev.starmine.mineral.Minerals.SHARD)),
+		helper.assertTrue(offers.size() == Townsfolk.SHERIFF_OFFERS + Townsfolk.MERCENARY_OFFERS && offers.stream().allMatch(o -> o.getCostA().is(dev.starmine.mineral.Minerals.SHARD)),
 			"the sheriff does not sell for minerals: " + offers.size() + " offers");
 		sheriff.discard();
 		for (BlockPos pos : BlockPos.betweenClosed(site.offset(-4, 0, -4), site.offset(4, 6, 4))) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);

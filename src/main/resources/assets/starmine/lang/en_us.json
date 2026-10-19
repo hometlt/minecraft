@@ -1628,5 +1628,22 @@
 	"entity.starmine.protoss_trader": "Protoss Preserver",
 	"item.starmine.protoss_trader_spawn_egg": "Protoss Preserver Spawn Egg",
 	"entity.starmine.dehaka": "Dehaka",
-	"item.starmine.dehaka_spawn_egg": "Dehaka Spawn Egg"
+	"item.starmine.dehaka_spawn_egg": "Dehaka Spawn Egg",
+	"item.starmine.contract_war_pigs": "Mercenary Contract: War Pigs",
+	"item.starmine.contract_devil_dogs": "Mercenary Contract: Devil Dogs",
+	"item.starmine.contract_hammer_securities": "Mercenary Contract: Hammer Securities",
+	"item.starmine.contract_spartan_company": "Mercenary Contract: Spartan Company",
+	"item.starmine.contract_siege_breakers": "Mercenary Contract: Siege Breakers",
+	"item.starmine.contract_hels_angels": "Mercenary Contract: Hel's Angels",
+	"item.starmine.contract_dusk_wings": "Mercenary Contract: Dusk Wings",
+	"item.starmine.contract_jacksons_revenge": "Mercenary Contract: Jackson's Revenge",
+	"mercenary.starmine.war_pigs": "War Pigs",
+	"mercenary.starmine.devil_dogs": "Devil Dogs",
+	"mercenary.starmine.hammer_securities": "Hammer Securities",
+	"mercenary.starmine.spartan_company": "Spartan Company",
+	"mercenary.starmine.siege_breakers": "Siege Breakers",
+	"mercenary.starmine.hels_angels": "Hel's Angels",
+	"mercenary.starmine.dusk_wings": "Dusk Wings",
+	"mercenary.starmine.jacksons_revenge": "Jackson's Revenge",
+	"item.starmine.contract.tip": "Use it: %s × %s, veterans (+30 % health, +20 % damage), land round you and join your base"
 }

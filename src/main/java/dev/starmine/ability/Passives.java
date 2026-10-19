@@ -49,6 +49,7 @@ public final class Passives {
 		if (attacker.kind == UnitKind.THOR) bonus = air && attacker.mode() != Modes.HIGH_IMPACT && traits.contains(dev.starmine.entity.Trait.LIGHT) ? 24 : 0;
 		if (attacker.kind == UnitKind.TEMPEST && !air) bonus = 0;
 		if (Status.has(attacker, Status.PRISMATIC) && armored) bonus += 10;
+		bonus += dev.starmine.gear.Mercenaries.damageBonus(attacker, attacker.weaponAgainst(target).damage() / UnitKind.SCALE); // owner 19.10: veterans
 		return bonus * UnitKind.SCALE;
 	}
 

@@ -2,7 +2,7 @@
 	"name": "The Stratosphere",
 	"icon": "minecraft:elytra",
 	"category": "starmine:world",
-	"sortnum": 3,
+	"sortnum": 4,
 	"pages": [
 		{
 			"type": "patchouli:image",

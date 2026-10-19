@@ -2,7 +2,7 @@
 	"name": "Сюжетные подземелья",
 	"icon": "starmine:xelnaga_relic",
 	"category": "starmine:world",
-	"sortnum": 1,
+	"sortnum": 2,
 	"pages": [
 		{
 			"type": "patchouli:text",

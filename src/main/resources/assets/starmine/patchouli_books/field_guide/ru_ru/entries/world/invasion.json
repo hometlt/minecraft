@@ -2,7 +2,7 @@
 	"name": "Вторжение Амуна",
 	"icon": "starmine:void_shard",
 	"category": "starmine:world",
-	"sortnum": 5,
+	"sortnum": 6,
 	"pages": [
 		{
 			"type": "patchouli:text",

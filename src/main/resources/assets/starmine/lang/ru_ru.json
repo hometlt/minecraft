@@ -1628,5 +1628,22 @@
 	"entity.starmine.protoss_trader": "Протосс-хранитель",
 	"item.starmine.protoss_trader_spawn_egg": "Яйцо призыва: протосс-хранитель",
 	"entity.starmine.dehaka": "Дехака",
-	"item.starmine.dehaka_spawn_egg": "Яйцо призыва: Дехака"
+	"item.starmine.dehaka_spawn_egg": "Яйцо призыва: Дехака",
+	"item.starmine.contract_war_pigs": "Контракт наёмников: «Боевые свиньи»",
+	"item.starmine.contract_devil_dogs": "Контракт наёмников: «Псы дьявола»",
+	"item.starmine.contract_hammer_securities": "Контракт наёмников: «Молот»",
+	"item.starmine.contract_spartan_company": "Контракт наёмников: «Спартанская рота»",
+	"item.starmine.contract_siege_breakers": "Контракт наёмников: «Осадные молоты»",
+	"item.starmine.contract_hels_angels": "Контракт наёмников: «Ангелы Хель»",
+	"item.starmine.contract_dusk_wings": "Контракт наёмников: «Сумеречные крылья»",
+	"item.starmine.contract_jacksons_revenge": "Контракт наёмников: «Месть Джексона»",
+	"mercenary.starmine.war_pigs": "«Боевые свиньи»",
+	"mercenary.starmine.devil_dogs": "«Псы дьявола»",
+	"mercenary.starmine.hammer_securities": "«Молот»",
+	"mercenary.starmine.spartan_company": "«Спартанская рота»",
+	"mercenary.starmine.siege_breakers": "«Осадные молоты»",
+	"mercenary.starmine.hels_angels": "«Ангелы Хель»",
+	"mercenary.starmine.dusk_wings": "«Сумеречные крылья»",
+	"mercenary.starmine.jacksons_revenge": "«Месть Джексона»",
+	"item.starmine.contract.tip": "Используйте: %s × %s, ветераны (+30 % здоровья, +20 % урона), высаживаются рядом и входят в вашу базу"
 }

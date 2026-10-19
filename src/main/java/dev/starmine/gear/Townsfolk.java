@@ -49,6 +49,8 @@ public class Townsfolk extends WanderingTrader {
 	public static final int SHERIFF_BEAT = 14;
 	/** How many of {@link #SHERIFF_WARES} a sheriff sells. */
 	public static final int SHERIFF_OFFERS = 6;
+	/** How many mercenary companies a sheriff hires out (the War Pigs and others of his pick). */
+	public static final int MERCENARY_OFFERS = 3;
 
 	public final Role role;
 
@@ -145,6 +147,14 @@ public class Townsfolk extends WanderingTrader {
 				offers.add(new MerchantOffer(new ItemCost(dev.starmine.mineral.Minerals.SHARD, ware.minerals()),
 					ware.vespene() ? java.util.Optional.of(new ItemCost(dev.starmine.vespene.Vespene.BUCKET, 1)) : java.util.Optional.empty(),
 					ware.goods().get(), 8, 2, 0.05f));
+			// owner 19.10: and mercenaries — the War Pigs always, two other companies of his pick (SC2's mercenary compound)
+			List<Ware> contracts = new java.util.ArrayList<>(Mercenaries.wares());
+			Ware pigs = contracts.remove(0);
+			net.minecraft.Util.shuffle(contracts, this.random);
+			for (Ware ware : java.util.stream.Stream.concat(java.util.stream.Stream.of(pigs), contracts.stream().limit(MERCENARY_OFFERS - 1)).toList())
+				offers.add(new MerchantOffer(new ItemCost(dev.starmine.mineral.Minerals.SHARD, ware.minerals()),
+					ware.vespene() ? java.util.Optional.of(new ItemCost(dev.starmine.vespene.Vespene.BUCKET, 1)) : java.util.Optional.empty(),
+					ware.goods().get(), 2, 5, 0.05f));
 			return;
 		}
 		offers.add(offer(1, new ItemStack(Guns.GAUSS_AMMO, 16)));
