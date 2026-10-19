@@ -130,6 +130,61 @@ public final class Harness {
 		if (SCENARIOS.contains("cards")) cards(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("sheriff")) sheriff(mc);
 		if (SCENARIOS.equals("all") || SCENARIOS.contains("rts")) rts(mc);
+		if (SCENARIOS.contains("teams")) teams(mc);
+	}
+
+	/**
+	 * Owner 19.10, team colours: rows of the wild sides, the player's own and Amun's, and the forms with models of their
+	 * own (crawlers uprooted, oversight, surveillance, the overlord's sacs), shot from the front, twice a few frames apart
+	 * (a mask fighting the model's depth flickers between the shots) and close. Shots only: the owner looks at them.
+	 */
+	private static void teams(Minecraft mc) {
+		UnitKind[] row = {UnitKind.ZERGLING, UnitKind.HYDRALISK, UnitKind.ULTRALISK, UnitKind.MARINE, UnitKind.SIEGE_TANK, UnitKind.THOR,
+			UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.COLOSSUS};
+		String[] sides = {"wild", "player", "amun"};
+		for (int side = 0; side < sides.length; side++) {
+			int s = side;
+			lineUp(mc, row.length, 6, (level, player, i) -> {
+				StarUnit unit = StarMine.type(row[i]).create(level);
+				if (unit != null && s == 1) unit.setOwner(player.getUUID());
+				if (unit != null && s == 2) unit.addTag(dev.starmine.world.VoidForces.TAG);
+				return unit;
+			});
+			steps.add(new Step(3, () -> shot(mc, "teams-" + sides[s] + "-a")));
+			steps.add(new Step(10, () -> shot(mc, "teams-" + sides[s] + "-b")));
+		}
+		Object[][] forms = {{UnitKind.SPINE_CRAWLER, dev.starmine.ability.Modes.NORMAL}, {UnitKind.SPINE_CRAWLER, dev.starmine.ability.Modes.UPROOTED},
+			{UnitKind.SPORE_CRAWLER, dev.starmine.ability.Modes.UPROOTED}, {UnitKind.OVERSEER, dev.starmine.ability.Modes.NORMAL},
+			{UnitKind.OVERSEER, dev.starmine.ability.Modes.OVERSIGHT}, {UnitKind.OBSERVER, dev.starmine.ability.Modes.SURVEILLANCE},
+			{UnitKind.OVERLORD, dev.starmine.ability.Modes.SACS}, {UnitKind.NEXUS, dev.starmine.ability.Modes.NORMAL},
+			{UnitKind.COMMAND_CENTER, dev.starmine.ability.Modes.NORMAL}};
+		lineUp(mc, forms.length, 9, (level, player, i) -> {
+			StarUnit unit = StarMine.type((UnitKind) forms[i][0]).create(level);
+			if (unit != null) unit.setMode((int) forms[i][1]);
+			return unit;
+		});
+		steps.add(new Step(3, () -> shot(mc, "teams-forms")));
+	}
+
+	private interface Spawn {
+		StarUnit create(ServerLevel level, ServerPlayer player, int index);
+	}
+
+	/** Clears the field and stands `count` units in a row across the view, `gap` blocks apart, the player looking at them. */
+	private static void lineUp(Minecraft mc, int count, int gap, Spawn spawn) {
+		int z = Z + 18;
+		steps.add(new Step(30, () -> server(mc, (level, player) -> {
+			for (Entity old : level.getEntitiesOfClass(Entity.class, player.getBoundingBox().inflate(120), e -> !(e instanceof ServerPlayer))) old.discard();
+			for (int i = 0; i < count; i++) {
+				StarUnit unit = spawn.create(level, player, i);
+				if (unit == null) continue;
+				unit.moveTo(X + (i - (count - 1) / 2.0) * gap + 0.5, groundY, z + 0.5, 180, 0);
+				unit.setNoAi(true);
+				level.addFreshEntity(unit);
+			}
+			player.teleportTo(level, X + 0.5, groundY + 9, Z - 14.5, 0, 15);
+		})));
+		steps.add(new Step(80, () -> aim(mc, new Vec3(X, groundY + 1.5, z))));
 	}
 
 	/**

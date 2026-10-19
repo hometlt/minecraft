@@ -1149,6 +1149,15 @@
 			"death": false
 		},
 		{
+			"model": "overlord_sacs",
+			"kind": "OVERLORD",
+			"race": "ZERG",
+			"form": "sacs",
+			"unit": "OverlordTransport",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
 			"model": "drone_burrowed",
 			"kind": "DRONE",
 			"race": "ZERG",

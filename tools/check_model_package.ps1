@@ -44,5 +44,28 @@ try {
 				$archive.GetEntry("assets/starmine/models/sc2/${kind}_death.smm")) { throw "Incomplete/stale voxel model: $kind" }
 		}
 	}
-	[pscustomobject]@{ jar = $Jar; mode = $Mode; matchedDerivedFiles = $derived.Count; selectedVoxelModels = $selected.Count; verified = $true } | ConvertTo-Json
+	# owner 19.10, team colour masks: count <texture>_team.png and name the models whose textures have none (in SC2 almost
+	# every unit and building has team colour: a model listed here either truly has none or its export lost the mask)
+	$masks = @($archive.Entries | Where-Object { $_.FullName -match '^assets/starmine/textures/entity/sc2/.+_team\.png$' })
+	$maskNames = @{}
+	foreach ($mask in $masks) { $maskNames[$mask.Name -replace '_team\.png$', ''] = $true }
+	$unmasked = @()
+	if ($Mode -ne 'public') {
+		foreach ($model in @($archive.Entries | Where-Object { $_.FullName -match '^assets/starmine/models/sc2/[a-z0-9_]+\.smm$' -and $_.Name -notmatch '_death\.smm$' })) {
+			$stream = $model.Open()
+			try {
+				$head = New-Object byte[] 8
+				[void]$stream.Read($head, 0, 8)
+				$length = [System.BitConverter]::ToUInt32($head, 4)
+				$json = New-Object byte[] $length
+				$read = 0
+				while ($read -lt $length) { $read += $stream.Read($json, $read, $length - $read) }
+			} finally { $stream.Dispose() }
+			$header = [System.Text.Encoding]::UTF8.GetString($json) | ConvertFrom-Json
+			$textures = @($header.parts | ForEach-Object { $_.texture } | Sort-Object -Unique)
+			if (!($textures | Where-Object { $maskNames.ContainsKey($_) })) { $unmasked += $model.Name -replace '\.smm$', '' }
+		}
+	}
+	[pscustomobject]@{ jar = $Jar; mode = $Mode; matchedDerivedFiles = $derived.Count; selectedVoxelModels = $selected.Count;
+		teamMasks = $masks.Count; modelsWithoutTeamMask = $unmasked; verified = $true } | ConvertTo-Json
 } finally { $archive.Dispose() }
