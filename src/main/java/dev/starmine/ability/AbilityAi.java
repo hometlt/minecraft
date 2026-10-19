@@ -74,6 +74,7 @@ final class AbilityAi {
 				&& cast(unit, level, ability, Vec3.atBottomCenterOf(unit.home()));
 			case BURROW -> burrow(unit, level, target, on, calm);
 			case CORROSIVE_BILE, KD8_CHARGE, DISINTEGRATION, SHADOW_STRIDE, PSIONIC_TRANSFER -> target != null && aimAt(unit, ability, target)
+				&& (ability != Ability.CORROSIVE_BILE || alliesAround(unit, at, ZergAbilities.BILE_RADIUS + 1) == 0) // bile hurts its own side too
 				&& cast(unit, level, ability, at);
 			case INJECT_LARVA -> {
 				StarUnit hatchery = nearestOwn(unit, 16, other -> other.kind == UnitKind.HATCHERY && !Status.has(other, Status.INJECTED));
@@ -87,7 +88,8 @@ final class AbilityAi {
 			case SPAWN_CHANGELING -> Changeling.due(unit, level) && cast(unit, level, ability); // owner: every 2–3 minutes, at most 2 alive
 			case NEURAL_PARASITE -> target != null && target.getMaxHealth() >= 40 && cast(unit, level, ability, target);
 			case FUNGAL_GROWTH -> target != null && foesAround(unit, at, ZergAbilities.FUNGAL_RADIUS) >= 3 && cast(unit, level, ability, at);
-			case BLINDING_CLOUD -> target != null && foesAround(unit, at, ZergAbilities.CLOUD_RADIUS) >= 3 && cast(unit, level, ability, at);
+			case BLINDING_CLOUD -> target != null && foesAround(unit, at, ZergAbilities.CLOUD_RADIUS) >= 3
+				&& alliesAround(unit, at, ZergAbilities.CLOUD_RADIUS) == 0 && cast(unit, level, ability, at); // it blinds its own side too
 			case PARASITIC_BOMB -> target instanceof StarUnit air && air.flying() && cast(unit, level, ability, target);
 			case CONSUME -> {
 				if (unit.energy() > 100) yield false;

@@ -57,12 +57,12 @@ public final class ZergAbilities {
 	private ZergAbilities() {
 	}
 
-	/** Bile lands 2.5 s after the cast: foes there are hurt; force fields and light blocks (leaves, glass, plants) melt. */
+	/** Bile lands 2.5 s after the cast: everyone there is hurt (its own side too, SC2); force fields and light blocks (leaves, glass, plants) melt. */
 	static void bile(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
 		level.sendParticles(ParticleTypes.ITEM_SLIME, point.x, point.y + 0.5, point.z, 50, BILE_RADIUS / 2, 0.4, BILE_RADIUS / 2, 0.15);
 		level.playSound(null, point.x, point.y, point.z, SoundEvents.SLIME_SQUISH, SoundSource.HOSTILE, 1.5f, 0.6f);
-		for (LivingEntity other : Abilities.around(unit, point, BILE_RADIUS, true))
+		for (LivingEntity other : Abilities.around(unit, point, BILE_RADIUS, false)) // SC2: anyone under it, its own side too
 			other.hurt(unit.attackSource(), (float) (BILE_DAMAGE * SCALE));
 		boolean griefing = level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
 		BlockPos centre = BlockPos.containing(point);
@@ -171,8 +171,8 @@ public final class ZergAbilities {
 	static void blindingCloud(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
 		Delayed.repeat(level, 5, CLOUD_TICKS / 5, n -> {
-			for (LivingEntity other : Abilities.around(unit, point, CLOUD_RADIUS, true))
-				if (!(other instanceof StarUnit star && star.flying())) Status.apply(other, Status.BLINDED, 10);
+			for (LivingEntity other : Abilities.around(unit, point, CLOUD_RADIUS, false)) // SC2: every ground unit under it, its own side's too
+				if (!(other instanceof StarUnit star && (star.flying() || star.kind.structure()))) Status.apply(other, Status.BLINDED, 10);
 			if (n % 2 == 0) level.sendParticles(ParticleTypes.LARGE_SMOKE, point.x, point.y + 1, point.z, 25, CLOUD_RADIUS / 2, 0.6, CLOUD_RADIUS / 2, 0.01);
 		});
 	}

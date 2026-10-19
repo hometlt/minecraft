@@ -220,7 +220,9 @@ public class TerranAbilityGameTests implements FabricGameTest {
 		ServerLevel level = helper.getLevel();
 		helper.runAfterDelay(2, () -> helper.assertTrue(Abilities.cast(thor, level, Ability.HIGH_IMPACT, null, null), "no payload switch"));
 		helper.runAfterDelay(60, () -> {
-			helper.assertTrue(thor.weapon().range() > UnitKind.THOR.range + 3, "the high impact payload reaches " + thor.weapon().range());
+			StarUnit flyer = unit(helper, UnitKind.BATTLECRUISER, 30, 24, null);
+			helper.assertTrue(thor.weaponAgainst(flyer).range() > UnitKind.THOR.range + 3, "the high impact payload reaches " + thor.weaponAgainst(flyer).range());
+			helper.assertTrue(thor.weapon().damage() == UnitKind.THOR.damage, "its hammers changed for the ground: " + thor.weapon().damage()); // SC2: only its anti-air changes
 			helper.succeed();
 		});
 	}

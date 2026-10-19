@@ -44,6 +44,10 @@ public final class Passives {
 		boolean armored = traits.contains(dev.starmine.entity.Trait.ARMORED);
 		double bonus = attacker.kind.bonusDamage(traits);
 		if (attacker.kind == UnitKind.SIEGE_TANK && attacker.mode() == Modes.SIEGED) bonus = armored ? 30 : 0;
+		// owner 19.10, SC2 weapons against flyers: a thor's javelins +6 x4 against light; a tempest's +22 against massive only in the air
+		boolean air = Modes.airborne(target);
+		if (attacker.kind == UnitKind.THOR) bonus = air && attacker.mode() != Modes.HIGH_IMPACT && traits.contains(dev.starmine.entity.Trait.LIGHT) ? 24 : 0;
+		if (attacker.kind == UnitKind.TEMPEST && !air) bonus = 0;
 		if (Status.has(attacker, Status.PRISMATIC) && armored) bonus += 10;
 		return bonus * UnitKind.SCALE;
 	}

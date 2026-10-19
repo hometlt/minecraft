@@ -186,7 +186,7 @@ public final class UnitGoals {
 		@Override
 		public void tick() {
 			if (target == null) return;
-			dev.starmine.ability.Modes.Weapon weapon = unit.weapon();
+			dev.starmine.ability.Modes.Weapon weapon = unit.weaponAgainst(target); // its anti-air against flyers (SC2)
 			// SC2 ranges are from edge to edge: a thor (10 wide) shoots from its own edge, not its middle
 			double reach = unit.distanceTo(target) - (target.getBbWidth() + unit.getBbWidth()) / 2;
 			boolean sees = unit.getSensing().hasLineOfSight(target);
@@ -233,7 +233,7 @@ public final class UnitGoals {
 			LivingEntity target = unit.getTarget();
 			return switch (order) {
 				case MOVE -> true;
-				case HOLD -> target == null || unit.distanceTo(target) > unit.weapon().range() + 1;
+				case HOLD -> target == null || unit.distanceTo(target) > unit.weaponAgainst(target).range() + 1;
 				default -> target == null;
 			};
 		}

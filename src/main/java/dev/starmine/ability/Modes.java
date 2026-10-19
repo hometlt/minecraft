@@ -107,13 +107,38 @@ public final class Modes {
 		if (mode == OVERSIGHT || mode == SURVEILLANCE) return none(false); // it stands and looks
 		if (kind == UnitKind.LIBERATOR && mode == DEFENDER) // SC2 lancer missiles: 75 at ground units in its zone (range 5 + zone 5), 1.14 s
 			return new Weapon(10 * BLOCKS_PER_UNIT + 1, Math.round(75 * SCALE * 2) / 2.0, 23, 0, 0, false);
-		if (kind == UnitKind.THOR && mode == HIGH_IMPACT) // SC2 high impact payload: 40, range 11, 0.91 s
-			return new Weapon(11 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 18, 0, 0, true);
+		if (kind == UnitKind.LIBERATOR) // SC2 lexington rockets: 2 x 5, splash 1.5 round the target (flyers only)
+			return new Weapon(own.range(), own.damage(), own.interval(), 1.5 * BLOCKS_PER_UNIT, 0, true);
 		if (kind == UnitKind.ORACLE) return mode == PULSAR ? own : none(true); // the pulsar beam is its only weapon
 		if (kind == UnitKind.WARP_PRISM && mode == PHASING) return none(false);
 		if (kind == UnitKind.COMMAND_CENTER && mode == PLANETARY) // SC2 ibiks cannon: 40, range 6, 1.43 s, splash 1.25
 			return new Weapon(6 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 29, 1.25 * BLOCKS_PER_UNIT, 0, false); // 1.43 s at Faster
 		return own;
+	}
+
+	/**
+	 * A weapon of its own against flyers (SC2, owner 19.10: one weapon for both was a simplification), or null when its
+	 * one weapon does both: the thor's javelin missiles (4 x 6, +6 each against light, splash 0.5, range 10, 2.14 s) or in
+	 * its other mode the high impact payload (40, range 11, 0.91 s) — its hammers stay for the ground either way; the
+	 * queen's acid spines (9, range 7); the battlecruiser's ATA laser battery (5); the tempest's kinetic overload (30,
+	 * +22 against massive, range 14).
+	 */
+	public static @org.jetbrains.annotations.Nullable Weapon airWeapon(UnitKind kind, int mode) {
+		Weapon own = new Weapon(kind.range, kind.damage, kind.interval, 0, 0, kind.speed > 0);
+		return switch (kind) {
+			case THOR -> mode == HIGH_IMPACT ? new Weapon(11 * BLOCKS_PER_UNIT + 1, Math.round(40 * SCALE * 2) / 2.0, 18, 0, 0, true)
+				: new Weapon(10 * BLOCKS_PER_UNIT + 1, Math.round(24 * SCALE * 2) / 2.0, 43, 0.5 * BLOCKS_PER_UNIT + 0.5, 0, true);
+			case QUEEN -> new Weapon(7 * BLOCKS_PER_UNIT + 1, Math.round(9 * SCALE * 2) / 2.0, own.interval(), 0, 0, true);
+			case BATTLECRUISER -> new Weapon(own.range(), Math.round(5 * SCALE * 2) / 2.0, own.interval(), 0, 0, true);
+			case TEMPEST -> new Weapon(14 * BLOCKS_PER_UNIT + 1, Math.round(30 * SCALE * 2) / 2.0, own.interval(), 0, 0, true);
+			default -> null;
+		};
+	}
+
+	/** Whether a target counts as flying for weapons (a colossus walks: the ground weapon takes it). */
+	public static boolean airborne(LivingEntity target) {
+		return target instanceof StarUnit unit ? unit.flying() : target instanceof net.minecraft.world.entity.FlyingMob || target.isFallFlying()
+			|| target instanceof net.minecraft.world.entity.monster.Phantom || target instanceof net.minecraft.world.entity.monster.Vex;
 	}
 
 	private static Weapon none(boolean mobile) {
@@ -177,16 +202,22 @@ public final class Modes {
 		unit.refreshWeapon();
 	}
 
-	/** A shot in siege mode (or the planetary fortress' cannon): nothing too close; splash around the target hurts all foes there (and the target fully). */
+	/**
+	 * A splash shot (a sieged tank, a planetary fortress' cannon, a thor's javelins, a liberator's rockets): nothing too
+	 * close; the target is hit fully, the foes round it on its layer (ground or air, SC2) too — half for a tank's and a
+	 * fortress' shells, which fall off with distance, fully for missiles that spread.
+	 */
 	public static boolean siegeShot(StarUnit unit, LivingEntity target) {
-		Weapon weapon = unit.weapon();
+		Weapon weapon = unit.weaponAgainst(target);
 		if (weapon.splash() <= 0) return false;
 		if (unit.distanceTo(target) < weapon.minRange()) return true;
 		float damage = (float) (weapon.damage() + unit.attackBonus() + Passives.bonus(unit, target));
 		target.hurt(unit.attackSource(), damage);
+		boolean air = airborne(target);
+		float share = unit.kind == UnitKind.SIEGE_TANK || unit.kind == UnitKind.COMMAND_CENTER ? 0.5f : 1f;
 		for (LivingEntity other : unit.level().getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(weapon.splash()),
-			other -> other != target && dev.starmine.faction.Faction.hostile(unit, other)))
-			other.hurt(unit.attackSource(), damage * 0.5f);
+			other -> other != target && airborne(other) == air && dev.starmine.faction.Faction.hostile(unit, other)))
+			other.hurt(unit.attackSource(), (float) (weapon.damage() + unit.attackBonus() + Passives.bonus(unit, other)) * share);
 		if (unit.level() instanceof ServerLevel server)
 			server.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY() + 0.5, target.getZ(), 1, 0, 0, 0, 0);
 		return true;

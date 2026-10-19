@@ -159,4 +159,30 @@ public class FieldAbilityGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 19.10, SC2: a thor, a queen, a battlecruiser and a tempest fight flyers with weapons of their own; splash stays on its layer. */
+	@GameTest(template = ARENA, batch = "fieldAirWeapons", timeoutTicks = 100)
+	public void airWeaponsAreTheirOwn(GameTestHelper helper) {
+		clear(helper);
+		StarUnit thor = unit(helper, UnitKind.THOR, 6, 24, UUID.randomUUID()), queen = unit(helper, UnitKind.QUEEN, 6, 30, UUID.randomUUID());
+		StarUnit tempest = unit(helper, UnitKind.TEMPEST, 6, 36, UUID.randomUUID()), liberator = unit(helper, UnitKind.LIBERATOR, 6, 12, UUID.randomUUID());
+		StarUnit mutalisk = unit(helper, UnitKind.MUTALISK, 20, 24, null), other = unit(helper, UnitKind.MUTALISK, 20.5, 24.5, null);
+		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 20, 24, null), ultralisk = unit(helper, UnitKind.ULTRALISK, 30, 30, null);
+		StarUnit cruiser = unit(helper, UnitKind.BATTLECRUISER, 30, 40, null);
+		for (StarUnit unit : new StarUnit[] {thor, queen, tempest, liberator, mutalisk, other, zergling, ultralisk, cruiser}) unit.setNoAi(true);
+		helper.runAfterDelay(3, () -> {
+			helper.assertTrue(thor.weaponAgainst(zergling).damage() == UnitKind.THOR.damage, "the thor's hammers are not its ground weapon");
+			Modes.Weapon javelins = thor.weaponAgainst(mutalisk);
+			helper.assertTrue(javelins.range() > UnitKind.THOR.range && javelins.splash() > 0 && javelins.damage() < UnitKind.THOR.damage, "no javelins: " + javelins);
+			helper.assertTrue(Passives.bonus(thor, mutalisk) == 24 * UnitKind.SCALE && Passives.bonus(thor, zergling) == 0, "the javelins' bonus against light");
+			helper.assertTrue(queen.weaponAgainst(mutalisk).range() > queen.weaponAgainst(zergling).range(), "the queen's acid spines reach no farther");
+			helper.assertTrue(tempest.weaponAgainst(cruiser).range() > tempest.weaponAgainst(ultralisk).range(), "the tempest's anti-air reaches no farther");
+			helper.assertTrue(Passives.bonus(tempest, cruiser) > 0 && Passives.bonus(tempest, ultralisk) == 0, "the tempest's +22 against massive belongs to its anti-air");
+			float muta = other.getHealth(), ling = zergling.getHealth();
+			liberator.performRangedAttack(mutalisk, 1);
+			helper.assertTrue(other.getHealth() < muta, "the liberator's rockets did not spread to the other flyer");
+			helper.assertTrue(zergling.getHealth() == ling, "the liberator's splash hit the ground");
+			helper.succeed();
+		});
+	}
 }

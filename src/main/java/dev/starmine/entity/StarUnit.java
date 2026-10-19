@@ -1438,7 +1438,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			return;
 		}
 		if (kind.race != UnitKind.Race.ZERG && kind.attack == UnitKind.Attack.RANGED && kind.shot() == null) { // terran shots, protoss beams: hitscan
-			target.hurt(attackSource(), (float) (weapon().damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, target)));
+			target.hurt(attackSource(), (float) (weaponAgainst(target).damage() + attackBonus() + dev.starmine.ability.Passives.bonus(this, target)));
 			dev.starmine.ability.Passives.onHit(this, target);
 			if (this.level() instanceof ServerLevel server) tracer(server, target);
 			return;
@@ -2037,6 +2037,14 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		modifier(Attributes.MOVEMENT_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 		modifier(Attributes.FLYING_SPEED, MODE_SPEED, factor - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 		if (factor <= 0) this.getNavigation().stop();
+	}
+
+	/** The weapon it fights `target` with: its weapon against flyers when it has one of its own (SC2, {@link dev.starmine.ability.Modes#airWeapon}). */
+	public dev.starmine.ability.Modes.Weapon weaponAgainst(@org.jetbrains.annotations.Nullable LivingEntity target) {
+		dev.starmine.ability.Modes.Weapon own = weapon();
+		if (target == null || own.interval() <= 0 || abilities.changingMode() || !dev.starmine.ability.Modes.airborne(target)) return own;
+		dev.starmine.ability.Modes.Weapon air = dev.starmine.ability.Modes.airWeapon(kind, mode());
+		return air == null ? own : dev.starmine.race.Research.adjust(this, dev.starmine.ability.Status.adjust(this, air));
 	}
 
 	/** The weapon it fights with now (its mode's, as its states leave it). */

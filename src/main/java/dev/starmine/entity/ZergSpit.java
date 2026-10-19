@@ -142,7 +142,7 @@ public class ZergSpit extends ThrowableItemProjectile {
 		StarUnit zerg = owner instanceof StarUnit unit ? unit : null;
 		if (owner != null && dev.starmine.faction.Faction.allied(owner, target)) return;
 		double bonus = zerg != null ? zerg.attackBonus() + dev.starmine.ability.Passives.bonus(zerg, target) : 0;
-		double damage = zerg != null ? zerg.weapon().damage() : kind.damage;
+		double damage = zerg != null ? zerg.weaponAgainst(target instanceof net.minecraft.world.entity.LivingEntity living ? living : null).damage() : kind.damage;
 		if (target.hurt(this.damageSources().mobProjectile(this, owner), (float) (damage + bonus)) && zerg != null)
 			dev.starmine.ability.Passives.onHit(zerg, target);
 		if (kind.attack == UnitKind.Attack.SLOW) dev.starmine.ability.Status.apply(target, dev.starmine.ability.Status.SLOW, 60);
