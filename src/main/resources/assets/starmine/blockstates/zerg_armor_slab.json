@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "starmine:block/zerg_armor_slab"
+		},
+		"type=top": {
+			"model": "starmine:block/zerg_armor_slab_top"
+		},
+		"type=double": {
+			"model": "starmine:block/zerg_armor_wall"
+		}
+	}
+}

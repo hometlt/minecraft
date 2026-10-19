@@ -12,6 +12,27 @@
 		"starmine:protoss_armor_wall",
 		"starmine:protoss_armor_plating",
 		"starmine:protoss_armor_panel",
-		"starmine:protoss_door"
+		"starmine:protoss_door",
+		"starmine:zerg_armor_slab",
+		"starmine:zerg_armor_stairs",
+		"starmine:zerg_armor_rampart",
+		"starmine:zerg_armor_fence",
+		"starmine:zerg_armor_trapdoor",
+		"starmine:zerg_porthole",
+		"starmine:zerg_armor_bars",
+		"starmine:terran_armor_slab",
+		"starmine:terran_armor_stairs",
+		"starmine:terran_armor_rampart",
+		"starmine:terran_armor_fence",
+		"starmine:terran_armor_trapdoor",
+		"starmine:terran_porthole",
+		"starmine:terran_armor_bars",
+		"starmine:protoss_armor_slab",
+		"starmine:protoss_armor_stairs",
+		"starmine:protoss_armor_rampart",
+		"starmine:protoss_armor_fence",
+		"starmine:protoss_armor_trapdoor",
+		"starmine:protoss_porthole",
+		"starmine:protoss_armor_bars"
 	]
 }

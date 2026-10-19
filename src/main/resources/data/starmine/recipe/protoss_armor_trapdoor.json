@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"###",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:protoss_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_armor_trapdoor",
+		"count": 2
+	}
+}

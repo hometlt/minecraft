@@ -1,0 +1,20 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"#|#",
+		"#|#"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"|": {
+			"item": "minecraft:stick"
+		}
+	},
+	"result": {
+		"id": "starmine:terran_armor_fence",
+		"count": 3
+	}
+}

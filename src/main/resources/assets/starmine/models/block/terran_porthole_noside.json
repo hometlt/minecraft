@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/template_glass_pane_noside",
+	"textures": {
+		"pane": "starmine:block/terran_porthole",
+		"edge": "starmine:block/terran_porthole"
+	}
+}

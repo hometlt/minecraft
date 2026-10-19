@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_armor_rampart",
+		"starmine:terran_armor_rampart",
+		"starmine:protoss_armor_rampart"
+	]
+}

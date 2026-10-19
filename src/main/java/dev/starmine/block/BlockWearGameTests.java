@@ -112,4 +112,31 @@ public class BlockWearGameTests implements FabricGameTest {
 		for (BlockPos at : new BlockPos[] {terran, zerg, protoss, stone}) level.setBlock(at, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 		helper.succeed();
 	}
+
+	@GameTest(template = ARENA, batch = "armourBuilding", timeoutTicks = 40)
+	public void armourBuildingBlocksAreTheRacesArmour(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		var recipes = level.getServer().getRecipeManager();
+		for (UnitKind.Race race : UnitKind.Race.values())
+			for (String kind : ArmorBlocks.BUILDING) {
+				Block block = ArmorBlocks.BUILDING_BLOCKS.get(race).get(kind);
+				String id = race.name().toLowerCase() + "_" + kind;
+				helper.assertTrue(ArmorBlocks.raceOf(block) == race && ArmorBlocks.armoured(block.defaultBlockState()), id + " is not " + race + "'s armour");
+				helper.assertTrue(recipes.byKey(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("starmine", id)).isPresent(), "no recipe " + id);
+			}
+		// bars join their neighbours as iron bars do; a zerg slab heals as zerg armour does
+		BlockPos a = helper.absolutePos(new BlockPos(4, 2, 12)), b = a.east();
+		Block bars = ArmorBlocks.BUILDING_BLOCKS.get(UnitKind.Race.TERRAN).get("armor_bars");
+		level.setBlock(a, bars.defaultBlockState(), Block.UPDATE_ALL);
+		level.setBlock(b, bars.defaultBlockState(), Block.UPDATE_ALL);
+		boolean joined = level.getBlockState(a).getValue(net.minecraft.world.level.block.IronBarsBlock.EAST);
+		Block slab = ArmorBlocks.BUILDING_BLOCKS.get(UnitKind.Race.ZERG).get("armor_slab");
+		BlockPos c = a.east(3);
+		level.setBlock(c, slab.defaultBlockState(), Block.UPDATE_ALL);
+		boolean tough = BlockWear.durability(level, c, slab.defaultBlockState()) > BlockWear.durability(level, c, Blocks.OBSIDIAN.defaultBlockState());
+		for (BlockPos at : new BlockPos[] {a, b, c}) level.setBlock(at, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+		helper.assertTrue(joined, "armour bars do not join");
+		helper.assertTrue(tough, "an armour slab is weaker than obsidian");
+		helper.succeed();
+	}
 }

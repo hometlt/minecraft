@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/inner_stairs",
+	"textures": {
+		"bottom": "starmine:block/zerg_armor_wall",
+		"top": "starmine:block/zerg_armor_wall",
+		"side": "starmine:block/zerg_armor_wall"
+	}
+}

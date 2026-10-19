@@ -1,0 +1,20 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"#B#",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:protoss_armor_shard"
+		},
+		"B": {
+			"item": "minecraft:iron_bars"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_armor_bars",
+		"count": 8
+	}
+}

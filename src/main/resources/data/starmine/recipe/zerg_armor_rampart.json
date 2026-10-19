@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"###",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:zerg_armor_wall"
+		}
+	},
+	"result": {
+		"id": "starmine:zerg_armor_rampart",
+		"count": 6
+	}
+}

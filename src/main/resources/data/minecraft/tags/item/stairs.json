@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_armor_stairs",
+		"starmine:terran_armor_stairs",
+		"starmine:protoss_armor_stairs"
+	]
+}

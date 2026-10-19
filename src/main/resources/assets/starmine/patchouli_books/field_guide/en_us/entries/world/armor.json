@@ -6,6 +6,12 @@
 	"pages": [
 		{
 			"type": "patchouli:crafting",
+			"recipe": "starmine:terran_armor_stairs",
+			"text": "Armour walls make a race's $(l)building blocks$(): slabs (3 make 6), stairs (6 make 4), walls (6 make 6). Its shards make fences (with sticks), trapdoors, $(l)portholes$() (round glass: blast-proof windows) and bars (round iron bars). All are the race's armour, as tough and with its ways.",
+			"recipe2": "starmine:protoss_porthole"
+		},
+		{
+			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_armor_wall",
 			"text": "Nine armour shards of a race make its $(l)armour wall$(): as hard as obsidian, and far tougher than any stone against weapons and blasts. At a stonecutter it becomes plating or a lit panel and back. The sky ships and the bases' foundations are built of it.",
 			"recipe2": "starmine:zerg_armor_wall"

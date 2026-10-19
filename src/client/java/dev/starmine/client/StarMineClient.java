@@ -100,6 +100,10 @@ public final class StarMineClient implements ClientModInitializer {
 		// owner 19.10: crafted blocks — the green-flamed vespene torch, mineral glass
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.block.CraftBlocks.VESPENE_TORCH, dev.starmine.block.CraftBlocks.VESPENE_WALL_TORCH);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.block.CraftBlocks.MINERAL_GLASS, RenderType.translucent());
+		for (var race : dev.starmine.block.ArmorBlocks.BUILDING_BLOCKS.values()) { // owner 19.10: trapdoors, portholes and bars see through
+			BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), race.get("armor_trapdoor"), race.get("armor_bars"));
+			BlockRenderLayerMap.INSTANCE.putBlock(race.get("porthole"), RenderType.translucent());
+		}
 		RaceShieldRenderer.register(); // owner 19.10: the races' shields
 		ClientWear.register(); // owner 19.10: blocks keep their damage; mining starts from it
 		net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(dev.starmine.block.CraftBlocks.VESPENE_FLAME,

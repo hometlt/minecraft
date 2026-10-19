@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:block/fence_post",
+	"textures": {
+		"texture": "starmine:block/protoss_armor_wall"
+	}
+}

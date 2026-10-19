@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/template_glass_pane_post",
+	"textures": {
+		"pane": "starmine:block/zerg_porthole",
+		"edge": "starmine:block/zerg_porthole"
+	}
+}

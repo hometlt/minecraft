@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_armor_fence",
+		"starmine:terran_armor_fence",
+		"starmine:protoss_armor_fence"
+	]
+}

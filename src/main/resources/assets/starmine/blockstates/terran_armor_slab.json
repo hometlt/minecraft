@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "starmine:block/terran_armor_slab"
+		},
+		"type=top": {
+			"model": "starmine:block/terran_armor_slab_top"
+		},
+		"type=double": {
+			"model": "starmine:block/terran_armor_wall"
+		}
+	}
+}

@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/template_glass_pane_side",
+	"textures": {
+		"pane": "starmine:block/terran_armor_bars",
+		"edge": "starmine:block/terran_armor_bars"
+	}
+}

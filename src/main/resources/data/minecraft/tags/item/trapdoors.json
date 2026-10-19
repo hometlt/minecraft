@@ -1,0 +1,8 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_armor_trapdoor",
+		"starmine:terran_armor_trapdoor",
+		"starmine:protoss_armor_trapdoor"
+	]
+}

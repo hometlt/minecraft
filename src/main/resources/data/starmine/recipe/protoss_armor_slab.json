@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:protoss_armor_wall"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_armor_slab",
+		"count": 6
+	}
+}

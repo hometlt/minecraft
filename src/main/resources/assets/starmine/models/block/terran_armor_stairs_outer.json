@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/outer_stairs",
+	"textures": {
+		"bottom": "starmine:block/terran_armor_wall",
+		"top": "starmine:block/terran_armor_wall",
+		"side": "starmine:block/terran_armor_wall"
+	}
+}

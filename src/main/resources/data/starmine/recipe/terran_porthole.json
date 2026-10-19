@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		" # ",
+		"#G#",
+		" # "
+	],
+	"key": {
+		"#": {
+			"item": "starmine:terran_armor_shard"
+		},
+		"G": {
+			"item": "minecraft:glass"
+		}
+	},
+	"result": {
+		"id": "starmine:terran_porthole",
+		"count": 1
+	}
+}
