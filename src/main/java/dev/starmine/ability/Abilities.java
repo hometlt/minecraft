@@ -444,7 +444,7 @@ public final class Abilities {
 	}
 
 	/** A ring of particles on the ground (an area spell's edge). */
-	static void ring(ServerLevel level, Vec3 centre, double radius, ParticleOptions particle) {
+	public static void ring(ServerLevel level, Vec3 centre, double radius, ParticleOptions particle) {
 		int points = (int) Math.max(8, radius * 8);
 		for (int i = 0; i < points; i++) {
 			double angle = i * Math.PI * 2 / points;

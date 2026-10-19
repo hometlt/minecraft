@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class HeroLiberation {
 	/** Blocks round the hero's place that are its arena: the floor under them cannot be broken, the hero stays inside. */
-	public static final int ARENA_RADIUS = 8, STAY_RADIUS = 7;
+	public static final int ARENA_RADIUS = 13, STAY_RADIUS = 12; // owner 19.10: room to dodge and flank
 	/** How far a guardian of a main base (owner 17.10: Abathur, Swann, Karax) may go from its post. */
 	public static final int GUARD_RADIUS = 24;
 	/** The share of its health a beaten hero keeps. */

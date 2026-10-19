@@ -109,6 +109,10 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
 			if (entity.deathTime == 0) ModeLook.shape(entity, partialTick, poseStack, ModeLook.clipped(model, entity)); // its mode's look, and the morph
+			if (entity.getPose() == net.minecraft.world.entity.Pose.CROUCHING) { // owner 19.10: kneeling (Artanis gathering his surge)
+				poseStack.mulPose(Axis.XP.rotationDegrees(14f));
+				poseStack.scale(1f, 0.72f, 1f);
+			}
 			if (shake > 0f) poseStack.translate((Math.random() - 0.5) * shake, 0, (Math.random() - 0.5) * shake);
 			if (fall > 0f) { // over onto its side (a flyer nose first), round its feet
 				float half = entity.kind.flying ? 0 : entity.kind.width / 2;

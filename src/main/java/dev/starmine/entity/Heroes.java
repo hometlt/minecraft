@@ -35,6 +35,8 @@ public final class Heroes {
 		if (hero.kind.dimensionHero()) dev.starmine.world.DimensionHeroes.tick(hero, level); // the Nether's and the End's heroes' ways
 		if (hero.kind.guardian() && !dev.starmine.world.HeroLiberation.freed(hero) && hero.isAlive())
 			dev.starmine.ability.GuardianFights.tick(hero, level); // owner 19.10: Karax's and Swann's own fights
+		if (shipHero(hero.kind) && !dev.starmine.world.HeroLiberation.freed(hero) && hero.isAlive())
+			dev.starmine.ability.HeroTactics.tick(hero, level); // owner 19.10: the cleverest bosses dodge, flank and fall back
 		if (hero.tickCount % 10 != 0 || dev.starmine.world.HeroLiberation.freed(hero)) return;
 		ServerBossEvent bar = BARS.computeIfAbsent(hero.getId(), id -> new ServerBossEvent(hero.getDisplayName(), switch (hero.kind.race) {
 			case ZERG -> BossEvent.BossBarColor.PURPLE;
@@ -73,27 +75,49 @@ public final class Heroes {
 			hero.addTag(next == 3 ? "starmine_phase3" : "starmine_phase2");
 			if (next == 2) hero.setShield((float) hero.kind.shields);
 			if (next == 3) dev.starmine.ability.Status.apply(hero, dev.starmine.ability.Status.STIM, 20 * 60 * 10);
-			UnitKind[] guard = hero.kind.guardian() ? new UnitKind[0] : switch (hero.kind.race) {
+			UnitKind[] guard = hero.kind.guardian() ? new UnitKind[0] : shipHero(hero.kind) ? aviation(hero.kind.race, next) : switch (hero.kind.race) {
 				case ZERG -> new UnitKind[] {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.HYDRALISK, UnitKind.ROACH};
 				case TERRAN -> new UnitKind[] {UnitKind.MARINE, UnitKind.MARINE, UnitKind.MARAUDER, UnitKind.GHOST};
 				case PROTOSS -> new UnitKind[] {UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.HIGH_TEMPLAR};
 			};
 			for (int i = 0; i < guard.length; i++) {
-				double a = i * Math.PI / 2;
-				net.minecraft.world.phys.Vec3 at = Spots.near(level, guard[i], hero.position().add(Math.cos(a) * 4, 0, Math.sin(a) * 4));
+				double a = i * Math.PI * 2 / guard.length;
+				double out = guard[i].flying ? 10 : 4, up = guard[i].flying ? 6 : 0; // flyers come in round the hall, over it
+				net.minecraft.world.phys.Vec3 at = Spots.near(level, guard[i], hero.position().add(Math.cos(a) * out, up, Math.sin(a) * out));
 				StarUnit add = dev.starmine.hive.HiveLogic.spawnNest(level, null, guard[i], at, hero.blockPosition());
 				if (add != null && hero.getTarget() != null) add.setTarget(hero.getTarget());
 			}
 			level.sendParticles(next == 3 ? net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER : net.minecraft.core.particles.ParticleTypes.FLASH,
 				hero.getX(), hero.getY() + hero.getBbHeight() * 0.6, hero.getZ(), next == 3 ? 20 : 1, 1, 1, 1, 0);
 			for (ServerPlayer player : bar.getPlayers())
-				player.displayClientMessage(net.minecraft.network.chat.Component.translatable(hero.kind.guardian() && next == 2
-					? "message.starmine.boss_phase.2_alone" : "message.starmine.boss_phase." + next, hero.getDisplayName()), true);
+				player.displayClientMessage(net.minecraft.network.chat.Component.translatable(hero.kind.guardian() && next == 2 ? "message.starmine.boss_phase.2_alone"
+					: shipHero(hero.kind) && next == 2 ? "message.starmine.boss_phase.2_air" : "message.starmine.boss_phase." + next, hero.getDisplayName()), true);
 			phase = next;
 		}
 		bar.setName(phase == 1 ? hero.getDisplayName()
 			: net.minecraft.network.chat.Component.translatable("boss.starmine.phase", hero.getDisplayName(), phase));
 		if (phase == 3) bar.setColor(BossEvent.BossBarColor.RED);
+	}
+
+	/** The heroes of the sky ships (Kerrigan, Raynor, Artanis): the cleverest bosses (owner 19.10). */
+	public static boolean shipHero(UnitKind kind) {
+		return kind == UnitKind.KERRIGAN || kind == UnitKind.RAYNOR || kind == UnitKind.ARTANIS;
+	}
+
+	/**
+	 * Owner 19.10: the ship heroes call aircraft, not a guard — at the second phase Kerrigan mutalisks and a corruptor,
+	 * Raynor vikings and banshees, Artanis void rays and phoenixes; at the third the heavy ones: brood lords, a
+	 * battlecruiser and liberators, a tempest and a carrier.
+	 */
+	public static UnitKind[] aviation(UnitKind.Race race, int phase) {
+		return switch (race) {
+			case ZERG -> phase == 2 ? new UnitKind[] {UnitKind.MUTALISK, UnitKind.MUTALISK, UnitKind.MUTALISK, UnitKind.CORRUPTOR}
+				: new UnitKind[] {UnitKind.BROOD_LORD, UnitKind.BROOD_LORD, UnitKind.MUTALISK, UnitKind.MUTALISK};
+			case TERRAN -> phase == 2 ? new UnitKind[] {UnitKind.VIKING, UnitKind.VIKING, UnitKind.BANSHEE, UnitKind.BANSHEE}
+				: new UnitKind[] {UnitKind.BATTLECRUISER, UnitKind.LIBERATOR, UnitKind.LIBERATOR};
+			case PROTOSS -> phase == 2 ? new UnitKind[] {UnitKind.VOID_RAY, UnitKind.VOID_RAY, UnitKind.PHOENIX, UnitKind.PHOENIX}
+				: new UnitKind[] {UnitKind.TEMPEST, UnitKind.CARRIER};
+		};
 	}
 
 	/** Whether a hero shows a bar now (tests). */
@@ -106,6 +130,7 @@ public final class Heroes {
 		ServerBossEvent bar = BARS.remove(hero.getId());
 		if (bar != null) bar.removeAllPlayers();
 		if (hero.kind.guardian()) dev.starmine.ability.GuardianFights.gone(hero);
+		dev.starmine.ability.HeroTactics.forget(hero);
 	}
 
 	/** What a hero leaves when killed. */

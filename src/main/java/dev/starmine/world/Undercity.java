@@ -140,6 +140,10 @@ public final class Undercity {
 					BlockState creep = StarMineBlocks.CREEP.getStateForPlacement(there, level, pos, Direction.DOWN);
 					if (creep != null) level.setBlock(pos, creep, 2);
 				}
+				for (int i = 0; i < 4; i++) { // creep tumors round the hall: they heal Abathur (GuardianFights)
+					double a = Math.PI / 4 + i * Math.PI / 2;
+					dev.starmine.creep.CreepGrowth.placeTumor(level, hall.offset((int) Math.round(Math.cos(a) * 8), 0, (int) Math.round(Math.sin(a) * 8)), 4);
+				}
 			});
 		}
 		return new Plan(painter, spawns, mouth == null ? east : mouth, hall, levels);

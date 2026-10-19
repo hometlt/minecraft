@@ -44,10 +44,24 @@ import org.joml.Vector3f;
  *   great Thor) with his barrage, whose shells break blocks, and once a nuclear missile onto the player, its red dot
  *   seen seconds before.
  *
+ * - Abathur (owner 19.10): toxic nests he lays toward the player — creep spreads from them, they are seen for
+ *   {@link #NEST_SEEN} ticks, then only by a detector — that burst in poison when stepped near; at his second phase he
+ *   evolves his units (a roach to a ravager, a hydralisk to a lurker, a zergling to a baneling) and tentacles burst
+ *   from the ground under the player and hold them; at his third tentacles strike from the walls where their shadows
+ *   show, and once he sheds a copy of himself. The creep tumors of his hall heal him: burn them and the healing stops.
+ *
+ * At the third phase each takes a great form that breaks the blocks in its way as it moves ({@link #FORM}): Abathur
+ * becomes a brutalisk that leaps at the player, a symbiote flying with it; Swann climbs into Odin; Karax into the
+ * archive guardian, a great protoss craft flying low with a burning beam. Hurting the form hurts the guardian.
+ *
  * Numbers are for a player in full armour in plain Minecraft: every blow can be dodged or outlasted.
  */
 public final class GuardianFights {
-	public static final String DRONE = "starmine_boss_drone", CANNON = "starmine_boss_cannon", BETTY = "starmine_betty", ODIN = "starmine_odin";
+	public static final String DRONE = "starmine_boss_drone", CANNON = "starmine_boss_cannon", BETTY = "starmine_betty", ODIN = "starmine_odin",
+		FORM = "starmine_form", SYMBIOTE = "starmine_symbiote", CLONE = "starmine_clone", NEST = "starmine_nest:", CLONED = "starmine_cloned";
+	public static final int NEST_EVERY = 300, NESTS_MAX = 3, NEST_SEEN = 100, EVOLVE_EVERY = 400, ROOTS_EVERY = 160, ROOTS_WARN = 25,
+		SLAMS_EVERY = 100, SLAM_WARN = 30, LEAP_EVERY = 120;
+	public static final float NEST_DAMAGE = 6, ROOTS_DAMAGE = 5, SLAM_DAMAGE = 8, LEAP_DAMAGE = 7;
 	public static final String MONOLITH = "starmine_monolith:", MINE = "starmine_mine:", MONOLITHS_RAISED = "starmine_monoliths", ODIN_CALLED = "starmine_odin_called",
 		NUKED = "starmine_nuked";
 	/** How far the guardians see the player (blocks); how far they call their army (blocks). */
@@ -86,6 +100,9 @@ public final class GuardianFights {
 	/** What a guardian's fight keeps between ticks (not saved: timers start again after a reload). */
 	private static final class Fight {
 		int drones = 60, cannon = 120, beam = 200, grenade = 40, mine = 100, betty = 60, barrage = 80, called;
+		int nest = 80, evolve = EVOLVE_EVERY, roots = 60, slams = 60, leap = 60, formBeam = 40;
+		final Map<BlockPos, Integer> nestsLaid = new HashMap<>();
+		final List<Strike> warnings = new ArrayList<>();
 		@Nullable Vec3 beamAt;
 		int beamLeft;
 		final Map<BlockPos, Integer> charging = new HashMap<>(), fuses = new HashMap<>();
@@ -107,6 +124,252 @@ public final class GuardianFights {
 		int phase = Heroes.phase(hero);
 		if (hero.kind == UnitKind.KARAX) karax(hero, level, fight, foe, phase);
 		else if (hero.kind == UnitKind.SWANN) swann(hero, level, fight, foe, phase);
+		else if (hero.kind == UnitKind.ABATHUR) abathur(hero, level, fight, foe, phase);
+		if (phase >= 3) form(hero, level, fight, foe);
+	}
+
+	// ---- the great forms (owner 19.10) ----
+
+	/** The great form a guardian takes at its third phase: its kind, its name, how much larger. */
+	static UnitKind formKind(UnitKind guardian) {
+		return switch (guardian) {
+			case ABATHUR -> UnitKind.ULTRALISK; // the brutalisk (drawn as a great ultralisk until its own model is in)
+			case SWANN -> UnitKind.THOR; // Odin
+			default -> UnitKind.TEMPEST; // Karax's archive guardian
+		};
+	}
+
+	static String formName(UnitKind guardian) {
+		return switch (guardian) {
+			case ABATHUR -> "entity.starmine.brutalisk";
+			case SWANN -> "entity.starmine.odin";
+			default -> "entity.starmine.archive_guardian";
+		};
+	}
+
+	/** The guardian's form, or null (none yet, or gone). */
+	public static @Nullable StarUnit formOf(StarUnit hero, ServerLevel level) {
+		if (hero.getVehicle() instanceof StarUnit form && form.getTags().contains(FORM)) return form;
+		List<StarUnit> forms = summons(hero, level, FORM);
+		return forms.isEmpty() ? null : forms.get(0);
+	}
+
+	/** Its form: taken once (the guardian climbs in, hidden), kept near its hall, breaking what stands in its way. */
+	private static void form(StarUnit hero, ServerLevel level, Fight fight, @Nullable LivingEntity foe) {
+		StarUnit form = formOf(hero, level);
+		if (form == null) {
+			if (hero.getTags().contains("starmine_formed")) return; // taken and lost: not again
+			hero.addTag("starmine_formed");
+			UnitKind kind = formKind(hero.kind);
+			form = hero.kind == UnitKind.SWANN ? odin(hero, level) : null;
+			if (form == null) form = summon(hero, level, kind, hero.position().add(0, kind.flying ? 3 : 0, 0), ODIN);
+			if (form == null) return;
+			form.addTag(FORM);
+			form.setCustomName(Component.translatable(formName(hero.kind)));
+			var scale = form.getAttribute(Attributes.SCALE);
+			if (scale != null && scale.getModifier(StarMine.id("form_size")) == null)
+				scale.addPermanentModifier(new AttributeModifier(StarMine.id("form_size"), hero.kind == UnitKind.ABATHUR ? 0.8 : 0.4,
+					AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+			hero.startRiding(form, true);
+			hero.setInvisible(true);
+			level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, form.getX(), form.getY() + 1, form.getZ(), 1, 0, 0, 0, 0);
+			say(hero, level, "message.starmine.guardian_form");
+			if (hero.kind == UnitKind.ABATHUR) { // the brutalisk's symbiote
+				StarUnit symbiote = summon(hero, level, UnitKind.MUTALISK, form.position().add(0, 4, 0), SYMBIOTE);
+				if (symbiote != null) symbiote.setCustomName(Component.translatable("entity.starmine.symbiote"));
+			}
+		}
+		if (!hero.isPassenger()) {
+			hero.startRiding(form, true);
+			hero.setInvisible(true);
+		}
+		if (foe != null && form.getTarget() != foe) form.setTarget(foe);
+		BlockPos home = hero.nest();
+		if (home != null && form.distanceToSqr(Vec3.atBottomCenterOf(home)) > Math.pow(dev.starmine.world.HeroLiberation.GUARD_RADIUS, 2)) {
+			form.getNavigation().moveTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, 1.2);
+			form.setTarget(null);
+		}
+		if (form.tickCount % 2 == 0) crush(form, level);
+		for (StarUnit symbiote : summons(hero, level, SYMBIOTE)) { // it keeps with the brutalisk
+			if (symbiote.distanceTo(form) > 10) symbiote.getMoveControl().setWantedPosition(form.getX(), form.getY() + 5, form.getZ(), 1.2);
+			if (foe != null && symbiote.getTarget() == null) symbiote.setTarget(foe);
+		}
+		if (foe == null) return;
+		if (hero.kind == UnitKind.ABATHUR && --fight.leap <= 0) { // the brutalisk leaps at the player
+			double d = form.distanceTo(foe);
+			if (d > 6 && d < 24 && form.onGround()) {
+				fight.leap = LEAP_EVERY;
+				Vec3 way = foe.position().subtract(form.position());
+				form.setDeltaMovement(way.x * 0.11, 0.9 + d * 0.012, way.z * 0.11);
+				form.hurtMarked = true;
+				fight.strikes.add(new Strike(form.position(), foe.position(), 22, LEAP_DAMAGE, 3, 1.5f, false));
+				level.playSound(null, form.blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2f, 0.6f);
+			}
+		}
+		if (hero.kind == UnitKind.KARAX && --fight.formBeam <= 0) { // the archive guardian's burning beam
+			fight.formBeam = 50;
+			monolithBeam(hero, level, form.position().add(0, form.getBbHeight() * 0.4, 0), foe);
+		}
+	}
+
+	/**
+	 * A form breaks what is in its way: the blocks in its body (not under its feet — it walks; a flyer's all), armour
+	 * only worn ({@link dev.starmine.block.BlockWear}).
+	 */
+	static void crush(StarUnit form, ServerLevel level) {
+		AABB box = form.getBoundingBox().inflate(0.4, 0, 0.4);
+		double from = form.flying() ? box.minY : form.getY() + 0.5;
+		for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(box.minX, from, box.minZ), BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir() || state.getCollisionShape(level, pos).isEmpty()) continue;
+			dev.starmine.block.BlockWear.strike(level, pos.immutable(), 40, form);
+		}
+	}
+
+	// ---- Abathur ----
+
+	private static void abathur(StarUnit hero, ServerLevel level, Fight fight, @Nullable LivingEntity foe, int phase) {
+		nests(hero, level, fight);
+		if (hero.tickCount % 40 == 0) heal(hero, level);
+		if (foe == null) return;
+		if (--fight.nest <= 0) {
+			fight.nest = NEST_EVERY;
+			if (hero.getTags().stream().filter(t -> t.startsWith(NEST)).count() < NESTS_MAX) layNest(hero, level, fight, foe);
+		}
+		if (phase >= 2 && --fight.evolve <= 0) {
+			fight.evolve = EVOLVE_EVERY;
+			evolve(hero, level);
+		}
+		if (phase >= 2 && --fight.roots <= 0) { // tentacles from the ground under the player: they hold and hurt
+			fight.roots = ROOTS_EVERY;
+			fight.warnings.add(new Strike(foe.position(), foe.position(), ROOTS_WARN, ROOTS_DAMAGE, 1.8f, 0, false));
+		}
+		if (phase >= 3 && --fight.slams <= 0) { // tentacles from the walls, three strikes where their shadows show
+			fight.slams = SLAMS_EVERY;
+			for (int i = 0; i < 3; i++)
+				fight.warnings.add(new Strike(foe.position(), foe.position().add(level.random.nextGaussian() * 3, 0, level.random.nextGaussian() * 3),
+					SLAM_WARN, SLAM_DAMAGE, 2.5f, 0, true));
+		}
+		if (phase >= 3 && !hero.getTags().contains(CLONED)) { // once, a copy of himself with half his health
+			hero.addTag(CLONED);
+			StarUnit clone = summon(hero, level, UnitKind.INFESTOR, hero.position().add(2, 0, 2), CLONE);
+			if (clone != null) {
+				clone.setCustomName(Component.translatable("entity.starmine.abathur_copy"));
+				var health = clone.getAttribute(Attributes.MAX_HEALTH);
+				if (health != null) health.setBaseValue(hero.getMaxHealth() / 2);
+				clone.setHealth(clone.getMaxHealth());
+				clone.setTarget(foe);
+				level.sendParticles(ParticleTypes.ITEM_SLIME, clone.getX(), clone.getY() + 1, clone.getZ(), 40, 1, 1, 1, 0.1);
+			}
+		}
+		warnings(hero, level, fight);
+	}
+
+	/** The tentacles' shadows: they strike when their time comes (roots: held; slams: thrown up). */
+	private static void warnings(StarUnit hero, ServerLevel level, Fight fight) {
+		for (Iterator<Strike> it = fight.warnings.iterator(); it.hasNext(); ) {
+			Strike strike = it.next();
+			if (strike.left % 3 == 0) level.sendParticles(ParticleTypes.SQUID_INK, strike.to.x, strike.to.y + 0.1, strike.to.z, 6, strike.reach / 2, 0.02, strike.reach / 2, 0);
+			if (--strike.left > 0) continue;
+			it.remove();
+			level.sendParticles(ParticleTypes.ITEM_SLIME, strike.to.x, strike.to.y + 1, strike.to.z, 30, 0.5, 1.2, 0.5, 0.1);
+			level.playSound(null, strike.to.x, strike.to.y, strike.to.z, SoundEvents.WARDEN_EMERGE, SoundSource.HOSTILE, 1f, 1.4f);
+			for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, new AABB(strike.to, strike.to).inflate(strike.reach, 2, strike.reach),
+				e -> e != hero && dev.starmine.faction.Faction.hostile(hero, e) && Math.hypot(e.getX() - strike.to.x, e.getZ() - strike.to.z) <= strike.reach)) {
+				other.hurt(hero.attackSource(), strike.damage);
+				if (strike.nuke) other.push(0, 0.9, 0); // a slam from the walls throws up
+				else Status.apply(other, Status.ROOTED, 50);
+				other.hurtMarked = true;
+			}
+		}
+	}
+
+	/** A toxic nest toward the player: creep spreads from it; seen a while, then hidden from all but detectors. */
+	private static void layNest(StarUnit hero, ServerLevel level, Fight fight, LivingEntity foe) {
+		Vec3 at = hero.position().lerp(foe.position(), 0.4 + level.random.nextDouble() * 0.4).add(level.random.nextGaussian() * 2, 0, level.random.nextGaussian() * 2);
+		BlockPos cell = floor(level, BlockPos.containing(at));
+		if (cell == null) return;
+		hero.addTag(NEST + cell.asLong());
+		fight.nestsLaid.put(cell.immutable(), hero.tickCount);
+		for (int i = 0; i < 40; i++) dev.starmine.creep.CreepGrowth.grow(level, cell, 3, 2);
+		level.playSound(null, cell, SoundEvents.SLIME_BLOCK_PLACE, SoundSource.HOSTILE, 1.5f, 0.6f);
+	}
+
+	/** Its nests: seen a while after they are laid (or near a foe's detector); one a foe steps near bursts in poison. */
+	private static void nests(StarUnit hero, ServerLevel level, Fight fight) {
+		if (hero.tickCount % 2 != 0) return;
+		List<String> gone = new ArrayList<>();
+		for (String tag : hero.getTags()) {
+			if (!tag.startsWith(NEST)) continue;
+			BlockPos nest = BlockPos.of(Long.parseLong(tag.substring(NEST.length())));
+			if (!level.isLoaded(nest)) continue;
+			int laid = fight.nestsLaid.getOrDefault(nest, -NEST_SEEN);
+			boolean seen = hero.tickCount - laid < NEST_SEEN || !level.getEntitiesOfClass(StarUnit.class, new AABB(nest).inflate(11),
+				u -> u.owner().isPresent() && u.isAlive() && detector(u.kind)).isEmpty();
+			if (seen && hero.tickCount % 6 == 0)
+				level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, nest.getX() + 0.5, nest.getY() + 0.4, nest.getZ() + 0.5, 4, 0.4, 0.2, 0.4, 0);
+			boolean near = !level.getEntitiesOfClass(LivingEntity.class, new AABB(nest).inflate(1.5, 1.5, 1.5),
+				e -> e != hero && dev.starmine.faction.Faction.hostile(hero, e)).isEmpty();
+			if (!near) continue;
+			gone.add(tag);
+			fight.nestsLaid.remove(nest);
+			level.sendParticles(ParticleTypes.ITEM_SLIME, nest.getX() + 0.5, nest.getY() + 0.5, nest.getZ() + 0.5, 50, 1.5, 0.6, 1.5, 0.1);
+			level.playSound(null, nest, SoundEvents.SLIME_DEATH, SoundSource.HOSTILE, 2f, 0.5f);
+			for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, new AABB(nest).inflate(3),
+				e -> e != hero && dev.starmine.faction.Faction.hostile(hero, e))) {
+				other.hurt(hero.attackSource(), NEST_DAMAGE);
+				other.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 100, 0));
+			}
+		}
+		gone.forEach(hero::removeTag);
+	}
+
+	static boolean detector(UnitKind kind) {
+		return kind == UnitKind.OBSERVER || kind == UnitKind.OVERSEER || kind == UnitKind.RAVEN || kind == UnitKind.MISSILE_TURRET
+			|| kind == UnitKind.SPORE_CRAWLER || kind == UnitKind.PHOTON_CANNON;
+	}
+
+	/** One of his units nearby evolves: a roach to a ravager, a hydralisk to a lurker, a zergling to a baneling. */
+	public static @Nullable StarUnit evolve(StarUnit hero, ServerLevel level) {
+		UUID base = hero.hiveId();
+		for (StarUnit unit : level.getEntitiesOfClass(StarUnit.class, hero.getBoundingBox().inflate(32),
+				u -> u.isAlive() && u.owner().isEmpty() && base != null && base.equals(u.hiveId()) && evolved(u.kind) != null)) {
+			StarUnit into = StarMine.type(evolved(unit.kind)).create(level);
+			if (into == null) continue;
+			into.moveTo(unit.getX(), unit.getY(), unit.getZ(), unit.getYRot(), 0);
+			dev.starmine.hive.Hive hive = dev.starmine.hive.HiveSavedData.get(level.getServer()).get(base);
+			if (unit.nest() != null) into.makeNest(unit.nest());
+			if (hive != null) into.joinHive(hive);
+			into.setTarget(unit.getTarget());
+			unit.discard();
+			level.addFreshEntity(into);
+			level.sendParticles(ParticleTypes.ITEM_SLIME, into.getX(), into.getY() + 1, into.getZ(), 30, 0.6, 0.8, 0.6, 0.1);
+			level.playSound(null, into.blockPosition(), SoundEvents.SNIFFER_EGG_HATCH, SoundSource.HOSTILE, 1.5f, 0.7f);
+			return into;
+		}
+		return null;
+	}
+
+	static @Nullable UnitKind evolved(UnitKind kind) {
+		return switch (kind) {
+			case ROACH -> UnitKind.RAVAGER;
+			case HYDRALISK -> UnitKind.LURKER;
+			case ZERGLING -> UnitKind.BANELING;
+			default -> null;
+		};
+	}
+
+	/** The creep tumors near him heal him (half a heart a second each, at most two hearts); burnt, they heal no more. */
+	static int heal(StarUnit hero, ServerLevel level) {
+		int tumors = 0;
+		BlockPos at = hero.blockPosition();
+		for (BlockPos pos : BlockPos.betweenClosed(at.offset(-20, -3, -20), at.offset(20, 6, 20)))
+			if (level.getBlockState(pos).is(dev.starmine.block.StarMineBlocks.CREEP_TUMOR) && ++tumors >= 4) break;
+		if (tumors > 0 && hero.getHealth() < hero.getMaxHealth()) {
+			hero.heal(tumors * 2);
+			level.sendParticles(ParticleTypes.HEART, hero.getX(), hero.getY() + hero.getBbHeight(), hero.getZ(), 1, 0.3, 0.2, 0.3, 0);
+		}
+		return tumors;
 	}
 
 	/** Whom it fights: its target if that is a player or a player's unit, else the nearest player in sight. */
@@ -315,7 +578,7 @@ public final class GuardianFights {
 				level.addFreshEntity(ball);
 				level.playSound(null, betty.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.HOSTILE, 1f, 1.2f);
 			}
-		if (phase >= 3 && !hero.getTags().contains(ODIN_CALLED)) { // Odin
+		if (false && phase >= 3 && !hero.getTags().contains(ODIN_CALLED)) { // Odin is Swann's form now (form())
 			hero.addTag(ODIN_CALLED);
 			Vec3 at = aside(level, hero.position(), foe.position(), 8, 4);
 			odin = summon(hero, level, UnitKind.THOR, at != null ? at : hero.position(), ODIN);
@@ -468,7 +731,7 @@ public final class GuardianFights {
 	}
 
 	/** The guardian's summons of a kind (by tag) round it. */
-	static List<StarUnit> summons(StarUnit hero, ServerLevel level, String tag) {
+	public static List<StarUnit> summons(StarUnit hero, ServerLevel level, String tag) {
 		return level.getEntitiesOfClass(StarUnit.class, hero.getBoundingBox().inflate(64),
 			unit -> unit.isAlive() && unit.getTags().contains(tag) && hero.getUUID().equals(unit.summoner()));
 	}
@@ -549,7 +812,10 @@ public final class GuardianFights {
 			} else continue;
 			hero.removeTag(tag);
 		}
-		for (String tag : List.of(DRONE, CANNON, BETTY, ODIN)) summons(hero, level, tag).forEach(unit -> unit.discard());
+		if (hero.isPassenger()) hero.stopRiding();
+		hero.setInvisible(false);
+		for (String tag : List.copyOf(hero.getTags())) if (tag.startsWith(NEST)) hero.removeTag(tag);
+		for (String tag : List.of(DRONE, CANNON, BETTY, ODIN, FORM, SYMBIOTE, CLONE)) summons(hero, level, tag).forEach(unit -> unit.discard());
 	}
 
 	/** Forgets a guardian that is gone. */

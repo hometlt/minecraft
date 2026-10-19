@@ -384,6 +384,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 			researchTick(server);
 		}
 		if (kind.shields > 0) shieldTick(server);
+		if (zone != null && this.tickCount % 10 == 0) // the zone on the ground, seen by all
+			dev.starmine.ability.Abilities.ring(server, zone.add(0, 0.15, 0), ZONE_RADIUS, net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK);
 		dev.starmine.ability.Abilities.tick(this, server);
 		if (kind == UnitKind.MEDIVAC && this.tickCount % 10 == 0) heal(server);
 		if (kind.structure() && this.tickCount % 5 == 0) syncProgress();
@@ -408,7 +410,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	/** Flying kinds stay above their hover height over the ground below. */
 	private void keepAloft() {
-		double floor = ZergGoals.cruise(this, this.getX(), this.getZ(), above(kind.hoverHeight())) - 1;
+		double hover = this.getTags().contains("starmine_form") ? Math.min(kind.hoverHeight(), 4) : kind.hoverHeight(); // owner 19.10: Karax's form flies low
+		double floor = ZergGoals.cruise(this, this.getX(), this.getZ(), above(hover)) - 1;
 		if (this.getY() < floor) {
 			Vec3 motion = this.getDeltaMovement();
 			this.setDeltaMovement(motion.x, Math.max(motion.y, 0.12), motion.z);
@@ -484,6 +487,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Whoever hurts a hive's zerg (or its hatchery) has its warriors on them. */
 	@Override
 	public boolean hurt(DamageSource source, float amount) {
+		if (this.getTags().contains("starmine_form") && this.level() instanceof ServerLevel here) { // owner 19.10: a guardian's great form
+			for (net.minecraft.world.entity.Entity rider : this.getPassengers())
+				if (rider instanceof StarUnit hero && hero.kind.guardian()) return hero.hurt(source, amount);
+		}
 		if (this.getVehicle() instanceof StarUnit transport && dev.starmine.ability.Transport.capacity(transport.kind) > 0
 			&& !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false; // cargo is out of harm's way (SC2)
 		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
@@ -1955,6 +1962,25 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public void setMode(int mode) {
 		this.entityData.set(MODE, mode);
+		if (kind == UnitKind.LIBERATOR) { // owner 19.10: SC2's defender zone, set where its foe stands (else ahead of it)
+			LivingEntity foe = getTarget();
+			zone = mode != dev.starmine.ability.Modes.DEFENDER ? null
+				: foe != null && foe.isAlive() ? foe.position() : position().add(getLookAngle().multiply(1, 0, 1).normalize().scale(ZONE_RANGE));
+		}
+	}
+
+	/** SC2 defender mode: a zone 5 across (units) at most 5 off, where a liberator's lancer missiles reach the ground. */
+	public static final double ZONE_RADIUS = 5 * UnitKind.BLOCKS_PER_UNIT / 2 + 1, ZONE_RANGE = 5 * UnitKind.BLOCKS_PER_UNIT;
+	private @org.jetbrains.annotations.Nullable Vec3 zone;
+
+	/** A deployed liberator's zone, or null. */
+	public @org.jetbrains.annotations.Nullable Vec3 zone() {
+		return zone;
+	}
+
+	/** Whether a target stands in a deployed liberator's zone. */
+	public boolean inZone(LivingEntity other) {
+		return zone != null && Math.hypot(other.getX() - zone.x, other.getZ() - zone.z) <= ZONE_RADIUS;
 	}
 
 	/** Shows a change starting (to a mode, or `into` another kind) of `ticks`, or none (`ticks` 0). */
@@ -2083,7 +2109,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		boolean air = other instanceof StarUnit unit ? unit.flying() : other instanceof net.minecraft.world.entity.FlyingMob || other.isFallFlying()
 			|| other instanceof net.minecraft.world.entity.monster.Phantom || other instanceof net.minecraft.world.entity.monster.Vex;
 		boolean both = other instanceof StarUnit unit && unit.kind.hitByAntiAir() && !unit.flying(); // a colossus: hit from the air and the ground
-		if (kind == UnitKind.LIBERATOR) return mode() == dev.starmine.ability.Modes.DEFENDER ? !air : air || both;
+		if (kind == UnitKind.LIBERATOR) return mode() == dev.starmine.ability.Modes.DEFENDER ? !air && (zone == null || inZone(other)) : air || both;
 		if (pilot != null) return true; // a player plays it: they aim
 		return air ? kind.hitsAir() : kind.hitsGround() || both && kind.hitsAir();
 	}
@@ -2308,6 +2334,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private void shieldTick(ServerLevel server) {
 		float shield = shield();
 		if (shield >= maxShield() || server.getGameTime() - lastHurt < SHIELD_DELAY || this.tickCount % 10 != 0) return;
+		if (kind == UnitKind.ARTANIS && getTarget() != null) return; // owner 19.10: his shields come back slowly, only out of the fight
 		this.entityData.set(SHIELD, (float) Math.min(maxShield(), shield + 2 * UnitKind.SCALE / 2));
 	}
 

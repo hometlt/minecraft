@@ -102,7 +102,9 @@ final class AbilityAi {
 			case HELLBAT -> !on && target != null && reach < 4 && foesAround(unit, unit.position(), 5) >= 2 || on && calm ? cast(unit, level, ability) : false;
 			case DEFENDER_MODE -> {
 				boolean ground = target != null && !(target instanceof StarUnit star && star.flying());
-				yield !on && ground && reach < 10 * UnitKind.BLOCKS_PER_UNIT || on && (calm || target != null && !ground) ? cast(unit, level, ability) : false;
+				// owner 19.10: in defender mode its foe left the zone (or flies): up again, to set the zone anew where the foe is
+				boolean left = on && target != null && ground && !unit.inZone(target) && unit.tickCount % 40 == 0;
+				yield !on && ground && reach < 10 * UnitKind.BLOCKS_PER_UNIT || on && (calm || target != null && !ground || left) ? cast(unit, level, ability) : false;
 			}
 			case HIGH_IMPACT -> {
 				boolean air = target instanceof StarUnit star && star.flying();

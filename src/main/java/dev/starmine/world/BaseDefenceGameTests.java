@@ -216,8 +216,11 @@ public class BaseDefenceGameTests implements FabricGameTest {
 			helper.assertTrue(!level.getBlockState(mine).is(Blocks.HEAVY_WEIGHTED_PRESSURE_PLATE), "the mine did not go off");
 			helper.assertTrue(player.getHealth() + player.shield() < before, "the mine did not hurt the player");
 			var odins = level.getEntitiesOfClass(StarUnit.class, swann.getBoundingBox().inflate(64), u -> u.getTags().contains(GuardianFights.ODIN));
-			helper.assertTrue(odins.size() == 1 && odins.get(0).kind == UnitKind.THOR
-				&& odins.get(0).getMaxHealth() > UnitKind.THOR.health * 1.9, "no Odin: " + odins.size());
+			helper.assertTrue(odins.size() == 1 && odins.get(0).kind == UnitKind.THOR && odins.get(0).getTags().contains(GuardianFights.FORM)
+				&& swann.getVehicle() == odins.get(0) && swann.isInvisible(), "Swann did not climb into Odin: " + odins.size());
+			float before3 = swann.getHealth();
+			odins.get(0).hurt(level.damageSources().generic(), 5);
+			helper.assertTrue(swann.getHealth() < before3, "hurting Odin does not hurt Swann");
 			var betties = level.getEntitiesOfClass(StarUnit.class, swann.getBoundingBox().inflate(64), u -> u.getTags().contains(GuardianFights.BETTY));
 			helper.assertTrue(!betties.isEmpty(), "no flaming Betty");
 			GuardianFights.end(swann, level);
