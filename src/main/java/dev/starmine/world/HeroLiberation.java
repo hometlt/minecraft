@@ -51,7 +51,20 @@ public final class HeroLiberation {
 	public static final int GUARD_RADIUS = 24;
 	/** The share of its health a beaten hero keeps. */
 	public static final float LEFT = 0.1f;
-	public static final String FREED = "starmine_freed";
+	public static final String FREED = "starmine_freed", FREED_AT = "starmine_freed_at:";
+	/** Owner 19.10: for a minute after it is freed a hero cannot die (the fight's last blows, its units', its liberator's). */
+	public static final int MERCY_TICKS = 60 * 20;
+
+	/** When a hero was freed (game time), or 0. */
+	static long freedAt(StarUnit hero) {
+		for (String tag : hero.getTags())
+			if (tag.startsWith(FREED_AT)) try {
+				return Long.parseLong(tag.substring(FREED_AT.length()));
+			} catch (NumberFormatException e) {
+				return 0;
+			}
+		return 0;
+	}
 	public static final Map<UnitKind.Race, Block> FLOORS = new EnumMap<>(UnitKind.Race.class);
 	private static final DustParticleOptions BLACK = new DustParticleOptions(new Vector3f(0.05f, 0.02f, 0.05f), 1.4f);
 	private static final DustParticleOptions RED = new DustParticleOptions(new Vector3f(0.85f, 0.05f, 0.08f), 1.1f);
@@ -167,6 +180,10 @@ public final class HeroLiberation {
 	 * {@link #RESPAWN_TICKS} later ({@link #respawn}); false then.
 	 */
 	static boolean beaten(StarUnit hero, ServerLevel level, DamageSource source) {
+		if (freed(hero) && level.getGameTime() - freedAt(hero) < MERCY_TICKS) { // owner 19.10: blows still flying as the fight ends kill no one
+			hero.setHealth(Math.max(1, hero.getMaxHealth() * LEFT));
+			return true;
+		}
 		if (freed(hero)) {
 			fell(hero, level);
 			return false;
@@ -189,6 +206,8 @@ public final class HeroLiberation {
 	/** Amun's hold breaks: the hero is the player's, with its base and army; it says so; its part may be taken. */
 	public static void free(StarUnit hero, ServerLevel level, @Nullable ServerPlayer player) {
 		hero.addTag(FREED);
+		hero.getTags().removeIf(tag -> tag.startsWith(FREED_AT));
+		hero.addTag(FREED_AT + level.getGameTime());
 		if (hero.kind.guardian()) dev.starmine.ability.GuardianFights.end(hero, level); // owner 19.10: its monoliths, mines, turrets and Odin go
 		for (String phase : List.of("starmine_phase2", "starmine_phase3")) hero.removeTag(phase);
 		hero.setTarget(null);

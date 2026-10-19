@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "starmine:block/terran_door"
+		},
+		"open=true": {
+			"model": "starmine:block/terran_door_open"
+		}
+	}
+}

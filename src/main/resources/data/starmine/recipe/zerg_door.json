@@ -1,0 +1,20 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"M#M",
+		"#M#",
+		"M#M"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:zerg_armor_shard"
+		},
+		"M": {
+			"item": "starmine:zerg_flesh"
+		}
+	},
+	"result": {
+		"id": "starmine:zerg_door",
+		"count": 4
+	}
+}

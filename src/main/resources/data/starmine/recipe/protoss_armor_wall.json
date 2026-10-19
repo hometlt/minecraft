@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"pattern": [
+		"###",
+		"###",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:protoss_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:protoss_armor_wall",
+		"count": 1
+	}
+}

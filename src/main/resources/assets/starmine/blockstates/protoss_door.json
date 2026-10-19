@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "starmine:block/protoss_door"
+		},
+		"open=true": {
+			"model": "starmine:block/protoss_door_open"
+		}
+	}
+}

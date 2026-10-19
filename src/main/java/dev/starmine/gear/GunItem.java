@@ -99,7 +99,8 @@ public final class GunItem extends Item {
 			Entity target = hit.getEntity();
 			float bonus = target instanceof net.minecraft.world.entity.LivingEntity living && dev.starmine.entity.Trait.has(living, dev.starmine.entity.Trait.LIGHT) ? lightBonus : 0;
 			target.hurt(shooter instanceof Player player ? level.damageSources().playerAttack(player) : level.damageSources().mobAttack(shooter), damage + bonus);
-		}
+		} else if (block instanceof net.minecraft.world.phys.BlockHitResult blockHit && block.getType() == HitResult.Type.BLOCK)
+			dev.starmine.block.BlockWear.hit(level, blockHit.getBlockPos(), damage, shooter); // owner 19.10: a shot wears the block it hits
 		int steps = (int) Math.min(40, eye.distanceTo(stop) * 2);
 		for (int i = 2; i <= steps; i++) {
 			Vec3 at = eye.lerp(stop, i / (double) steps).add(0, -0.15, 0);

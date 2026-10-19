@@ -46,7 +46,7 @@ public final class VoidSky {
 		public Vec3 getBrightnessDependentFogColor(Vec3 colour, float brightness) {
 			Minecraft mc = Minecraft.getInstance();
 			float flash = mc.level == null ? 0 : flash(mc.level.getGameTime(), mc.getTimer().getGameTimeDeltaPartialTick(false));
-			return new Vec3(0.03 + flash * 0.25, 0.005, 0.01 + flash * 0.03);
+			return new Vec3(0.07 + flash * 0.25, 0.03, 0.06 + flash * 0.03); // owner 19.10: a little lighter
 		}
 
 		@Override
@@ -85,7 +85,10 @@ public final class VoidSky {
 		RenderSystem.depthMask(true);
 	}
 
-	/** A band of dark red round the horizon, fading upwards. */
+	/**
+	 * A band of dark red round the horizon, fading upwards — and downwards the same (owner 19.10: there is no ground in the
+	 * Void: under the islands it looks as over them).
+	 */
 	private static void horizon(BufferBuilder buffer, Matrix4f view, float alpha) {
 		int sides = 32;
 		for (int i = 0; i < sides; i++) {
@@ -95,6 +98,10 @@ public final class VoidSky {
 			buffer.addVertex(view, x1, -12, z1).setColor(0.5f, 0.02f, 0.04f, alpha);
 			buffer.addVertex(view, x1, 28, z1).setColor(0.3f, 0f, 0.02f, 0f);
 			buffer.addVertex(view, x0, 28, z0).setColor(0.3f, 0f, 0.02f, 0f);
+			buffer.addVertex(view, x0, -52, z0).setColor(0.3f, 0f, 0.02f, 0f);
+			buffer.addVertex(view, x1, -52, z1).setColor(0.3f, 0f, 0.02f, 0f);
+			buffer.addVertex(view, x1, -12, z1).setColor(0.5f, 0.02f, 0.04f, alpha);
+			buffer.addVertex(view, x0, -12, z0).setColor(0.5f, 0.02f, 0.04f, alpha);
 		}
 	}
 

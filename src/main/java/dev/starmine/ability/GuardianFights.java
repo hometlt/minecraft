@@ -223,6 +223,7 @@ public final class GuardianFights {
 			if (state.isAir() || state.getCollisionShape(level, pos).isEmpty()) continue;
 			if (burned >= BURN || !breakable(level, pos, state)) {
 				reached = false;
+				dev.starmine.block.BlockWear.hit(level, pos, MONOLITH_DAMAGE * 4, hero); // armour and obsidian: worn, not burned through
 				level.sendParticles(ParticleTypes.LAVA, at.x, at.y, at.z, 4, 0.2, 0.2, 0.2, 0);
 				break;
 			}
@@ -263,8 +264,7 @@ public final class GuardianFights {
 			level.sendParticles(ParticleTypes.FLASH, at.x, at.y + 0.5, at.z, 1, 0, 0, 0, 0);
 			for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(at.x - 2, at.y - 1, at.z - 2), BlockPos.containing(at.x + 2, at.y + 3, at.z + 2))) {
 				if (Math.pow(pos.getX() + 0.5 - at.x, 2) + Math.pow(pos.getZ() + 0.5 - at.z, 2) > 1.7 * 1.7) continue;
-				BlockState state = level.getBlockState(pos);
-				if (!state.isAir() && breakable(level, pos, state)) level.destroyBlock(pos, false);
+				dev.starmine.block.BlockWear.strike(level, pos, BEAM_DAMAGE * 3, hero);
 			}
 		}
 		if (!warming && hero.tickCount % 10 == 0) {
@@ -447,8 +447,7 @@ public final class GuardianFights {
 			for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(at).offset(-r, -r, -r), BlockPos.containing(at).offset(r, r, r))) {
 				double d = Math.sqrt(pos.distToCenterSqr(at.x, at.y + 0.5, at.z));
 				if (d > breaks || d > breaks * 0.7 && level.random.nextFloat() < 0.4) continue;
-				BlockState state = level.getBlockState(pos);
-				if (!state.isAir() && breakable(level, pos, state)) level.destroyBlock(pos, false);
+				dev.starmine.block.BlockWear.strike(level, pos, damage * 4, hero); // armour and obsidian only worn
 			}
 		}
 		var source = level.damageSources().explosion(hero, hero);

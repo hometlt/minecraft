@@ -28,13 +28,17 @@ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
  * - the first island with the portal back at the middle ({@link VoidWorld#RETURN});
  * - {@link #ISLANDS} more round it farther and farther out, rough masses of void stone with glowing crystals,
  *   amethyst and crying obsidian; on a few a mineral crystal or a chest — little else;
- * - Amun's island, the largest, {@link #AMUN_DISTANCE} out, ringed by obsidian spires with void shards on them;
- *   more shards stand on spires on the other islands; Amun circles over it;
- * - paths of void bricks, three wide, from every island to the nearest one before it (Amun's to the two nearest),
- *   with glowing posts along them.
+ * - Amun's island, the largest, {@link #AMUN_DISTANCE} out, void shards standing round it on its ground; more shards
+ *   stand in the middle of the largest of the other islands (owner 19.10: no more spires); Amun circles low over it;
+ * - paths of void bricks, {@link #PATH_WIDTH} wide and even (an army walks them), from every island to the nearest one
+ *   before it (Amun's to the two nearest), with glowing posts along them;
+ * - owner 19.10: beyond them, islands without end — one in a {@link #REGION}-block square by a chance that falls the
+ *   farther it is ({@link #far}), made when a player comes near, each joined by a path to an island nearer the middle.
  */
 public final class VoidIslands {
 	public static final int ISLANDS = 10, AMUN_DISTANCE = 260, AMUN_RADIUS = 30, SHARDS_ON_AMUN = 6, SHARDS_ELSEWHERE = 4;
+	/** Owner 19.10: paths an army walks (units are twice their model size); the far islands' squares and where they begin. */
+	public static final int PATH_WIDTH = 7, REGION = 160, FAR_FROM = 360;
 	public static final Block STONE, BRICKS, CRYSTAL;
 
 	static {
@@ -67,6 +71,8 @@ public final class VoidIslands {
 	}
 
 	public static void load() {
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(VoidIslands::tick);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(VoidBlackHole::tick);
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.BUILDING_BLOCKS).register(entries -> {
 			entries.accept(STONE);
 			entries.accept(BRICKS);
@@ -83,7 +89,7 @@ public final class VoidIslands {
 		for (int i = 1; i <= ISLANDS; i++) {
 			heading += 2.39996 + (random.nextDouble() - 0.5) * 0.5; // the golden angle: spread all round
 			double distance = 40 + i * 19 + random.nextInt(14);
-			int y = VoidWorld.RETURN.getY() - 1 + random.nextInt(25) - 10;
+			int y = VoidWorld.RETURN.getY() - 1 + Mth.clamp(random.nextInt(25) - 10, -4, 4); // owner 19.10: near one height, the paths even
 			islands.add(new Island(new BlockPos(Mth.floor(Math.cos(heading) * distance), y, Mth.floor(Math.sin(heading) * distance)), 8 + random.nextInt(10)));
 		}
 		double away = random.nextDouble() * Math.PI * 2;
@@ -93,7 +99,7 @@ public final class VoidIslands {
 			for (int attempt = 0; attempt < 60; attempt++) {
 				double a = random.nextDouble() * Math.PI * 2, d = 70 + random.nextInt(130);
 				int r = 20 + random.nextInt(5);
-				BlockPos at = new BlockPos(Mth.floor(Math.cos(a) * d), VoidWorld.RETURN.getY() - 2 + random.nextInt(9), Mth.floor(Math.sin(a) * d));
+				BlockPos at = new BlockPos(Mth.floor(Math.cos(a) * d), VoidWorld.RETURN.getY() - 2 + Mth.clamp(random.nextInt(9), 0, 5), Mth.floor(Math.sin(a) * d));
 				boolean clear = Math.sqrt(at.distSqr(amun.centre())) - r - amun.radius() > 30
 					&& islands.stream().allMatch(other -> Math.sqrt(other.centre().distSqr(at)) - r - other.radius() > 6);
 				if (!clear) continue;
@@ -117,16 +123,15 @@ public final class VoidIslands {
 			before.sort(java.util.Comparator.comparingDouble(other -> other.centre().distSqr(from.centre())));
 			for (int link = 0; link < (from == amun ? 2 : 1) && link < before.size(); link++) path(painter, from, before.get(link));
 		}
-		List<BlockPos> spires = new ArrayList<>();
-		for (int i = 0; i < SHARDS_ON_AMUN; i++) { // a ring of spires round Amun's island
+		List<BlockPos> spires = new ArrayList<>(); // where the shards stand (owner 19.10: on the ground, no spires)
+		for (int i = 0; i < SHARDS_ON_AMUN; i++) { // round Amun's island
 			double a = Math.PI * 2 * i / SHARDS_ON_AMUN;
-			spires.add(amun.centre().offset(Mth.floor(Math.cos(a) * (amun.radius() - 6)), 0, Mth.floor(Math.sin(a) * (amun.radius() - 6))));
+			spires.add(amun.centre().offset(Mth.floor(Math.cos(a) * (amun.radius() - 8)), 0, Mth.floor(Math.sin(a) * (amun.radius() - 8))));
 		}
-		for (int i = 0; i < SHARDS_ELSEWHERE; i++) { // and on islands far from the first
-			Island on = islands.get(islands.size() - 2 - i * 2);
-			spires.add(on.centre().offset(2, 0, -2));
-		}
-		for (BlockPos spire : spires) spire(painter, spire, 8 + random.nextInt(8));
+		List<Island> largest = new ArrayList<>(islands.subList(1, islands.size() - 1)); // in the middle of the largest others
+		largest.removeIf(island -> island.riches() != Riches.NONE);
+		largest.sort(java.util.Comparator.comparingInt(Island::radius).reversed());
+		for (int i = 0; i < SHARDS_ELSEWHERE && i < largest.size(); i++) spires.add(largest.get(i).centre());
 		for (Island island : islands) if (island.riches() != Riches.NONE) riches(level, painter, island, random);
 		for (int i = 2; i < islands.size() - 1; i += 3) { // a little to take: a mineral crystal here and there, a chest
 			BlockPos core = islands.get(i).centre().offset(-3, 1, 3);
@@ -235,7 +240,10 @@ public final class VoidIslands {
 		}
 	}
 
-	/** A path of void bricks three wide from one island's middle to another's, its height straight between them. */
+	/**
+	 * A path of void bricks {@link #PATH_WIDTH} wide from one island's middle to another's, its height straight between
+	 * them (rising a block at most every two), clear over it for the tallest walkers.
+	 */
 	static void path(Painter painter, Island from, Island to) {
 		BlockPos a = from.centre(), b = to.centre();
 		double length = Math.sqrt(a.distSqr(b));
@@ -244,24 +252,87 @@ public final class VoidIslands {
 			double t = step / length;
 			int x = Mth.floor(a.getX() + (b.getX() - a.getX()) * t), z = Mth.floor(a.getZ() + (b.getZ() - a.getZ()) * t);
 			int y = Mth.floor(a.getY() + (b.getY() - a.getY()) * t);
-			for (int side = -1; side <= 1; side++) {
-				BlockPos at = new BlockPos(x + Mth.floor(-dz * side + 0.5), y, z + Mth.floor(dx * side + 0.5));
+			int half = PATH_WIDTH / 2;
+			for (double side = -half; side <= half; side += 0.5) { // every half block across: no gaps where it runs aslant
+				BlockPos at = new BlockPos(Mth.floor(x + 0.5 - dz * side), y, Mth.floor(z + 0.5 + dx * side));
 				if (painter.stateAt(at).isAir() || !painter.stateAt(at).is(STONE)) painter.set(at, BRICKS.defaultBlockState());
-				for (int up = 1; up <= 3; up++) if (!painter.stateAt(at.above(up)).is(CRYSTAL)) painter.set(at.above(up), Blocks.AIR.defaultBlockState());
+				painter.set(at.below(), STONE.defaultBlockState());
+				for (int up = 1; up <= 6; up++) if (!painter.stateAt(at.above(up)).is(CRYSTAL)) painter.set(at.above(up), Blocks.AIR.defaultBlockState());
 			}
-			if (step % 9 == 4) { // posts along it, a crystal on each, and a stone beneath
-				BlockPos post = new BlockPos(x + Mth.floor(-dz * 2 + 0.5), y, z + Mth.floor(dx * 2 + 0.5));
-				painter.set(post, BRICKS.defaultBlockState());
-				painter.set(post.above(), Blocks.POLISHED_BLACKSTONE_WALL.defaultBlockState());
-				painter.set(post.above(2), CRYSTAL.defaultBlockState());
-				painter.set(new BlockPos(x, y - 1, z), STONE.defaultBlockState());
+			if (step % 9 == 4) { // posts along both edges, a crystal on each
+				for (int edge = -1; edge <= 1; edge += 2) {
+					BlockPos post = new BlockPos(Mth.floor(x + 0.5 - dz * (half + 1) * edge), y, Mth.floor(z + 0.5 + dx * (half + 1) * edge));
+					painter.set(post, BRICKS.defaultBlockState());
+					painter.set(post.above(), Blocks.POLISHED_BLACKSTONE_WALL.defaultBlockState());
+					painter.set(post.above(2), CRYSTAL.defaultBlockState());
+				}
 			}
 		}
 	}
 
-	/** An obsidian spire a void shard stands on. */
-	static void spire(Painter painter, BlockPos base, int height) {
-		painter.cylinder(base.above(), 2.4, height, Painter.of(Blocks.OBSIDIAN.defaultBlockState()));
-		painter.cylinder(base.above(height + 1), 1.2, 1, Painter.of(BRICKS.defaultBlockState()));
+	// ---- the far islands (owner 19.10) ----
+
+	/**
+	 * The island of a far square, or null: none within {@link #FAR_FROM} of the middle (the first islands are there),
+	 * beyond it one by a chance falling with the distance (0.55 at first, half that every 900 blocks, never under 0.06).
+	 */
+	public static @org.jetbrains.annotations.Nullable Island far(long seed, int rx, int rz) {
+		RandomSource random = RandomSource.create(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ 0x701D_15L);
+		int x = rx * REGION + 30 + random.nextInt(REGION - 60), z = rz * REGION + 30 + random.nextInt(REGION - 60);
+		double d = Math.hypot(x, z);
+		if (d < FAR_FROM) return null;
+		double chance = Math.max(0.06, 0.55 * Math.pow(0.5, (d - FAR_FROM) / 900));
+		if (random.nextDouble() >= chance) return null;
+		int y = VoidWorld.RETURN.getY() - 1 + random.nextInt(11) - 5;
+		return new Island(new BlockPos(x, y, z), 9 + random.nextInt(14));
+	}
+
+	/** The island a far one is joined to: the nearest island (first or far) nearer the middle than it. */
+	public static Island toward(long seed, Island island) {
+		List<Island> near = new ArrayList<>(layout(seed));
+		int rx = Math.floorDiv(island.centre().getX(), REGION), rz = Math.floorDiv(island.centre().getZ(), REGION);
+		for (int dx = -2; dx <= 2; dx++)
+			for (int dz = -2; dz <= 2; dz++) {
+				Island other = far(seed, rx + dx, rz + dz);
+				if (other != null) near.add(other);
+			}
+		double mine = Math.hypot(island.centre().getX(), island.centre().getZ());
+		return near.stream().filter(other -> Math.hypot(other.centre().getX(), other.centre().getZ()) < mine - 1)
+			.min(java.util.Comparator.comparingDouble(other -> other.centre().distSqr(island.centre()))).orElse(near.get(0));
+	}
+
+	/** Each second: the far islands round players in the Void that are not made yet. */
+	public static void tick(net.minecraft.server.MinecraftServer server) {
+		if (server.getTickCount() % 20 != 7) return;
+		ServerLevel level = server.getLevel(VoidWorld.KEY);
+		if (level == null || level.players().isEmpty()) return;
+		VoidWorld.State state = VoidWorld.State.get(server);
+		if (!state.islands) return;
+		for (var player : level.players()) {
+			int prx = Math.floorDiv(player.getBlockX(), REGION), prz = Math.floorDiv(player.getBlockZ(), REGION);
+			for (int rx = prx - 1; rx <= prx + 1; rx++)
+				for (int rz = prz - 1; rz <= prz + 1; rz++) {
+					long key = ((long) rx << 32) ^ (rz & 0xffffffffL);
+					if (state.farIslands.contains(key)) continue;
+					state.farIslands.add(key);
+					state.setDirty();
+					Island island = far(level.getSeed(), rx, rz);
+					if (island == null) continue;
+					buildFar(level, island);
+					return; // one a second
+				}
+		}
+	}
+
+	/** A far island and its path in toward the middle; now and then a mineral crystal or a chest on it. */
+	public static void buildFar(ServerLevel level, Island island) {
+		RandomSource random = RandomSource.create(level.getSeed() ^ island.centre().asLong());
+		Painter painter = Painter.deferred(level, random);
+		island(painter, island, random, false);
+		path(painter, island, toward(level.getSeed(), island));
+		BlockPos core = island.centre().offset(-3, 1, 3);
+		if (random.nextInt(3) == 0) painter.then(() -> dev.starmine.mineral.Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, 2)));
+		if (random.nextInt(4) == 0) painter.chest(island.centre().offset(3, 1, -4), BuiltInLootTables.END_CITY_TREASURE);
+		painter.start();
 	}
 }

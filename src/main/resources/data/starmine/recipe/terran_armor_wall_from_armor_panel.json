@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": {
+		"item": "starmine:terran_armor_panel"
+	},
+	"result": {
+		"id": "starmine:terran_armor_wall",
+		"count": 1
+	}
+}

@@ -44,6 +44,8 @@ import org.jetbrains.annotations.Nullable;
  * - Weapons: void bolts (wither skulls, now and then one that breaks blocks) and dragon's breath from afar;
  *   a pulse that throws back and hurts all round him up close.
  * - Every {@link #RIFT_EVERY} ticks he opens a {@link VoidRift} near a foe, up to {@link #RIFTS} at once.
+ * - Owner 19.10: every {@link VoidBlackHole#EVERY} ticks a black hole where a foe stands: it grows, draws in all round it
+ *   and bursts with every block inside — so he breaks islands with an army or a player on them.
  * - While a {@link VoidShard} stands he cannot be hurt, and each heals him.
  * - Dead, his rifts close, and everyone in the Void has won: the game is complete (the end poem and credits).
  */
@@ -117,6 +119,7 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 			if (tickCount % BOLT_EVERY == 0) bolt(level, foe);
 			if (tickCount % PULSE_EVERY == 0 && distanceTo(foe) < PULSE_RANGE + getBbWidth() / 2) pulse(level);
 			if (tickCount % RIFT_EVERY == RIFT_EVERY / 3) rift(level, foe);
+			if (tickCount % VoidBlackHole.EVERY == VoidBlackHole.EVERY / 2) VoidBlackHole.open(level, this, foe.blockPosition());
 		}
 		bar.setProgress(getHealth() / getMaxHealth());
 		bar.setName(shards > 0 ? Component.translatable("boss.starmine.amun_shielded", getDisplayName(), shards) : getDisplayName());
@@ -134,10 +137,10 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 		circle += 0.012;
 		if (foe != null && foe.isAlive()) {
 			double r = 14 + 4 * Math.sin(circle * 3);
-			goal = foe.position().add(Math.cos(circle * 2.5) * r, 10 + 3 * Math.sin(circle * 5), Math.sin(circle * 2.5) * r);
+			goal = foe.position().add(Math.cos(circle * 2.5) * r, 6 + 2 * Math.sin(circle * 5), Math.sin(circle * 2.5) * r); // owner 19.10: low
 		} else {
 			BlockPos at = home != null ? home : blockPosition();
-			goal = Vec3.atCenterOf(at).add(Math.cos(circle) * 34, 26 + 4 * Math.sin(circle * 3), Math.sin(circle) * 34);
+			goal = Vec3.atCenterOf(at).add(Math.cos(circle) * 34, 10 + 3 * Math.sin(circle * 3), Math.sin(circle) * 34); // a little over the islands
 		}
 		Vec3 way = goal.subtract(position());
 		double speed = foe != null ? 0.55 : 0.4;

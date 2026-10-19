@@ -202,6 +202,8 @@ public final class VoidWorld {
 		public final java.util.Set<UUID> armies = new java.util.LinkedHashSet<>();
 		/** Owner 17.10: freed heroes who fell, back at their base when their time comes ({@link HeroLiberation#respawn}). */
 		public final List<Fallen> fallen = new ArrayList<>();
+		/** Owner 19.10: the far squares already looked at (an island made in them or none to make). */
+		public final java.util.Set<Long> farIslands = new java.util.HashSet<>();
 		/** When the world's month of Amun's patience began (game time; -1: not yet), and whether his invasion has begun. */
 		public long amunClock = -1;
 		public boolean invading;
@@ -243,6 +245,7 @@ public final class VoidWorld {
 			tag.putBoolean("islands", islands);
 			tag.putBoolean("amunDead", amunDead);
 			tag.putInt("shards", shards);
+			tag.putLongArray("farIslands", farIslands.stream().mapToLong(Long::longValue).toArray());
 			ListTag freedList = new ListTag();
 			for (String race : freed) freedList.add(net.minecraft.nbt.StringTag.valueOf(race));
 			tag.put("freed", freedList);
@@ -278,6 +281,7 @@ public final class VoidWorld {
 			state.islands = tag.getBoolean("islands");
 			state.amunDead = tag.getBoolean("amunDead");
 			state.shards = tag.getInt("shards");
+			for (long key : tag.getLongArray("farIslands")) state.farIslands.add(key);
 			for (Tag t : tag.getList("freed", Tag.TAG_STRING)) state.freed.add(t.getAsString());
 			CompoundTag partTag = tag.getCompound("parts");
 			for (String race : partTag.getAllKeys()) state.parts.put(race, BlockPos.of(partTag.getLong(race)));

@@ -1,0 +1,17 @@
+{
+	"replace": false,
+	"values": [
+		"starmine:zerg_armor_wall",
+		"starmine:zerg_armor_plating",
+		"starmine:zerg_armor_panel",
+		"starmine:zerg_door",
+		"starmine:terran_armor_wall",
+		"starmine:terran_armor_plating",
+		"starmine:terran_armor_panel",
+		"starmine:terran_door",
+		"starmine:protoss_armor_wall",
+		"starmine:protoss_armor_plating",
+		"starmine:protoss_armor_panel",
+		"starmine:protoss_door"
+	]
+}

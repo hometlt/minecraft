@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": {
+		"item": "starmine:protoss_armor_panel"
+	},
+	"result": {
+		"id": "starmine:protoss_armor_wall",
+		"count": 1
+	}
+}

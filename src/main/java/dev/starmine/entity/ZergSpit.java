@@ -171,6 +171,11 @@ public class ZergSpit extends ThrowableItemProjectile {
 		super.onHit(hit);
 		if (this.level().isClientSide) return;
 		if (blast && this.level() instanceof ServerLevel server) kd8(server);
+		if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK && this.level() instanceof ServerLevel server) {
+			// owner 19.10: a missile wears the block it hits (a charge's blast three times as much)
+			float worn = playerDamage >= 0 ? playerDamage : this.getOwner() instanceof StarUnit unit ? (float) unit.weapon().damage() : (float) kind.damage;
+			dev.starmine.block.BlockWear.hit(server, blockHit.getBlockPos(), blast ? worn * 3 : worn, this.getOwner());
+		}
 		if ((kind == UnitKind.BROOD_LORD || kind == UnitKind.STUKOV) && this.getOwner() instanceof StarUnit lord && lord.getTarget() != null)
 			for (int i = 0; i < 2; i++) StarUnit.summon(StarMine.type(UnitKind.BROODLING), this.position(), lord.getTarget());
 		if (this.level() instanceof ServerLevel server) switch (shot()) {

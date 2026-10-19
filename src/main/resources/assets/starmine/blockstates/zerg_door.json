@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "starmine:block/zerg_door"
+		},
+		"open=true": {
+			"model": "starmine:block/zerg_door_open"
+		}
+	}
+}

@@ -96,6 +96,8 @@ public final class StarMineClient implements ClientModInitializer {
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
 		for (net.minecraft.world.level.block.Block part : dev.starmine.world.Artifact.PARTS.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
+		dev.starmine.block.ArmorBlocks.DOORS.forEach((race, door) -> // owner 19.10: open doors are frames; the protoss gate's field is clear light
+			BlockRenderLayerMap.INSTANCE.putBlock(door, race == UnitKind.Race.PROTOSS ? RenderType.translucent() : RenderType.cutout()));
 		// the liquids (owner 16.10): vespene and liquid creep, their own still and flowing textures
 		net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry.INSTANCE.register(dev.starmine.vespene.Vespene.SOURCE,
 			dev.starmine.vespene.Vespene.FLOWING, new net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler(

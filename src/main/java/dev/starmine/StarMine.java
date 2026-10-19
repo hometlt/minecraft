@@ -152,6 +152,7 @@ public final class StarMine implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		StarMineBlocks.load();
+		dev.starmine.block.ArmorBlocks.load(); // owner 19.10: armour walls, doors, weapons wearing blocks
 		dev.starmine.gear.TraitPotions.load();
 		dev.starmine.world.VoidGate.load();
 		dev.starmine.world.AmunInvasion.register();
