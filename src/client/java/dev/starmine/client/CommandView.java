@@ -470,10 +470,11 @@ public final class CommandView {
 		return turrets;
 	}
 
-	/** Whether a unit belongs to this player's base. */
+	/** Whether a unit belongs to this player's base (or is theirs for now under a neural parasite, SC2). */
 	static boolean own(StarUnit unit) {
 		Minecraft mc = Minecraft.getInstance();
-		return mc.player != null && unit.owner().map(mc.player.getUUID()::equals).orElse(false);
+		return mc.player != null && (unit.owner().map(mc.player.getUUID()::equals).orElse(false)
+			|| unit.controller().map(mc.player.getUUID()::equals).orElse(false));
 	}
 
 	/** The selected entities still around, in selection order. */

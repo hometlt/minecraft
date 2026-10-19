@@ -92,7 +92,8 @@ public final class Commands {
 		boolean away = !base.dimension.equals(level.dimension().location().toString()); // its army away from home: orders, no building
 		List<StarUnit> units = new ArrayList<>();
 		for (int id : command.ids())
-			if (level.getEntity(id) instanceof StarUnit unit && base.id.equals(unit.hiveId()) && unit.isAlive()
+			if (level.getEntity(id) instanceof StarUnit unit && (base.id.equals(unit.hiveId()) || unit.controller().map(player.getUUID()::equals).orElse(false))
+				&& unit.isAlive()
 				&& CommanderEye.near(player, unit.position(), COMMAND_RANGE)) units.add(unit);
 		Vec3 at = new Vec3(command.x(), command.y(), command.z());
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();

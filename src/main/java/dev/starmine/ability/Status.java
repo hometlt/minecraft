@@ -233,6 +233,8 @@ public enum Status {
 				unit.abilities.parasiteSide = null;
 				unit.abilities.parasiteCaster = null;
 				unit.setTarget(null);
+				if (unit.controller().isPresent()) unit.dropOrder(); // the orders were its captor's
+				unit.setController(null);
 			}
 			case INJECTED -> ZergAbilities.injectDone(unit);
 			case SHADE -> ProtossAbilities.shadeDone(unit);

@@ -74,6 +74,7 @@ final class Channels {
 					unit.abilities.parasiteSide = Faction.of(caster);
 					unit.abilities.parasiteCaster = caster.getUUID();
 					Status.apply(unit, Status.PARASITE, 15);
+					unit.setController(caster.owner().orElse(null)); // SC2: the infestor's player commands it meanwhile
 				} else if (target instanceof Mob mob && caster.tickCount % 20 == 0) { // a creature turns on the infestor's foes
 					LivingEntity foe = level.getNearestEntity(LivingEntity.class, net.minecraft.world.entity.ai.targeting.TargetingConditions.forCombat()
 							.selector(other -> other != mob && Faction.hostile(caster, other)), mob, mob.getX(), mob.getY(), mob.getZ(),

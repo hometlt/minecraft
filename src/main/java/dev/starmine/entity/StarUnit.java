@@ -218,6 +218,9 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	/** Synced for the command view: the base's player, progress (0-1000) and queue (kind ids). */
 	private static final EntityDataAccessor<java.util.Optional<UUID>> OWNER =
 		SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.OPTIONAL_UUID);
+	/** Owner 19.10, SC2 neural parasite: the player who commands it for now (the infestor's), synced for the command view. */
+	private static final EntityDataAccessor<java.util.Optional<UUID>> CONTROLLER =
+		SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.OPTIONAL_UUID);
 	private static final EntityDataAccessor<Integer> PROGRESS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** Protoss plasma shields left (health units); they absorb damage first and come back {@link #SHIELD_DELAY} after the last hit. */
 	private static final EntityDataAccessor<Float> SHIELD = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
@@ -880,6 +883,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		super.defineSynchedData(builder);
 		builder.define(CARRIED, ItemStack.EMPTY);
 		builder.define(OWNER, java.util.Optional.empty());
+		builder.define(CONTROLLER, java.util.Optional.empty());
 		builder.define(SHIELD, 0f);
 		builder.define(UPGRADES, 0);
 		builder.define(PROGRESS, 0);
@@ -1715,6 +1719,22 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public Vec3 orderPos() {
 		return orderPos;
+	}
+
+	/** The player commanding it for now (a neural parasite's), both sides. */
+	public java.util.Optional<UUID> controller() {
+		return this.entityData.get(CONTROLLER);
+	}
+
+	public void setController(@org.jetbrains.annotations.Nullable UUID player) {
+		if (!controller().equals(java.util.Optional.ofNullable(player))) this.entityData.set(CONTROLLER, java.util.Optional.ofNullable(player));
+	}
+
+	/** Its order given up where it stands (its home stays): a parasite's hold ended. */
+	public void dropOrder() {
+		this.order = Order.NONE;
+		this.orderPos = null;
+		this.getNavigation().stop();
 	}
 
 	/** The order is done: the unit stays where it got to. */

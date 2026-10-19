@@ -251,9 +251,11 @@ public class ZergAbilityGameTests implements FabricGameTest {
 		helper.runAfterDelay(30, () -> {
 			helper.assertTrue(Faction.allied(thor, infestor) && Status.has(thor, Status.PARASITE), "the marauder is not the infestor's");
 			helper.assertTrue(Status.has(infestor, Status.CHANNELLING) && infestor.weapon().range() == 0, "the infestor does not channel");
+			helper.assertTrue(thor.controller().equals(java.util.Optional.of(player)), "the infestor's player does not command it (SC2)");
 		});
 		helper.runAfterDelay(260, () -> {
 			helper.assertTrue(!Faction.allied(thor, infestor) && !Status.has(thor, Status.PARASITE), "the parasite lasts more than 11 s");
+			helper.assertTrue(thor.controller().isEmpty(), "the infestor's player still commands it");
 			helper.succeed();
 		});
 	}
