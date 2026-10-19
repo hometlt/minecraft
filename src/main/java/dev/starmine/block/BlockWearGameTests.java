@@ -50,14 +50,14 @@ public class BlockWearGameTests implements FabricGameTest {
 		});
 	}
 
-	@GameTest(template = ARENA, batch = "wearMining", timeoutTicks = 200)
+	@GameTest(template = ARENA, batch = "wearMining", timeoutTicks = 300)
 	public void miningResumesWhereItWasLeft(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
-		BlockPos dirt = helper.absolutePos(new BlockPos(10, 2, 10));
-		level.setBlock(dirt, Blocks.DIRT.defaultBlockState(), Block.UPDATE_ALL);
+		BlockPos planks = helper.absolutePos(new BlockPos(10, 2, 10));
+		level.setBlock(planks, Blocks.OAK_PLANKS.defaultBlockState(), Block.UPDATE_ALL);
 		ServerPlayer player = (ServerPlayer) helper.makeMockServerPlayerInLevel();
 		player.setGameMode(GameType.SURVIVAL);
-		player.teleportTo(dirt.getX() + 0.5, dirt.getY() + 1, dirt.getZ() + 2.5);
+		player.teleportTo(planks.getX() + 0.5, planks.getY() + 1, planks.getZ() + 2.5);
 		int top = level.getMaxBuildHeight();
 		var start = ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK;
 		// mined for a while, left; mined again: it breaks in fewer ticks than a fresh one would take
@@ -66,23 +66,23 @@ public class BlockWearGameTests implements FabricGameTest {
 		helper.onEachTick(() -> {
 			player.gameMode.tick(); // a mock player's mining clock runs only when ticked (a real one's every tick)
 			int t = ++tick[0];
-			if (t == 2) player.gameMode.handleBlockBreakAction(dirt, start, Direction.UP, top, 0);
-			if (t == 12) player.gameMode.handleBlockBreakAction(dirt, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.UP, top, 0);
+			if (t == 2) player.gameMode.handleBlockBreakAction(planks, start, Direction.UP, top, 0);
+			if (t == 12) player.gameMode.handleBlockBreakAction(planks, ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK, Direction.UP, top, 0);
 			if (t == 20) {
-				left[0] = BlockWear.progress(level, dirt);
-				perTick[0] = level.getBlockState(dirt).getDestroyProgress(player, level, dirt);
-				player.gameMode.handleBlockBreakAction(dirt, start, Direction.UP, top, 0);
+				left[0] = BlockWear.progress(level, planks);
+				perTick[0] = level.getBlockState(planks).getDestroyProgress(player, level, planks);
+				player.gameMode.handleBlockBreakAction(planks, start, Direction.UP, top, 0);
 				stopAt[0] = t + (int) Math.ceil((0.7f - left[0]) / perTick[0]);
 			}
 			if (t == stopAt[0]) {
-				player.gameMode.handleBlockBreakAction(dirt, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, Direction.UP, top, 0);
-				boolean broken = level.getBlockState(dirt).isAir();
+				player.gameMode.handleBlockBreakAction(planks, ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK, Direction.UP, top, 0);
+				boolean broken = level.getBlockState(planks).isAir();
 				int ticks = stopAt[0] - 20;
-				level.setBlock(dirt, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+				level.setBlock(planks, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 				level.removePlayerImmediately(player, Entity.RemovalReason.DISCARDED);
-				helper.assertTrue(left[0] > 0, "the work on the dirt was not kept");
-				helper.assertTrue(perTick[0] * (ticks + 1) < 0.7f, "the test is wrong: a fresh dirt breaks in " + ticks + " ticks anyway");
-				helper.assertTrue(broken, "the dirt mined again from its kept work (" + left[0] + ") did not break in " + ticks + " ticks");
+				helper.assertTrue(left[0] > 0, "the work on the planks was not kept");
+				helper.assertTrue(perTick[0] * (ticks + 1) < 0.7f, "the test is wrong: fresh planks break in " + ticks + " ticks anyway");
+				helper.assertTrue(broken, "the planks mined again from their kept work (" + left[0] + ") did not break in " + ticks + " ticks");
 				helper.succeed();
 			}
 		});
@@ -138,5 +138,30 @@ public class BlockWearGameTests implements FabricGameTest {
 		helper.assertTrue(joined, "armour bars do not join");
 		helper.assertTrue(tough, "an armour slab is weaker than obsidian");
 		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "wearLoose", timeoutTicks = 500)
+	public void looseGroundSettlesBack(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos dirt = helper.absolutePos(new BlockPos(14, 2, 14)), sand = dirt.east(2);
+		level.setBlock(dirt, Blocks.DIRT.defaultBlockState(), Block.UPDATE_ALL);
+		level.setBlock(sand, Blocks.SANDSTONE.defaultBlockState(), Block.UPDATE_ALL);
+		BlockWear.hit(level, dirt, 1, null);
+		BlockWear.mined(level, sand, 0.5f); // sandstone is no loose ground: kept
+		BlockWear.mined(level, dirt.above(), 0.5f);
+		float worn = BlockWear.progress(level, dirt);
+		CompoundTag saved = BlockWear.Data.get(level).save(new CompoundTag(), level.registryAccess());
+		boolean savedDirt = BlockWear.Data.load(saved, level.registryAccess()).wear.containsKey(dirt.asLong());
+		helper.runAfterDelay(BlockWear.LOOSE_HEAL + 60, () -> {
+			float now = BlockWear.progress(level, dirt), kept = BlockWear.progress(level, sand);
+			level.setBlock(dirt, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			level.setBlock(sand, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			helper.assertTrue(BlockWear.loose(Blocks.DIRT.defaultBlockState()) && BlockWear.loose(Blocks.GRAVEL.defaultBlockState())
+				&& BlockWear.loose(dev.starmine.block.StarMineBlocks.CREEP.defaultBlockState()) && !BlockWear.loose(Blocks.STONE.defaultBlockState()), "loose ground misjudged");
+			helper.assertTrue(worn > 0 && now < worn, "the dirt's cracks did not settle back: " + worn + " then " + now);
+			helper.assertFalse(savedDirt, "the dirt's damage was saved");
+			helper.assertTrue(kept > 0, "the sandstone's mining was not kept");
+			helper.succeed();
+		});
 	}
 }

@@ -21,7 +21,7 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:bone_needle",
-			"text": "The races' $(l)rounds$(): bone needles (a bone and a zerg shard: 8), toxic needles (7 needles, a spider eye and vespene: 7 — they poison), gauss rounds (also an iron nugget, gunpowder and a mineral shard: 8), energy charges (a mineral shard, vespene and a protoss shard: 8). A dispenser fires them straight and fast; so do the turrets.",
+			"text": "The races' $(l)rounds$(): bone needles (a bone and a zerg shard: 8), toxic needles (4 needles, a spider eye and vespene: 4 — they poison), gauss rounds (an iron nugget, gunpowder and a mineral shard: 8), energy charges (a mineral shard, vespene and a protoss shard: 8). A dispenser fires them straight and fast; so do the turrets.",
 			"recipe2": "starmine:toxic_needle"
 		},
 		{

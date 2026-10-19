@@ -42,9 +42,16 @@ import org.jetbrains.annotations.Nullable;
  * - protoss: a shield takes their first {@link #SHIELD_HITS} hits; it comes back {@link #SHIELD_TICKS} after the last.
  * The races' repair tools ({@code gear/RepairTools}) mend them: the terran's what is mechanical, the zerg's what lives,
  * the protoss' the shields.
+ *
+ * Loose ground and creep keep nothing ({@link #loose}, owner 19.10): sand, gravel, dirt, snow and the like settle back,
+ * a {@link #STEP} every {@link #LOOSE_HEAL} ticks once left alone that long; their damage is not saved, and mining left
+ * on them is not kept.
+ *
+ * A player is told the damage of a chunk's blocks when the server sends it the chunk ({@code ChunkWearMixin}), so
+ * mining starts from it at once.
  */
 public final class BlockWear {
-	public static final int ZERG_HEAL = 200, SHIELD_HITS = 5, SHIELD_TICKS = 600;
+	public static final int ZERG_HEAL = 200, LOOSE_HEAL = 400, SHIELD_HITS = 5, SHIELD_TICKS = 600;
 	public static final float PER_HARDNESS = 8, ARMOURED = 4, STEP = 0.1f, TERRAN_TOUGH = 1.5f;
 
 	/** A block's damage: how worn (0..1), when last hit, the block it was (by id), its shield's hits taken. */
@@ -82,6 +89,7 @@ public final class BlockWear {
 		public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
 			ListTag list = new ListTag();
 			wear.forEach((at, w) -> {
+				if (loose(Block.stateById(w.block))) return; // loose ground keeps nothing
 				CompoundTag entry = new CompoundTag();
 				entry.putLong("At", at);
 				entry.putFloat("P", w.progress);
@@ -127,6 +135,12 @@ public final class BlockWear {
 	public static void load() {
 		PayloadTypeRegistry.playS2C().register(Sync.TYPE, Sync.CODEC);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(BlockWear::tick);
+	}
+
+	/** Loose ground and creep: what a shovel digs, what falls, creep — its damage settles back and is not kept. */
+	public static boolean loose(BlockState state) {
+		return state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL) || state.getBlock() instanceof net.minecraft.world.level.block.Fallable
+			|| StarMineBlocks.isCreep(state);
 	}
 
 	/** The race a block is of (its armour), or null. */
@@ -189,7 +203,7 @@ public final class BlockWear {
 	/** A player left a block half mined: the work done stays on it (the most of it and what was there). */
 	public static void mined(ServerLevel level, BlockPos pos, float progress) {
 		BlockState state = level.getBlockState(pos);
-		if (progress <= 0 || durability(level, pos, state) <= 0) return;
+		if (progress <= 0 || durability(level, pos, state) <= 0 || loose(state)) return;
 		Wear wear = wear(level, pos, state, true);
 		wear.progress = Math.max(wear.progress, Math.min(0.95f, progress));
 		wear.lastHit = level.getGameTime();
@@ -245,6 +259,21 @@ public final class BlockWear {
 		sync(level, pos, wear.progress);
 	}
 
+	/** The damage of a chunk's blocks to a player who is sent the chunk. */
+	public static void sendChunk(ServerLevel level, ServerPlayer player, net.minecraft.world.level.ChunkPos chunk) {
+		if (!ServerPlayNetworking.canSend(player, Sync.TYPE)) return;
+		Data data = Data.get(level);
+		if (data.wear.isEmpty()) return;
+		List<Long> positions = new ArrayList<>();
+		List<Float> progress = new ArrayList<>();
+		data.wear.forEach((at, w) -> {
+			if (w.progress <= 0 || BlockPos.getX(at) >> 4 != chunk.x || BlockPos.getZ(at) >> 4 != chunk.z) return;
+			positions.add(at);
+			progress.add(w.progress);
+		});
+		if (!positions.isEmpty()) ServerPlayNetworking.send(player, new Sync(positions, progress));
+	}
+
 	private static void sync(ServerLevel level, BlockPos pos, float progress) {
 		Sync sync = new Sync(List.of(pos.asLong()), List.of(progress));
 		for (ServerPlayer player : PlayerLookup.tracking(level, pos)) if (ServerPlayNetworking.canSend(player, Sync.TYPE)) ServerPlayNetworking.send(player, sync);
@@ -279,7 +308,8 @@ public final class BlockWear {
 					wear.shieldTaken = 0;
 					data.setDirty();
 				}
-				if (race == UnitKind.Race.ZERG && wear.progress > 0 && since >= ZERG_HEAL && since % ZERG_HEAL < 20) {
+				int heal = race == UnitKind.Race.ZERG ? ZERG_HEAL : loose(state) ? LOOSE_HEAL : 0;
+				if (heal > 0 && wear.progress > 0 && since >= heal && since % heal < 20) {
 					wear.progress -= STEP;
 					data.setDirty();
 					if (wear.progress <= 0.001f && wear.shieldTaken == 0) {

@@ -31,7 +31,7 @@ public class MiningGameTests implements FabricGameTest {
 	private static final Logger LOG = LoggerFactory.getLogger("StarMine/mining");
 	static final int WORKERS = 8, MINUTE = 1200, MINUTES = 4;
 	/** Each minute after the first brings at least this share of a typical (median) minute's minerals. */
-	static final double STEADY = 0.4;
+	static final double STEADY = 0.4, STEADY_FLOOR = 0.2;
 
 	/** The hill: stone from x 22 to the arena's far side, 8 blocks high, with veins of coal, copper and iron. */
 	private static List<BlockPos> hill(GameTestHelper helper) {
@@ -114,9 +114,14 @@ public class MiningGameTests implements FabricGameTest {
 				// (86, 306, 90, 98) failed workers that never slowed down
 				List<Integer> sorted = perMinute.stream().sorted().toList();
 				double typical = (sorted.get((sorted.size() - 1) / 2) + sorted.get(sorted.size() / 2)) / 2.0;
-				for (int i = 1; i < perMinute.size(); i++)
-					helper.assertTrue(perMinute.get(i) >= typical * STEADY, main.race + " workers slowed down: minerals a minute " + perMinute
-						+ ", ore left " + left + " of " + ores.size());
+				// headroom (owner 19.10): a loaded test server once gave (128, 132, 52, 22) — one slow minute is let pass,
+				// none may fall to nothing
+				int slow = 0;
+				for (int i = 1; i < perMinute.size(); i++) {
+					if (perMinute.get(i) < typical * STEADY) slow++;
+					helper.assertTrue(perMinute.get(i) >= typical * STEADY_FLOOR && slow <= 1, main.race + " workers slowed down: minerals a minute "
+						+ perMinute + ", ore left " + left + " of " + ores.size());
+				}
 				helper.succeed();
 			});
 		}

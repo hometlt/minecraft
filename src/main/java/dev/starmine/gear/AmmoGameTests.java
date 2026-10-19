@@ -24,7 +24,7 @@ public class AmmoGameTests implements FabricGameTest {
 	public void aDispenserFiresNeedles(GameTestHelper helper) {
 		clear(helper);
 		ServerLevel level = helper.getLevel();
-		for (String id : new String[] {"bone_needle", "toxic_needle", "gauss_ammo_from_gunpowder", "energy_charge"})
+		for (String id : new String[] {"bone_needle", "toxic_needle", "gauss_ammo", "energy_charge"})
 			helper.assertTrue(level.getServer().getRecipeManager().byKey(ResourceLocation.fromNamespaceAndPath("starmine", id)).isPresent(), "no recipe " + id);
 		BlockPos at = helper.absolutePos(new BlockPos(8, 2, 8));
 		level.setBlock(at, Blocks.DISPENSER.defaultBlockState().setValue(DispenserBlock.FACING, Direction.EAST), Block.UPDATE_ALL);

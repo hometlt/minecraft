@@ -15,15 +15,6 @@
 			"item": "starmine:bone_needle"
 		},
 		{
-			"item": "starmine:bone_needle"
-		},
-		{
-			"item": "starmine:bone_needle"
-		},
-		{
-			"item": "starmine:bone_needle"
-		},
-		{
 			"item": "minecraft:spider_eye"
 		},
 		{
@@ -32,6 +23,6 @@
 	],
 	"result": {
 		"id": "starmine:toxic_needle",
-		"count": 7
+		"count": 4
 	}
 }

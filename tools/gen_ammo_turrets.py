@@ -142,10 +142,11 @@ def main():
         'type': 'minecraft:crafting_shapeless', 'category': 'equipment', 'ingredients': ingredients,
         'result': {'id': result, 'count': count}})
     shapeless('bone_needle', [item('minecraft:bone'), item('starmine:zerg_armor_shard')], 'starmine:bone_needle', 8)
-    # eight needles, an eye and vespene are ten: the grid holds nine — seven needles make seven
-    shapeless('toxic_needle', [item('starmine:bone_needle')] * 7 + [item('minecraft:spider_eye'), item('starmine:vespene_bucket')],
-              'starmine:toxic_needle', 7)
-    shapeless('gauss_ammo_from_gunpowder', [item('minecraft:iron_nugget'), item('minecraft:gunpowder'), item('starmine:mineral_shard')],
+    # owner 19.10: four needles, an eye and vespene make four (eight with them would not fit the grid)
+    shapeless('toxic_needle', [item('starmine:bone_needle')] * 4 + [item('minecraft:spider_eye'), item('starmine:vespene_bucket')],
+              'starmine:toxic_needle', 4)
+    # owner 19.10: one recipe for gauss rounds (the old one of two nuggets and a mineral is gone)
+    shapeless('gauss_ammo', [item('minecraft:iron_nugget'), item('minecraft:gunpowder'), item('starmine:mineral_shard')],
               'starmine:gauss_ammo', 8)
     shapeless('energy_charge', [item('starmine:mineral_shard'), item('starmine:vespene_bucket'), item('starmine:protoss_armor_shard')],
               'starmine:energy_charge', 8)
