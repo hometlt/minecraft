@@ -56,6 +56,13 @@ R1 (до того): `block/CraftBlocks.java`, `tools/gen_craft_blocks.py`, те�
 - Минералы: `mineral/Minerals.SHARD`, блок минералов. Веспен: ведро, канистра.
 - Оружие и патроны: `gear/Guns`.
 
+## Последний полный прогон (19.10, после R5)
+
+`tools/run_gametests.sh`: тяжёлые — 112 из 112, лёгкие — 250 из 251. Упал
+`MiningGameTests.dronesKeepMiningForMinutes`: зерги на 3-й минуте добывали медленнее (128, 132, 52, 22 в минуту).
+Отдельно класс проходит 5 из 5, а добыча дронов (`entity/DroneWork`) износ блоков не использует. Скорее всего, это
+нестабильность под нагрузкой. Если повторится — дать этому тесту запас, как тестам путей.
+
 ## Проверки
 
 `gradlew compileJava compileClientJava`; `tools/run_gametests.sh` (light, затем heavy); после новых видов юнитов —
