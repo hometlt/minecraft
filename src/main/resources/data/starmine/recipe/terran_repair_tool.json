@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"pattern": [
+		" #",
+		"# "
+	],
+	"key": {
+		"#": {
+			"item": "starmine:terran_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:terran_repair_tool",
+		"count": 1
+	}
+}

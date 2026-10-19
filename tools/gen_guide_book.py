@@ -183,6 +183,8 @@ CATEGORIES = [
             text('$(l)Terrans$() (375 uses): plain steel, half again as tough; the terran shield held takes blasts better (60 % of their damage).$(br2)$(l)Protoss$() (250 uses): an energy shield takes the first 30 wears of the tool; 30 s after the last it is whole again.',
                  '$(l)Терраны$() (375 использований): простая сталь, в полтора раза прочнее; терранский щит в руках ослабляет взрывы (60 % урона).$(br2)$(l)Протоссы$() (250 использований): энергощит принимает на себя первые 30 износов инструмента; через 30 с после последнего он снова полон.'),
             craft('zerg_pickaxe', 'The zerg pickaxe and sword.', 'Зергская кирка и меч.', 'zerg_sword'),
+            craft('terran_repair_tool', 'Two shards, as shears are made, make a race\'s $(l)repair tool$(): it mends a quarter of a block\'s kept damage a use. The terran one mends what is mechanical (terran armour, metal), the zerg mender what lives (zerg armour, flesh, creep, wood, wool, bone), the protoss restorer brings protoss blocks\' shields back.',
+                  'Два фрагмента, как ножницы, — $(l)ремонтный инструмент$() расы: за раз он чинит четверть накопленного урона блока. Терранский чинит механическое (броню терранов, металл), зергский лекарь — живое (броню зергов, плоть, слизь, дерево, шерсть, кость), протосский восстановитель возвращает щиты блоков протоссов.', 'zerg_repair_tool'),
             craft('protoss_shield', 'The protoss shield and pickaxe.', 'Протосский щит и кирка.', 'protoss_pickaxe'),
         ]),
         ('armor', t('Armour and Doors', 'Броня и двери'), 'starmine:terran_armor_wall', [

@@ -87,4 +87,29 @@ public class BlockWearGameTests implements FabricGameTest {
 			}
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "wearRepair", timeoutTicks = 40)
+	public void repairToolsMendTheirRacesBlocks(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		BlockPos terran = helper.absolutePos(new BlockPos(4, 2, 8)), zerg = terran.east(2), protoss = terran.east(4), stone = terran.east(6);
+		level.setBlock(terran, ArmorBlocks.wall(UnitKind.Race.TERRAN, 0), Block.UPDATE_ALL);
+		level.setBlock(zerg, ArmorBlocks.wall(UnitKind.Race.ZERG, 0), Block.UPDATE_ALL);
+		level.setBlock(protoss, ArmorBlocks.wall(UnitKind.Race.PROTOSS, 0), Block.UPDATE_ALL);
+		level.setBlock(stone, Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+		for (BlockPos at : new BlockPos[] {terran, zerg, stone}) BlockWear.hit(level, at, 200, null);
+		BlockWear.hit(level, protoss, 60, null);
+		float t0 = BlockWear.progress(level, terran), z0 = BlockWear.progress(level, zerg), s0 = BlockWear.progress(level, stone);
+		boolean zergOnTerran = dev.starmine.gear.RepairTools.use(UnitKind.Race.ZERG, level, terran);
+		boolean terranMends = dev.starmine.gear.RepairTools.use(UnitKind.Race.TERRAN, level, terran);
+		boolean zergMends = dev.starmine.gear.RepairTools.use(UnitKind.Race.ZERG, level, zerg);
+		boolean stoneMended = dev.starmine.gear.RepairTools.use(UnitKind.Race.TERRAN, level, stone) || dev.starmine.gear.RepairTools.use(UnitKind.Race.ZERG, level, stone);
+		boolean recharged = dev.starmine.gear.RepairTools.use(UnitKind.Race.PROTOSS, level, protoss);
+		helper.assertFalse(zergOnTerran, "the zerg mender healed terran steel");
+		helper.assertTrue(terranMends && BlockWear.progress(level, terran) < t0, "the terran tool did not mend terran armour");
+		helper.assertTrue(zergMends && BlockWear.progress(level, zerg) < z0, "the zerg mender did not heal zerg armour");
+		helper.assertTrue(!stoneMended && BlockWear.progress(level, stone) == s0, "stone was mended, it is neither machine nor alive");
+		helper.assertTrue(recharged && BlockWear.shield(level, protoss) == BlockWear.SHIELD_HITS, "the protoss restorer did not bring the shield back");
+		for (BlockPos at : new BlockPos[] {terran, zerg, protoss, stone}) level.setBlock(at, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+		helper.succeed();
+	}
 }

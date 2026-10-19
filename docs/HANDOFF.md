@@ -20,16 +20,13 @@
 
 ## Последняя правка
 
-R3a. Урон блоков сохраняется. `block/BlockWear` хранит его в `SavedData` каждого мира (`starmine_block_wear`) и сам
-не лечит.
-- Правила рас — по `ArmorBlocks.raceOf(block)`: зерги заживают (`ZERG_HEAL`), терраны ×1,5 прочности и половина
-  урона от `strike` (взрывы, лучи), протоссы — щит на `SHIELD_HITS` ударов.
-- Брошенная добыча сохраняется: `mixin/ServerMiningMixin` (ABORT записывает прогресс, START сдвигает начало добычи).
-  Клиент получает износ пакетом `BlockWear.Sync` (`client/ClientWear`), и `mixin/client/ClientMiningMixin` начинает
-  добычу с него.
-- Тест — `block/BlockWearGameTests`. У мок-игрока в тестах `gameMode.tick()` надо вызывать вручную.
-- Дальше: R3b — ремонтные инструменты (`BlockWear.mend` / `recharge` уже есть); R3c — строительные бронеблоки
-  (регистрировать их в `ArmorBlocks.RACE_OF`).
+R3b. Ремонтные инструменты — `gear/RepairTools.java`. Делаются, как ножницы, из фрагментов расы: терранский —
+механика (броня терранов, металл), зергский — живое, протосский — щиты блоков протоссов. Каждый чинит
+`BlockWear.mend` / `recharge` по `MEND` = 0,25 за раз. Ассеты — в `tools/gen_race_tools.py`, тест —
+`BlockWearGameTests.repairToolsMendTheirRacesBlocks`. Дальше — R3c (строительные бронеблоки).
+
+R3a (до того): урон блоков сохраняется. `block/BlockWear` (`SavedData` `starmine_block_wear`), миксины добычи
+`ServerMiningMixin` и `client/ClientMiningMixin`, пакет `BlockWear.Sync`, тест `block/BlockWearGameTests`.
 
 R2 (до того): `gear/RaceTools.java`, `tools/gen_race_tools.py`, тест `gear/RaceToolGameTests`.
 R1 (до того): `block/CraftBlocks.java`, `tools/gen_craft_blocks.py`, тест `block/CraftGameTests`.

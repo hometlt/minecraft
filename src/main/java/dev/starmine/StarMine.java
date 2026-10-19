@@ -172,6 +172,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.mineral.Minerals.load();
 		dev.starmine.block.CraftBlocks.load(); // owner 19.10: vespene torch, lamp, fuel; mineral glass
 		dev.starmine.gear.RaceTools.load(); // owner 19.10: the races' tools and shields
+		dev.starmine.gear.RepairTools.load(); // owner 19.10: the races' repair tools
 		dev.starmine.world.MapOverlay.load();
 		dev.starmine.world.WildPacks.load();
 		dev.starmine.gear.Guns.load();

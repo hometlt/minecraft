@@ -1,4 +1,4 @@
-"""Owner 19.10: the races' tools (pickaxe, axe, shovel, hoe, sword) and shields — textures drawn here (16x16 icons, 64x64
+"""Owner 19.10: the races' tools (pickaxe, axe, shovel, hoe, sword, repair tool) and shields — textures drawn here (16x16 icons, 64x64
 shield sheets in vanilla's shield layout), item models, recipes (the race's armour shards and sticks, as vanilla's iron
 tools; a shield of five shards round an iron ingot), the vanilla tool and enchanting tags.
 Run from the repository root: python tools/gen_race_tools.py"""
@@ -32,6 +32,9 @@ SHAPES = {
     'hoe': ['................', '.....LLLL.......', '....LBBBBD......', '.........HD.....', '........H.......', '.......H........',
             '......H.........', '.....H..........', '....H...........', '...H............', '..H.............', '.H..............',
             '................', '................', '................', '................'],
+    'repair_tool': ['................', '................', '...LL......LL...', '..LBBD....LBBD..', '..BDDB....BDDB..', '..LBBL....LBBL..',
+                    '...DBB....BBD...', '.....DB..BD.....', '......DGGD......', '......BDDB......', '.....HB..BH.....', '....HH....HH....',
+                    '...HH......HH...', '..HH........HH..', '................', '................'],
     'sword': ['................', '.............LL.', '............LGD.', '...........LBD..', '..........LBD...', '.........LBD....',
               '........LBD.....', '.......LBD......', '...D..LBD.......', '....DLBD........', '.....DD.........', '....HDD.........',
               '...H...D........', '..H.............', '.H..............', '................'],
@@ -63,7 +66,7 @@ def icon(race, kind):
             if ch in colours:
                 img.putpixel((x, y), colours[ch] + (255,))
     # the race's mark on the head: a glowing vein (zerg), a rivet (terran), a crystal (protoss)
-    mark = {'pickaxe': (6, 2), 'axe': (6, 3), 'shovel': (9, 2), 'hoe': (6, 2), 'sword': (11, 4)}[kind]
+    mark = {'pickaxe': (6, 2), 'axe': (6, 3), 'shovel': (9, 2), 'hoe': (6, 2), 'sword': (11, 4), 'repair_tool': (7, 8)}[kind]
     img.putpixel(mark, p['glow'] + (255,))
     return img
 
@@ -92,7 +95,7 @@ def main():
     shards = lambda race: {'item': 'starmine:%s_armor_shard' % race}
     stick = {'item': 'minecraft:stick'}
     patterns = {'pickaxe': ['###', ' | ', ' | '], 'axe': ['##', '#|', ' |'], 'shovel': ['#', '|', '|'],
-                'hoe': ['##', ' |', ' |'], 'sword': ['#', '#', '|']}
+                'hoe': ['##', ' |', ' |'], 'sword': ['#', '#', '|'], 'repair_tool': [' #', '# ']}
     tags = {kind: [] for kind in ('pickaxes', 'axes', 'shovels', 'hoes', 'swords')}
     shields = []
     for race in RACES:
@@ -102,11 +105,13 @@ def main():
             os.makedirs(os.path.dirname(path), exist_ok=True)
             icon(race, kind).save(path)
             write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
-                  {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'starmine:item/' + name}})
+                  {'parent': 'minecraft:item/generated' if kind == 'repair_tool' else 'minecraft:item/handheld', 'textures': {'layer0': 'starmine:item/' + name}})
             write(os.path.join(DATA, 'recipe', name + '.json'), {
                 'type': 'minecraft:crafting_shaped', 'category': 'equipment', 'pattern': patterns[kind],
-                'key': {'#': shards(race), '|': stick}, 'result': {'id': 'starmine:' + name, 'count': 1}})
-            tags[kind + 's'].append('starmine:' + name)
+                'key': {'#': shards(race), '|': stick} if '|' in ''.join(patterns[kind]) else {'#': shards(race)},
+                'result': {'id': 'starmine:' + name, 'count': 1}})
+            if kind + 's' in tags:
+                tags[kind + 's'].append('starmine:' + name)
         path = os.path.join(ASSETS, 'textures', 'entity', 'shield', race + '.png')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         shield(race).save(path)
