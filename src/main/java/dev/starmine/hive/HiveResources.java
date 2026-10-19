@@ -77,6 +77,8 @@ public final class HiveResources implements SimpleSynchronousResourceReloadListe
 		if (stack.isEmpty()) return Yield.NONE;
 		String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 		for (Entry entry : entries) if (entry.items.contains(id)) return entry.yield;
+		if (stack.getItem() instanceof net.minecraft.world.item.BlockItem block && block.getBlock() instanceof dev.starmine.mineral.MineralBlock minerals)
+			return new Yield(minerals.shards * dev.starmine.mineral.Minerals.PER_TRIP * dev.starmine.mineral.MineralBlock.FULL, 0, 0, true, "minerals");
 		if (stack.getItem() instanceof net.minecraft.world.item.BlockItem block) return yieldOf(block.getBlock().defaultBlockState());
 		return Yield.NONE;
 	}

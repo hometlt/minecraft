@@ -2,6 +2,8 @@
 	"replace": false,
 	"values": [
 		"starmine:vespene_canister",
+		"starmine:mineral_block",
+		"starmine:rich_mineral_block",
 		"starmine:terran_portal_frame",
 		"starmine:terran_teleporter",
 		"starmine:protoss_portal_frame",

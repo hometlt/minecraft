@@ -112,4 +112,35 @@ public class MineralGameTests implements FabricGameTest {
 			helper.assertTrue(level.getBlockEntity(core) instanceof Minerals.Core entity && entity.amount() <= Minerals.AMOUNT - 10, "the crystal was not mined");
 		});
 	}
+
+	/**
+	 * Owner 19.10: a block of minerals is mined like an ore but not broken — a shard a time (a rich one two), nine times;
+	 * a worker takes a charge as minerals; handed in whole it is worth its nine charges; nine shards make one.
+	 */
+	@GameTest(template = ARENA, batch = "mineralBlock", timeoutTicks = 40)
+	public void aBlockOfMineralsGivesShardsAndStays(GameTestHelper helper) {
+		TestArena.clear(helper);
+		net.minecraft.server.level.ServerLevel level = helper.getLevel();
+		BlockPos pos = helper.absolutePos(new BlockPos(10, 2, 10)), rich = helper.absolutePos(new BlockPos(14, 2, 10));
+		level.setBlock(pos, Minerals.BLOCK.defaultBlockState(), 3);
+		level.setBlock(rich, Minerals.RICH_BLOCK.defaultBlockState(), 3);
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		player.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);
+		player.gameMode.destroyBlock(pos);
+		helper.assertTrue(level.getBlockState(pos).is(Minerals.BLOCK) && level.getBlockState(pos).getValue(MineralBlock.CHARGES) == MineralBlock.FULL - 1,
+			"the block did not stay with a charge less: " + level.getBlockState(pos));
+		int shards = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(pos).inflate(2),
+			item -> item.getItem().is(Minerals.SHARD)).stream().mapToInt(item -> item.getItem().getCount()).sum();
+		helper.assertTrue(shards == 1, "mining it dropped " + shards + " shards");
+		helper.assertTrue(MineralBlock.harvest(level, rich) == 2 * Minerals.PER_TRIP, "a worker's trip at a rich block is not two shards' worth");
+		for (int i = 0; i < MineralBlock.FULL - 1; i++) MineralBlock.harvest(level, pos);
+		helper.assertTrue(level.getBlockState(pos).isAir(), "the block is still there after its nine charges");
+		helper.assertTrue(dev.starmine.hive.HiveResources.yieldOfItem(new net.minecraft.world.item.ItemStack(Minerals.BLOCK)).minerals() == MineralBlock.FULL * Minerals.PER_TRIP,
+			"a block handed in is not worth nine shards");
+		helper.assertTrue(dev.starmine.hive.HiveResources.isOre(Minerals.RICH_BLOCK.defaultBlockState()), "workers do not mine rich minerals");
+		var recipe = level.getRecipeManager().byKey(dev.starmine.StarMine.id("mineral_block"));
+		helper.assertTrue(recipe.isPresent() && recipe.get().value().getResultItem(level.registryAccess()).is(Minerals.BLOCK.asItem()), "no recipe for the block");
+		level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+		helper.succeed();
+	}
 }

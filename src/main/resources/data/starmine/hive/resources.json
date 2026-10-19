@@ -1,6 +1,8 @@
 {
 	"deepslateBonus": 1.5,
 	"entries": [
+		{"block": "starmine:mineral_block", "minerals": 5, "precious": true, "label": "minerals", "icon": "starmine:mineral_shard", "items": []},
+		{"block": "starmine:rich_mineral_block", "minerals": 10, "precious": true, "label": "minerals", "icon": "starmine:mineral_shard", "items": []},
 		{
 			"block": "starmine:mineral_crystal",
 			"minerals": 5,

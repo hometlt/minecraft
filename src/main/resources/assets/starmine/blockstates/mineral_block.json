@@ -1,0 +1,31 @@
+{
+	"variants": {
+		"charges=1": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=2": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=3": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=4": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=5": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=6": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=7": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=8": {
+			"model": "starmine:block/mineral_block"
+		},
+		"charges=9": {
+			"model": "starmine:block/mineral_block"
+		}
+	}
+}

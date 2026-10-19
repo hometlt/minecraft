@@ -1,0 +1,12 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"ingredients": [
+		{
+			"item": "starmine:mineral_block"
+		}
+	],
+	"result": {
+		"id": "starmine:mineral_shard",
+		"count": 9
+	}
+}

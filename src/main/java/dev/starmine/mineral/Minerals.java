@@ -96,6 +96,12 @@ public final class Minerals {
 	public static final Feature<NoneFeatureConfiguration> HALL = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("mineral_hall"),
 		new MineralHallFeature(NoneFeatureConfiguration.CODEC));
 
+	/** Owner 19.10: blocks of minerals ({@link MineralBlock}): nine shards pressed, and the rare rich (gold) ones in the stone. */
+	public static final MineralBlock BLOCK = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("mineral_block"),
+		new MineralBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_BLUE).strength(2.5f, 6f).sound(SoundType.AMETHYST).lightLevel(state -> 4), 1));
+	public static final MineralBlock RICH_BLOCK = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("rich_mineral_block"),
+		new MineralBlock(BlockBehaviour.Properties.of().mapColor(MapColor.GOLD).strength(3f, 6f).sound(SoundType.AMETHYST).lightLevel(state -> 6), 2));
+
 	private Minerals() {
 	}
 
@@ -108,7 +114,16 @@ public final class Minerals {
 		// owner 17.10: the Nether has mineral halls too (each with its geyser and crystals), far rarer
 		BiomeModifications.addFeature(BiomeSelectors.foundInTheNether(), GenerationStep.Decoration.UNDERGROUND_STRUCTURES,
 			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("nether_mineral_hall")));
-		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(SHARD));
+		Item block = Registry.register(BuiltInRegistries.ITEM, StarMine.id("mineral_block"), new net.minecraft.world.item.BlockItem(BLOCK, new Item.Properties()));
+		Item rich = Registry.register(BuiltInRegistries.ITEM, StarMine.id("rich_mineral_block"), new net.minecraft.world.item.BlockItem(RICH_BLOCK, new Item.Properties()));
+		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> {
+			entries.accept(SHARD);
+			entries.accept(block);
+			entries.accept(rich);
+		});
+		// owner 19.10: rich minerals, rarely, in the stone (a few blocks together)
+		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.UNDERGROUND_ORES,
+			ResourceKey.create(Registries.PLACED_FEATURE, StarMine.id("rich_minerals")));
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(Deposits::tick); // owner 18.10
 	}
 

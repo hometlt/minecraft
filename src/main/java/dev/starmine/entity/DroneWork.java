@@ -1157,6 +1157,10 @@ final class DroneWork extends Goal {
 			if (taken > 0) drone.takeMinerals(taken);
 			return true;
 		}
+		if (state.getBlock() instanceof dev.starmine.mineral.MineralBlock) { // owner 19.10: not broken — a charge is taken
+			drone.takeMinerals(dev.starmine.mineral.MineralBlock.harvest(level, pos));
+			return true;
+		}
 		drone.collect(state);
 		boolean creeped = coveredByCreep(level, pos);
 		level.destroyBlock(pos, false, drone);
