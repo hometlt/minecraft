@@ -118,7 +118,7 @@ public class StructureGameTests implements FabricGameTest {
 		try {
 			var members = data.pending.stream().filter(p -> p.hive().equals(report.base()) && p.hall() == null).toList();
 			var pylons = members.stream().filter(p -> p.kind() == UnitKind.PYLON).toList();
-			helper.assertTrue(pylons.size() == 3, "expected three pylons, got " + pylons.size());
+			helper.assertTrue(pylons.size() == 3 + 6, "expected three pylons in the core and six by the edge's cannons, got " + pylons.size()); // owner 19.10
 			for (var building : members) if (dev.starmine.race.ProtossRace.needsPower(building.kind()))
 				helper.assertTrue(pylons.stream().anyMatch(p -> Math.hypot(p.pos().getX() - building.pos().getX(),
 					p.pos().getZ() - building.pos().getZ()) <= dev.starmine.race.ProtossRace.POWER_RADIUS), "no power for " + building.kind());

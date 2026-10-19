@@ -189,6 +189,7 @@ public final class HeroLiberation {
 	/** Amun's hold breaks: the hero is the player's, with its base and army; it says so; its part may be taken. */
 	public static void free(StarUnit hero, ServerLevel level, @Nullable ServerPlayer player) {
 		hero.addTag(FREED);
+		if (hero.kind.guardian()) dev.starmine.ability.GuardianFights.end(hero, level); // owner 19.10: its monoliths, mines, turrets and Odin go
 		for (String phase : List.of("starmine_phase2", "starmine_phase3")) hero.removeTag(phase);
 		hero.setTarget(null);
 		hero.command(StarUnit.Order.HOLD, null);

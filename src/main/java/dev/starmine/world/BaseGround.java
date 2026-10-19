@@ -94,6 +94,43 @@ public final class BaseGround {
 			}
 	}
 
+	/**
+	 * Owner 19.10: a generated base's building stands a block up — a platform under its footprint (on the grid,
+	 * {@link UnitKind#gridCentre}) and a block round it, stairs on every side going up to it. What stands over it (a
+	 * lamp, a tree, earth) is cleared to the building's height, and the ground under it is filled so it never hangs.
+	 * Returns the feet the building stands at.
+	 */
+	public static BlockPos pedestal(ServerLevel level, UnitKind kind, BlockPos feet, BlockState top, BlockState stairs) {
+		net.minecraft.world.phys.Vec3 c = kind.gridCentre(net.minecraft.world.phys.Vec3.atBottomCenterOf(feet));
+		int size = Math.max(1, Math.round(kind.width));
+		int minX = Mth.floor(c.x - size / 2.0 + 0.01), minZ = Mth.floor(c.z - size / 2.0 + 0.01);
+		int maxX = minX + size - 1, maxZ = minZ + size - 1, y = feet.getY(), clear = (int) Math.ceil(kind.height) + 2;
+		for (int x = minX - 2; x <= maxX + 2; x++)
+			for (int z = minZ - 2; z <= maxZ + 2; z++) {
+				boolean ring = x < minX - 1 || x > maxX + 1 || z < minZ - 1 || z > maxZ + 1;
+				BlockPos at = new BlockPos(x, y, z);
+				for (int up = 1; up <= clear; up++) {
+					BlockPos over = at.above(up);
+					if (!level.getBlockState(over).isAir() && free(level, over)) level.setBlock(over, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+				}
+				for (int down = 1; down <= 4; down++) {
+					BlockPos under = at.below(down);
+					BlockState state = level.getBlockState(under);
+					if (!state.canBeReplaced() && state.getFluidState().isEmpty()) break;
+					if (free(level, under)) level.setBlock(under, stone(level), Block.UPDATE_CLIENTS);
+				}
+				if (!free(level, at)) continue;
+				if (!ring) level.setBlock(at, top, Block.UPDATE_CLIENTS);
+				else {
+					net.minecraft.core.Direction up = x < minX - 1 ? net.minecraft.core.Direction.EAST : x > maxX + 1 ? net.minecraft.core.Direction.WEST
+						: z < minZ - 1 ? net.minecraft.core.Direction.SOUTH : net.minecraft.core.Direction.NORTH;
+					level.setBlock(at, stairs.hasProperty(net.minecraft.world.level.block.StairBlock.FACING)
+						? stairs.setValue(net.minecraft.world.level.block.StairBlock.FACING, up) : stairs, Block.UPDATE_CLIENTS);
+				}
+			}
+		return feet.above();
+	}
+
 	/** Fills the land under a generated base's plaza (radius `half` round `feet`) down to {@link #DEPTH}: no cave, no drop under it. */
 	public static void fillUnder(ServerLevel level, BlockPos feet, int half) {
 		BlockState stone = stone(level), dirt = soil(level);

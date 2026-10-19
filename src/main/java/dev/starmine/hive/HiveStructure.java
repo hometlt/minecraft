@@ -128,15 +128,10 @@ public final class HiveStructure {
 		data.spawnHiveDone = true;
 		data.setDirty();
 		if (!data.full()) {
-			build(level, site, RandomSource.create(level.getSeed() ^ site.asLong()));
-			// owner 17.10: Abathur guards the lair (the leviathan comes when he is freed)
-			Hive lair = data.all().stream().filter(h -> h.owner == null && h.race == UnitKind.Race.ZERG && h.hatchery.distSqr(site) < 32 * 32).findFirst().orElse(null);
-			if (lair != null) {
-				int x = site.getX() - 12, z = site.getZ();
-				data.pending.add(new Pending(lair.id, UnitKind.ABATHUR, new BlockPos(x, ground(level, x, z), z), lair.hatchery, null, 0));
-				data.structuresDone.add("GUARD:ZERG");
-				data.setDirty();
-			}
+			// owner 17.10: Abathur guards the lair (the leviathan comes when he is freed); owner 19.10: in the hall under it
+			buildGuarded(level, site, RandomSource.create(level.getSeed() ^ site.asLong()));
+			data.structuresDone.add("GUARD:ZERG");
+			data.setDirty();
 		}
 	}
 
@@ -213,6 +208,14 @@ public final class HiveStructure {
 		return new Builder(level, random).build(site);
 	}
 
+	/** {@link #build} with the lair's guardian, Abathur, waiting in the great hall under it (or by the lair, no hall). */
+	public static Report buildGuarded(ServerLevel level, BlockPos site, RandomSource random) {
+		return new Builder(level, random).guarded().build(site);
+	}
+
+	/** The lair's ground (owner 19.10: twice the old 14) and the ring its spine and spore crawlers stand on. */
+	public static final int PLAZA = 30, EDGE = PLAZA - 1;
+
 	/** Puts waiting zerg whose place is entity-ticking in the world. */
 	private static void spawnPending(ServerLevel level, HiveSavedData data) {
 		int added = 0;
@@ -245,8 +248,13 @@ public final class HiveStructure {
 			StarUnit mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
 			if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
 		} else if (hive != null) {
-			HiveLogic.spawn(level, hive, p.kind(), at, null);
+			StarUnit made = HiveLogic.spawn(level, hive, p.kind(), at, null);
 			if (p.kind().building()) hive.join(p.kind());
+			if (made != null && p.kind() == UnitKind.BUNKER && hive.owner == null) // owner 19.10: a wild base's bunker is manned: two marines
+				for (int i = 0; i < 2; i++) {
+					StarUnit marine = HiveLogic.spawn(level, hive, UnitKind.MARINE, made.position().add(i * 2 - 1, 0, 3), null);
+					if (marine != null) marine.startRiding(made, true);
+				}
 		}
 	}
 
@@ -259,11 +267,17 @@ public final class HiveStructure {
 		private BlockPos centre;
 		private int cells, halls, hallBuildings, eggs, tumors;
 		private final List<UnitKind> undergroundLeft = new ArrayList<>(List.of(UNDERGROUND));
+		private boolean guarded;
 
 		Builder(ServerLevel level, RandomSource random) {
 			this.level = level;
 			this.random = random;
 			this.data = HiveSavedData.get(level.getServer());
+		}
+
+		Builder guarded() {
+			guarded = true;
+			return this;
 		}
 
 		Report build(BlockPos site) {
@@ -276,13 +290,16 @@ public final class HiveStructure {
 			hive.tier = 2;
 			data.add(hive);
 			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 14);
-			dev.starmine.world.BaseGround.fillUnder(level, centre, 14); // owner 17.10: land under the lair, sloping to it round about
-			dev.starmine.world.BaseGround.blend(level, centre, 15, 28);
-			HiveTerrain.lay(level, centre, HiveTerrain.HATCHERY_FOUNDATION);
+			HiveStructure.flatten(level, centre, PLAZA, 14, true); // owner 19.10: the lair's ground twice as wide
+			dev.starmine.world.BaseGround.fillUnder(level, centre, PLAZA); // owner 17.10: land under the lair, sloping to it round about
+			dev.starmine.world.BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 16);
+			BlockPos raised = pedestal(UnitKind.HATCHERY, centre); // owner 19.10: every building on a pedestal with stairs round it
+			HiveTerrain.lay(level, raised, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
-			wait(UnitKind.HATCHERY, centre, null, null, 0);
+			wait(UnitKind.HATCHERY, raised, null, null, 0);
 
-			double turn = Math.PI * 2 / SURFACE.length, start = random.nextDouble() * Math.PI * 2;
+			// the way down to the levels under the lair leaves east: no building there (the first gap between them)
+			double turn = Math.PI * 2 / SURFACE.length, start = 0.5 * turn;
 			// tunnels leave between the buildings
 			List<Integer> gaps = new ArrayList<>();
 			for (int i = 0; i < SURFACE.length; i++) gaps.add(i);
@@ -297,14 +314,25 @@ public final class HiveStructure {
 				UnitKind kind = SURFACE[i];
 				double angle = start + i * turn, distance = 8 + HiveTerrain.foundation(kind) + 3 + random.nextInt(2);
 				int x = Mth.floor(centre.getX() + 0.5 + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + 0.5 + Math.sin(angle) * distance);
-				BlockPos feet = new BlockPos(x, Mth.clamp(ground(level, x, z), centre.getY() - 3, centre.getY() + 3), z);
+				BlockPos feet = new BlockPos(x, centre.getY(), z); // on the lair's level (the ground there may be a neighbour's pedestal)
 				flatten(feet, HiveTerrain.foundation(kind) + 1, (int) Math.ceil(kind.height) + 2);
-				HiveTerrain.lay(level, feet, HiveTerrain.foundation(kind));
-				wait(kind, feet, null, null, 0);
+				BlockPos up = pedestal(kind, feet);
+				HiveTerrain.lay(level, up, HiveTerrain.foundation(kind));
+				wait(kind, up, null, null, 0);
+			}
+			// owner 19.10: the lair's edge always guarded — spine and spore crawlers every 30 degrees (the way down in the east left free)
+			for (int i = 0; i < 12; i++) {
+				UnitKind kind = i % 2 == 0 ? UnitKind.SPINE_CRAWLER : UnitKind.SPORE_CRAWLER;
+				double angle = Math.toRadians(15 + i * 30);
+				int x = Mth.floor(centre.getX() + 0.5 + Math.cos(angle) * EDGE), z = Mth.floor(centre.getZ() + 0.5 + Math.sin(angle) * EDGE);
+				BlockPos feet = new BlockPos(x, centre.getY(), z);
+				BlockPos up = pedestal(kind, feet);
+				HiveTerrain.lay(level, up, HiveTerrain.foundation(kind));
+				wait(kind, up, null, null, 0);
 			}
 			// owner 18.10: the hive's resources between two of its buildings: 5 crystals, 2 geysers with extractors
-			double toward = start + 0.5 * turn;
-			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 28), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 28);
+			double toward = Math.PI; // west: the east is the way down
+			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 34), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 34);
 			if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD) // a nether or End lair's halls lie where a vein would climb
 				for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
 					wait(UnitKind.EXTRACTOR, dev.starmine.vespene.Vespene.collapseUnder(level, gas), null, null, 0); // its mound taken away
@@ -321,9 +349,25 @@ public final class HiveStructure {
 				UnitKind.QUEEN, UnitKind.ROACH, UnitKind.ROACH, UnitKind.HYDRALISK, UnitKind.HYDRALISK, UnitKind.OVERLORD, UnitKind.OVERLORD};
 			for (UnitKind kind : army) {
 				// out of the hatchery by both bodies' half widths: an overlord (8 wide) stood in it
-				double angle = random.nextDouble() * Math.PI * 2, distance = UnitKind.HATCHERY.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 3;
+				double angle = random.nextDouble() * Math.PI * 2, distance = UnitKind.HATCHERY.width / 2 + kind.width / 2 + 3 + random.nextDouble() * 3;
 				int x = Mth.floor(centre.getX() + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + Math.sin(angle) * distance);
 				wait(kind, new BlockPos(x, ground(level, x, z), z), null, null, 0);
+			}
+			// owner 19.10: flesh-lined levels under the lair, the way down from its ground, Abathur in the hall at the bottom
+			dev.starmine.world.Undercity.Plan below = dev.starmine.world.Undercity.plan(level, UnitKind.Race.ZERG, centre, random);
+			if (guarded) {
+				if (below != null) below.spawns().add(dev.starmine.world.Spawn.guard(UnitKind.ABATHUR, below.hall(), below.hall()));
+				else {
+					int x = centre.getX() - 12 - PLAZA / 2, z = centre.getZ();
+					wait(UnitKind.ABATHUR, new BlockPos(x, ground(level, x, z), z), centre, null, 0);
+				}
+			}
+			if (below != null) {
+				below.painter().then(() -> {
+					for (dev.starmine.world.Spawn spawn : below.spawns()) wait(spawn.kind(), spawn.pos(), spawn.hall(), spawn.brood(), spawn.broodCount());
+					data.setDirty();
+				});
+				below.painter().start();
 			}
 			data.setDirty();
 			return new Report(cells, halls, hallBuildings, eggs, tumors);
@@ -336,6 +380,12 @@ public final class HiveStructure {
 
 		private void flatten(BlockPos feet, int half, int height) {
 			HiveStructure.flatten(level, feet, half, height);
+		}
+
+		/** A building's pedestal of thick creep and mud-brick steps; the feet over it. */
+		private BlockPos pedestal(UnitKind kind, BlockPos feet) {
+			return dev.starmine.world.BaseGround.pedestal(level, kind, feet, StarMineBlocks.THICK_CREEP.defaultBlockState(),
+				Blocks.MUD_BRICK_STAIRS.defaultBlockState());
 		}
 
 		/**

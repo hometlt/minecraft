@@ -514,6 +514,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (hurt && hiveId != null && this.level() instanceof ServerLevel server && source.getEntity() instanceof LivingEntity attacker
 			&& !dev.starmine.faction.Faction.allied(this, attacker)) {
 			HiveLogic.alarm(server, hiveId, this.position(), attacker);
+			if (kind.guardian()) dev.starmine.ability.GuardianFights.threatened(this, server, attacker); // owner 19.10: its army comes
 			if (kind == UnitKind.NYDUS_NETWORK || kind == UnitKind.NYDUS_CANAL) dev.starmine.world.Nydus.underAttack(server, this, attacker);
 			// owner: a drone attacked by someone armed runs to the hatchery or to the hive's warriors
 			if (kind == UnitKind.DRONE && armed(attacker)) {

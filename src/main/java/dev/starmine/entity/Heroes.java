@@ -33,6 +33,8 @@ public final class Heroes {
 	static void tick(StarUnit hero, ServerLevel level) {
 		dev.starmine.world.HeroLiberation.tick(hero, level); // owner 17.10: Amun's hold, the arena
 		if (hero.kind.dimensionHero()) dev.starmine.world.DimensionHeroes.tick(hero, level); // the Nether's and the End's heroes' ways
+		if (hero.kind.guardian() && !dev.starmine.world.HeroLiberation.freed(hero) && hero.isAlive())
+			dev.starmine.ability.GuardianFights.tick(hero, level); // owner 19.10: Karax's and Swann's own fights
 		if (hero.tickCount % 10 != 0 || dev.starmine.world.HeroLiberation.freed(hero)) return;
 		ServerBossEvent bar = BARS.computeIfAbsent(hero.getId(), id -> new ServerBossEvent(hero.getDisplayName(), switch (hero.kind.race) {
 			case ZERG -> BossEvent.BossBarColor.PURPLE;
@@ -61,7 +63,8 @@ public final class Heroes {
 	/**
 	 * Phases: at two thirds the hero calls its guard (four of its race appear round it) and its shields come
 	 * back; at a third it rages — faster and quicker to strike for the rest of the fight — and calls more.
-	 * The bar names the phase; everyone near hears of it.
+	 * The bar names the phase; everyone near hears of it. Owner 19.10: a main base's guardian calls no guard — its
+	 * phases bring its own weapons ({@link dev.starmine.ability.GuardianFights}) and its base's army comes to it.
 	 */
 	private static void phases(StarUnit hero, ServerLevel level, ServerBossEvent bar, float left) {
 		int phase = phase(hero);
@@ -70,7 +73,7 @@ public final class Heroes {
 			hero.addTag(next == 3 ? "starmine_phase3" : "starmine_phase2");
 			if (next == 2) hero.setShield((float) hero.kind.shields);
 			if (next == 3) dev.starmine.ability.Status.apply(hero, dev.starmine.ability.Status.STIM, 20 * 60 * 10);
-			UnitKind[] guard = switch (hero.kind.race) {
+			UnitKind[] guard = hero.kind.guardian() ? new UnitKind[0] : switch (hero.kind.race) {
 				case ZERG -> new UnitKind[] {UnitKind.ZERGLING, UnitKind.ZERGLING, UnitKind.HYDRALISK, UnitKind.ROACH};
 				case TERRAN -> new UnitKind[] {UnitKind.MARINE, UnitKind.MARINE, UnitKind.MARAUDER, UnitKind.GHOST};
 				case PROTOSS -> new UnitKind[] {UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.HIGH_TEMPLAR};
@@ -84,7 +87,8 @@ public final class Heroes {
 			level.sendParticles(next == 3 ? net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER : net.minecraft.core.particles.ParticleTypes.FLASH,
 				hero.getX(), hero.getY() + hero.getBbHeight() * 0.6, hero.getZ(), next == 3 ? 20 : 1, 1, 1, 1, 0);
 			for (ServerPlayer player : bar.getPlayers())
-				player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.boss_phase." + next, hero.getDisplayName()), true);
+				player.displayClientMessage(net.minecraft.network.chat.Component.translatable(hero.kind.guardian() && next == 2
+					? "message.starmine.boss_phase.2_alone" : "message.starmine.boss_phase." + next, hero.getDisplayName()), true);
 			phase = next;
 		}
 		bar.setName(phase == 1 ? hero.getDisplayName()
@@ -101,6 +105,7 @@ public final class Heroes {
 	public static void gone(StarUnit hero) {
 		ServerBossEvent bar = BARS.remove(hero.getId());
 		if (bar != null) bar.removeAllPlayers();
+		if (hero.kind.guardian()) dev.starmine.ability.GuardianFights.gone(hero);
 	}
 
 	/** What a hero leaves when killed. */

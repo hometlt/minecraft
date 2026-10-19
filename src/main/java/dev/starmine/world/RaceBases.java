@@ -273,7 +273,11 @@ public final class RaceBases {
 		UnitKind.PROBE, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.ZEALOT, UnitKind.STALKER, UnitKind.STALKER,
 		UnitKind.STALKER, UnitKind.SENTRY, UnitKind.OBSERVER};
 	/** The plaza's radius; buildings stand round the main building inside it. */
-	private static final int PLAZA = 30; // round a main building 15 wide and a ring of buildings 9 wide (3 blocks a cell)
+	/**
+	 * The plaza's radius (owner 19.10: twice the old 30); the main building and its ring of buildings stand within CORE
+	 * (round a main building 15 wide, a ring of buildings 9 wide: 3 blocks a cell), the guns round the edge at EDGE.
+	 */
+	public static final int PLAZA = 60, CORE = 30, EDGE = PLAZA - 8;
 
 	/** Builds a wild base of `race` at `site` (the main building's ground cell), its dungeon and its sky ship. */
 	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random) {
@@ -295,10 +299,10 @@ public final class RaceBases {
 		List<Spawn> spawns = new ArrayList<>();
 		boolean terran = race == UnitKind.Race.TERRAN;
 
-		// the plaza
+		// the plaza (owner 19.10: twice as wide; the buildings keep round the main one within CORE)
 		HiveStructure.flatten(level, centre, PLAZA, 16, true); // the disc only
 		BaseGround.fillUnder(level, centre, PLAZA); // owner 17.10: land under the plaza, and the land round it sloping to it
-		BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 14);
+		BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 20);
 		BlockState pave = terran ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.SMOOTH_SANDSTONE.defaultBlockState();
 		BlockState line = terran ? Blocks.YELLOW_CONCRETE.defaultBlockState() : Blocks.YELLOW_TERRACOTTA.defaultBlockState();
 		BlockState inlay = terran ? Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState() : Blocks.BLUE_TERRACOTTA.defaultBlockState();
@@ -306,39 +310,49 @@ public final class RaceBases {
 			for (int dz = -PLAZA; dz <= PLAZA; dz++) {
 				double r = Math.sqrt(dx * dx + dz * dz);
 				if (r > PLAZA + 0.5) continue;
-				BlockState state = Math.abs(r - 5.5) < 0.5 ? line : terran ? ((dx + 100) / 4 + (dz + 100) / 4) % 2 == 0 ? pave : inlay
+				BlockState state = Math.abs(r - 5.5) < 0.5 || Math.abs(r - CORE) < 0.5 ? line : terran ? ((dx + 100) / 4 + (dz + 100) / 4) % 2 == 0 ? pave : inlay
 					: Math.abs(r - PLAZA + 1) < 0.6 ? inlay : pave;
 				painter.set(centre.offset(dx, -1, dz), state);
 			}
-		spawns.add(Spawn.member(main, centre));
+		// owner 19.10: every building on a pedestal a block high with stairs round it
+		BlockState top = terran ? Blocks.POLISHED_ANDESITE.defaultBlockState() : Blocks.CHISELED_SANDSTONE.defaultBlockState();
+		BlockState stairs = terran ? Blocks.POLISHED_ANDESITE_STAIRS.defaultBlockState() : Blocks.SMOOTH_SANDSTONE_STAIRS.defaultBlockState();
+		List<double[]> taken = new ArrayList<>(); // x, z, half width: the buildings' places, kept clear of lamps
+		java.util.function.BiConsumer<UnitKind, BlockPos> structure = (kind, at) -> {
+			// on the plaza's level (the ground there may be a neighbour's pedestal by now)
+			spawns.add(Spawn.member(kind, BaseGround.pedestal(level, kind, new BlockPos(at.getX(), centre.getY(), at.getZ()), top, stairs)));
+			taken.add(new double[] {at.getX() + 0.5, at.getZ() + 0.5, kind.width / 2 + 3});
+		};
+		structure.accept(main, centre);
 
 		// buildings round the main one (east left free for the way down); protoss pylons between them
 		UnitKind[] ring = terran ? TERRAN_RING : PROTOSS_RING;
 		double step = Math.PI * 2 / (ring.length + 1), radius = main.width / 2 + 7.5;
 		for (int i = 0; i < ring.length; i++) {
 			double angle = (i + 1) * step;
-			BlockPos at = groundAt(level, centre, angle, radius + ring[i].width / 2);
-			spawns.add(Spawn.member(ring[i], at));
+			structure.accept(ring[i], groundAt(level, centre, angle, radius + ring[i].width / 2));
 		}
 		// three pylons power the whole ring (owner 16.10: four and more were too many)
 		if (!terran) for (int i = 0; i < 3; i++)
-			spawns.add(Spawn.member(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5)));
-		lights(painter, centre, terran);
-		// owner 18.10: the base's resources west of the plaza (the east is the way down): 5 crystals, 2 geysers with its gas buildings
+			structure.accept(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5));
+		// owner 19.10: the base's edge always guarded — every 30 degrees (the way down in the east left free): terran missile
+		// turrets and manned bunkers, protoss photon cannons with a pylon between each two
+		for (int i = 0; i < 12; i++) {
+			double angle = Math.toRadians(15 + i * 30);
+			UnitKind gun = terran ? (i % 2 == 0 ? UnitKind.BUNKER : UnitKind.MISSILE_TURRET) : UnitKind.PHOTON_CANNON;
+			structure.accept(gun, groundAt(level, centre, angle, EDGE));
+			if (!terran && i % 2 == 0) structure.accept(UnitKind.PYLON, groundAt(level, centre, angle + Math.toRadians(15), EDGE));
+		}
+		lights(painter, centre, terran, taken);
+		// owner 18.10: the base's resources west of the core (the east is the way down): 5 crystals, 2 geysers with its gas buildings
 		// (the overworld's: a nether or End base's great hall lies where a geyser's vein would climb through it)
-		int depositX = centre.getX() - (PLAZA + 8), depositZ = centre.getZ();
+		int depositX = centre.getX() - (CORE + 8), depositZ = centre.getZ();
 		if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD)
 			for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
 				spawns.add(Spawn.member(race.rules().gasBuilding(), dev.starmine.vespene.Vespene.collapseUnder(level, gas))); // its mound taken away
-		// owner 16.10: main bases well defended — at the plaza's edge, by each pylon's line, a gun and a battery or bunker
-		for (int i = 0; i < 3; i++) {
-			double angle = Math.PI / 3 + i * Math.PI * 2 / 3;
-			spawns.add(Spawn.member(terran ? UnitKind.MISSILE_TURRET : UnitKind.PHOTON_CANNON, groundAt(level, centre, angle, PLAZA - 4)));
-			spawns.add(Spawn.member(terran ? UnitKind.BUNKER : UnitKind.SHIELD_BATTERY, groundAt(level, centre, angle + 0.3, PLAZA - 4)));
-		}
 		for (UnitKind kind : terran ? TERRAN_ARMY : PROTOSS_ARMY) {
 			double angle = random.nextDouble() * Math.PI * 2;
-			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 1 + random.nextDouble() * 2.5); // out of the main building
+			BlockPos at = groundAt(level, centre, angle, main.width / 2 + kind.width / 2 + 3 + random.nextDouble() * 2.5); // out of the main building
 			spawns.add(Spawn.member(kind, kind.flying ? at.above(kind.hoverHeight() > 0 ? (int) kind.hoverHeight() : 4) : at));
 		}
 
@@ -358,9 +372,20 @@ public final class RaceBases {
 			spawns.addAll(Dungeons.ancientTemples(painter, new BlockPos(centre.getX(), under, centre.getZ() + PLAZA + depth + 4 + 34 + 8)));
 			ship = null; // owner 17.10: the mothership comes when Karax is freed
 		}
-		if (withShip) { // owner 17.10: a main base's guardian hero by its main building (Swann, Karax)
-			spawns.add(Spawn.guard(UnitKind.guardianOf(race), groundAt(level, centre, Math.PI, main.width / 2 + 5), centre));
+		// owner 19.10: levels of tunnels under the base, its army's way down from the plaza, and the guardian in the hall at the bottom
+		Undercity.Plan below = Undercity.plan(level, race, centre, random);
+		if (withShip) { // owner 17.10: a main base's guardian hero (Swann, Karax)
+			if (below != null) below.spawns().add(Spawn.guard(UnitKind.guardianOf(race), below.hall(), below.hall()));
+			else spawns.add(Spawn.guard(UnitKind.guardianOf(race), groundAt(level, centre, Math.PI, main.width / 2 + 5), centre));
 			data.structuresDone.add("GUARD:" + race.name());
+		}
+		if (below != null) {
+			UUID id = base.id;
+			below.painter().then(() -> { // its dwellers once its blocks are in
+				for (Spawn spawn : below.spawns()) wait(data, id, spawn, level);
+				data.setDirty();
+			});
+			below.painter().start();
 		}
 		if (ship == null) { // the base and its dungeon; its ship later
 			for (Spawn spawn : spawns) wait(data, base.id, spawn, level); // in the base's own dimension (a nether or End base's)
@@ -384,16 +409,18 @@ public final class RaceBases {
 	 * Lights over a base's plaza (owner 16.10: no monsters spawn there): lamps on posts round its edge and
 	 * lights set in the paving — terran lamps, protoss sea lanterns.
 	 */
-	private static void lights(Painter painter, BlockPos centre, boolean terran) {
+	private static void lights(Painter painter, BlockPos centre, boolean terran, List<double[]> taken) {
 		BlockState floor = terran ? Blocks.OCHRE_FROGLIGHT.defaultBlockState() : Blocks.SEA_LANTERN.defaultBlockState();
 		for (int dx = -PLAZA + 4; dx <= PLAZA - 4; dx += 8)
 			for (int dz = -PLAZA + 4; dz <= PLAZA - 4; dz += 8)
 				if (dx * dx + dz * dz <= (PLAZA - 2) * (PLAZA - 2)) painter.set(centre.offset(dx, -1, dz), floor);
 		BlockState post = terran ? Blocks.POLISHED_ANDESITE.defaultBlockState() : Blocks.CHISELED_SANDSTONE.defaultBlockState();
 		BlockState lamp = terran ? Blocks.LANTERN.defaultBlockState() : Blocks.SEA_LANTERN.defaultBlockState();
-		for (int a = 0; a < 360; a += 20) {
+		for (int a = 10; a < 360; a += 10) { // owner 19.10: none where a gun or a building stands, none before the way down (east)
+			if (a < 15 || a > 345) continue;
 			double rad = Math.toRadians(a);
 			BlockPos foot = centre.offset((int) Math.round(Math.cos(rad) * (PLAZA - 1)), 0, (int) Math.round(Math.sin(rad) * (PLAZA - 1)));
+			if (taken.stream().anyMatch(t -> Math.hypot(t[0] - foot.getX() - 0.5, t[1] - foot.getZ() - 0.5) < t[2])) continue;
 			for (int up = 0; up < 3; up++) painter.set(foot.above(up), post);
 			painter.set(foot.above(3), lamp);
 		}
