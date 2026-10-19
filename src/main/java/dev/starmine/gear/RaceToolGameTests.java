@@ -3,6 +3,7 @@ package dev.starmine.gear;
 import static dev.starmine.ability.TestArena.ARENA;
 
 import dev.starmine.entity.UnitKind;
+import java.util.Map;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -87,5 +88,35 @@ public class RaceToolGameTests implements FabricGameTest {
 		helper.assertTrue(dev.starmine.block.ArmorBlocks.raceOf(RaceChests.BLOCKS.get(UnitKind.Race.TERRAN)) == UnitKind.Race.TERRAN, "the terran safe is not terran");
 		helper.assertTrue(RaceChests.BLOCKS.get(UnitKind.Race.TERRAN).getExplosionResistance() >= 1200, "the terran safe is not blast-proof");
 		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "raceBoats", timeoutTicks = 80)
+	public void raceBoatsHaveTheirWays(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		Map<UnitKind.Race, RaceBoats.RaceBoat> boats = new java.util.EnumMap<>(UnitKind.Race.class);
+		int i = 0;
+		for (UnitKind.Race race : UnitKind.Race.values()) {
+			helper.assertTrue(level.getServer().getRecipeManager().byKey(ResourceLocation.fromNamespaceAndPath("starmine", race.name().toLowerCase() + "_boat")).isPresent(),
+				"no recipe for the " + race + " boat");
+			RaceBoats.RaceBoat boat = RaceBoats.TYPES.get(race).create(level);
+			net.minecraft.core.BlockPos at = helper.absolutePos(new net.minecraft.core.BlockPos(6 + 4 * i++, 2, 40));
+			boat.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			level.addFreshEntity(boat);
+			boats.put(race, boat);
+			helper.assertTrue(boat.getDropItem() == RaceBoats.ITEMS.get(race), "the " + race + " boat drops something else");
+		}
+		var source = level.damageSources().generic();
+		boats.get(UnitKind.Race.TERRAN).hurt(source, 2);
+		boats.get(UnitKind.Race.PROTOSS).hurt(source, 2);
+		boats.get(UnitKind.Race.ZERG).setDamage(10);
+		float terran = boats.get(UnitKind.Race.TERRAN).getDamage(), protoss = boats.get(UnitKind.Race.PROTOSS).getDamage();
+		helper.runAfterDelay(45, () -> {
+			float zerg = boats.get(UnitKind.Race.ZERG).getDamage();
+			boats.values().forEach(Entity::discard);
+			helper.assertTrue(Math.abs(terran - 10) < 0.01, "the terran boat took " + terran + " of a hit of 2 (20 to a wooden one), not half");
+			helper.assertTrue(protoss == 0, "the protoss boat's shield did not take the blow: " + protoss);
+			helper.assertTrue(zerg < 10, "the zerg boat did not heal");
+			helper.succeed();
+		});
 	}
 }

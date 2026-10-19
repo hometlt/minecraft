@@ -44,6 +44,12 @@
 		},
 		{
 			"type": "patchouli:crafting",
+			"recipe": "starmine:zerg_boat",
+			"text": "Five of a race's shards make its $(l)boat$(); none breaks on a fall or a knock. The zerg boat heals itself, the terran boat takes half the harm, the protoss boat is a little faster and a shield takes its first blows.",
+			"recipe2": "starmine:protoss_boat"
+		},
+		{
+			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_repair_tool",
 			"text": "Two shards, as shears are made, make a race's $(l)repair tool$(): it mends a quarter of a block's kept damage a use. The terran one mends what is mechanical (terran armour, metal), the zerg mender what lives (zerg armour, flesh, creep, wood, wool, bone), the protoss restorer brings protoss blocks' shields back.",
 			"recipe2": "starmine:zerg_repair_tool"

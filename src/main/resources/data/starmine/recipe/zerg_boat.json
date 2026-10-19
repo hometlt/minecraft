@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"# #",
+		"###"
+	],
+	"key": {
+		"#": {
+			"item": "starmine:zerg_armor_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:zerg_boat",
+		"count": 1
+	}
+}

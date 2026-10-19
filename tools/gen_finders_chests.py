@@ -1,6 +1,6 @@
 """Owner 19.10: the mineral compass and the vespene detector (vanilla's compass needle frames under a rim of their own,
-the frames chosen by the needle's angle as vanilla's compass does) and the races' chests (orientable cubes) — textures
-drawn here, models, blockstates, loot, recipes, tags.
+the frames chosen by the needle's angle as vanilla's compass does), the races' chests (orientable cubes) and boats
+(vanilla's boat model in the race's stuff) — textures drawn here, models, blockstates, loot, recipes, tags.
 Run from the repository root: python tools/gen_finders_chests.py"""
 import io
 import json
@@ -62,7 +62,48 @@ def face(race, part):
     return img
 
 
+def boat_sheet(race):
+    """The boat's 128x64 sheet: planks of the race's stuff, its seams darker, a glowing line on the sides."""
+    p = PALETTE[race]
+    img = Image.new('RGBA', (128, 64))
+    for y in range(64):
+        for x in range(128):
+            c = p['dark'] if y % 6 == 0 else p['base'] if (x // 8 + y // 6) % 2 else p['light']
+            if y % 19 == 9:
+                c = p['glow']
+            img.putpixel((x, y), c + (255,))
+    return img
+
+
+def boat_icon(race):
+    p = PALETTE[race]
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    for y in range(8, 13):
+        inset = (y - 8) // 2
+        for x in range(1 + inset, 15 - inset):
+            c = p['light'] if y == 8 else p['dark'] if y == 12 else p['base']
+            img.putpixel((x, y), c + (255,))
+    img.putpixel((4, 10), p['glow'] + (255,))
+    img.putpixel((11, 10), p['glow'] + (255,))
+    return img
+
+
+def boats():
+    for race in PALETTE:
+        name = race + '_boat'
+        path = os.path.join(ASSETS, 'textures', 'entity', 'boat', race + '.png')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        boat_sheet(race).save(path)
+        boat_icon(race).save(os.path.join(ASSETS, 'textures', 'item', name + '.png'))
+        write(os.path.join(ASSETS, 'models', 'item', name + '.json'),
+              {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'starmine:item/' + name}})
+        write(os.path.join(DATA, 'recipe', name + '.json'), {
+            'type': 'minecraft:crafting_shaped', 'category': 'misc', 'pattern': ['# #', '###'],
+            'key': {'#': {'item': 'starmine:%s_armor_shard' % race}}, 'result': {'id': 'starmine:' + name, 'count': 1}})
+
+
 def main():
+    boats()
     models = os.path.join(ASSETS, 'models')
     for name, colour in (('mineral_compass', (90, 190, 255)), ('vespene_detector', (90, 230, 70))):
         rim(colour).save(os.path.join(ASSETS, 'textures', 'item', name + '_rim.png'))
