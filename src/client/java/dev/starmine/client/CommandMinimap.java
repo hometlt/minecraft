@@ -71,6 +71,16 @@ final class CommandMinimap {
 		graphics.blit(TEXTURE, x0, y0, 0, 0, SIZE, SIZE, SIZE, SIZE);
 		// units
 		for (Entity entity : level.entitiesForRendering()) {
+			if (entity instanceof dev.starmine.gear.Turrets.Turret turret && turret.isAlive()) { // owner 19.10: turrets, a square each
+				boolean own = CommandView.own(turret);
+				if (!own && !CommandView.visible(turret)) continue;
+				int[] at = screen(turret.getX(), turret.getZ(), height);
+				if (at[0] < x0 || at[1] < y0 || at[0] >= x0 + SIZE || at[1] >= y0 + SIZE) continue;
+				int colour = own ? (CommandView.selection.contains(turret.getId()) ? 0xFFFFFFFF : 0xFF40FF40) : 0xFFFF4040;
+				graphics.fill(at[0] - 1, at[1] - 1, at[0] + 2, at[1] + 2, 0xFF000000);
+				graphics.fill(at[0], at[1], at[0] + 1, at[1] + 1, colour);
+				continue;
+			}
 			if (!(entity instanceof StarUnit unit) || !unit.isAlive()) continue;
 			boolean own = CommandView.own(unit);
 			if (!own && !CommandView.visible(unit)) continue;

@@ -122,4 +122,45 @@ public class AmmoGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "turretUpgrades", timeoutTicks = 60)
+	public void turretsTakeTheirBasesUpgradesAndOrders(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		java.util.UUID player = java.util.UUID.randomUUID();
+		dev.starmine.entity.StarUnit cc = dev.starmine.ability.TestArena.unit(helper, dev.starmine.entity.UnitKind.COMMAND_CENTER, 34, 34, player);
+		helper.runAfterDelay(5, () -> {
+			dev.starmine.hive.Hive base = dev.starmine.ability.TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			Turrets.Turret turret = Turrets.TYPES.get(Turrets.Kind.GAUSS).create(level);
+			BlockPos at = helper.absolutePos(new BlockPos(8, 2, 8));
+			turret.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			turret.setOwner(player);
+			level.addFreshEntity(turret);
+			double plain = turret.range();
+			float plainBonus = turret.damageBonus();
+			base.attackLevel = 2;
+			base.researched.add(Turrets.rangeResearch(dev.starmine.entity.UnitKind.Race.TERRAN).id());
+			double upgraded = turret.range();
+			float bonus = turret.damageBonus();
+			// ordered at a pig (no foe of its own choosing), it fires at it
+			net.minecraft.world.entity.animal.Pig pig = EntityType.PIG.create(level);
+			pig.moveTo(at.getX() + 5.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			pig.setNoAi(true);
+			level.addFreshEntity(pig);
+			boolean chosen = turret.foe(level) == pig;
+			turret.focus(pig);
+			boolean ordered = turret.foe(level) == pig;
+			pig.discard();
+			turret.discard();
+			base.attackLevel = 0;
+			base.researched.remove(Turrets.rangeResearch(dev.starmine.entity.UnitKind.Race.TERRAN).id());
+			helper.assertTrue(plain == Turrets.RANGE && plainBonus == 0, "an unupgraded turret: range " + plain + ", bonus " + plainBonus);
+			helper.assertTrue(upgraded == Turrets.RANGE + Turrets.RANGE_BONUS, "Hi-Sec Auto Tracking did not lengthen its reach: " + upgraded);
+			helper.assertTrue(bonus == 2, "weapons level 2 gave " + bonus);
+			helper.assertFalse(chosen, "a turret chose a pig as its foe");
+			helper.assertTrue(ordered, "the turret does not fire at the foe it is ordered to");
+			helper.succeed();
+		});
+	}
 }

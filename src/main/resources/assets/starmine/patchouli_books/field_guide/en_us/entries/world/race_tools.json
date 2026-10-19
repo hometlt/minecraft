@@ -27,7 +27,7 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:gauss_turret",
-			"text": "The races' $(l)turrets$(): the gauss turret (a dispenser, a terran armour slab, redstone, iron), the needle turret (a dispenser, a zerg shard, bone meal, zerg flesh), the photon turret (a dispenser, a protoss shard, minerals, vespene). Set one down and load it with its rounds by right-clicking (empty-handed: how many it has; sneaking, its owner takes it up). It shoots monsters and the wild within 12 blocks it sees — never players nor your own —, and monsters go for it. The needle turret heals on creep; the photon turret's shield comes back when it is left alone.",
+			"text": "The races' $(l)turrets$(): the gauss turret (a dispenser, a terran armour slab, redstone, iron), the needle turret (a dispenser, a zerg shard, bone meal, zerg flesh), the photon turret (a dispenser, a protoss shard, minerals, vespene). Set one down and load it with its rounds by right-clicking (empty-handed: how many it has; sneaking, its owner takes it up). It shoots monsters and the wild within 12 blocks it sees — never players nor your own —, and monsters go for it. The needle turret heals on creep; the photon turret's shield comes back when it is left alone. Your base's weapons levels add to its strikes, its race's range research (Hi-Sec Auto Tracking, grooved spines, extended thermal lance) adds 4 blocks of reach; in the command view you select it and order it to fire at a foe.",
 			"recipe2": "starmine:needle_turret"
 		},
 		{

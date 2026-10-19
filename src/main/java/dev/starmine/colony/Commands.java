@@ -70,9 +70,23 @@ public final class Commands {
 		if (!rest.isEmpty()) moveArmy(level, base, rest, StarUnit.Order.MOVE, at);
 	}
 
+	/** The player's selected turrets: "attack" a foe — they fire at it while it is in reach; "stop" — they choose their own. */
+	static void turrets(ServerPlayer player, ServerLevel level, ColonyNetwork.UnitCommand command) {
+		for (int id : command.ids()) {
+			if (!(level.getEntity(id) instanceof dev.starmine.gear.Turrets.Turret turret) || !player.getUUID().equals(turret.owner())) continue;
+			switch (command.action()) {
+				case "attack" -> turret.focus(level.getEntity(command.target()) instanceof LivingEntity foe && foe.isAlive() ? foe : null);
+				case "stop" -> turret.focus(null);
+				default -> {
+				}
+			}
+		}
+	}
+
 	public static void command(ServerPlayer player, ColonyNetwork.UnitCommand command) {
 		ServerLevel level = player.serverLevel();
 		if (!CommandPanel.carried(player)) return; // owner 14.10: commands only with a command panel
+		turrets(player, level, command); // owner 19.10: the player's turrets fire at what they are told
 		Hive base = HiveSavedData.get(level.getServer()).baseOrHome(player.getUUID(), level.dimension().location().toString());
 		if (base == null) return;
 		boolean away = !base.dimension.equals(level.dimension().location().toString()); // its army away from home: orders, no building

@@ -100,6 +100,9 @@ public final class Ammo {
 
 	/** A round in flight: straight and fast, it strikes the first creature it meets for its round's damage. */
 	public static class Shot extends ThrowableItemProjectile {
+		/** Damage beyond its round's (a turret's weapons upgrades). */
+		float extra;
+
 		public Shot(EntityType<? extends Shot> type, Level level) {
 			super(type, level);
 		}
@@ -128,7 +131,7 @@ public final class Ammo {
 		protected void onHitEntity(EntityHitResult hit) {
 			super.onHitEntity(hit);
 			ItemStack round = getItem();
-			hit.getEntity().hurt(damageSources().thrown(this, getOwner()), damage(round));
+			hit.getEntity().hurt(damageSources().thrown(this, getOwner()), damage(round) + extra);
 			if (round.getItem() instanceof Round r && r.toxic && hit.getEntity() instanceof LivingEntity victim)
 				victim.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 0), getOwner());
 		}

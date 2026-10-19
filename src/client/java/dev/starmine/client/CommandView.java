@@ -436,6 +436,40 @@ public final class CommandView {
 		inspectedBlock = block;
 	}
 
+	/** Whether a turret is this player's (owner 19.10: selected and ordered like the base's units). */
+	static boolean own(dev.starmine.gear.Turrets.Turret turret) {
+		Minecraft mc = Minecraft.getInstance();
+		return mc.player != null && mc.player.getUUID().equals(turret.owner());
+	}
+
+	/** The player's turret under the cursor, or null. */
+	static dev.starmine.gear.Turrets.Turret turret(double mouseX, double mouseY, int width, int height) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return null;
+		Vec3[] ray = ray(mouseX, mouseY, width, height);
+		Vec3 end = ray[0].add(ray[1].scale(300));
+		dev.starmine.gear.Turrets.Turret best = null;
+		double bestDistance = Double.MAX_VALUE;
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (!(entity instanceof dev.starmine.gear.Turrets.Turret turret) || !turret.isAlive() || !own(turret)) continue;
+			var clip = turret.getBoundingBox().inflate(0.2).clip(ray[0], end);
+			if (clip.isPresent() && clip.get().distanceToSqr(ray[0]) < bestDistance) {
+				bestDistance = clip.get().distanceToSqr(ray[0]);
+				best = turret;
+			}
+		}
+		return best;
+	}
+
+	/** The selected turrets still standing. */
+	static List<dev.starmine.gear.Turrets.Turret> selectedTurrets() {
+		Minecraft mc = Minecraft.getInstance();
+		List<dev.starmine.gear.Turrets.Turret> turrets = new ArrayList<>();
+		if (mc.level == null) return turrets;
+		for (int id : selection) if (mc.level.getEntity(id) instanceof dev.starmine.gear.Turrets.Turret turret && turret.isAlive()) turrets.add(turret);
+		return turrets;
+	}
+
 	/** Whether a unit belongs to this player's base. */
 	static boolean own(StarUnit unit) {
 		Minecraft mc = Minecraft.getInstance();
@@ -447,14 +481,16 @@ public final class CommandView {
 		Minecraft mc = Minecraft.getInstance();
 		List<StarUnit> units = new ArrayList<>();
 		if (mc.level == null) return units;
-		selection.removeIf(id -> !(mc.level.getEntity(id) instanceof StarUnit unit) || !unit.isAlive());
+		selection.removeIf(id -> !(mc.level.getEntity(id) instanceof net.minecraft.world.entity.LivingEntity e && e.isAlive()
+			&& (e instanceof StarUnit || e instanceof dev.starmine.gear.Turrets.Turret)));
 		for (int id : selection) if (mc.level.getEntity(id) instanceof StarUnit unit) units.add(unit);
 		return units;
 	}
 
 	/** Sends a command for the own selected units. */
 	static void send(String action, Vec3 at, int target, String arg) {
-		int[] ids = selected().stream().filter(CommandView::own).mapToInt(Entity::getId).toArray();
+		int[] ids = java.util.stream.IntStream.concat(selected().stream().filter(CommandView::own).mapToInt(Entity::getId),
+			selectedTurrets().stream().filter(CommandView::own).mapToInt(Entity::getId)).toArray(); // owner 19.10: and the player's turrets
 		if (ids.length == 0) return;
 		ClientPlayNetworking.send(new ColonyNetwork.UnitCommand(ids, action, at.x, at.y, at.z, target, arg == null ? "" : arg));
 		Minecraft mc = Minecraft.getInstance();
@@ -495,6 +531,8 @@ public final class CommandView {
 			for (Entity entity : mc.level.entitiesForRendering())
 				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
 					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight(), unit.kind.detector()));
+				else if (entity instanceof dev.starmine.gear.Turrets.Turret turret && turret.isAlive() && own(turret)) // owner 19.10: turrets see too
+					list.add(new Sight(turret.getX(), turret.getEyeY(), turret.getZ(), dev.starmine.gear.Turrets.RANGE + 4, false));
 		long now = mc.level == null ? 0 : mc.level.getGameTime();
 		SCANS.removeIf(scan -> scan.until() < now);
 		for (Sight scan : SCANS.stream().map(Scan::sight).toList()) list.add(scan); // owner 18.10: a scanner sweep shows its place
@@ -514,6 +552,7 @@ public final class CommandView {
 	public static boolean visible(Entity entity) {
 		if (!active) return true;
 		if (entity instanceof StarUnit unit && own(unit)) return true;
+		if (entity instanceof dev.starmine.gear.Turrets.Turret turret && own(turret)) return true;
 		if (entity == Minecraft.getInstance().player) return true;
 		Look look = look(entity);
 		return look.seen || look.sensed;

@@ -448,11 +448,27 @@ public final class CommandScreen extends Screen {
 		return Component.translatable("entity.starmine." + kind.id);
 	}
 
+	/** Owner 19.10: the selected turrets — each its icon, health and rounds. */
+	private void drawTurrets(GuiGraphics graphics, List<dev.starmine.gear.Turrets.Turret> turrets) {
+		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4, panelWidth = 280, panelHeight = 3 * (CELL + GAP);
+		graphics.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, 0xB0101418);
+		for (int i = 0; i < turrets.size() && i < 4; i++) {
+			dev.starmine.gear.Turrets.Turret turret = turrets.get(i);
+			int y = panelTop + 6 + i * 20;
+			graphics.renderItem(new ItemStack(dev.starmine.gear.Turrets.ITEMS.get(turret.kind)), panelLeft + 6, y);
+			graphics.drawString(font, turret.getDisplayName(), panelLeft + 28, y, 0xFFFFFFFF);
+			graphics.drawString(font, Component.translatable("message.starmine.turret_rounds", turret.rounds(), dev.starmine.gear.Turrets.MAX_ROUNDS),
+				panelLeft + 150, y, 0xFFE0D080);
+			bar(graphics, panelLeft + 28, y + 10, 110, turret.getHealth() / turret.getMaxHealth(), 0xFF40C040);
+		}
+	}
+
 	/** Bottom middle: one unit in detail, or the selected units' icons with their health. */
 	private void drawSelection(GuiGraphics graphics) {
 		List<StarUnit> units = CommandView.selected();
 		if (units.isEmpty()) {
-			drawInspected(graphics);
+			if (!CommandView.selectedTurrets().isEmpty()) drawTurrets(graphics, CommandView.selectedTurrets());
+			else drawInspected(graphics);
 			return;
 		}
 		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4, panelWidth = 280, panelHeight = 3 * (CELL + GAP);
@@ -1139,6 +1155,13 @@ public final class CommandScreen extends Screen {
 		CommandView.inspectedBlock = null;
 		CommandView.tumor = null;
 		if (unit == null) {
+			dev.starmine.gear.Turrets.Turret turret = CommandView.turret(mouseX, mouseY, width, height);
+			if (turret != null) { // owner 19.10: the player's turret
+				if (!hasShiftDown()) CommandView.selection.clear();
+				CommandView.selection.add(turret.getId());
+				CommandView.hero = false;
+				return;
+			}
 			if (CommandView.heroAt(mouseX, mouseY, width, height)) { // the player's own body: the hero
 				CommandView.selectHero();
 				return;
@@ -1210,11 +1233,27 @@ public final class CommandScreen extends Screen {
 	private void boxSelect(double x0, double y0, double x1, double y1) {
 		List<StarUnit> inside = onScreen(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1));
 		List<StarUnit> units = inside.stream().filter(unit -> !unit.kind.structure()).toList();
+		List<dev.starmine.gear.Turrets.Turret> turrets = units.isEmpty() ? turretsOnScreen(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1))
+			: List.of(); // owner 19.10: turrets go with the buildings, not with an army
 		if (units.isEmpty()) units = inside;
 		if (!hasShiftDown()) CommandView.selection.clear();
 		for (StarUnit unit : units) CommandView.selection.add(unit.getId());
-		if (!units.isEmpty()) CommandView.hero = false;
+		for (dev.starmine.gear.Turrets.Turret turret : turrets) CommandView.selection.add(turret.getId());
+		if (!units.isEmpty() || !turrets.isEmpty()) CommandView.hero = false;
 		page = Page.MAIN;
+	}
+
+	/** The player's turrets within a screen rectangle. */
+	private List<dev.starmine.gear.Turrets.Turret> turretsOnScreen(double x0, double y0, double x1, double y1) {
+		List<dev.starmine.gear.Turrets.Turret> found = new ArrayList<>();
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return found;
+		for (Entity entity : mc.level.entitiesForRendering()) {
+			if (!(entity instanceof dev.starmine.gear.Turrets.Turret turret) || !turret.isAlive() || !CommandView.own(turret)) continue;
+			double[] at = CommandView.project(turret.position(), width, height);
+			if (at != null && at[0] >= x0 && at[0] <= x1 && at[1] >= y0 && at[1] <= y1) found.add(turret);
+		}
+		return found;
 	}
 
 	/** The base's own units whose feet are within a screen rectangle. */
@@ -1276,7 +1315,15 @@ public final class CommandScreen extends Screen {
 			return;
 		}
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
-		if (own.isEmpty()) return;
+		if (own.isEmpty()) {
+			if (!CommandView.selectedTurrets().isEmpty()) { // owner 19.10: turrets alone: fire at the foe clicked
+				StarUnit foe = CommandView.unit(mouseX, mouseY, width, height);
+				net.minecraft.world.entity.LivingEntity creature = foe == null ? CommandView.creature(mouseX, mouseY, width, height) : null;
+				if (foe != null && !CommandView.own(foe)) CommandView.send("attack", foe.position(), foe.getId(), null);
+				else if (creature instanceof net.minecraft.world.entity.monster.Enemy) CommandView.send("attack", creature.position(), creature.getId(), null);
+			}
+			return;
+		}
 		StarUnit unit = CommandView.unit(mouseX, mouseY, width, height);
 		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
 		Vec3 at = unit != null ? unit.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;

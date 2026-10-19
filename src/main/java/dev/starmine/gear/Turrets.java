@@ -47,10 +47,24 @@ import org.jetbrains.annotations.Nullable;
  *   creep;
  * - the protoss photon turret (a dispenser, a protoss shard, mineral shards, vespene) fires energy charges, and its
  *   shield — its health — comes back when it is left alone.
+ * Its owner's base upgrades it (owner 19.10): each weapons level a strike more ({@link Turret#damageBonus}); a race's
+ * research, {@link #RANGE_BONUS} blocks of reach ({@link #rangeResearch}: the terrans' Hi-Sec Auto Tracking, the zerg's
+ * grooved spines, the protoss' extended thermal lance). In the command view its owner sees with it, finds it on the
+ * minimap, selects it and orders it to fire at a foe ({@link Turret#focus}).
  */
 public final class Turrets {
 	public static final double RANGE = 12;
 	public static final int MAX_ROUNDS = 256;
+	public static final double RANGE_BONUS = 4;
+
+	/** The research that lengthens a race's turrets' reach. */
+	public static dev.starmine.race.Research rangeResearch(UnitKind.Race race) {
+		return switch (race) {
+			case TERRAN -> dev.starmine.race.Research.HISEC_AUTO_TRACKING;
+			case ZERG -> dev.starmine.race.Research.GROOVED_SPINES;
+			case PROTOSS -> dev.starmine.race.Research.EXTENDED_THERMAL_LANCE;
+		};
+	}
 
 	public enum Kind {
 		GAUSS(UnitKind.Race.TERRAN, 40, 10), NEEDLE(UnitKind.Race.ZERG, 30, 14), PHOTON(UnitKind.Race.PROTOSS, 30, 16);
@@ -119,7 +133,7 @@ public final class Turrets {
 			if (turret == null) return InteractionResult.FAIL;
 			turret.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, context.getRotation(), 0);
 			if (!level.noCollision(turret)) return InteractionResult.FAIL;
-			if (context.getPlayer() != null) turret.owner = context.getPlayer().getUUID();
+			if (context.getPlayer() != null) turret.setOwner(context.getPlayer().getUUID());
 			level.addFreshEntity(turret);
 			level.playSound(null, at, SoundEvents.IRON_GOLEM_REPAIR, SoundSource.BLOCKS, 0.8f, 1.2f);
 			context.getItemInHand().shrink(1);
@@ -130,8 +144,11 @@ public final class Turrets {
 	/** A turret standing: it turns to its foe and fires. */
 	public static class Turret extends Mob {
 		private static final EntityDataAccessor<Integer> ROUNDS = SynchedEntityData.defineId(Turret.class, EntityDataSerializers.INT);
+		private static final EntityDataAccessor<java.util.Optional<UUID>> OWNER = SynchedEntityData.defineId(Turret.class, EntityDataSerializers.OPTIONAL_UUID);
 		public final Kind kind;
 		@Nullable UUID owner;
+		/** A foe its owner ordered it to fire at (its entity id; -1 none). */
+		private int focus = -1;
 		/** Its rounds: what it was loaded with (kind of round) and how many. */
 		ItemStack round = ItemStack.EMPTY;
 		private int cooldown, calm;
@@ -146,6 +163,7 @@ public final class Turrets {
 		protected void defineSynchedData(SynchedEntityData.Builder builder) {
 			super.defineSynchedData(builder);
 			builder.define(ROUNDS, 0);
+			builder.define(OWNER, java.util.Optional.empty());
 		}
 
 		public int rounds() {
@@ -158,7 +176,35 @@ public final class Turrets {
 		}
 
 		public @Nullable UUID owner() {
-			return owner;
+			return level().isClientSide ? entityData.get(OWNER).orElse(null) : owner;
+		}
+
+		void setOwner(@Nullable UUID owner) {
+			this.owner = owner;
+			entityData.set(OWNER, java.util.Optional.ofNullable(owner));
+		}
+
+		/** Its owner's base here, or null. */
+		@Nullable dev.starmine.hive.Hive base() {
+			return owner == null || !(level() instanceof ServerLevel server) ? null
+				: dev.starmine.hive.HiveSavedData.get(server.getServer()).baseOrHome(owner, server.dimension().location().toString());
+		}
+
+		/** How far it reaches: its race's range research adds {@link #RANGE_BONUS}. */
+		public double range() {
+			dev.starmine.hive.Hive base = base();
+			return RANGE + (base != null && base.researched.contains(rangeResearch(kind.race).id()) ? RANGE_BONUS : 0);
+		}
+
+		/** A strike more for each weapons level of its owner's base. */
+		public float damageBonus() {
+			dev.starmine.hive.Hive base = base();
+			return base == null ? 0 : dev.starmine.race.Research.level(base, dev.starmine.race.Research.WEAPONS);
+		}
+
+		/** Its owner's order: fire at this foe while it is in reach (null: choose its own foes). */
+		public void focus(@Nullable LivingEntity foe) {
+			focus = foe == null ? -1 : foe.getId();
 		}
 
 		@Override
@@ -174,7 +220,8 @@ public final class Turrets {
 			getLookControl().setLookAt(at.x, at.y, at.z);
 			setYRot((float) Math.toDegrees(Math.atan2(at.z - eye.z, at.x - eye.x)) - 90);
 			setYHeadRot(getYRot());
-			Ammo.fire(level, eye.add(at.subtract(eye).normalize().scale(0.8)), at.subtract(eye), round, this);
+			Ammo.Shot shot = Ammo.fire(level, eye.add(at.subtract(eye).normalize().scale(0.8)), at.subtract(eye), round, this);
+			shot.extra = damageBonus();
 			setRounds(rounds() - 1);
 			cooldown = kind.interval;
 			level.playSound(null, blockPosition(), kind == Kind.PHOTON ? SoundEvents.BEACON_POWER_SELECT : kind == Kind.NEEDLE ? SoundEvents.LLAMA_SPIT
@@ -183,9 +230,15 @@ public final class Turrets {
 
 		/** Its foe: the nearest monster or wild creature it sees within reach — never a player, never its side. */
 		@Nullable LivingEntity foe(ServerLevel level) {
+			double range = range();
+			if (focus >= 0) { // its owner's order first
+				if (level.getEntity(focus) instanceof LivingEntity ordered && ordered.isAlive() && distanceToSqr(ordered) <= range * range && hasLineOfSight(ordered))
+					return ordered;
+				if (!(level.getEntity(focus) instanceof LivingEntity alive) || !alive.isAlive()) focus = -1;
+			}
 			LivingEntity best = null;
-			double bestDistance = RANGE * RANGE;
-			for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(RANGE), e -> e.isAlive() && e != this)) {
+			double bestDistance = range * range;
+			for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(range), e -> e.isAlive() && e != this)) {
 				if (e instanceof Player || e instanceof Turret || !(e instanceof Enemy)) continue;
 				if (e instanceof StarUnit unit && owner != null && unit.owner().filter(owner::equals).isPresent()) continue;
 				double d = distanceToSqr(e);
@@ -280,7 +333,7 @@ public final class Turrets {
 		@Override
 		public void readAdditionalSaveData(CompoundTag tag) {
 			super.readAdditionalSaveData(tag);
-			owner = tag.hasUUID("StarMineOwner") ? tag.getUUID("StarMineOwner") : null;
+			setOwner(tag.hasUUID("StarMineOwner") ? tag.getUUID("StarMineOwner") : null);
 			round = tag.contains("StarMineRound") ? ItemStack.parseOptional(registryAccess(), tag.getCompound("StarMineRound")) : ItemStack.EMPTY;
 			setRounds(round.isEmpty() ? 0 : tag.getInt("StarMineRounds"));
 		}
