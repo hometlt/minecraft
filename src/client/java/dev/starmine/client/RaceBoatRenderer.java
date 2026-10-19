@@ -34,6 +34,17 @@ final class RaceBoatRenderer extends EntityRenderer<RaceBoats.RaceBoat> {
 		pose.mulPose(Axis.YP.rotationDegrees(180 - yaw));
 		float hurt = boat.getHurtTime() - partial, damage = Math.max(0, boat.getDamage() - partial);
 		if (hurt > 0) pose.mulPose(Axis.XP.rotationDegrees(Mth.sin(hurt) * hurt * damage / 10f * boat.getHurtDir()));
+		// owner 19.10: the terran cabin of mineral glass; the diving zerg boat closed over in flesh
+		net.minecraft.world.level.block.state.BlockState cover = boat.race == dev.starmine.entity.UnitKind.Race.TERRAN
+			? dev.starmine.block.CraftBlocks.MINERAL_GLASS.defaultBlockState()
+			: boat.race == dev.starmine.entity.UnitKind.Race.ZERG && boat.maneuver() == RaceBoats.DIVE ? dev.starmine.block.StarMineBlocks.ZERG_FLESH.defaultBlockState() : null;
+		if (cover != null) {
+			pose.pushPose();
+			pose.translate(-0.6, 0.05, -0.8);
+			pose.scale(1.2f, 1.1f, 1.6f);
+			net.minecraft.client.Minecraft.getInstance().getBlockRenderer().renderSingleBlock(cover, pose, buffers, light, OverlayTexture.NO_OVERLAY);
+			pose.popPose();
+		}
 		pose.scale(-1, -1, 1);
 		pose.mulPose(Axis.YP.rotationDegrees(90));
 		model.setupAnim(boat, partial, 0, -0.1f, 0, 0);

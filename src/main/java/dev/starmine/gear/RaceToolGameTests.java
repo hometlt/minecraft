@@ -119,4 +119,61 @@ public class RaceToolGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	@GameTest(template = ARENA, batch = "boatManeuvers", timeoutTicks = 200)
+	public void boatsShelterRiseAndDive(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		ServerLevel level = helper.getLevel();
+		net.minecraft.core.BlockPos low = helper.absolutePos(new net.minecraft.core.BlockPos(10, 2, 26)), high = low.offset(24, 3, 12);
+		for (net.minecraft.core.BlockPos at : net.minecraft.core.BlockPos.betweenClosed(low, high)) {
+			boolean rim = at.getX() == low.getX() || at.getX() == high.getX() || at.getZ() == low.getZ() || at.getZ() == high.getZ();
+			level.setBlock(at, rim ? net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState()
+				: at.getY() < high.getY() ? net.minecraft.world.level.block.Blocks.WATER.defaultBlockState() : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 2);
+		}
+		Map<UnitKind.Race, RaceBoats.RaceBoat> boats = new java.util.EnumMap<>(UnitKind.Race.class);
+		Map<UnitKind.Race, net.minecraft.world.entity.LivingEntity> riders = new java.util.EnumMap<>(UnitKind.Race.class);
+		int i = 0;
+		for (UnitKind.Race race : UnitKind.Race.values()) {
+			RaceBoats.RaceBoat boat = RaceBoats.TYPES.get(race).create(level);
+			boat.moveTo(low.getX() + 5.5 + 7 * i++, high.getY() - 0.5, low.getZ() + 6.5, 0, 0);
+			level.addFreshEntity(boat);
+			net.minecraft.world.entity.animal.Pig rider = net.minecraft.world.entity.EntityType.PIG.create(level);
+			rider.moveTo(boat.getX(), boat.getY(), boat.getZ(), 0, 0);
+			level.addFreshEntity(rider);
+			rider.startRiding(boat, true);
+			boats.put(race, boat);
+			riders.put(race, rider);
+		}
+		double[] start = new double[3];
+		helper.runAfterDelay(20, () -> {
+			for (UnitKind.Race race : UnitKind.Race.values()) start[race.ordinal()] = boats.get(race).getY();
+			boats.get(UnitKind.Race.PROTOSS).startManeuver();
+			boats.get(UnitKind.Race.ZERG).startManeuver();
+			boats.get(UnitKind.Race.TERRAN).startManeuver(); // the terran boat has none
+		});
+		helper.runAfterDelay(80, () -> {
+			var terran = riders.get(UnitKind.Race.TERRAN);
+			float health = terran.getHealth();
+			terran.hurt(level.damageSources().generic(), 3);
+			boolean cabin = terran.getHealth() == health && boats.get(UnitKind.Race.TERRAN).getDamage() > 0;
+			var zergRider = riders.get(UnitKind.Race.ZERG);
+			float zergHealth = zergRider.getHealth();
+			zergRider.hurt(level.damageSources().generic(), 3);
+			boolean closed = zergRider.getHealth() == zergHealth;
+			double rose = boats.get(UnitKind.Race.PROTOSS).getY() - start[UnitKind.Race.PROTOSS.ordinal()];
+			double dived = start[UnitKind.Race.ZERG.ordinal()] - boats.get(UnitKind.Race.ZERG).getY();
+			boolean aboard = zergRider.getVehicle() == boats.get(UnitKind.Race.ZERG) && zergRider.hasEffect(net.minecraft.world.effect.MobEffects.WATER_BREATHING);
+			boolean terranStill = boats.get(UnitKind.Race.TERRAN).maneuver() == RaceBoats.NONE;
+			boats.values().forEach(Entity::discard);
+			riders.values().forEach(Entity::discard);
+			for (net.minecraft.core.BlockPos at : net.minecraft.core.BlockPos.betweenClosed(low, high)) level.setBlock(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 2);
+			helper.assertTrue(cabin, "the terran cabin did not spare its rider");
+			helper.assertTrue(terranStill, "the terran boat maneuvers");
+			helper.assertTrue(rose > 1.5, "the protoss boat did not rise over the water: " + rose);
+			helper.assertTrue(dived > 1.5, "the zerg boat did not dive: " + dived);
+			helper.assertTrue(aboard, "the diving zerg boat lost its rider, or it cannot breathe");
+			helper.assertTrue(closed, "the diving zerg boat did not shelter its rider");
+			helper.succeed();
+		});
+	}
 }

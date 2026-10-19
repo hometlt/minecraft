@@ -45,7 +45,7 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:zerg_boat",
-			"text": "Five of a race's shards make its $(l)boat$(); none breaks on a fall or a knock. The zerg boat heals itself, the terran boat takes half the harm, the protoss boat is a little faster and a shield takes its first blows.",
+			"text": "Five of a race's shards make its $(l)boat$(); none breaks on a fall or a knock. The zerg boat heals itself, the terran boat takes half the harm, the protoss boat is a little faster and a shield takes its first blows. The terran boat is a glass cabin: while it stands, it takes the blows meant for its riders. The jump key lifts the protoss boat over the water for 8 s, and sends the zerg boat under it, closed and breathable, its riders spared.",
 			"recipe2": "starmine:protoss_boat"
 		},
 		{
