@@ -33,6 +33,9 @@ final class FallbackModels {
 
 	/** A box from (x0, y0, z0) to (x1, y1, z1), blocks, the unit's feet at the origin and its front towards +z. */
 	record Part(float x0, float y0, float z0, float x1, float y1, float z1, int colour, boolean glow, Move move, float px, float py, float pz) {
+		Part recoloured(int to) {
+			return new Part(x0, y0, z0, x1, y1, z1, to, glow, move, px, py, pz);
+		}
 	}
 
 	private FallbackModels() {
@@ -91,6 +94,7 @@ final class FallbackModels {
 		float flap = Mth.sin(age * 0.35f) * 0.55f;
 		float look = Mth.wrapDegrees(Mth.rotLerp(partial, unit.yHeadRotO, unit.yHeadRot) - Mth.rotLerp(partial, unit.yBodyRotO, unit.yBodyRot));
 		VertexConsumer buffer = buffers.getBuffer(alpha < 255 ? RenderType.entityTranslucent(WHITE) : RenderType.entityCutoutNoCull(WHITE));
+		int accent = colours(unit.kind)[2], team = unit.teamColor() & 0xFFFFFF; // owner 19.10: its accent parts take its side's team colour
 		for (Part part : parts) {
 			pose.pushPose();
 			switch (part.move()) {
@@ -102,7 +106,7 @@ final class FallbackModels {
 				default -> {
 				}
 			}
-			box(buffer, pose.last(), part, part.glow() ? LightTexture.FULL_BRIGHT : light, overlay, alpha);
+			box(buffer, pose.last(), part.colour() == accent && !part.glow() ? part.recoloured(team) : part, part.glow() ? LightTexture.FULL_BRIGHT : light, overlay, alpha);
 			pose.popPose();
 		}
 	}

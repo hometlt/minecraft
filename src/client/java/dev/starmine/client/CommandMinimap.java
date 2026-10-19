@@ -76,7 +76,8 @@ final class CommandMinimap {
 				if (!own && !CommandView.visible(turret)) continue;
 				int[] at = screen(turret.getX(), turret.getZ(), height);
 				if (at[0] < x0 || at[1] < y0 || at[0] >= x0 + SIZE || at[1] >= y0 + SIZE) continue;
-				int colour = own ? (CommandView.selection.contains(turret.getId()) ? 0xFFFFFFFF : 0xFF40FF40) : 0xFFFF4040;
+				int colour = CommandView.selection.contains(turret.getId()) ? 0xFFFFFFFF
+					: turret.owner() != null ? dev.starmine.faction.TeamColors.player(turret.owner()) : 0xFFFF4040; // owner 19.10: team colours
 				graphics.fill(at[0] - 1, at[1] - 1, at[0] + 2, at[1] + 2, 0xFF000000);
 				graphics.fill(at[0], at[1], at[0] + 1, at[1] + 1, colour);
 				continue;
@@ -87,7 +88,8 @@ final class CommandMinimap {
 			int[] at = screen(unit.getX(), unit.getZ(), height);
 			if (at[0] < x0 || at[1] < y0 || at[0] >= x0 + SIZE || at[1] >= y0 + SIZE) continue;
 			int r = unit.kind.structure() ? 2 : 1;
-			int colour = own ? (CommandView.selection.contains(unit.getId()) ? 0xFFFFFFFF : 0xFF40FF40) : 0xFFFF4040;
+			int colour = CommandView.selection.contains(unit.getId()) ? 0xFFFFFFFF : unit.teamColor(); // owner 19.10: each side its team colour
+			graphics.fill(at[0] - r - 1, at[1] - r - 1, at[0] + r + 2, at[1] + r + 2, own ? 0xC0FFFFFF : 0xFF000000); // own: a light rim
 			graphics.fill(at[0] - r, at[1] - r, at[0] + r + 1, at[1] + r + 1, colour);
 		}
 		Orders.minimap(graphics, (x, z) -> screen(x, z, height));
@@ -182,12 +184,14 @@ final class CommandMinimap {
 		return (argb & 0xFF00FF00) | (argb & 0xFF) << 16 | (argb >> 16) & 0xFF;
 	}
 
-	/** A base's colour on the minimap: zerg violet, terran blue, protoss gold, the player's own white. */
+	/** A base's colour on the minimap: its side's team colour (owner 19.10), the player's own theirs. */
 	static int markColour(String race) {
+		var player = Minecraft.getInstance().player;
 		return switch (race) {
-			case "ZERG" -> 0xFFC060FF;
-			case "TERRAN" -> 0xFF60A0FF;
-			case "PROTOSS" -> 0xFFFFD040;
+			case "ZERG" -> dev.starmine.faction.TeamColors.ZERG;
+			case "TERRAN" -> dev.starmine.faction.TeamColors.TERRAN;
+			case "PROTOSS" -> dev.starmine.faction.TeamColors.PROTOSS;
+			case "PLAYER" -> player != null ? dev.starmine.faction.TeamColors.player(player.getUUID()) : 0xFFFFFFFF;
 			case "TRANSPORT" -> 0xFF60FFB0;
 			case "SHARD" -> 0xFFB040FF;
 			case "RIFT" -> 0xFFFF3040;

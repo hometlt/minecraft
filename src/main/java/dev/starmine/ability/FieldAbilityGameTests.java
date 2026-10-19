@@ -234,4 +234,24 @@ public class FieldAbilityGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 19.10: team colours — a wild race's, a player's own (one per player), Amun's red; synced with the unit. */
+	@GameTest(template = ARENA, batch = "fieldTeams", timeoutTicks = 100)
+	public void sidesHaveTheirTeamColours(GameTestHelper helper) {
+		clear(helper);
+		UUID player = UUID.randomUUID();
+		StarUnit wild = unit(helper, UnitKind.ZERGLING, 10, 10, null), own = unit(helper, UnitKind.ZERGLING, 14, 10, player);
+		StarUnit amun = unit(helper, UnitKind.ZEALOT, 18, 10, null);
+		amun.addTag(dev.starmine.world.VoidForces.TAG);
+		for (StarUnit unit : new StarUnit[] {wild, own, amun}) unit.setNoAi(true);
+		helper.runAfterDelay(25, () -> {
+			helper.assertTrue(wild.teamColor() == dev.starmine.faction.TeamColors.ZERG, "the wild zerg are not purple");
+			int mine = dev.starmine.faction.TeamColors.player(player);
+			helper.assertTrue(own.teamColor() == mine && mine == dev.starmine.faction.TeamColors.player(player), "a player's colour is not theirs");
+			helper.assertTrue(mine != dev.starmine.faction.TeamColors.ZERG && mine != dev.starmine.faction.TeamColors.TERRAN
+				&& mine != dev.starmine.faction.TeamColors.PROTOSS && mine != dev.starmine.faction.TeamColors.AMUN, "a player wears a wild side's colour");
+			helper.assertTrue(amun.teamColor() == dev.starmine.faction.TeamColors.AMUN, "Amun's troops are not red");
+			helper.succeed();
+		});
+	}
 }

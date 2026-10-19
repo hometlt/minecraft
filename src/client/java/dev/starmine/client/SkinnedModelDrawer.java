@@ -46,6 +46,29 @@ public final class SkinnedModelDrawer {
 		color = 0xFFFFFFFF;
 	}
 
+	/** Which textures have a team colour mask (`<texture>_team.png`), looked up once each. */
+	private static final java.util.Map<String, Boolean> MASKS = new java.util.HashMap<>();
+
+	/**
+	 * Owner 19.10, SC2 team colours: the parts whose texture has a team colour mask (`<texture>_team.png`, exported with the
+	 * model: grey shading where the team colour shows, its alpha how much) are drawn again in `argb` over the last pose.
+	 */
+	public void drawTeam(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay, int argb) {
+		color = argb | 0xFF000000;
+		for (SkinnedModel.Part part : model.parts) {
+			if (!MASKS.computeIfAbsent(part.texture(), texture -> net.minecraft.client.Minecraft.getInstance().getResourceManager()
+				.getResource(StarMine.id("textures/entity/sc2/" + texture + "_team.png")).isPresent())) continue;
+			VertexConsumer consumer = buffers.getBuffer(RenderType.entityTranslucent(StarMine.id("textures/entity/sc2/" + part.texture() + "_team.png")));
+			drawPart(model, part, pose, consumer, light, overlay);
+		}
+		color = 0xFFFFFFFF;
+	}
+
+	/** Forgets which textures have masks (a resource reload). */
+	public static void forgetMasks() {
+		MASKS.clear();
+	}
+
 	/** Deforms the model by `palette` (linear-blend skinning) into this drawer's buffers. */
 	public void skin(SkinnedModel model, float[] palette) {
 		int n = model.vertexCount;

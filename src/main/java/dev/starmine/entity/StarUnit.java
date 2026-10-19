@@ -222,6 +222,8 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	private static final EntityDataAccessor<java.util.Optional<UUID>> CONTROLLER =
 		SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.OPTIONAL_UUID);
 	private static final EntityDataAccessor<Integer> PROGRESS = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
+	/** Owner 19.10: its side's team colour (ARGB, {@link dev.starmine.faction.TeamColors}), synced for the minimap and its model. */
+	private static final EntityDataAccessor<Integer> TEAM = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.INT);
 	/** Protoss plasma shields left (health units); they absorb damage first and come back {@link #SHIELD_DELAY} after the last hit. */
 	private static final EntityDataAccessor<Float> SHIELD = SynchedEntityData.defineId(StarUnit.class, EntityDataSerializers.FLOAT);
 	/** Its base's upgrade levels for it (owner 17.10): weapons, armor and shields, 4 bits each ({@link #applyUpgrades}). */
@@ -371,6 +373,10 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (kind.dungeonBoss()) dev.starmine.world.DungeonBosses.tick(this, server); // owner 19.10: the brood mother, the hybrid
 		if (dev.starmine.faction.Faction.amun(this)) dev.starmine.world.AmunInvasion.unitTick(this, server); // owner 17.10: his curse, his workers
 		if (this.tickCount % 40 == 11 && hiveId != null) adoptBase(server);
+		if (this.tickCount % 20 == 1) { // its side's colour (it changes with an owner, Amun's hold, a freeing)
+			int team = dev.starmine.faction.TeamColors.of(this);
+			if (team != this.entityData.get(TEAM)) this.entityData.set(TEAM, team);
+		}
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
 		else if (kind.main() && hiveId == null) dev.starmine.colony.Founding.found(this, server);
 		else if (kind.main() && constructTicks == 0) { // a wild command center or nexus: its base's AI
@@ -884,6 +890,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		builder.define(CARRIED, ItemStack.EMPTY);
 		builder.define(OWNER, java.util.Optional.empty());
 		builder.define(CONTROLLER, java.util.Optional.empty());
+		builder.define(TEAM, 0); // its race's until the server tells (kind is not set yet here)
 		builder.define(SHIELD, 0f);
 		builder.define(UPGRADES, 0);
 		builder.define(PROGRESS, 0);
@@ -1719,6 +1726,12 @@ public class StarUnit extends Monster implements RangedAttackMob {
 
 	public Vec3 orderPos() {
 		return orderPos;
+	}
+
+	/** Its side's team colour (ARGB), both sides. */
+	public int teamColor() {
+		int team = this.entityData.get(TEAM);
+		return team != 0 ? team : dev.starmine.faction.TeamColors.race(kind.race);
 	}
 
 	/** The player commanding it for now (a neural parasite's), both sides. */

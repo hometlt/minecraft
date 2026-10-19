@@ -133,8 +133,11 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			else if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
 				boolean ours = player != null && dev.starmine.faction.Faction.allied(entity, player);
 				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, ours ? 0x70FFFFFF : 0x14FFFFFF);
-			} else if (shown(entity.kind) != entity.kind && entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
-			else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
+			} else {
+				if (shown(entity.kind) != entity.kind && entity.kind.tint() != 0xFFFFFFFF) drawer.drawTinted(model, poseStack.last(), buffers, packedLight, overlay, entity.kind.tint());
+				else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
+				drawer.drawTeam(model, poseStack.last(), buffers, packedLight, overlay, entity.teamColor()); // owner 19.10: its side's colour
+			}
 			if (entity.kind.worker() && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight); // owner 18.10: every race's workers
 			poseStack.popPose();
 		}

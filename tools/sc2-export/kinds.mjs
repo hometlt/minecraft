@@ -11,12 +11,20 @@ import { fileURLToPath } from 'node:url';
 
 const LIST = new URL('../../docs/sc2-models.json', import.meta.url);
 
-/** The team colour each race's models are tinted with (the minimap's colours of the races). */
+/**
+ * The wild races' team colours (dev.starmine.faction.TeamColors), for previews. Owner 19.10: the mod tints each side in its
+ * own colour, so a model's textures are exported WITHOUT the team colour baked in, and each texture with team colour
+ * gets a mask beside it, `<texture>_team.png`: RGB the diffuse's grey shading, A the team colour mask (SC2's diffuse alpha /
+ * the team colour layer). The mod draws the mask over the model in the side's colour (SkinnedModelDrawer.drawTeam).
+ */
 export const TEAM_COLORS = Object.freeze({
-	ZERG: [0xc0, 0x60, 0xff],
-	TERRAN: [0x60, 0xa0, 0xff],
-	PROTOSS: [0xff, 0xd0, 0x40],
+	ZERG: [0x8a, 0x2b, 0xd0],
+	TERRAN: [0x20, 0x60, 0xff],
+	PROTOSS: [0xeb, 0xd1, 0x29],
 });
+
+/** Every exported texture with team colour needs its mask (see TEAM_COLORS). */
+export const TEAM_MASK_SUFFIX = '_team';
 
 const parsed = JSON.parse(readFileSync(LIST, 'utf8'));
 if (parsed.schemaVersion !== 1) throw new Error(`sc2-models.json: schema ${parsed.schemaVersion}, expected 1`);

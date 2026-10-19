@@ -51,7 +51,8 @@ ModKit — `docs/SC2_EXPORT.md`. Прочитать до первой правк
    - герои: `tosh`, `zeratul`, `zagara`, `horner`, `stukov`, `selendis`;
    - формы: `spire_greater` (GreaterSpire), `commandcenter_orbital`, `commandcenter_planetary`, взлетевшие здания
      (`*_airborne`), `supplydepot_lowered`, `gateway_warpgate`, `siegetank_sieged`, `liberator_defender`,
-     `warpprism_phasing`, `thor_high_impact`, закопанные `*_burrowed`.
+     `warpprism_phasing`, `thor_high_impact`, закопанные `*_burrowed`; с 19.10 — `spinecrawler_uprooted`,
+     `sporecrawler_uprooted`, `overseer_oversight`, `observer_surveillance`.
    
    Для форм модель гибели не нужна (`death: false`).
 3. **`verify: true`.** Юниты SC2 для героев вне мультиплеера угаданы: Абатур, Свонн, Каракс, Тош, Зератул, Загара,
@@ -60,7 +61,10 @@ ModKit — `docs/SC2_EXPORT.md`. Прочитать до первой правк
      кооперативных модах.
    - Исправить таблицу `SOURCES` в `tools/gen_sc2_models.py`, пересобрать JSON, убрать `verify` у проверенных.
    - Нет модели в данных игры — оставить, как есть: клиент рисует замену через `UnitKind.look()`. Записать это в отчёт.
-4. **Цвет команды.** Подкраска по расе — `teamColor(kind)`: зерги `#C060FF`, терраны `#60A0FF`, протоссы `#FFD040`.
+4. **Цвет команды (владелец 19.10).** Цвет команды в текстуры **не запекать**: мод красит каждую сторону своим цветом.
+   Рядом с каждой текстурой, где есть цвет команды, класть маску `<текстура>_team.png` (RGB — серая светотень диффуза,
+   A — маска цвета команды из альфы диффуза SC2). Подробно — `docs/SC2_EXPORT.md`, «Цвета команд». `teamColor(kind)` —
+   только для превью.
 5. **Воксельный режим.** Пакет должен покрыть **все** модели списка.
    - `selectedModels` в `models/sc2/model-package.json` = все `model` из `KINDS`; модели гибели — по `death`.
    - `build.gradle` отказывается собирать частичный пакет. Модели, которых нет в игре, перечислить в маркере явно

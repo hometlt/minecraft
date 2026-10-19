@@ -55,12 +55,13 @@ public final class StarMineModels implements SimpleSynchronousResourceReloadList
 	public void onResourceManagerReload(ResourceManager manager) {
 		MODELS.clear();
 		ICONS.clear();
+		SkinnedModelDrawer.forgetMasks(); // team colour masks come with the models
 		int missing = 0;
 		for (UnitKind kind : UnitKind.values()) {
 			if (manager.getResource(StarMine.id("textures/item/sc2/" + kind.id + ".png")).isPresent()) ICONS.add(kind);
 			if (!load(manager, kind.id)) missing++;
 			load(manager, kind.id + "_death");
-			for (int mode = 1; mode <= dev.starmine.ability.Modes.GREATER; mode++) { // its forms' own models, where the assets have them (ModeLook)
+			for (int mode = 1; mode <= dev.starmine.ability.Modes.LAST; mode++) { // its forms' own models, where the assets have them (ModeLook)
 				String form = ModeLook.name(mode);
 				if (form != null) load(manager, kind.id + "_" + form);
 			}
