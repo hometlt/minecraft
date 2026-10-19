@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "starmine:mineral_shard"
+		},
+		{
+			"item": "starmine:vespene_bucket"
+		},
+		{
+			"item": "starmine:protoss_armor_shard"
+		}
+	],
+	"result": {
+		"id": "starmine:energy_charge",
+		"count": 8
+	}
+}

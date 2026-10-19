@@ -22,7 +22,7 @@ import net.minecraft.world.item.SpawnEggItem;
  * first loaded.
  */
 public final class Guns {
-	public static final Item GAUSS_AMMO = item("gauss_ammo", new Item(new Item.Properties()));
+	public static final Item GAUSS_AMMO = item("gauss_ammo", new Ammo.Round(new Item.Properties(), 5, false)); // owner 19.10: dispensers and turrets fire it too
 	public static final Item CANISTER_ROUND = item("canister_round", new Item(new Item.Properties()));
 	public static final GunItem GAUSS_RIFLE = item("gauss_rifle", new GunItem(new Item.Properties().durability(600), () -> GAUSS_AMMO, 5f, 32, 5));
 	public static final GunItem CANISTER_RIFLE = item("canister_rifle", new GunItem(new Item.Properties().durability(200), () -> CANISTER_ROUND, 16f, 64, 30, 1, 5f));

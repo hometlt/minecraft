@@ -20,14 +20,17 @@
 
 ## Последняя правка
 
-R3c. Строительные бронеблоки рас: полублок, ступени, стенка (`armor_rampart`, потому что `armor_wall` — это полный
-блок), забор, люк, иллюминатор, решётка.
-- Код — `ArmorBlocks.BUILDING_BLOCKS`; все блоки внесены в `RACE_OF`, так что на них действуют правила рас
-  `BlockWear`.
-- Ассеты на шаблонах ванили, лут, рецепты и теги генерирует `tools/gen_armor_building.py`; теги он дописывает.
-- Тест — `BlockWearGameTests.armourBuildingBlocksAreTheRacesArmour`.
-- Рецепт двери из постановки (6 фрагментов → 3) не добавлен: двери рас уже есть со своим рецептом.
+R4a. Боеприпасы — `gear/Ammo.java`.
+- Предметы `Ammo.Round implements ProjectileItem`: костяная и ядовитая игла, энергозаряд и `Guns.GAUSS_AMMO` (теперь
+  тоже `Round`). Раздатчики стреляют ими (`DispenserBlock.registerProjectileBehavior`).
+- Снаряд в полёте — `Ammo.Shot`; клиент рисует его `ThrownItemRenderer`. Огонь из кода — `Ammo.fire(...)`, им
+  воспользуются турели в R4b.
+- Ассеты и рецепты — `tools/gen_ammo_turrets.py`, тест — `gear/AmmoGameTests`.
+- Ядовитые иглы: 7 игл → 7, потому что 8 игл с глазом и веспеном не помещаются в сетку 3×3.
+- Дальше: R4b — турели (гаусс, игольная, фотонная). Это мобы, на которых агрессивны монстры; патроны в них — правым
+  кликом.
 
+R3c (до того): строительные бронеблоки, `ArmorBlocks.BUILDING_BLOCKS`, `tools/gen_armor_building.py`.
 R3b (до того): ремонтные инструменты `gear/RepairTools.java`.
 R3a (до того): урон блоков сохраняется. `block/BlockWear` (`SavedData` `starmine_block_wear`), миксины добычи
 `ServerMiningMixin` и `client/ClientMiningMixin`, пакет `BlockWear.Sync`, тест `block/BlockWearGameTests`.

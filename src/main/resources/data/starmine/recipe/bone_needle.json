@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "minecraft:bone"
+		},
+		{
+			"item": "starmine:zerg_armor_shard"
+		}
+	],
+	"result": {
+		"id": "starmine:bone_needle",
+		"count": 8
+	}
+}

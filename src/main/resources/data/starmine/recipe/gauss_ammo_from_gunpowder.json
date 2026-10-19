@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "minecraft:iron_nugget"
+		},
+		{
+			"item": "minecraft:gunpowder"
+		},
+		{
+			"item": "starmine:mineral_shard"
+		}
+	],
+	"result": {
+		"id": "starmine:gauss_ammo",
+		"count": 8
+	}
+}

@@ -1,0 +1,37 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "equipment",
+	"ingredients": [
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "starmine:bone_needle"
+		},
+		{
+			"item": "minecraft:spider_eye"
+		},
+		{
+			"item": "starmine:vespene_bucket"
+		}
+	],
+	"result": {
+		"id": "starmine:toxic_needle",
+		"count": 7
+	}
+}

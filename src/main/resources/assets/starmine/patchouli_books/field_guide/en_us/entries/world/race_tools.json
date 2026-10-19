@@ -20,6 +20,12 @@
 		},
 		{
 			"type": "patchouli:crafting",
+			"recipe": "starmine:bone_needle",
+			"text": "The races' $(l)rounds$(): bone needles (a bone and a zerg shard: 8), toxic needles (7 needles, a spider eye and vespene: 7 — they poison), gauss rounds (also an iron nugget, gunpowder and a mineral shard: 8), energy charges (a mineral shard, vespene and a protoss shard: 8). A dispenser fires them straight and fast; so do the turrets.",
+			"recipe2": "starmine:toxic_needle"
+		},
+		{
+			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_repair_tool",
 			"text": "Two shards, as shears are made, make a race's $(l)repair tool$(): it mends a quarter of a block's kept damage a use. The terran one mends what is mechanical (terran armour, metal), the zerg mender what lives (zerg armour, flesh, creep, wood, wool, bone), the protoss restorer brings protoss blocks' shields back.",
 			"recipe2": "starmine:zerg_repair_tool"
