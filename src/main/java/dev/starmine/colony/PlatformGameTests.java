@@ -211,4 +211,56 @@ public class PlatformGameTests implements FabricGameTest {
 		helper.assertTrue(loaded.autocasts(repair) && !loaded.autoGather, "the autocasts were not saved");
 		helper.succeed();
 	}
+
+	/**
+	 * Owner 19.10: a race's block on 3 x 3 mineral blocks is the founding pedestal — a right click takes it away and a
+	 * transport brings a worker who founds the base there and builds its main building; the next founding needs 5 x 5
+	 * more, and none is called while the player has a base.
+	 */
+	@GameTest(template = ARENA, batch = "pedestal", timeoutTicks = 1800)
+	public void aPedestalCallsAWorkerWhoFoundsTheBase(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		net.minecraft.server.level.ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		BlockPos top = helper.absolutePos(new BlockPos(24, 3, 24));
+		for (int dx = -1; dx <= 1; dx++)
+			for (int dz = -1; dz <= 1; dz++) level.setBlock(top.offset(dx, -1, dz), Minerals.BLOCK.defaultBlockState(), 3);
+		level.setBlock(top, PlatformBlock.BLOCKS.get(UnitKind.Race.TERRAN).defaultBlockState(), 3);
+		helper.assertTrue(Pedestal.use(level, top, UnitKind.Race.TERRAN, player) == null, "the pedestal called nobody");
+		helper.assertTrue(level.getBlockState(top).isAir() && level.getBlockState(top.below()).isAir(), "the pedestal is still there");
+		helper.assertTrue(Pedestal.layers(level, player.getUUID()) == 2, "the next founding does not need a bigger pedestal");
+		String dimension = level.dimension().location().toString();
+		helper.succeedWhen(() -> {
+			Hive base = HiveSavedData.get(level.getServer()).baseOf(player.getUUID(), dimension);
+			helper.assertTrue(base != null, "no base founded yet");
+			boolean building = !level.getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(top).inflate(16),
+				unit -> unit.kind == UnitKind.COMMAND_CENTER && base.id.equals(unit.hiveId())).isEmpty();
+			helper.assertTrue(building, "no command center going up at the pedestal");
+			level.setBlock(top, PlatformBlock.BLOCKS.get(UnitKind.Race.TERRAN).defaultBlockState(), 3);
+			helper.assertTrue("message.starmine.pedestal_has_base".equals(Pedestal.use(level, top, UnitKind.Race.TERRAN, player)),
+				"a pedestal called a worker though the player has a base");
+			level.setBlock(top, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+			level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+		});
+	}
+
+	/** Owner 19.10: what the workers brought in is taken out at the main building they brought it to — a right click opens its store. */
+	@GameTest(template = ARENA, batch = "mainStorage", timeoutTicks = 40)
+	public void theMainBuildingOpensAsTheStore(GameTestHelper helper) {
+		dev.starmine.ability.TestArena.clear(helper);
+		net.minecraft.server.level.ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		StarUnit cc = dev.starmine.ability.TestArena.unit(helper, UnitKind.COMMAND_CENTER, 24, 24, player.getUUID());
+		helper.runAfterDelay(5, () -> {
+			Hive base = dev.starmine.ability.TestArena.base(helper, cc);
+			helper.assertTrue(base != null, "no base");
+			base.minerals = 120;
+			var result = Storage.interact(player, level, net.minecraft.world.InteractionHand.MAIN_HAND, cc);
+			helper.assertTrue(result.consumesAction() && player.containerMenu instanceof net.minecraft.world.inventory.ChestMenu menu
+				&& menu.getContainer().countItem(Minerals.SHARD) == 120 / Minerals.PER_TRIP, "the command center does not open as the base's store: " + result + " " + player.containerMenu);
+			player.closeContainer();
+			level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+			helper.succeed();
+		});
+	}
 }

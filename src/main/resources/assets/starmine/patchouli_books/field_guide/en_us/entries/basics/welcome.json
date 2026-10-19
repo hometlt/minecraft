@@ -10,7 +10,7 @@
 		},
 		{
 			"type": "patchouli:text",
-			"text": "Three ways to play, mixed as you like:$(li)spawn eggs: a unit you place is yours;$(li)a supply platform, in survival;$(li)the command view ($(k:key.starmine.command)) and taking control of one of your units."
+			"text": "Three ways to play, mixed as you like:$(li)spawn eggs: a unit you place is yours;$(li)a founding pedestal of mineral blocks, in survival;$(li)the command view ($(k:key.starmine.command)) and taking control of one of your units."
 		}
 	]
 }

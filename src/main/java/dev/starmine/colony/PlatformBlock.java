@@ -48,10 +48,11 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The supply platform as an item and a block (CLOUD_TASK_2 stage 5; owner 17.10). Crafted from a map amid 8 armor
- * shards of a race; placed, it becomes the platform building of its race ({@link UnitKind#platformOf}, a chest of
- * the base's resources that monsters and the wild races attack): all it does is in {@link Storage}. A platform
- * block of an older world (a chest of resources) becomes the building, with what it held, when it is used.
+ * A race's block (CLOUD_TASK_2 stage 5; owner 17.10), crafted from a map amid 8 armor shards of a race. Owner 19.10:
+ * no longer a platform building of resources — it crowns the founding pedestal, a pyramid of mineral blocks: a right
+ * click on it calls the race's transport with a worker who founds the player's base there ({@link Pedestal}). A
+ * platform block of an older world that still holds resources becomes the old platform building, with what it held,
+ * when it is used ({@link Storage}); platform buildings already standing keep working.
  */
 public final class PlatformBlock extends Block implements EntityBlock {
 	public static final Map<UnitKind.Race, PlatformBlock> BLOCKS = new EnumMap<>(UnitKind.Race.class);
@@ -91,24 +92,27 @@ public final class PlatformBlock extends Block implements EntityBlock {
 		return SHAPE;
 	}
 
-	/** Placed: the platform building of the player's stands there. */
-	@Override
-	public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-		if (level instanceof ServerLevel server) Storage.fromBlock(server, pos, race, placer instanceof Player player ? player.getUUID() : null);
-	}
-
-	/** An older world's platform block, used: it becomes the building (with what it held), its user's. */
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
 			BlockHitResult hit) {
-		if (level instanceof ServerLevel server) Storage.fromBlock(server, pos, race, player.getUUID());
+		if (level instanceof ServerLevel server) use(server, pos, player);
 		return ItemInteractionResult.sidedSuccess(level.isClientSide);
 	}
 
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-		if (level instanceof ServerLevel server) Storage.fromBlock(server, pos, race, player.getUUID());
+		if (level instanceof ServerLevel server) use(server, pos, player);
 		return InteractionResult.sidedSuccess(level.isClientSide);
+	}
+
+	/** Used: an older world's block with resources in it becomes its platform building; else the pedestal's call. */
+	private void use(ServerLevel level, BlockPos pos, Player player) {
+		if (level.getBlockEntity(pos) instanceof PlatformBlockEntity old && (!old.isEmpty() || old.minerals > 0 || old.vespene > 0 || !old.stock.isEmpty())) {
+			Storage.fromBlock(level, pos, race, player.getUUID());
+			return;
+		}
+		String why = Pedestal.use(level, pos, race, player);
+		if (why != null) player.displayClientMessage(Component.translatable(why, Pedestal.args(level, player)), true);
 	}
 
 	/** Broken: what is in its slots falls out, as from a chest. */

@@ -11,12 +11,18 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_platform",
-			"text": "A map ringed with 8 armor shards of a race makes its supply platform. Placed, it is a building of its race: monsters and the wild races attack it. Lay $(l)100 minerals$() in it and use the command panel on it: a transport brings a worker, who founds your base there.",
+			"text": "A map ringed with 8 armor shards of a race makes its $(l)race block$(). Set it on top of $(l)3 x 3 mineral blocks$(): that is a founding pedestal. Right-click the race block while you have no base here: the pedestal goes, a transport brings a worker, who founds your base there and builds its main building at once. Your second base needs a step pyramid: 5 x 5, then 3 x 3, then the race block; every one after that 7 x 7 under it all.",
 			"recipe2": "starmine:zerg_platform"
 		},
 		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:mineral_block",
+			"text": "Nine mineral shards make a $(l)block of minerals$() (and back). It is mined like an ore, by hand, pickaxe or worker, but it is not broken: each time it gives a shard and keeps the rest, nine times. $(l)Rich minerals$(), gold, lie rarely deep in the stone: two shards a time.",
+			"recipe2": "starmine:mineral_shards_from_block"
+		},
+		{
 			"type": "patchouli:text",
-			"text": "Workers bring what they gather to the nearest $(l)storage$(): a main building or a supply platform. They take $(l)minerals first$(); only where there are none other valuable blocks. All storages are one bank of minerals and vespene: open any of them like a chest — minerals show as mineral shards; anything valuable laid in turns into minerals by its worth."
+			"text": "Workers bring what they gather to the nearest $(l)storage$(): a main building. They take $(l)minerals first$(); only where there are none other valuable blocks. Take it out where they brought it: right-click the main building and it opens like a chest — minerals show as mineral shards; anything valuable laid in turns into minerals by its worth. (Supply platforms of older worlds still keep their bank.)"
 		},
 		{
 			"type": "patchouli:text",

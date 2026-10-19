@@ -28,6 +28,10 @@
 		{
 			"type": "patchouli:text",
 			"text": "$(l)Tunnels and caves:$() the four buttons at the top left cut the land away — ▼ and ▲ lower and raise a level above which no block is drawn, + and - a radius round the camera — so an army underground is seen and commanded; all off by default. Your units hidden from the camera show as framed icons. $(l)Aircraft$() fly higher or lower with the card's Higher and Lower buttons, down to a block over the ground: into a cave's mouth or a tunnel.$(br2)Sent where they cannot walk, ground armies wait while workers cut them a tunnel, stairs or a bridge — in ordinary worlds; on a StarCraft II battle map the map's relief stays as it is."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Autocast$(): right-click an ability's button on the command card and the units cast it themselves when it fits (a gold frame turns round the button); right-click again to stop. The zealot's charge is on from the start, as in StarCraft II. A worker's $(l)Gather$() button does the same for seeking resources by itself."
 		}
 	]
 }
