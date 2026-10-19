@@ -212,8 +212,58 @@ def lang():
         write_json(path, table)
 
 
+EGGS = ('xelnagaconstruct', 'xelnagasentinel', 'voidmonolith', 'infestedterran', 'broodmother', 'hybrid', 'protoss_trader', 'dehaka')
+
+
+def bosses():
+    """Owner 19.10: the bosses' blocks (liquid creep, psi barrier), the traders' and the new dwellers' spawn eggs."""
+    frames = 8
+    creep = Image.new('RGBA', (16, 16 * frames))
+    for f in range(frames):
+        for y in range(16):
+            for x in range(16):
+                v = 0.5 + 0.5 * math.sin((x + y * 0.7) * 0.8 + f * math.tau / frames) * math.cos((x - y) * 0.5)
+                creep.putpixel((x, y + 16 * f), mix((70, 15, 80), (190, 70, 200), v) + (200,))
+    creep.save(os.path.join(BLOCK, 'liquid_creep.png'))
+    write_json(os.path.join(BLOCK, 'liquid_creep.png.mcmeta'), {'animation': {'frametime': 3, 'interpolate': True}})
+    barrier = Image.new('RGBA', (16, 16))
+    for y in range(16):
+        for x in range(16):
+            edge = x in (0, 15) or y in (0, 15)
+            line = (x + y) % 6 == 0
+            barrier.putpixel((x, y), ((150, 220, 255, 200) if edge else (120, 200, 255, 150) if line else (80, 150, 255, 90)))
+    barrier.save(os.path.join(BLOCK, 'psi_barrier.png'))
+    write_json(os.path.join(ASSETS, 'models', 'block', 'liquid_creep.json'), {'parent': 'minecraft:block/carpet', 'textures': {'wool': 'starmine:block/liquid_creep'}})
+    write_json(os.path.join(ASSETS, 'models', 'block', 'psi_barrier.json'), {'parent': 'minecraft:block/cube_all', 'textures': {'all': 'starmine:block/psi_barrier'}})
+    for name in ('liquid_creep', 'psi_barrier'):
+        write_json(os.path.join(ASSETS, 'blockstates', name + '.json'), {'variants': {'': {'model': 'starmine:block/' + name}}})
+    for egg in EGGS:
+        write_json(os.path.join(ASSETS, 'models', 'item', egg + '_spawn_egg.json'), {'parent': 'minecraft:item/template_spawn_egg'})
+
+
+BOSS_LANG = {
+    'en_us': {'block.starmine.liquid_creep': 'Liquid Creep', 'block.starmine.psi_barrier': 'Psionic Barrier',
+              'entity.starmine.protoss_trader': 'Protoss Preserver', 'item.starmine.protoss_trader_spawn_egg': 'Protoss Preserver Spawn Egg',
+              'entity.starmine.dehaka': 'Dehaka', 'item.starmine.dehaka_spawn_egg': 'Dehaka Spawn Egg'},
+    'ru_ru': {'block.starmine.liquid_creep': 'Жидкий крип', 'block.starmine.psi_barrier': 'Пси-барьер',
+              'entity.starmine.protoss_trader': 'Протосс-хранитель', 'item.starmine.protoss_trader_spawn_egg': 'Яйцо призыва: протосс-хранитель',
+              'entity.starmine.dehaka': 'Дехака', 'item.starmine.dehaka_spawn_egg': 'Яйцо призыва: Дехака'},
+}
+
+
+def boss_lang():
+    for code, names in BOSS_LANG.items():
+        path = os.path.join(ASSETS, 'lang', code + '.json')
+        with open(path, encoding='utf8') as f:
+            table = json.load(f)
+        table.update(names)
+        write_json(path, table)
+
+
 if __name__ == '__main__':
     textures()
     models()
     lang()
+    bosses()
+    boss_lang()
     print('ok')

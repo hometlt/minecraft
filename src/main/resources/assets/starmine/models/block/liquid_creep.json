@@ -1,5 +1,6 @@
 {
+	"parent": "minecraft:block/carpet",
 	"textures": {
-		"particle": "starmine:block/liquid_creep_still"
+		"wool": "starmine:block/liquid_creep"
 	}
 }

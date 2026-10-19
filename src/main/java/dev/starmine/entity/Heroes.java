@@ -37,6 +37,8 @@ public final class Heroes {
 			dev.starmine.ability.GuardianFights.tick(hero, level); // owner 19.10: Karax's and Swann's own fights
 		if (shipHero(hero.kind) && !dev.starmine.world.HeroLiberation.freed(hero) && hero.isAlive())
 			dev.starmine.ability.HeroTactics.tick(hero, level); // owner 19.10: the cleverest bosses dodge, flank and fall back
+		if ((shipHero(hero.kind) || hero.kind.dimensionHero()) && !dev.starmine.world.HeroLiberation.freed(hero) && hero.isAlive())
+			dev.starmine.ability.BossPowers.tick(hero, level); // owner 19.10: stronger powers at each phase
 		if (hero.tickCount % 10 != 0 || dev.starmine.world.HeroLiberation.freed(hero)) return;
 		ServerBossEvent bar = BARS.computeIfAbsent(hero.getId(), id -> new ServerBossEvent(hero.getDisplayName(), switch (hero.kind.race) {
 			case ZERG -> BossEvent.BossBarColor.PURPLE;
@@ -131,6 +133,7 @@ public final class Heroes {
 		if (bar != null) bar.removeAllPlayers();
 		if (hero.kind.guardian()) dev.starmine.ability.GuardianFights.gone(hero);
 		dev.starmine.ability.HeroTactics.forget(hero);
+		dev.starmine.ability.BossPowers.forget(hero);
 	}
 
 	/** What a hero leaves when killed. */

@@ -60,10 +60,11 @@ public final class DimensionHeroes {
 			if (hero.mode() == Modes.BURROWED && hero.getTags().contains("starmine_digging")) surface(hero, level);
 			return;
 		}
-		int t = hero.tickCount;
-		if (t % BANELINGS_EVERY == 0 && brood(hero, level) < MAX_BROOD) for (int i = 0; i < 2; i++) call(hero, level, UnitKind.BANELING, foe, true);
-		if (t % HYDRAS_EVERY == 0 && brood(hero, level) < MAX_BROOD) for (int i = 0; i < 2; i++) call(hero, level, UnitKind.HYDRALISK, foe, false);
-		if (t % DIG_EVERY == 0 && hero.distanceTo(foe) > 6) dig(hero, level, foe);
+		int t = hero.tickCount, phase = HeroLiberation.freed(hero) ? 1 : dev.starmine.entity.Heroes.phase(hero); // owner 19.10: her brood grows by phase
+		if (t % BANELINGS_EVERY == 0 && brood(hero, level) < MAX_BROOD) for (int i = 0; i < 1 + phase; i++) call(hero, level, UnitKind.BANELING, foe, true);
+		if (t % (HYDRAS_EVERY - (phase - 1) * 60) == 0 && brood(hero, level) < MAX_BROOD + 2 * (phase - 1))
+			for (int i = 0; i < phase; i++) call(hero, level, UnitKind.HYDRALISK, foe, false);
+		if (t % (phase == 3 ? DIG_EVERY / 2 : DIG_EVERY) == 0 && hero.distanceTo(foe) > 6) dig(hero, level, foe);
 		if (hero.getTags().contains("starmine_digging") && --hero.abilities.digTicks <= 0) surface(hero, level);
 	}
 

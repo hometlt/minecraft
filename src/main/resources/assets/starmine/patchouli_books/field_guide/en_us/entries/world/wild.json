@@ -18,6 +18,10 @@
 		},
 		{
 			"type": "patchouli:text",
+			"text": "Traders of the other races: a $(l)protoss preserver$() keeps one xel'naga temple in two (no guards then) and sells protoss gear, void shards and the Xel'Naga relic for minerals and vespene; $(l)Dehaka$() lives in his cave of flesh and bones and sells zerg gear — and takes essence: rotten flesh, spider eyes, bones, ender pearls for minerals."
+		},
+		{
+			"type": "patchouli:text",
 			"text": "The races are always foes and keep apart: a pack, a claim or a nydus worm of one race never appears within 96 blocks of another race's wild."
 		}
 	]

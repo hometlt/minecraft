@@ -47,6 +47,13 @@ public final class Guns {
 	public static final EntityType<Townsfolk> SHERIFF = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("sheriff"),
 		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.SHERIFF), MobCategory.CREATURE)
 			.sized(0.6f, 1.95f).clientTrackingRange(10).build("sheriff"));
+	/** Owner 19.10: the protoss preserver of a xel'naga temple, and Dehaka in his cave (traders of the other races). */
+	public static final EntityType<Townsfolk> PRESERVER = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("protoss_trader"),
+		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.PRESERVER), MobCategory.CREATURE)
+			.sized(0.8f, 2.4f).clientTrackingRange(10).build("protoss_trader"));
+	public static final EntityType<Townsfolk> DEHAKA = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("dehaka"),
+		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.DEHAKA), MobCategory.CREATURE)
+			.sized(1.2f, 2.8f).clientTrackingRange(10).build("dehaka"));
 	public static final EntityType<Townsfolk> GHOST_AGENT = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("ghost_agent"),
 		EntityType.Builder.<Townsfolk>of((type, level) -> new Townsfolk(type, level, Townsfolk.Role.GHOST), MobCategory.CREATURE)
 			.sized(0.6f, 1.95f).clientTrackingRange(10).build("ghost_agent"));
@@ -92,12 +99,14 @@ public final class Guns {
 	}
 
 	public static void load() {
-		for (EntityType<Townsfolk> type : java.util.List.of(MARSHAL, GHOST_AGENT, SHERIFF))
+		for (EntityType<Townsfolk> type : java.util.List.of(MARSHAL, GHOST_AGENT, SHERIFF, PRESERVER, DEHAKA))
 			FabricDefaultAttributeRegistry.register(type, Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5).add(Attributes.MAX_HEALTH, 30)
 				.add(Attributes.FOLLOW_RANGE, 48));
 		Item marshalEgg = item("marshal_spawn_egg", new SpawnEggItem(MARSHAL, 0x4a5a6a, 0xd0b040, new Item.Properties()));
 		Item ghostEgg = item("ghost_agent_spawn_egg", new SpawnEggItem(GHOST_AGENT, 0x2a2a30, 0x60a0ff, new Item.Properties()));
 		Item sheriffEgg = item("sheriff_spawn_egg", new SpawnEggItem(SHERIFF, 0x6a4a2a, 0xe0c040, new Item.Properties()));
+		Item preserverEgg = item("protoss_trader_spawn_egg", new SpawnEggItem(PRESERVER, 0xc8a030, 0x60d0ff, new Item.Properties()));
+		Item dehakaEgg = item("dehaka_spawn_egg", new SpawnEggItem(DEHAKA, 0x5a3a2a, 0xe08030, new Item.Properties()));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> {
 			entries.accept(GAUSS_RIFLE);
 			entries.accept(GAUSS_AMMO);
@@ -113,6 +122,8 @@ public final class Guns {
 			entries.accept(marshalEgg);
 			entries.accept(ghostEgg);
 			entries.accept(sheriffEgg);
+			entries.accept(preserverEgg);
+			entries.accept(dehakaEgg);
 		});
 		// armed neighbours in villages: decided once per villager, when it is first loaded
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {

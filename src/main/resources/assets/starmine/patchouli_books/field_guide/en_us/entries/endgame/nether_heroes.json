@@ -2,7 +2,7 @@
 	"name": "Heroes of the Nether",
 	"icon": "starmine:zagara_spawn_egg",
 	"category": "starmine:endgame",
-	"sortnum": 5,
+	"sortnum": 6,
 	"pages": [
 		{
 			"type": "patchouli:text",

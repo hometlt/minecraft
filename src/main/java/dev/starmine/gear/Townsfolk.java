@@ -30,9 +30,20 @@ import org.jetbrains.annotations.Nullable;
  * pieces, a stimpack module; they never leave. The sheriff (owner 19.10) keeps a stone house in a large
  * village ({@link dev.starmine.world.SheriffHouses}) and stays by it: a gauss rifle too, and a few wares
  * of his own picked at random ({@link #SHERIFF_WARES}) for minerals and vespene.
+ * Owner 19.10: two traders of the other races, drawn with their SC2 models — the protoss preserver who keeps a xel'naga
+ * temple ({@link dev.starmine.world.SmallDungeons}) and sells protoss gear, void shards and the Xel'Naga relic
+ * ({@link #PRESERVER_WARES}); Dehaka in his own cave, who sells zerg gear and takes essence — flesh, eyes, bones — for
+ * minerals ({@link #DEHAKA_WARES}). They carry no gun and keep by their home.
  */
 public class Townsfolk extends WanderingTrader {
-	public enum Role { MARSHAL, GHOST, SHERIFF }
+	public enum Role {
+		MARSHAL, GHOST, SHERIFF, PRESERVER, DEHAKA;
+
+		/** A trader of another race (no gun, keeps by its home, drawn with its SC2 model). */
+		public boolean alien() {
+			return this == PRESERVER || this == DEHAKA;
+		}
+	}
 
 	/** How far from his house the sheriff walks. */
 	public static final int SHERIFF_BEAT = 14;
@@ -45,15 +56,11 @@ public class Townsfolk extends WanderingTrader {
 		super(type, level);
 		this.role = role;
 		this.setDespawnDelay(0); // stays in its village
-		this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(role == Role.GHOST ? Guns.CANISTER_RIFLE : Guns.GAUSS_RIFLE));
+		if (!role.alien()) this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(role == Role.GHOST ? Guns.CANISTER_RIFLE : Guns.GAUSS_RIFLE));
 		this.setDropChance(EquipmentSlot.MAINHAND, 0);
-	}
-
-	@Override
-	protected void registerGoals() {
-		super.registerGoals();
-		this.goalSelector.addGoal(1, new Marksman(this));
-		if (role == Role.SHERIFF) this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal(this, 0.5));
+		// its own goals here, its role known (registerGoals runs in the super constructor, before it)
+		if (!role.alien()) this.goalSelector.addGoal(1, new Marksman(this));
+		if (role == Role.SHERIFF || role.alien()) this.goalSelector.addGoal(3, new net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal(this, 0.5));
 	}
 
 	/** The sheriff's house: he keeps within {@link #SHERIFF_BEAT} of it. */
@@ -86,9 +93,51 @@ public class Townsfolk extends WanderingTrader {
 		new Ware(() -> new ItemStack(Guns.GRENADE_LAUNCHER), 30, true),
 		new Ware(() -> new ItemStack(Guns.REAPER_PISTOLS), 25, true));
 
+	/** The preserver's wares: protoss gear, void shards, the relic (owner 19.10). */
+	public static final List<Ware> PRESERVER_WARES = List.of(
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.SHARDS.get(UnitKind.Race.PROTOSS), 2), 6, false),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.PROTOSS, net.minecraft.world.item.ArmorItem.Type.HELMET)), 20, false),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.PROTOSS, net.minecraft.world.item.ArmorItem.Type.CHESTPLATE)), 40, true),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.PROTOSS, net.minecraft.world.item.ArmorItem.Type.LEGGINGS)), 30, true),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.PROTOSS, net.minecraft.world.item.ArmorItem.Type.BOOTS)), 18, false),
+		new Ware(() -> new ItemStack(Guns.PSI_BLADE), 20, false),
+		new Ware(() -> new ItemStack(dev.starmine.possess.ModuleItem.of(dev.starmine.ability.Ability.BLINK)), 25, true),
+		new Ware(() -> new ItemStack(dev.starmine.possess.ModuleItem.of(dev.starmine.ability.Ability.GUARDIAN_SHIELD)), 25, true),
+		new Ware(() -> new ItemStack(dev.starmine.world.VoidGate.SHARD, 2), 16, true),
+		new Ware(() -> new ItemStack(dev.starmine.world.DungeonBosses.RELIC), 60, true));
+	/** Dehaka's wares: zerg gear for minerals (owner 19.10); he also takes essence ({@link #essence}). */
+	public static final List<Ware> DEHAKA_WARES = List.of(
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.SHARDS.get(UnitKind.Race.ZERG), 2), 6, false),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.ZERG, net.minecraft.world.item.ArmorItem.Type.HELMET)), 20, false),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.ZERG, net.minecraft.world.item.ArmorItem.Type.CHESTPLATE)), 40, true),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.ZERG, net.minecraft.world.item.ArmorItem.Type.LEGGINGS)), 30, true),
+		new Ware(() -> new ItemStack(dev.starmine.suit.SuitItems.piece(UnitKind.Race.ZERG, net.minecraft.world.item.ArmorItem.Type.BOOTS)), 18, false),
+		new Ware(() -> new ItemStack(dev.starmine.possess.ModuleItem.of(dev.starmine.ability.Ability.BURROW)), 20, false),
+		new Ware(() -> new ItemStack(dev.starmine.possess.ModuleItem.of(dev.starmine.ability.Ability.TRANSFUSION)), 25, true));
+
+	/** Dehaka's taste: essence of creatures for mineral shards. */
+	private static List<MerchantOffer> essence() {
+		return List.of(
+			new MerchantOffer(new ItemCost(Items.ROTTEN_FLESH, 16), new ItemStack(dev.starmine.mineral.Minerals.SHARD, 2), 16, 2, 0.05f),
+			new MerchantOffer(new ItemCost(Items.SPIDER_EYE, 6), new ItemStack(dev.starmine.mineral.Minerals.SHARD, 2), 16, 2, 0.05f),
+			new MerchantOffer(new ItemCost(Items.BONE, 12), new ItemStack(dev.starmine.mineral.Minerals.SHARD, 2), 16, 2, 0.05f),
+			new MerchantOffer(new ItemCost(Items.ENDER_PEARL, 2), new ItemStack(dev.starmine.mineral.Minerals.SHARD, 3), 12, 2, 0.05f));
+	}
+
+	private static MerchantOffer ware(Ware ware) {
+		return new MerchantOffer(new ItemCost(dev.starmine.mineral.Minerals.SHARD, ware.minerals()),
+			ware.vespene() ? java.util.Optional.of(new ItemCost(dev.starmine.vespene.Vespene.BUCKET, 1)) : java.util.Optional.empty(),
+			ware.goods().get(), 8, 2, 0.05f);
+	}
+
 	@Override
 	protected void updateTrades() {
 		MerchantOffers offers = this.getOffers();
+		if (role.alien()) { // all their wares
+			for (Ware ware : role == Role.PRESERVER ? PRESERVER_WARES : DEHAKA_WARES) offers.add(ware(ware));
+			if (role == Role.DEHAKA) offers.addAll(essence());
+			return;
+		}
 		if (role == Role.SHERIFF) { // a few of his wares, his own pick (the trader's random: another sheriff, other wares)
 			List<Ware> wares = new java.util.ArrayList<>(SHERIFF_WARES);
 			net.minecraft.Util.shuffle(wares, this.random);

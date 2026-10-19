@@ -131,6 +131,10 @@ def main():
 	for model, unit, sc2_model in [('amun', 'AmonEpilogue03Unit', 'Amon'), ('voidshard', 'AmonUmbraSpireEpilogue03', 'Void_ShardFortress'),
 			('voidrift', 'VoidRift', 'VoidRift')]:
 		models.append({'model': model, 'kind': None, 'race': 'PROTOSS', 'unit': unit, 'mod': VOID, 'death': False, 'sc2Model': sc2_model})
+	# owner 19.10: the traders (gear/Townsfolk, not unit kinds): the protoss preserver of the temples, Dehaka in his cave
+	for model, race, path in [('protosstrader', 'PROTOSS', 'Assets\\Units\\Protoss\\Preserver\\Preserver_00.m3'),
+			('dehaka', 'ZERG', 'Assets\\Units\\Zerg\\Dehaka\\Dehaka.m3')]:
+		models.append({'model': model, 'kind': None, 'race': race, 'unit': model.capitalize(), 'mod': VOID, 'death': False, 'sc2ModelPath': path})
 	OUT.write_text(json.dumps({'schemaVersion': 1, 'models': models}, indent='\t', ensure_ascii=False) + '\n', encoding='utf-8')
 	print(f'{len(models)} models -> {OUT.relative_to(ROOT)}')
 

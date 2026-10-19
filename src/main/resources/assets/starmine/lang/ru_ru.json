@@ -1209,7 +1209,7 @@
 	"block.starmine.mineral_ward": "Заграждение минералов",
 	"block.starmine.map_decor": "Декор карты",
 	"entity.starmine.vision_blocker": "Укрытие от обзора",
-	"block.starmine.liquid_creep": "Жидкая слизь",
+	"block.starmine.liquid_creep": "Жидкий крип",
 	"item.starmine.liquid_creep_bucket": "Ведро жидкой слизи",
 	"block.starmine.nydus_orifice": "Пасть нидуса",
 	"block.starmine.zerg_portal_frame": "Рамка портала зергов",
@@ -1496,5 +1496,10 @@
 	"book.starmine.moebius.4.title": "Журнал Мебиуса: последняя запись",
 	"book.starmine.moebius.4.page1": "Поле отказало в 03:12. Стекло лопнуло внутрь, будто его втянуло. Образец не побежал. Он ждал нас.",
 	"book.starmine.moebius.4.page2": "Охрана удержала коридор. Зерги в камерах затихли, будто поняли, кто теперь их хозяин.",
-	"book.starmine.moebius.4.page3": "Если вы это читаете: у гибрида реликвия зел-нага — та, что Наруд взял из ящиков с треугольником. Уничтожьте тварь. Унесите реликвию подальше от голоса Амуна."
+	"book.starmine.moebius.4.page3": "Если вы это читаете: у гибрида реликвия зел-нага — та, что Наруд взял из ящиков с треугольником. Уничтожьте тварь. Унесите реликвию подальше от голоса Амуна.",
+	"block.starmine.psi_barrier": "Пси-барьер",
+	"entity.starmine.protoss_trader": "Протосс-хранитель",
+	"item.starmine.protoss_trader_spawn_egg": "Яйцо призыва: протосс-хранитель",
+	"entity.starmine.dehaka": "Дехака",
+	"item.starmine.dehaka_spawn_egg": "Яйцо призыва: Дехака"
 }

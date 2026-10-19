@@ -34,6 +34,8 @@ import net.minecraft.world.level.storage.loot.LootTable;
  *   sheds and pipes between them; a few marines, sometimes a marauder;
  * - a Xel'Naga temple underground: a hall of deepslate with purpur pillars, amethyst and light, an altar
  *   with a chest; two or three zealots, or one or two dark templars; a spiral stair up to a small shrine.
+ * - owner 19.10: one temple in two is kept by a protoss preserver who trades (no guards then);
+ * - owner 19.10: Dehaka's cave: a den of flesh and bones underground with a tunnel up, where Dehaka trades.
  * Built while the world generates (its chunk and the ones next to it only); the guards appear when a
  * player comes near ({@link DungeonHeart}).
  */
@@ -41,7 +43,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 	public static final Feature<NoneFeatureConfiguration> FEATURE = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("small_dungeon"),
 		new SmallDungeons(NoneFeatureConfiguration.CODEC));
 
-	public enum Kind { ZERG_NEST, TERRAN_OUTPOST, XELNAGA_TEMPLE }
+	public enum Kind { ZERG_NEST, TERRAN_OUTPOST, XELNAGA_TEMPLE, DEHAKA_CAVE }
 
 	private SmallDungeons(Codec<NoneFeatureConfiguration> codec) {
 		super(codec);
@@ -59,8 +61,8 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
 		if (MapOverlay.covers(cx, cz)) return false; // a laid-over map has its own land
 		// owner 16.10: terran outposts are rare (one dungeon in seven), the others share the rest
-		int roll = random.nextInt(7);
-		Kind kind = roll == 0 ? Kind.TERRAN_OUTPOST : roll <= 3 ? Kind.ZERG_NEST : Kind.XELNAGA_TEMPLE;
+		int roll = random.nextInt(8);
+		Kind kind = roll == 0 ? Kind.TERRAN_OUTPOST : roll <= 3 ? Kind.ZERG_NEST : roll <= 6 ? Kind.XELNAGA_TEMPLE : Kind.DEHAKA_CAVE;
 		return build(level, random, kind, cx, cz) != null;
 	}
 
@@ -79,6 +81,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 			case TERRAN_OUTPOST -> outpost(level, random, new BlockPos(x, surface, z));
 			case ZERG_NEST -> nest(level, random, new BlockPos(x, Math.max(level.getMinBuildHeight() + 14, surface - 14 - random.nextInt(8)), z), surface);
 			case XELNAGA_TEMPLE -> temple(level, random, new BlockPos(x, Math.max(level.getMinBuildHeight() + 14, surface - 18 - random.nextInt(10)), z), surface);
+			case DEHAKA_CAVE -> dehakaCave(level, random, new BlockPos(x, Math.max(level.getMinBuildHeight() + 14, surface - 16), z), surface);
 		};
 	}
 
@@ -399,6 +402,10 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		}
 		DungeonHeart.Heart heart = heart(level, floorCentre.below(), Blocks.CHISELED_DEEPSLATE);
 		if (heart == null) return null;
+		if (random.nextBoolean()) { // owner 19.10: a preserver keeps it, and trades
+			trader(level, dev.starmine.gear.Guns.PRESERVER, floorCentre.offset(0, 0, -4));
+			return heart.getBlockPos();
+		}
 		if (random.nextBoolean()) {
 			int zealots = 2 + random.nextInt(2);
 			for (int i = 0; i < zealots; i++) heart.add(UnitKind.ZEALOT, floorCentre.offset(-5 + i * 5, 0, -5), null, 0);
@@ -406,6 +413,48 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 			int templars = 1 + random.nextInt(2);
 			for (int i = 0; i < templars; i++) heart.add(UnitKind.DARK_TEMPLAR, floorCentre.offset(-4 + i * 8, 0, 5), null, 0);
 		}
+		return heart.getBlockPos();
+	}
+
+	/** A trader of another race at `pos`, keeping by it (made while the world generates, like a structure's mobs). */
+	static void trader(WorldGenLevel level, net.minecraft.world.entity.EntityType<dev.starmine.gear.Townsfolk> type, BlockPos pos) {
+		dev.starmine.gear.Townsfolk trader = type.create(level.getLevel());
+		if (trader == null) return;
+		trader.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, level.getRandom().nextFloat() * 360, 0);
+		trader.keepHome(pos);
+		level.addFreshEntity(trader);
+	}
+
+	// ---- Dehaka's cave ----
+
+	/**
+	 * Owner 19.10: Dehaka's den: a cave of flesh and bone blocks, piles of bones and skulls (his collected essence), glowing
+	 * mushrooms of light, a tunnel up; Dehaka in it, who trades. No guards: the primal zerg does not hunt those who bring him essence.
+	 */
+	static BlockPos dehakaCave(WorldGenLevel level, RandomSource random, BlockPos centre, int surface) {
+		BlockState flesh = Blocks.NETHER_WART_BLOCK.defaultBlockState(), bone = Blocks.BONE_BLOCK.defaultBlockState(),
+			floor = Blocks.PACKED_MUD.defaultBlockState(), air = Blocks.AIR.defaultBlockState(), glow = Blocks.SHROOMLIGHT.defaultBlockState();
+		double rx = 8, ry = 5, rz = 8;
+		for (int dx = -9; dx <= 9; dx++)
+			for (int dy = -6; dy <= 6; dy++)
+				for (int dz = -9; dz <= 9; dz++) {
+					double d = Painter.sq(dx / rx) + Painter.sq(dy / ry) + Painter.sq(dz / rz);
+					BlockPos pos = centre.offset(dx, dy, dz);
+					if (d <= 0.78) set(level, pos, dy <= -4 ? floor : air);
+					else if (d <= 1.0) set(level, pos, random.nextInt(12) == 0 ? glow : random.nextInt(4) == 0 ? bone : flesh);
+				}
+		BlockPos floorCentre = centre.offset(0, -3, 0);
+		for (int i = 0; i < 6; i++) { // his essence: bones piled by the walls, skulls on them
+			double a = Math.PI * 2 * i / 6;
+			BlockPos pile = floorCentre.offset((int) Math.round(Math.cos(a) * 5), 0, (int) Math.round(Math.sin(a) * 5));
+			set(level, pile, bone);
+			if (i % 2 == 0) set(level, pile.above(), Blocks.SKELETON_SKULL.defaultBlockState());
+		}
+		box(level, centre.offset(7, -3, -1), centre.offset(9, 0, 1), air);
+		spiral(level, centre.offset(11, -3, 0), surface, flesh, bone);
+		DungeonHeart.Heart heart = heart(level, floorCentre.below(), Blocks.PACKED_MUD);
+		if (heart == null) return null;
+		trader(level, dev.starmine.gear.Guns.DEHAKA, floorCentre);
 		return heart.getBlockPos();
 	}
 }

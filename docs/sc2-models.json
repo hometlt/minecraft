@@ -1254,6 +1254,24 @@
 			"mod": "Campaigns/VoidStory.SC2Campaign",
 			"death": false,
 			"sc2Model": "VoidRift"
+		},
+		{
+			"model": "protosstrader",
+			"kind": null,
+			"race": "PROTOSS",
+			"unit": "Protosstrader",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Protoss\\Preserver\\Preserver_00.m3"
+		},
+		{
+			"model": "dehaka",
+			"kind": null,
+			"race": "ZERG",
+			"unit": "Dehaka",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Zerg\\Dehaka\\Dehaka.m3"
 		}
 	]
 }

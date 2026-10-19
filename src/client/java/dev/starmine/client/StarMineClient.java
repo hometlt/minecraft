@@ -86,6 +86,8 @@ public final class StarMineClient implements ClientModInitializer {
 		EntityRendererRegistry.register(dev.starmine.gear.Guns.MARSHAL, TownsfolkRenderer::new);
 		EntityRendererRegistry.register(dev.starmine.gear.Guns.GHOST_AGENT, TownsfolkRenderer::new);
 		EntityRendererRegistry.register(dev.starmine.gear.Guns.SHERIFF, TownsfolkRenderer::new);
+		EntityRendererRegistry.register(dev.starmine.gear.Guns.PRESERVER, AlienTraderRenderer::new); // owner 19.10
+		EntityRendererRegistry.register(dev.starmine.gear.Guns.DEHAKA, AlienTraderRenderer::new);
 		// owner 16.10: a weapon module looks like its unit's weapon in the hand (dev.starmine.possess.WeaponLook)
 		net.minecraft.client.renderer.item.ItemProperties.register(dev.starmine.possess.ModuleItem.WEAPON, StarMine.id("weapon"), (stack, level, entity, seed) -> {
 			UnitKind kind = dev.starmine.possess.ModuleItem.kindOf(stack);
@@ -97,6 +99,8 @@ public final class StarMineClient implements ClientModInitializer {
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
 		for (var parts : dev.starmine.world.Artifact.KEYS.values()) for (net.minecraft.world.level.block.Block part : parts.values()) BlockRenderLayerMap.INSTANCE.putBlock(part, RenderType.cutout());
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.XelNagaTemple.PORTAL, RenderType.translucent()); // owner 19.10
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.ability.BossPowers.LIQUID_CREEP, RenderType.translucent());
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.ability.BossPowers.PSI_BARRIER, RenderType.translucent());
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.vespene.Vespene.VESPENE, RenderType.translucent());
 		dev.starmine.block.ArmorBlocks.DOORS.forEach((race, door) -> // owner 19.10: open doors are frames; the protoss gate's field is clear light
 			BlockRenderLayerMap.INSTANCE.putBlock(door, race == UnitKind.Race.PROTOSS ? RenderType.translucent() : RenderType.cutout()));

@@ -2,7 +2,7 @@
 	"name": "Герои Энда",
 	"icon": "starmine:horner_spawn_egg",
 	"category": "starmine:endgame",
-	"sortnum": 6,
+	"sortnum": 7,
 	"pages": [
 		{
 			"type": "patchouli:text",

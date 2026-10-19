@@ -18,7 +18,7 @@ import net.minecraft.world.entity.npc.WanderingTrader;
  * armour with yellow stripes, the ghost in a near-black suit with blue lights, the sheriff in a brown coat with gold. Their gun shows in their
  * crossed arms.
  */
-public final class TownsfolkRenderer extends WanderingTraderRenderer {
+public class TownsfolkRenderer extends WanderingTraderRenderer {
 	private static final ResourceLocation BASE = ResourceLocation.withDefaultNamespace("textures/entity/wandering_trader.png");
 	private static final Map<Townsfolk.Role, ResourceLocation> SKINS = new EnumMap<>(Townsfolk.Role.class);
 
@@ -50,6 +50,8 @@ public final class TownsfolkRenderer extends WanderingTraderRenderer {
 							case MARSHAL -> java.awt.Color.HSBtoRGB(0.22f, 0.25f, hsv[2] * 0.9f);
 							case SHERIFF -> java.awt.Color.HSBtoRGB(0.07f, 0.55f, hsv[2] * 0.7f);
 							case GHOST -> java.awt.Color.HSBtoRGB(0.6f, 0.1f, hsv[2] * 0.35f);
+							case PRESERVER -> java.awt.Color.HSBtoRGB(0.12f, 0.6f, hsv[2]); // without their SC2 models: gold, and brown
+							case DEHAKA -> java.awt.Color.HSBtoRGB(0.05f, 0.5f, hsv[2] * 0.6f);
 						};
 					else if (hsv[1] > 0.9f && hsv[0] < 0.05f) // the red trims (skin and belt are duller)
 						rgb = role == Townsfolk.Role.GHOST ? java.awt.Color.HSBtoRGB(0.55f, 0.7f, 1f)
