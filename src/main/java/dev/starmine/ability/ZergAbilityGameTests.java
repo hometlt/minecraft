@@ -202,6 +202,31 @@ public class ZergAbilityGameTests implements FabricGameTest {
 		});
 	}
 
+	/** Owner 19.10: by a player with an army, it takes the look of the army's basic soldier (a marine), not the player's. */
+	@GameTest(template = ARENA, batch = "zergChangelingArmy", timeoutTicks = 200)
+	public void changelingAmongAnArmyLooksLikeItsSoldier(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		net.minecraft.server.level.ServerPlayer player = (net.minecraft.server.level.ServerPlayer) helper.makeMockServerPlayerInLevel();
+		Vec3 near = point(helper, 22, 24);
+		player.teleportTo(near.x, near.y, near.z);
+		StarUnit marauder = unit(helper, UnitKind.MARAUDER, 20, 26, player.getUUID());
+		marauder.setNoAi(true);
+		StarUnit overseer = unit(helper, UnitKind.OVERSEER, 10, 24, null);
+		overseer.setNoAi(true);
+		helper.runAfterDelay(2, () -> {
+			overseer.setEnergy(50);
+			helper.assertTrue(Abilities.cast(overseer, level, Ability.SPAWN_CHANGELING, null, null), "no changeling");
+		});
+		helper.runAfterDelay(60, () -> {
+			StarUnit changeling = changeling(helper);
+			String look = changeling == null ? "no changeling" : changeling.disguise();
+			player.discard();
+			helper.assertTrue(changeling != null && Changeling.disguisedAs(changeling) == UnitKind.MARINE, "no marine look by the player's army: '" + look + "'");
+			helper.succeed();
+		});
+	}
+
 	/** A changeling that saw a player first looks like that player and keeps 8–16 blocks behind them. */
 	@GameTest(template = ARENA, batch = "zergChangelingPlayer", timeoutTicks = 400)
 	public void changelingCopiesAPlayerAndFollows(GameTestHelper helper) {

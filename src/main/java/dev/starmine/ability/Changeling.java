@@ -17,10 +17,11 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The overseer's changeling as the owner designed it (docs/HIVE_DESIGN.md 7b): it takes the look of
- * the first villager or player it sees ({@link StarUnit#disguise}: "villager", or the player's UUID;
- * the client draws that villager or that player with their skin, its own side still sees a changeling)
- * and spies: among villagers it strolls with the one it copied, behind a player it keeps 8–16 blocks.
+ * The overseer's changeling as the owner designed it (docs/HIVE_DESIGN.md 7b; owner 19.10: who it meets decides):
+ * among another side's troops it takes their race's basic soldier's look and walks with them (SC2); by a player with no
+ * army about them it takes that player's look ({@link StarUnit#disguise}: the player's UUID, drawn with their skin) and
+ * keeps 8–16 blocks behind them; by villagers it looks like one ("villager") and stays in the village, strolling among
+ * them. Its own side still sees a changeling. When those it followed are gone, the next it meets give it a new look.
  * What it sees it tells its hive ({@link Hive#scouted}): the hive raids there when it knows of nothing
  * closer. It dies from any damage, lives SC2's 150 s, never attacks; iron golems take it for a villager
  * while it looks like one. A wild overseer sends one out every 2–3 minutes, at most 2 alive
@@ -44,10 +45,9 @@ public final class Changeling {
 	static void tick(StarUnit unit, ServerLevel level) {
 		if (unit.tickCount % 20 != 0) return;
 		LivingEntity spied = spied(unit, level);
-		if (spied == null && unit.disguise().isEmpty()) {
+		if (spied == null) { // owner 19.10: whoever it meets now decides its look (it keeps it while they are near)
 			spied = firstSeen(unit, level);
-			if (spied != null) unit.setDisguise(spied instanceof Player ? spied.getUUID().toString()
-				: spied instanceof StarUnit soldier ? KIND + basic(soldier.kind.race).name() : VILLAGER);
+			if (spied != null) unit.setDisguise(look(spied));
 		}
 		unit.abilities.spied = spied == null ? null : spied.getUUID();
 		if (spied == null) return;
@@ -81,18 +81,26 @@ public final class Changeling {
 	}
 
 	/**
-	 * The nearest villager or player (not a spectator) it sees; with none, the nearest troops of another side
-	 * (owner 17.10, SC2: it takes the look of their race's basic soldier — a marine, a zealot, a zergling — and walks among them).
+	 * Whom it takes after (owner 19.10): troops of another side — a race's wild troops or a player's army — first (SC2: it
+	 * takes the look of their race's basic soldier, a marine, a zealot, a zergling, and walks among them); else a player with
+	 * no army about them (it looks like that player and follows them); else a villager (it looks like one and stays in the
+	 * village).
 	 */
-	private static @Nullable LivingEntity firstSeen(StarUnit unit, ServerLevel level) {
-		List<LivingEntity> seen = level.getEntitiesOfClass(LivingEntity.class, unit.getBoundingBox().inflate(SIGHT),
-			other -> other.isAlive() && (other instanceof AbstractVillager || other instanceof Player player && !player.isSpectator())
-				&& unit.hasLineOfSight(other));
-		LivingEntity found = nearest(unit, seen);
-		if (found != null || unit.tickCount < 60) return found; // villagers and players first: a few seconds to see them
-		return nearest(unit, level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(SIGHT),
-			other -> other.isAlive() && other != unit && other.kind != UnitKind.CHANGELING && !other.kind.structure()
+	static @Nullable LivingEntity firstSeen(StarUnit unit, ServerLevel level) {
+		StarUnit soldier = nearest(unit, level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(SIGHT),
+			other -> other.isAlive() && other != unit && other.kind != UnitKind.CHANGELING && !other.kind.structure() && !other.kind.boss()
 				&& !dev.starmine.faction.Faction.allied(other, unit) && unit.hasLineOfSight(other)));
+		if (soldier != null) return soldier;
+		Player player = nearest(unit, level.getEntitiesOfClass(Player.class, unit.getBoundingBox().inflate(SIGHT),
+			other -> other.isAlive() && !other.isSpectator() && unit.hasLineOfSight(other)));
+		if (player != null) return player; // its army about it would have been seen first
+		return nearest(unit, level.getEntitiesOfClass(AbstractVillager.class, unit.getBoundingBox().inflate(SIGHT),
+			other -> other.isAlive() && unit.hasLineOfSight(other)));
+	}
+
+	/** The look it takes after `seen`: a race's soldier, that player, or a villager. */
+	static String look(LivingEntity seen) {
+		return seen instanceof Player ? seen.getUUID().toString() : seen instanceof StarUnit soldier ? KIND + basic(soldier.kind.race).name() : VILLAGER;
 	}
 
 	/** The look of another race's soldier: "kind:MARINE". */
