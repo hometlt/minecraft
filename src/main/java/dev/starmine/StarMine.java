@@ -168,6 +168,7 @@ public final class StarMine implements ModInitializer {
 		dev.starmine.world.StoryDungeons.load(); // owner 19.10: the infested mine, the vault, the sunken scout, the brood nest, Moebius's lab
 		dev.starmine.world.DungeonBosses.load();
 		dev.starmine.ability.BossPowers.load(); // owner 19.10: liquid creep, psi barriers
+		dev.starmine.ability.StasisWards.load(); // owner 19.10: oracles' wards outlast a restart
 		dev.starmine.world.Nydus.load();
 		dev.starmine.mineral.Minerals.load();
 		dev.starmine.block.CraftBlocks.load(); // owner 19.10: vespene torch, lamp, fuel; mineral glass

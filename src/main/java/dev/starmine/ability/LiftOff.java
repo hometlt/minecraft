@@ -111,7 +111,8 @@ public final class LiftOff {
 			double x = to.x - unit.getX(), z = to.z - unit.getZ(), length = Math.sqrt(x * x + z * z);
 			if (length <= PER_TICK) {
 				unit.setPos(to.x, unit.getY(), to.z);
-				unit.command(StarUnit.Order.NONE, null); // there: it hovers
+				if (unit.order() == StarUnit.Order.PATROL) unit.turnPatrol(); // SC2: back and forth
+				else unit.command(StarUnit.Order.NONE, null); // there: it hovers
 			} else {
 				dx = x / length * PER_TICK;
 				dz = z / length * PER_TICK;

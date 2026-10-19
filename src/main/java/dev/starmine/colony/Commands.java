@@ -110,9 +110,13 @@ public final class Commands {
 					default -> StarUnit.Order.PATROL;
 				};
 				moveArmy(level, base, mobile, order, at);
-				formation(lifted, StarUnit.Order.MOVE, at);
+				// SC2: a flying building or a crawler on the move patrols too (an attack-move is a move: it has no weapon)
+				formation(lifted, order == StarUnit.Order.PATROL ? StarUnit.Order.PATROL : StarUnit.Order.MOVE, at);
 			}
-			case "hold" -> mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
+			case "hold" -> {
+				mobile.forEach(unit -> unit.command(StarUnit.Order.HOLD, null));
+				lifted.forEach(unit -> unit.command(StarUnit.Order.HOLD, null)); // SC2: it stays where it is
+			}
 			case "autocast" -> autocast(units, command.arg());
 			case "construct" -> resumeConstruction(level, base, workers, mobile, command.target(), at);
 			case "tumor" -> { // SC2: the player's creep tumor (the arg: x,y,z) spreads once to a creep cell in its reach

@@ -185,4 +185,53 @@ public class FieldAbilityGameTests implements FabricGameTest {
 			helper.succeed();
 		});
 	}
+
+	/** Owner 19.10: an oracle's stasis ward is saved, and armed again (by a stand-in of its side) waits for its foe without its oracle. */
+	@GameTest(template = ARENA, batch = "fieldWard", timeoutTicks = 200)
+	public void stasisWardOutlastsItsOracle(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		StarUnit oracle = unit(helper, UnitKind.ORACLE, 10, 24, UUID.randomUUID());
+		oracle.setNoAi(true);
+		int before = StasisWards.count(level);
+		helper.runAfterDelay(2, () -> {
+			oracle.setEnergy(100);
+			helper.assertTrue(Abilities.cast(oracle, level, Ability.STASIS_WARD, null, point(helper, 14, 24)), "no ward");
+			helper.assertTrue(StasisWards.count(level) == before + 1, "the ward is not saved");
+			oracle.discard();
+			StasisWards.rearm(level); // as after a restart
+		});
+		StarUnit[] ling = new StarUnit[1];
+		helper.runAfterDelay(20, () -> {
+			ling[0] = unit(helper, UnitKind.ZERGLING, 14, 24, null);
+			ling[0].setNoAi(true);
+		});
+		helper.runAfterDelay(60, () -> {
+			helper.assertTrue(Status.has(ling[0], Status.STASIS), "the ward did not hold the zergling");
+			helper.assertTrue(StasisWards.count(level) == before, "a spent ward is still saved");
+			helper.succeed();
+		});
+	}
+
+	/** Owner 19.10, SC2: a flying terran building patrols back and forth. */
+	@GameTest(template = ARENA, batch = "fieldPatrol", timeoutTicks = 200)
+	public void flyingBuildingPatrols(GameTestHelper helper) {
+		clear(helper);
+		StarUnit barracks = unit(helper, UnitKind.BARRACKS, 12, 24, UUID.randomUUID());
+		net.minecraft.world.phys.Vec3[] start = new net.minecraft.world.phys.Vec3[1];
+		boolean[] back = new boolean[1];
+		helper.runAfterDelay(2, () -> {
+			barracks.setMode(Modes.AIRBORNE);
+			start[0] = barracks.position();
+			barracks.command(StarUnit.Order.PATROL, point(helper, 20, 24));
+		});
+		helper.onEachTick(() -> { // heading back to where it set out, still patrolling
+			if (start[0] != null && barracks.order() == StarUnit.Order.PATROL && barracks.orderPos() != null
+				&& Abilities.horizontal(barracks.orderPos(), start[0]) < 1) back[0] = true;
+		});
+		helper.runAfterDelay(150, () -> {
+			helper.assertTrue(back[0], "it never headed back: " + barracks.order() + " " + barracks.orderPos() + " at " + barracks.position());
+			helper.succeed();
+		});
+	}
 }

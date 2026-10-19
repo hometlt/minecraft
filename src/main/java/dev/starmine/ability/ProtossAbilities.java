@@ -319,17 +319,10 @@ public final class ProtossAbilities {
 	static void stasisWard(StarUnit unit, ServerLevel level, @Nullable Vec3 point) {
 		if (point == null) return;
 		level.sendParticles(ParticleTypes.GLOW, point.x, point.y + 0.3, point.z, 6, 0.2, 0.1, 0.2, 0);
-		Delayed.whileTrue(level, 10, WARD_TICKS / 10, () -> {
-			List<LivingEntity> near = Abilities.around(unit, point, WARD_TRIGGER, true).stream().filter(ProtossAbilities::onGround).toList();
-			if (near.isEmpty()) return true;
-			for (LivingEntity other : Abilities.around(unit, point, WARD_RADIUS, true))
-				if (onGround(other)) Status.apply(other, Status.STASIS, STASIS_TICKS);
-			level.sendParticles(ParticleTypes.SNOWFLAKE, point.x, point.y + 1, point.z, 60, WARD_RADIUS / 2, 0.8, WARD_RADIUS / 2, 0.02);
-			return false;
-		});
+		StasisWards.place(unit, level, point); // saved: it waits out its 180 s across a restart
 	}
 
-	private static boolean onGround(LivingEntity entity) {
+	static boolean onGround(LivingEntity entity) {
 		return entity instanceof StarUnit star ? !star.flying() : !entity.isFallFlying() && !(entity instanceof net.minecraft.world.entity.FlyingMob);
 	}
 

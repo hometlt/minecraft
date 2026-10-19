@@ -1745,7 +1745,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	}
 
 	/** Patrol: turn back toward where it came from. */
-	void turnPatrol() {
+	public void turnPatrol() {
 		Vec3 back = patrolFrom;
 		patrolFrom = orderPos;
 		orderPos = back;

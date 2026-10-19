@@ -136,7 +136,8 @@ public final class FieldAbilities {
 		if (length <= perTick) {
 			unit.setPos(to.x, unit.getY(), to.z);
 			unit.setDeltaMovement(0, motion.y, 0);
-			unit.command(StarUnit.Order.NONE, null);
+			if (unit.order() == StarUnit.Order.PATROL) unit.turnPatrol();
+			else unit.command(StarUnit.Order.NONE, null);
 			return;
 		}
 		double dy = unit.horizontalCollision && unit.onGround() ? 0.42 : motion.y;
