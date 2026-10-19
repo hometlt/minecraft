@@ -26,6 +26,12 @@ public enum Ability {
 	//                  id                     key  target          energy cooldown range channel delay
 	// ---- zerg ----
 	BURROW(             "burrow",              'R', Target.TOGGLE,  0,     0,       0,    0,      0),
+	// owner 19.10: the rest of SC2's
+	MICROBIAL_SHROUD(   "microbial_shroud",    'C', Target.POINT,   75,    0,       9,    0,      0),
+	UPROOT(             "uproot",              'U', Target.TOGGLE,  0,     0,       0,    0,      0),
+	GENERATE_CREEP(     "generate_creep",      'G', Target.TOGGLE,  0,     0,       0,    0,      0),
+	CONTAMINATE(        "contaminate",         'V', Target.UNIT,    125,   0,       3,    0,      0),
+	OVERSIGHT(          "oversight",           'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	GREATER_SPIRE(      "greater_spire",       'G', Target.NONE,    0,     0,       0,    0,      71), // owner 17.10: the spire grows into one
 	CORROSIVE_BILE(     "corrosive_bile",      'B', Target.POINT,   0,     7,       9,    0,      2.5),
 	CREEP_TUMOR(        "creep_tumor",         'C', Target.POINT,   25,    0,       3,    0,      0),
@@ -59,6 +65,7 @@ public enum Ability {
 	ORBITAL_COMMAND(    "orbital_command",     'O', Target.NONE,    0,     0,       0,    0,      25),
 	PLANETARY_FORTRESS( "planetary_fortress",  'P', Target.NONE,    0,     0,       0,    0,      36),
 	MULE(               "mule",                'E', Target.POINT,   50,    0,       0,    0,      0),
+	SUPPLY_DROP(        "supply_drop",         'X', Target.UNIT,    50,    0,       0,    0,      0),
 	SCANNER_SWEEP(      "scanner_sweep",       'C', Target.POINT,   50,    0,       0,    0,      0),
 	LOWER_DEPOT(        "lower_depot",         'R', Target.TOGGLE,  0,     0,       0,    0,      0),
 	BUILD_TECHLAB(      "techlab",             'X', Target.NONE,    0,     0,       0,    0,      18),
@@ -84,6 +91,7 @@ public enum Ability {
 	SHADOW_STRIDE(      "shadow_stride",       'B', Target.POINT,   0,     14,      8,    0,      0),
 	PURIFICATION_NOVA(  "purification_nova",   'E', Target.POINT,   0,     14,      13,   0,      0),
 	PHASING_MODE(       "phasing_mode",        'E', Target.TOGGLE,  0,     0,       0,    0,      0),
+	SURVEILLANCE(       "surveillance",        'E', Target.TOGGLE,  0,     0,       0,    0,      0),
 	GRAVITON_BEAM(      "graviton_beam",       'G', Target.UNIT,    50,    0,       4,    0,      0),
 	PRISMATIC_ALIGNMENT("prismatic_alignment", 'E', Target.NONE,    0,     43,      0,    0,      0),
 	PULSAR_BEAM(        "pulsar_beam",         'E', Target.TOGGLE,  25,    0,       0,    0,      0),
@@ -160,6 +168,12 @@ public enum Ability {
 	public List<UnitKind> users() {
 		return switch (this) {
 			case GREATER_SPIRE -> List.of(SPIRE);
+			case MICROBIAL_SHROUD -> List.of(INFESTOR);
+			case UPROOT -> List.of(SPINE_CRAWLER, SPORE_CRAWLER);
+			case GENERATE_CREEP -> List.of(OVERLORD);
+			case CONTAMINATE, OVERSIGHT -> List.of(OVERSEER);
+			case SUPPLY_DROP -> List.of(COMMAND_CENTER);
+			case SURVEILLANCE -> List.of(OBSERVER);
 			case BURROW -> List.of(DRONE, ZERGLING, BANELING, ROACH, RAVAGER, HYDRALISK, LURKER, QUEEN, INFESTOR, SWARM_HOST, ULTRALISK, WIDOW_MINE);
 			case CORROSIVE_BILE -> List.of(RAVAGER);
 			case CREEP_TUMOR, INJECT_LARVA, TRANSFUSION -> List.of(QUEEN);

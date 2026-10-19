@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals$(br2)$(l)Neural Parasite$(): Takes control of a unit or creature for 11 s$(br2)$(l)Fungal Growth$(): Roots foes in the area for 3 s and deals 30 damage"
+			"text": "$(l)Microbial Shroud$(): A cloud for 11 s: your ground units under it take half damage from air attacks$(br2)$(l)Burrow$(): Hides under the ground: unseen without a detector; the lurker attacks only burrowed, the roach moves and heals$(br2)$(l)Neural Parasite$(): Takes control of a unit or creature for 11 s$(br2)$(l)Fungal Growth$(): Roots foes in the area for 3 s and deals 30 damage"
 		}
 	]
 }

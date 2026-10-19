@@ -65,6 +65,7 @@ public final class Sc2Buttons {
 				default -> null;
 			};
 			case HELLBAT -> kind == UnitKind.HELLBAT ? "MorphToHellion" : null;
+			case UPROOT -> kind == UnitKind.SPORE_CRAWLER ? "SporeCrawlerUproot" : null;
 			case VIKING_LAND -> kind == UnitKind.VIKING_ASSAULT ? "FighterMode" : null;
 			case MASS_RECALL -> kind == UnitKind.MOTHERSHIP ? "MassRecall" : kind == UnitKind.NEXUS ? "NexusMassRecall" : null;
 			case LOAD -> switch (kind) {
@@ -161,6 +162,13 @@ public final class Sc2Buttons {
 			case SALVAGE -> "Salvage";
 			case LOAD -> "BunkerLoad";
 			case UNLOAD -> "BunkerUnloadAll";
+			case MICROBIAL_SHROUD -> "MicrobialShroud";
+			case UPROOT -> "SpineCrawlerUproot";
+			case GENERATE_CREEP -> "GenerateCreep";
+			case CONTAMINATE -> "Contaminate";
+			case OVERSIGHT -> "OverseerOversightMode";
+			case SUPPLY_DROP -> "SupplyDrop";
+			case SURVEILLANCE -> "ObserverSurveillanceMode";
 		};
 	}
 

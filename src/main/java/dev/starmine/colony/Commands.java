@@ -97,7 +97,8 @@ public final class Commands {
 		Vec3 at = new Vec3(command.x(), command.y(), command.z());
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
 		List<StarUnit> buildings = units.stream().filter(unit -> unit.kind.structure()).toList();
-		List<StarUnit> lifted = buildings.stream().filter(dev.starmine.ability.LiftOff::airborne).toList(); // terran buildings fly where they are sent
+		List<StarUnit> lifted = buildings.stream().filter(building -> dev.starmine.ability.LiftOff.airborne(building)
+			|| dev.starmine.ability.FieldAbilities.uprooted(building)).toList(); // terran buildings fly where they are sent, uprooted crawlers crawl
 		List<StarUnit> workers = mobile.stream().filter(unit -> unit.kind.worker()).toList();
 		for (StarUnit unit : units) Engineering.release(unit.getUUID()); // a new order ends the army's way work
 		switch (command.action()) {
@@ -150,7 +151,7 @@ public final class Commands {
 			case "train" -> train(level, base, units, kind(command.arg()));
 			case "cancel" -> buildings.forEach(StarUnit::cancelLast);
 			case "rally" -> { // a right click for buildings: a lifted terran building flies there (owner 16.10: it took the order and stayed)
-				buildings.stream().filter(building -> !dev.starmine.ability.LiftOff.airborne(building)).forEach(building -> building.setRally(at));
+				buildings.stream().filter(building -> !lifted.contains(building)).forEach(building -> building.setRally(at));
 				formation(lifted, StarUnit.Order.MOVE, at);
 			}
 			case "ability" -> { // dev.starmine.ability: toggles and plain ones on all, aimed ones by the nearest able unit

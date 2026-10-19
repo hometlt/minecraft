@@ -48,7 +48,10 @@ final class ModeLook {
 			case Modes.AIRBORNE -> "airborne";
 			case Modes.DEFENDER -> "defender";
 			case Modes.GREATER -> "greater";
-			case Modes.SACS -> "sacs"; // an overlord transport (SC2 OverlordTransport)
+			case Modes.SACS, Modes.CREEPING_SACS -> "sacs"; // an overlord transport (SC2 OverlordTransport)
+			case Modes.UPROOTED -> "uprooted"; // a crawler on the move
+			case Modes.OVERSIGHT -> "oversight";
+			case Modes.SURVEILLANCE -> "surveillance";
 			default -> "normal";
 		};
 	}
@@ -65,6 +68,8 @@ final class ModeLook {
 			case Modes.ORBITAL -> new Shape(0.97f, 1.12f, 0);
 			case Modes.PLANETARY -> new Shape(1.12f, 0.88f, 0);
 			case Modes.AIRBORNE -> new Shape(1f, 1f, 4);
+			case Modes.UPROOTED -> new Shape(0.9f, 1.15f, 6); // up on its legs, leaning on
+			case Modes.OVERSIGHT, Modes.SURVEILLANCE -> new Shape(1.25f, 0.85f, 0); // spread wide, looking out
 			default -> Shape.SAME;
 		};
 	}

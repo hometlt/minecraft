@@ -1113,6 +1113,42 @@
 			"death": false
 		},
 		{
+			"model": "spinecrawler_uprooted",
+			"kind": "SPINE_CRAWLER",
+			"race": "ZERG",
+			"form": "uprooted",
+			"unit": "SpineCrawlerUprooted",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "sporecrawler_uprooted",
+			"kind": "SPORE_CRAWLER",
+			"race": "ZERG",
+			"form": "uprooted",
+			"unit": "SporeCrawlerUprooted",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "overseer_oversight",
+			"kind": "OVERSEER",
+			"race": "ZERG",
+			"form": "oversight",
+			"unit": "OverseerSiegeMode",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
+			"model": "observer_surveillance",
+			"kind": "OBSERVER",
+			"race": "PROTOSS",
+			"form": "surveillance",
+			"unit": "ObserverSiegeMode",
+			"mod": "Mods/VoidMulti.SC2Mod",
+			"death": false
+		},
+		{
 			"model": "drone_burrowed",
 			"kind": "DRONE",
 			"race": "ZERG",

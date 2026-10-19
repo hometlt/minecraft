@@ -14,6 +14,11 @@
 			"type": "patchouli:text",
 			"title": "Spine Crawler",
 			"text": "$(l)Health$(): 300$(br)$(l)Damage$(): 25, every 1.32 s, range 7$(br)$(l)Cost$(): 100 minerals$(br)$(l)Build time$(): 36 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Uproot / Root$(): Pulls the crawler out of the ground to crawl elsewhere (faster on creep); it roots again only on creep"
 		}
 	]
 }

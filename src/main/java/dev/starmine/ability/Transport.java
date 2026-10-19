@@ -49,7 +49,7 @@ public final class Transport {
 	/** Cargo slots of this transport now: a player's overlord without its sacs and an orbital carry none, neosteel adds 2 to a bunker. */
 	public static int capacity(StarUnit transport) {
 		UnitKind kind = transport.kind;
-		if (kind == UnitKind.OVERLORD && transport.owner().isPresent() && transport.mode() != Modes.SACS) return 0;
+		if (kind == UnitKind.OVERLORD && transport.owner().isPresent() && transport.mode() != Modes.SACS && transport.mode() != Modes.CREEPING_SACS) return 0;
 		if (kind == UnitKind.COMMAND_CENTER && transport.mode() == Modes.ORBITAL) return 0;
 		int bonus = kind == UnitKind.BUNKER && Abilities.researched(transport, dev.starmine.race.Research.NEOSTEEL_ARMOR) ? NEOSTEEL_BONUS : 0;
 		return capacity(kind) + bonus;

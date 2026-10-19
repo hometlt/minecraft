@@ -28,9 +28,25 @@ public final class CreepSources extends SavedData {
 		return new TumorSet(((ServerLevel) level).getDataStorage().computeIfAbsent(FACTORY, "starmine_creep_tumors"));
 	}
 
+	/** Overlords' creep (owner 19.10, SC2 generate creep): where, how far and until when; not saved, it recedes after a restart. */
+	private record Drip(net.minecraft.resources.ResourceKey<Level> dimension, BlockPos pos, int radius, long until) {
+	}
+
+	private static final java.util.List<Drip> DRIPS = new java.util.ArrayList<>();
+
+	/** An overlord feeds creep around `pos` for `ticks` more. */
+	public static void drip(ServerLevel level, BlockPos pos, int radius, int ticks) {
+		long now = level.getGameTime();
+		DRIPS.removeIf(drip -> drip.until < now || drip.dimension == level.dimension() && drip.pos.equals(pos));
+		DRIPS.add(new Drip(level.dimension(), pos.immutable(), radius, now + ticks));
+	}
+
 	/** Whether creep at this position is fed by some source. */
 	public static boolean covered(ServerLevel level, BlockPos pos) {
 		String dimension = level.dimension().location().toString();
+		long now = level.getGameTime();
+		for (Drip drip : DRIPS)
+			if (drip.until >= now && drip.dimension == level.dimension() && drip.pos.distSqr(pos) <= sq(drip.radius + 0.5)) return true;
 		for (Hive hive : HiveSavedData.get(level.getServer()).all())
 			if (hive.dimension.equals(dimension) && hive.hatchery.distSqr(pos) <= sq(HATCHERY_RADIUS + 0.5)) return true;
 		for (BlockPos tumor : tumors(level).all())

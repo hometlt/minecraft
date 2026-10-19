@@ -380,7 +380,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if ((kind == UnitKind.NYDUS_NETWORK || kind == UnitKind.NYDUS_CANAL) && constructTicks == 0 && this.tickCount % 10 == 0)
 			dev.starmine.world.Nydus.tick(this, server);
 		if (this.tickCount % 20 == 3) powered = kind.race.rules().powered(this);
-		if ((kind.building() || kind.main()) && constructTicks == 0 && powered && !lifted()) {
+		if ((kind.building() || kind.main()) && constructTicks == 0 && powered && !lifted() && !dev.starmine.ability.FieldAbilities.contaminated(this)) {
 			produce(server);
 			researchTick(server);
 		}
@@ -495,6 +495,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (this.getVehicle() instanceof StarUnit transport && dev.starmine.ability.Transport.capacity(transport.kind) > 0
 			&& !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) return false; // cargo is out of harm's way (SC2)
 		if (!this.level().isClientSide) amount = dev.starmine.ability.Passives.onHurt(this, source, amount);
+		amount = dev.starmine.ability.FieldAbilities.shrouded(this, source, amount); // owner 19.10: under a microbial shroud
 		// owner 16.10: the wild races do not finish each other's main bases — a wild main building takes a tenth from other wild races
 		if ((kind.main() || kind == UnitKind.HATCHERY) && owner().isEmpty() && source.getEntity() instanceof StarUnit attacker
 			&& attacker.owner().isEmpty() && attacker.kind.race != kind.race) amount *= 0.1f;
@@ -593,7 +594,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 	 */
 	private void holdPlace() {
 		if (kind.footprint() == 0) return;
-		if (dev.starmine.ability.LiftOff.airborne(this)) {
+		if (dev.starmine.ability.LiftOff.airborne(this) || dev.starmine.ability.FieldAbilities.uprooted(this)) { // a crawler on the move too
 			anchor = null;
 			return;
 		}
@@ -1111,6 +1112,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 				} else {
 					hive.leave(kind);
 				}
+				if (kind == UnitKind.SUPPLY_DEPOT) dev.starmine.ability.FieldAbilities.depotGone(this, hive);
 				if (kind == UnitKind.EGG && cocoonKind != null) hive.born(cocoonKind, cocoonCount);
 				data.setDirty();
 			}

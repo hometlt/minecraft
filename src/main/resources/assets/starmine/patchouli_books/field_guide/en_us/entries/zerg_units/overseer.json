@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Spawn Changeling$(): Sends out a changeling that the enemy does not attack"
+			"text": "$(l)Contaminate$(): An enemy building trains and researches nothing for 30 s$(br2)$(l)Oversight$(): The overseer stops and sees half again as far$(br2)$(l)Spawn Changeling$(): Sends out a changeling that the enemy does not attack"
 		}
 	]
 }

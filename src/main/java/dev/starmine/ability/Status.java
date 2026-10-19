@@ -60,6 +60,10 @@ public enum Status {
 	AFTERBURNERS(   1.7,   1,    false),
 	/** Void ray prismatic alignment: +10 against armored, slower (SC2 14.3 s). */
 	PRISMATIC(      0.75,  1,    false),
+	/** Under an infestor's microbial shroud (owner 19.10, SC2 11 s): ground units take half from air attacks. */
+	SHROUDED(       1,     1,    false),
+	/** Contaminated by an overseer (owner 19.10, SC2 30 s): a building trains and researches nothing. */
+	CONTAMINATED(   1,     1,    false),
 	/** Revealed by an oracle or a scan: seen by everyone though cloaked or burrowed. */
 	REVEALED(       1,     1,    false),
 	/** In a mothership's cloaking field: cloaked while it lasts. */

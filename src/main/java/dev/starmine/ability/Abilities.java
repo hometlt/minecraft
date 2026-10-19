@@ -55,6 +55,7 @@ public final class Abilities {
 		if (Status.has(unit, Status.LIFTED) || Status.has(unit, Status.STASIS) || Status.has(unit, Status.MERGING) || Status.has(unit, Status.INTERFERED)
 			|| Status.has(unit, Status.CHANNELLING) || Status.has(unit, Status.HALLUCINATION)) return "message.starmine.busy";
 		if (ability == Ability.LIFT_OFF && LiftOff.refusal(unit) != null) return LiftOff.refusal(unit); // idle to lift, room to land
+		if (ability == Ability.UPROOT && on(unit, ability) && FieldAbilities.rootRefusal(unit) != null) return FieldAbilities.rootRefusal(unit);
 		if (ability.target == Ability.Target.TOGGLE && on(unit, ability)) return null;
 		if (!dev.starmine.race.Research.has(unit, dev.starmine.race.Research.of(ability, unit.kind))) return "message.starmine.need_research";
 		if (ability == Ability.NUKE && base(unit) != null && dev.starmine.race.Research.nukes(base(unit)) <= 0) return "message.starmine.no_nuke";
@@ -81,6 +82,7 @@ public final class Abilities {
 			case PLANETARY_FORTRESS -> lacks(unit, UnitKind.ENGINEERING_BAY);
 			case HELLBAT -> unit.kind == UnitKind.HELLION ? lacks(unit, UnitKind.ARMORY) : null;
 			// SC2 LotV: a lair first (a player's; the wild's overlords carry anyway)
+			case GENERATE_CREEP -> base(unit) != null && base(unit).owner != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
 			case VENTRAL_SACS -> base(unit) != null && base(unit).owner != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
 			default -> null;
 		};
@@ -108,7 +110,8 @@ public final class Abilities {
 		if (ability == Ability.UNLOAD && Transport.capacity(unit) == 0 && !unit.isVehicle()) return false;
 		if (ability == Ability.SHADE_CANCEL || ability == Ability.PSIONIC_TRANSFER) // an adept with its shade out may call it off (shown both sides)
 			return (ability == Ability.SHADE_CANCEL) == ProtossAbilities.SHADING.equals(unit.disguise());
-		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP || mode == Modes.ORBITAL;
+		if (ability == Ability.GENERATE_CREEP) return mode == Modes.NORMAL || mode == Modes.SACS || FieldAbilities.creeping(unit);
+		return ability != Ability.MULE && ability != Ability.SCANNER_SWEEP && ability != Ability.SUPPLY_DROP || mode == Modes.ORBITAL;
 	}
 
 	/** The abilities a unit shows on its command card now (its form's). */
@@ -127,6 +130,7 @@ public final class Abilities {
 	public static boolean on(StarUnit unit, Ability ability) {
 		if (ability == Ability.CLOAK) return unit.cloaked() && !Cloak.forced(unit);
 		if (Morphs.target(unit.kind, ability) != null) return Morphs.on(unit.kind, ability);
+		if (ability == Ability.GENERATE_CREEP) return FieldAbilities.creeping(unit);
 		int mode = Modes.of(ability);
 		return mode >= 0 && unit.mode() == mode;
 	}
@@ -170,7 +174,7 @@ public final class Abilities {
 		}
 		int mode = Modes.of(ability);
 		if (mode >= 0) { // a mode change (its own SC2 time; an add-on or upgrade is the change)
-			int to = turningOff ? Modes.NORMAL : mode;
+			int to = Modes.to(unit, ability, turningOff);
 			if (ability == Ability.LIFT_OFF && !turningOff) LiftOff.liftingOff(unit, base(unit));
 			Modes.change(unit, to, (int) Math.round(Modes.changeTicks(ability, to) / dev.starmine.race.Research.changeFactor(base(unit), unit.kind)));
 			return true;
@@ -229,6 +233,9 @@ public final class Abilities {
 			// SC2: a mechanical or psionic unit
 			case INTERFERENCE_MATRIX -> !ally && (dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.MECHANICAL)
 				|| dev.starmine.entity.Trait.has(target, dev.starmine.entity.Trait.PSIONIC)) && !(other != null && other.kind.structure());
+			case CONTAMINATE -> !ally && other != null && other.kind.structure();
+			case SUPPLY_DROP -> ally && other != null && other.kind == UnitKind.SUPPLY_DEPOT && !other.getTags().contains(FieldAbilities.SUPPLIED)
+				&& !other.underConstruction() && java.util.Objects.equals(other.hiveId(), unit.hiveId());
 			default -> true;
 		};
 	}
@@ -269,6 +276,9 @@ public final class Abilities {
 			case SALVAGE -> TerranAbilities.salvage(unit, level);
 			case MULE -> TerranAbilities.mule(unit, level, point);
 			case SCANNER_SWEEP -> TerranAbilities.scan(unit, level, point);
+			case SUPPLY_DROP -> FieldAbilities.supplyDrop(unit, level, target);
+			case MICROBIAL_SHROUD -> FieldAbilities.shroud(unit, level, point);
+			case CONTAMINATE -> FieldAbilities.contaminate(unit, level, target);
 			// protoss
 			case CHARGE -> ProtossAbilities.charge(unit, level, target);
 			case BLINK, SHADOW_STRIDE -> ProtossAbilities.blink(unit, level, point);
@@ -332,6 +342,7 @@ public final class Abilities {
 		Cloak.tick(unit, level);
 		if (state.modeTicks > 0 && --state.modeTicks == 0) Modes.finish(unit);
 		if (Ability.LIFT_OFF.users().contains(unit.kind)) LiftOff.tick(unit);
+		if (Ability.UPROOT.users().contains(unit.kind) || unit.kind == UnitKind.OVERLORD) FieldAbilities.tick(unit, level);
 		if (unit.kind == UnitKind.CHANGELING) Changeling.tick(unit, level);
 		if (state.channel != null) channel(unit, level, state);
 		else if (state.pending != null) approach(unit, level, state);

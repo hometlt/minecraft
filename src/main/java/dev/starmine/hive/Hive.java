@@ -175,6 +175,7 @@ public final class Hive {
 		if (of == UnitKind.Race.ZERG && race == UnitKind.Race.ZERG && count(UnitKind.HATCHERY) == 0) cap += UnitKind.HATCHERY.economy().supply();
 		// an overlord morphing into an overseer keeps providing its supply as a cocoon (SC2; owner 18.10)
 		if (of == UnitKind.Race.ZERG) cap += pending(UnitKind.OVERSEER) * UnitKind.OVERSEER.economy().supply();
+		if (of == UnitKind.Race.TERRAN) cap += dev.starmine.ability.FieldAbilities.dropSupply(this); // SC2 calldown: extra supplies
 		return Math.min(MAX_SUPPLY, cap);
 	}
 

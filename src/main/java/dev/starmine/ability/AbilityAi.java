@@ -28,7 +28,9 @@ import org.jetbrains.annotations.Nullable;
  * - forms: a viking lands against ground foes and takes off for air ones, a hellion turns hellbat up
  *   close, a thor switches its payload against air; a bunker loads when foes come; a command center
  *   becomes an orbital (or a fortress) when the base can pay and calls MULEs; production buildings get
- *   add-ons; a nexus boosts busy buildings and batteries under attack; a depot lowers when calm.
+ *   add-ons; a nexus boosts busy buildings and batteries under attack; a depot lowers when calm;
+ * - an infestor shrouds its ground army from air foes, an overseer contaminates a busy building, an
+ *   orbital drops supplies on a depot when the base nears its cap, an uprooted crawler roots again.
  */
 final class AbilityAi {
 	private static final int CALM = 200;
@@ -138,7 +140,7 @@ final class AbilityAi {
 				Hive base = Abilities.base(unit);
 				yield base != null && base.tier >= 3 && base.minerals >= 250 && base.vespene >= 250 && cast(unit, level, ability);
 			}
-			case MULE -> cast(unit, level, ability, unit.position().add(level.random.nextGaussian() * 6, 0, level.random.nextGaussian() * 6));
+			case MULE -> supplyDepot(unit) == null && cast(unit, level, ability, unit.position().add(level.random.nextGaussian() * 6, 0, level.random.nextGaussian() * 6));
 			case SCANNER_SWEEP -> {
 				StarUnit hidden = cloakedFoe(unit, 32);
 				yield hidden != null && cast(unit, level, ability, hidden.position());
@@ -219,8 +221,25 @@ final class AbilityAi {
 				StarUnit battery = nearestOwn(unit, 32, other -> other.kind == UnitKind.SHIELD_BATTERY && foeWithin(other, 10));
 				yield battery != null && cast(unit, level, ability, battery);
 			}
+			// owner 19.10: the rest of SC2's
+			case MICROBIAL_SHROUD -> target instanceof StarUnit flyer && flyer.flying() && alliesAround(unit, unit.position(), 6) >= 3
+				&& cast(unit, level, ability, unit.position());
+			case CONTAMINATE -> target instanceof StarUnit building && building.kind.structure() && !building.queue().isEmpty()
+				&& cast(unit, level, ability, target);
+			case UPROOT -> on && unit.orderPos() == null && FieldAbilities.rootRefusal(unit) == null && cast(unit, level, ability); // a crawler left uprooted roots again
+			case SUPPLY_DROP -> {
+				StarUnit depot = supplyDepot(unit);
+				yield depot != null && cast(unit, level, ability, depot);
+			}
 			default -> false;
 		};
+	}
+
+	/** A depot for a supply drop when the base nears its cap (the energy goes there before MULEs), or null. */
+	private static @Nullable StarUnit supplyDepot(StarUnit unit) {
+		Hive base = Abilities.base(unit);
+		if (base == null || base.supplyUsed(UnitKind.Race.TERRAN) < base.supplyCap(UnitKind.Race.TERRAN) - 4) return null;
+		return nearestOwn(unit, 48, other -> other.kind == UnitKind.SUPPLY_DEPOT && !other.getTags().contains(FieldAbilities.SUPPLIED) && !other.underConstruction());
 	}
 
 	/** A lurker burrows to fight and comes up when calm; others burrow to heal when badly hurt and unseen, and come up healed or found. */

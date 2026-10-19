@@ -530,7 +530,7 @@ public final class CommandView {
 		if (mc.level != null)
 			for (Entity entity : mc.level.entitiesForRendering())
 				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
-					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight(), unit.kind.detector()));
+					list.add(new Sight(unit.getX(), unit.getY() + Math.max(1, unit.getBbHeight() * 0.85), unit.getZ(), unit.kind.sight() * dev.starmine.ability.Modes.sightFactor(unit.mode()), unit.kind.detector()));
 				else if (entity instanceof dev.starmine.gear.Turrets.Turret turret && turret.isAlive() && own(turret)) // owner 19.10: turrets see too
 					list.add(new Sight(turret.getX(), turret.getEyeY(), turret.getZ(), dev.starmine.gear.Turrets.RANGE + 4, false));
 		long now = mc.level == null ? 0 : mc.level.getGameTime();

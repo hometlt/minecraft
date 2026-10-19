@@ -14,6 +14,11 @@
 			"type": "patchouli:text",
 			"title": "Observer",
 			"text": "$(l)Health$(): 40, shields 20$(br)No attack$(br)$(l)Speed$(): 2.63, flying$(br)$(l)Cost$(): 25 minerals, 75 vespene, 1 supply$(br)$(l)Build time$(): 21 s$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Abilities",
+			"text": "$(l)Surveillance Mode$(): The observer stops and sees a quarter farther"
 		}
 	]
 }

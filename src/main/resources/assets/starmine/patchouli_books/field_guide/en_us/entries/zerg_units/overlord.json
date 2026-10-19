@@ -18,7 +18,7 @@
 		{
 			"type": "patchouli:text",
 			"title": "Abilities",
-			"text": "$(l)Ventral Sacs$(): The overlord morphs into a transport (25/25, 12 s; needs a lair)$(br2)$(l)Load$(): Takes aboard own ground units of its race nearby: a flyer 8 slots, a bunker 4 (6 with neosteel), a command center 5 SCVs, a nydus any zerg$(br2)$(l)Unload$(): Flies there and puts the cargo down; a building lets it out (a nydus the cargo of all its ends); a click on a rider in the panel lets it out alone"
+			"text": "$(l)Generate Creep$(): The overlord drips creep on the ground under it while it is on (needs a lair)$(br2)$(l)Ventral Sacs$(): The overlord morphs into a transport (25/25, 12 s; needs a lair)$(br2)$(l)Load$(): Takes aboard own ground units of its race nearby: a flyer 8 slots, a bunker 4 (6 with neosteel), a command center 5 SCVs, a nydus any zerg$(br2)$(l)Unload$(): Flies there and puts the cargo down; a building lets it out (a nydus the cargo of all its ends); a click on a rider in the panel lets it out alone"
 		}
 	]
 }

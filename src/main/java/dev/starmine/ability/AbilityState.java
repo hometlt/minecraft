@@ -70,6 +70,8 @@ public final class AbilityState {
 	@Nullable UUID lockOn;
 	int lockTicks;
 	/** Zagara under the ground (owner 17.10): ticks till she comes up, and where. */
+	/** Where an overlord's creep grows from now (FieldAbilities; not saved). */
+	public @Nullable net.minecraft.core.BlockPos creepSource;
 	public int digTicks;
 	public @Nullable net.minecraft.world.phys.Vec3 digTo;
 	/** An SCV's repair target and the minerals owed for it so far (paid by whole minerals). */

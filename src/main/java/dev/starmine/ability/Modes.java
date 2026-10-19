@@ -24,7 +24,8 @@ import static dev.starmine.entity.UnitKind.SCALE;
 public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
 		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
-		AIRBORNE = 14, DEFENDER = 15, GREATER = 16, SACS = 17;
+		AIRBORNE = 14, DEFENDER = 15, GREATER = 16, SACS = 17,
+		UPROOTED = 18, OVERSIGHT = 19, SURVEILLANCE = 20, CREEPING = 21, CREEPING_SACS = 22;
 	public static final int CHANGE_TICKS = 60;
 	/** The mark of a base that has a greater spire (brood lords need it). */
 	public static final String GREATER_SPIRE_ID = "greater_spire";
@@ -54,8 +55,21 @@ public final class Modes {
 			case GREATER_SPIRE -> GREATER;
 			case VENTRAL_SACS -> SACS;
 			case LIFT_OFF -> AIRBORNE;
+			case UPROOT -> UPROOTED;
+			case OVERSIGHT -> OVERSIGHT;
+			case SURVEILLANCE -> SURVEILLANCE;
+			case GENERATE_CREEP -> CREEPING;
 			default -> -1;
 		};
+	}
+
+	/** The mode `ability` turns `unit` to (an overlord with ventral sacs keeps them while it spreads creep). */
+	public static int to(StarUnit unit, Ability ability, boolean turningOff) {
+		if (ability == Ability.GENERATE_CREEP) {
+			boolean sacs = unit.mode() == SACS || unit.mode() == CREEPING_SACS;
+			return turningOff ? (sacs ? SACS : NORMAL) : (sacs ? CREEPING_SACS : CREEPING);
+		}
+		return turningOff ? NORMAL : of(ability);
 	}
 
 	/** Modes that are for good (add-ons, command center upgrades): only from the normal mode, never back. */
@@ -74,7 +88,9 @@ public final class Modes {
 			case DEFENDER_MODE -> mode == DEFENDER ? 34 : 24; // SC2 1.71 s down, 1.21 s up
 			case LIFT_OFF -> 29; // SC2 lift-off and landing 1.43 s
 			case WARP_GATE -> 142; // SC2 7.1 s
-			case PULSAR_BEAM, LOWER_DEPOT -> 0;
+			case UPROOT -> mode == UPROOTED ? 29 : 86; // SC2 uproot 1.43 s, root 4.29 s
+			case OVERSIGHT, SURVEILLANCE -> 21; // SC2 1.07 s
+			case PULSAR_BEAM, LOWER_DEPOT, GENERATE_CREEP -> 0;
 			default -> CHANGE_TICKS;
 		};
 	}
@@ -87,6 +103,8 @@ public final class Modes {
 				2 * BLOCKS_PER_UNIT + 1, false);
 		if (kind == UnitKind.LURKER) return mode == BURROWED ? new Weapon(own.range(), own.damage(), own.interval(), 0, 0, false) : none(true);
 		if (mode == BURROWED) return none(kind == UnitKind.ROACH); // a burrowed roach crawls, the others lie still
+		if (mode == UPROOTED) return none(true); // a crawler on the move does not fight (SC2)
+		if (mode == OVERSIGHT || mode == SURVEILLANCE) return none(false); // it stands and looks
 		if (kind == UnitKind.LIBERATOR && mode == DEFENDER) // SC2 lancer missiles: 75 at ground units in its zone (range 5 + zone 5), 1.14 s
 			return new Weapon(10 * BLOCKS_PER_UNIT + 1, Math.round(75 * SCALE * 2) / 2.0, 23, 0, 0, false);
 		if (kind == UnitKind.THOR && mode == HIGH_IMPACT) // SC2 high impact payload: 40, range 11, 0.91 s
@@ -106,6 +124,11 @@ public final class Modes {
 	public static double speedFactor(UnitKind kind, int mode) {
 		if (kind == UnitKind.ROACH && mode == BURROWED) return 2.0 / 3.15;
 		return 1;
+	}
+
+	/** How much farther a unit sees in a mode (SC2 oversight: 11 to 16.5; surveillance: 11 to 13.75). */
+	public static double sightFactor(int mode) {
+		return mode == OVERSIGHT ? 1.5 : mode == SURVEILLANCE ? 1.25 : 1;
 	}
 
 	/** SC2 hit points a mode adds (a planetary fortress' armor counted as 50 % more). */

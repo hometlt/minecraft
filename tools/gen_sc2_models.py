@@ -87,6 +87,10 @@ FORMS = [
 	('LIBERATOR', 'defender', 'LiberatorAG'),
 	('WARP_PRISM', 'phasing', 'WarpPrismPhasing'),
 	('THOR', 'high_impact', 'ThorAP'),
+	('SPINE_CRAWLER', 'uprooted', 'SpineCrawlerUprooted'),
+	('SPORE_CRAWLER', 'uprooted', 'SporeCrawlerUprooted'),
+	('OVERSEER', 'oversight', 'OverseerSiegeMode'),
+	('OBSERVER', 'surveillance', 'ObserverSiegeMode'),
 ] + [(kind, 'burrowed', unit) for kind, unit in [
 	('DRONE', 'DroneBurrowed'), ('ZERGLING', 'ZerglingBurrowed'), ('BANELING', 'BanelingBurrowed'), ('ROACH', 'RoachBurrowed'),
 	('RAVAGER', 'RavagerBurrowed'), ('HYDRALISK', 'HydraliskBurrowed'), ('LURKER', 'LurkerMPBurrowed'), ('QUEEN', 'QueenBurrowed'),
