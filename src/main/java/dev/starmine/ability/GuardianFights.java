@@ -286,9 +286,15 @@ public final class GuardianFights {
 
 	/** A toxic nest toward the player: creep spreads from it; seen a while, then hidden from all but detectors. */
 	private static void layNest(StarUnit hero, ServerLevel level, Fight fight, LivingEntity foe) {
-		Vec3 at = hero.position().lerp(foe.position(), 0.4 + level.random.nextDouble() * 0.4).add(level.random.nextGaussian() * 2, 0, level.random.nextGaussian() * 2);
-		BlockPos cell = floor(level, BlockPos.containing(at));
-		if (cell == null) return;
+		BlockPos cell = null;
+		for (int attempt = 0; attempt < 8 && cell == null; attempt++) {
+			Vec3 at = hero.position().lerp(foe.position(), 0.4 + level.random.nextDouble() * 0.4).add(level.random.nextGaussian() * 2, 0, level.random.nextGaussian() * 2);
+			cell = floor(level, BlockPos.containing(at));
+		}
+		if (cell == null) {
+			fight.nest = 20; // no room this time: soon again
+			return;
+		}
 		hero.addTag(NEST + cell.asLong());
 		fight.nestsLaid.put(cell.immutable(), hero.tickCount);
 		for (int i = 0; i < 40; i++) dev.starmine.creep.CreepGrowth.grow(level, cell, 3, 2);
@@ -753,7 +759,7 @@ public final class GuardianFights {
 	static @Nullable BlockPos floor(ServerLevel level, BlockPos pos) {
 		for (int dy = 0; dy <= 8; dy++) {
 			BlockPos at = pos.above(dy % 2 == 0 ? dy / 2 : -(dy + 1) / 2);
-			if (level.getBlockState(at).isAir() && level.getBlockState(at.above()).isAir()
+			if (level.getBlockState(at).getCollisionShape(level, at).isEmpty() && level.getBlockState(at.above()).getCollisionShape(level, at.above()).isEmpty()
 				&& level.getBlockState(at.below()).isFaceSturdy(level, at.below(), net.minecraft.core.Direction.UP)) return at;
 		}
 		return null;

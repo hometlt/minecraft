@@ -91,7 +91,7 @@ final class ShipInterior {
 
 	/** The whole inside: decks, rooms, ramps, hangars, the boss hall; the dwellers in {@link #spawns}. */
 	void build() {
-		int top = decks.size() - 1;
+		int top = hallDeck() + 1; // the hall's upper deck (the hull may end lower there: the leviathan's head)
 		int hallFrom = hallRoom;
 		boolean[][] special = new boolean[rooms][2];
 		for (int deck = 0; deck < decks.size(); deck++) {
@@ -124,7 +124,7 @@ final class ShipInterior {
 		for (int deck = 0; deck + 1 < decks.size(); deck++) {
 			int side = deck % 2 == 0 ? 1 : -1;
 			for (int room = 2 + deck; room < rooms; room++) {
-				if (special[room][side > 0 ? 1 : 0] || deck + 1 >= top - 1 && room >= hallFrom) continue;
+				if (special[room][side > 0 ? 1 : 0] || deck + 1 >= top - 1 && deck <= top && room >= hallFrom && room < hallFrom + HALL_ROOMS) continue;
 				ramp(room, side, decks.get(deck));
 				special[room][side > 0 ? 1 : 0] = true;
 				break;
@@ -135,12 +135,20 @@ final class ShipInterior {
 			for (int room = 0; room < rooms; room++)
 				for (int side = -1; side <= 1; side += 2) {
 					if (special[room][side > 0 ? 1 : 0] && deck <= 1) continue;
-					if (deck >= top - 1 && room >= hallFrom && room < hallFrom + HALL_ROOMS) continue;
+					if (deck >= top - 1 && deck <= top && room >= hallFrom && room < hallFrom + HALL_ROOMS) continue;
 					furnish(room, side, decks.get(deck));
 				}
 		for (int deck = 0; deck < decks.size(); deck++) // patrols on the spine
 			for (int room = 1; room < rooms; room += 3) spawns.add(Spawn.guard(guard(), hull.at(xa + room * ROOM + 4, decks.get(deck) + 1, 0),
 				hull.at(xa + room * ROOM + 4, decks.get(deck) + 1, 0)));
+	}
+
+	/** The lower of the hall's two decks: the highest pair the hull holds at the hall's middle. */
+	private int hallDeck() {
+		int cx = x0(hallRoom) - 1 + HALL_ROOMS * ROOM / 2;
+		for (int d = decks.size() - 2; d >= 0; d--)
+			if (hull.inside(cx, decks.get(d) + 1, 0) && hull.inside(cx, decks.get(d + 1) + DECK - 2, 0)) return d;
+		return Math.max(0, decks.size() - 2);
 	}
 
 	/** The room's x range. */
@@ -227,7 +235,7 @@ final class ShipInterior {
 	 */
 	private void hall(int room, boolean[][] special) {
 		if (decks.size() < 2) return;
-		int top = decks.size() - 1, fy = decks.get(top - 1), ceiling = decks.get(top) + DECK - 1;
+		int top = hallDeck() + 1, fy = decks.get(top - 1), ceiling = decks.get(top) + DECK - 1;
 		int x0 = x0(room) - 1, x1 = x0 + HALL_ROOMS * ROOM;
 		for (int x = x0 + 1; x < x1; x++)
 			for (int y = fy + 1; y <= ceiling; y++)

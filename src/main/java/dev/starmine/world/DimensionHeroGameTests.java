@@ -91,6 +91,11 @@ public class DimensionHeroGameTests implements FabricGameTest {
 			boolean theirs = zeratul.owner().filter(player.getUUID()::equals).isPresent();
 			// freed, it may fall: then it is remembered to come back
 			int before = state.fallen.size();
+			zeratul.hurt(level.damageSources().playerAttack(player), 100000); // owner 19.10: not in the minute after the fight
+			boolean spared = zeratul.isAlive() && state.fallen.size() == before;
+			zeratul.getTags().removeIf(tag -> tag.startsWith(HeroLiberation.FREED_AT));
+			zeratul.addTag(HeroLiberation.FREED_AT + (level.getGameTime() - HeroLiberation.MERCY_TICKS - 1));
+			zeratul.invulnerableTime = 0;
 			zeratul.hurt(level.damageSources().playerAttack(player), 100000);
 			boolean dead = !zeratul.isAlive();
 			boolean remembered = state.fallen.size() == before + 1 && state.fallen.get(state.fallen.size() - 1).kind().equals("ZERATUL");
@@ -101,6 +106,7 @@ public class DimensionHeroGameTests implements FabricGameTest {
 			helper.assertTrue(freed, "Zeratul was not freed");
 			helper.assertTrue(part, "Zeratul gave no part of the key");
 			helper.assertTrue(theirs, "Zeratul is not the player's");
+			helper.assertTrue(spared, "a hero fell in the minute after it was freed");
 			helper.assertTrue(dead, "a freed hero cannot fall");
 			helper.assertTrue(remembered, "a fallen hero is not remembered to come back");
 			helper.succeed();
