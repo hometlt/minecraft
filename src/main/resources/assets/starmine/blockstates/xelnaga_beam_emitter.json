@@ -1,0 +1,20 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "starmine:block/xelnaga_beam_emitter",
+			"y": 0
+		},
+		"facing=east": {
+			"model": "starmine:block/xelnaga_beam_emitter",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "starmine:block/xelnaga_beam_emitter",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "starmine:block/xelnaga_beam_emitter",
+			"y": 270
+		}
+	}
+}

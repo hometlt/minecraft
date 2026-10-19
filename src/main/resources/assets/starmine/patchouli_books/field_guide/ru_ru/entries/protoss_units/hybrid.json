@@ -1,0 +1,23 @@
+{
+	"name": "Гибрид",
+	"icon": "starmine:hybrid_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 22,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hybrid",
+			"name": "Гибрид",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Гибрид",
+			"text": "$(l)Здоровье$(): 1000, щиты 500$(br)$(l)Урон$(): 45, раз в 1.2 с, дальность 1$(br)$(l)Скорость$(): 3.5, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Гибрид Мебиуса, зерг и протосс в одном: телепортируется за спину врагу с пси-волной, раненым вызывает пси-шторм. Оставляет реликвию зел-нага."
+		}
+	]
+}

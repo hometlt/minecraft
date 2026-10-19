@@ -2,7 +2,7 @@
 	"name": "Зелья атрибутов",
 	"icon": "minecraft:potion",
 	"category": "starmine:world",
-	"sortnum": 1,
+	"sortnum": 2,
 	"pages": [
 		{
 			"type": "patchouli:text",

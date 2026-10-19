@@ -90,7 +90,7 @@ def gameTestSelection = providers.gradleProperty('starmineGameTests').getOrElse(
 // heavy: the long, world-loading classes (paths, balance fights, structures, far bases, other worlds); light: all the
 // others. Run apart (light, then heavy) they do not slow each other down: tools/run_gametests.sh does both.
 def heavyGameTests = ['PathfindingGameTests', 'BalanceGameTests', 'StructureGameTests', 'DroneGameTests', 'FarBaseGameTests',
-	'StratosphereGameTests', 'DimensionHeroGameTests', 'BaseDefenceGameTests', 'XelNagaTempleGameTests']
+	'StratosphereGameTests', 'DimensionHeroGameTests', 'BaseDefenceGameTests', 'XelNagaTempleGameTests', 'StoryDungeonGameTests']
 def allGameTests = { ->
 	def list = (file('src/main/resources/fabric.mod.json').text =~ /"fabric-gametest":\s*\[([^\]]*)\]/)[0][1]
 	(list =~ /"([^"]+)"/).collect { it[1] }

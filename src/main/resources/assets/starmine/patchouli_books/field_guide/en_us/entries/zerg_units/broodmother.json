@@ -1,0 +1,23 @@
+{
+	"name": "Brood Mother",
+	"icon": "starmine:broodmother_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 21,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:broodmother",
+			"name": "Brood Mother",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Brood Mother",
+			"text": "$(l)Health$(): 1500$(br)$(l)Damage$(): 20, every 1 s, range 6$(br)$(l)Speed$(): 1.31, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The queen of the brood nest: while a foe is near she lays eggs round her that hatch into zerglings, roaches and hydralisks."
+		}
+	]
+}

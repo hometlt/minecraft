@@ -1,0 +1,23 @@
+{
+	"name": "Заражённый терран",
+	"icon": "starmine:infestedterran_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 20,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:infestedterran",
+			"name": "Заражённый терран",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Заражённый терран",
+			"text": "$(l)Здоровье$(): 60$(br)$(l)Урон$(): 6, раз в 0.86 с, дальность 5$(br)$(l)Скорость$(): 2.25, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Терран, захваченный зергами: живёт в заражённой шахте и стреляет, как пехотинец, которым был. Теперь — зерг."
+		}
+	]
+}

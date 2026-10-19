@@ -47,6 +47,9 @@ SOURCES = {
 	'XELNAGA_CONSTRUCT': ('XelNagaConstructMini', VOID, True),
 	'XELNAGA_SENTINEL': ('XelNagaConstructForm', VOID, True),
 	'VOID_MONOLITH': ('MonolithCannon', VOID, True),
+	'INFESTED_TERRAN': ('InfestedTerran', VOID, True),
+	'BROOD_MOTHER': ('BroodMother', VOID, True),
+	'HYBRID': ('HybridExperimented', VOID, True),
 }
 # kinds whose unit draws no model of its own in the game's data (checked 18.10): the model to take instead,
 # a CModel entry of the mod (`sc2Model`) or a file (`sc2ModelPath`), with animation files (`sc2ModelAnims`) the entry lacks. Swann: his Model `Swann` (the armed Swann of
@@ -62,6 +65,10 @@ MODELS = {
 	'XELNAGA_CONSTRUCT': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Mini_Zeratul_Coop\\Construct_Mini_Zeratul_Coop.m3'},
 	'XELNAGA_SENTINEL': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Form_Zeratul_Coop\\Construct_Form_Zeratul_Coop.m3'},
 	'VOID_MONOLITH': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Buildings\\MonolithCannon_Zeratul_Coop\\MonolithCannon_Zeratul_Coop.m3'},
+	# owner 19.10: the story dungeons' dwellers: the infested marine, the expedition queen (the brood mother), Moebius's experimented hybrid
+	'INFESTED_TERRAN': {'sc2ModelPath': 'Assets\\Units\\Zerg\\InfestedMarine\\InfestedMarine.m3'},
+	'BROOD_MOTHER': {'sc2ModelPath': 'Assets\\Units\\Zerg\\ExpeditionQueenLevel3\\ExpeditionQueenLevel3.m3'},
+	'HYBRID': {'sc2ModelPath': 'Assets\\Units\\Protoss\\Hybrid_ProtossAdvanced_Experimented\\Hybrid_ProtossAdvanced_Experimented.m3'},
 }
 # the mod's own (no SC2 model: drawn from its blocks)
 OWN = {'ZERG_PLATFORM', 'TERRAN_PLATFORM', 'PROTOSS_PLATFORM'}

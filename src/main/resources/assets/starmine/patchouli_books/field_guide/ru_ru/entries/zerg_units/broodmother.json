@@ -1,0 +1,23 @@
+{
+	"name": "Матка выводка",
+	"icon": "starmine:broodmother_spawn_egg",
+	"category": "starmine:zerg_units",
+	"sortnum": 21,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:broodmother",
+			"name": "Матка выводка",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Матка выводка",
+			"text": "$(l)Здоровье$(): 1500$(br)$(l)Урон$(): 20, раз в 1 с, дальность 6$(br)$(l)Скорость$(): 1.31, по земле$(br2)$(o)Цифры StarCraft II (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Королева гнезда: пока рядом враг, откладывает вокруг яйца, из которых выводятся зерглинги, тараканы и гидралиски."
+		}
+	]
+}

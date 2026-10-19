@@ -966,6 +966,36 @@
 			"verify": true
 		},
 		{
+			"model": "infestedterran",
+			"kind": "INFESTED_TERRAN",
+			"race": "ZERG",
+			"unit": "InfestedTerran",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Zerg\\InfestedMarine\\InfestedMarine.m3",
+			"verify": true
+		},
+		{
+			"model": "broodmother",
+			"kind": "BROOD_MOTHER",
+			"race": "ZERG",
+			"unit": "BroodMother",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Zerg\\ExpeditionQueenLevel3\\ExpeditionQueenLevel3.m3",
+			"verify": true
+		},
+		{
+			"model": "hybrid",
+			"kind": "HYBRID",
+			"race": "PROTOSS",
+			"unit": "HybridExperimented",
+			"mod": "Campaigns/VoidStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Protoss\\Hybrid_ProtossAdvanced_Experimented\\Hybrid_ProtossAdvanced_Experimented.m3",
+			"verify": true
+		},
+		{
 			"model": "spire_greater",
 			"kind": "SPIRE",
 			"race": "ZERG",

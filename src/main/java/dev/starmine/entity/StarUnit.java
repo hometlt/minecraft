@@ -365,6 +365,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		if (lifeLeft > 0 && --lifeLeft == 0) this.kill();
 		if (weaponCooldown > 0) weaponCooldown--;
 		if (kind.boss()) Heroes.tick(this, server);
+		if (kind.dungeonBoss()) dev.starmine.world.DungeonBosses.tick(this, server); // owner 19.10: the brood mother, the hybrid
 		if (dev.starmine.faction.Faction.amun(this)) dev.starmine.world.AmunInvasion.unitTick(this, server); // owner 17.10: his curse, his workers
 		if (this.tickCount % 40 == 11 && hiveId != null) adoptBase(server);
 		if (kind == UnitKind.HATCHERY) HiveLogic.tick(this, server);
@@ -906,6 +907,7 @@ public class StarUnit extends Monster implements RangedAttackMob {
 		for (ItemStack slot : fillSlots) this.spawnAtLocation(slot.copy());
 		for (ItemStack loot : dev.starmine.suit.Suits.drops(this, source, recentlyHit)) this.spawnAtLocation(loot);
 		if (kind.boss()) for (ItemStack loot : Heroes.reward(this)) this.spawnAtLocation(loot);
+		if (kind.dungeonBoss()) for (ItemStack loot : dev.starmine.world.DungeonBosses.loot(this)) this.spawnAtLocation(loot);
 		valuable = ItemStack.EMPTY;
 		fillSlots.clear();
 	}

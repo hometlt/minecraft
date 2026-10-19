@@ -1,0 +1,20 @@
+{
+	"name": "Story Dungeons",
+	"icon": "starmine:xelnaga_relic",
+	"category": "starmine:world",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Rare and large, one of five: $(l)the infested mine$() — a headframe over a shaft, galleries with rails, props and vents overgrown with flesh and creep, infested terrans and two infestors in the far room; $(l)the brood nest$() — a womb of flesh under the ground, eggs everywhere and the $(l)brood mother$(), who lays egg after egg while you are near: kill her and the eggs stop."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)The Xel'Naga vault$(): a hall of unbreakable metal with a beam puzzle. Use the prisms to turn them: each sends the beam the way its arrow points. When the beam reaches the receiver the seal opens, and the $(l)Xel'Naga relic$() waits inside. $(l)The sunken scout$(): on a deep sea's floor, a protoss ship under a bubble of air, the relic in its hull."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Moebius's laboratory$(): cells of captured zerg behind glass, laboratories with the Foundation's notes on lecterns — four of them tell what happened there — and at the end the broken stasis chamber of the $(l)hybrid$(): it blinks behind you with a psionic shockwave and, hurt, calls psionic storms. It carries the relic.$(br2)$(l)The relic$(), used, shows every creature within 48 blocks through walls for 30 seconds and heals you; it rests two minutes after."
+		}
+	]
+}

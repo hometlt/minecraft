@@ -84,7 +84,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 
 	// ---- blocks ----
 
-	private static void set(WorldGenLevel level, BlockPos pos, BlockState state) {
+	static void set(WorldGenLevel level, BlockPos pos, BlockState state) {
 		if (pos.getY() <= level.getMinBuildHeight() || pos.getY() >= level.getMaxBuildHeight()) return;
 		BlockState old = level.getBlockState(pos);
 		if (old.is(Blocks.BEDROCK) || level.getBlockEntity(pos) != null) return;
@@ -95,12 +95,12 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		for (BlockPos pos : BlockPos.betweenClosed(a, b)) set(level, pos.immutable(), state);
 	}
 
-	private static void chest(WorldGenLevel level, RandomSource random, BlockPos pos, ResourceKey<LootTable> loot) {
+	static void chest(WorldGenLevel level, RandomSource random, BlockPos pos, ResourceKey<LootTable> loot) {
 		level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.Plane.HORIZONTAL.getRandomDirection(random)), 2);
 		RandomizableContainer.setBlockEntityLootTable(level, random, pos, loot);
 	}
 
-	private static DungeonHeart.Heart heart(WorldGenLevel level, BlockPos pos, Block look) {
+	static DungeonHeart.Heart heart(WorldGenLevel level, BlockPos pos, Block look) {
 		level.setBlock(pos, DungeonHeart.BLOCK.defaultBlockState(), 2);
 		if (!(level.getBlockEntity(pos) instanceof DungeonHeart.Heart heart)) return null;
 		heart.look(look);
@@ -108,7 +108,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 	}
 
 	/** A spiral stair round a column from `bottom` (its first step) up to the surface, in a shaft 5 across. */
-	private static void spiral(WorldGenLevel level, BlockPos bottom, int surface, BlockState wall, BlockState step) {
+	static void spiral(WorldGenLevel level, BlockPos bottom, int surface, BlockState wall, BlockState step) {
 		int[][] ring = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
 		for (int y = bottom.getY(); y <= surface + 3; y++)
 			for (int dx = -2; dx <= 2; dx++)

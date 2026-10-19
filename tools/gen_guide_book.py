@@ -155,6 +155,14 @@ CATEGORIES = [
             text('The races are always foes and keep apart: a pack, a claim or a nydus worm of one race never appears within 96 blocks of another race\'s wild.',
                  'Расы всегда враждебны и не селятся рядом: стая, захват или нидусов червь одной расы не появляется ближе 96 блоков к дикому другой.'),
         ]),
+        ('story_dungeons', t('Story Dungeons', 'Сюжетные подземелья'), 'starmine:xelnaga_relic', [
+            text('Rare and large, one of five: $(l)the infested mine$() — a headframe over a shaft, galleries with rails, props and vents overgrown with flesh and creep, infested terrans and two infestors in the far room; $(l)the brood nest$() — a womb of flesh under the ground, eggs everywhere and the $(l)brood mother$(), who lays egg after egg while you are near: kill her and the eggs stop.',
+                 'Редкие и большие, одно из пяти: $(l)заражённая шахта$() — копёр над стволом, штреки с рельсами, крепью и вентиляцией, заросшие плотью и слизью, заражённые терраны и два инфестора в дальнем зале; $(l)гнездо матки$() — утроба из плоти под землёй, всюду яйца и $(l)матка выводка$(), которая откладывает яйцо за яйцом, пока вы рядом: убейте её — и яйца кончатся.'),
+            text('$(l)The Xel\'Naga vault$(): a hall of unbreakable metal with a beam puzzle. Use the prisms to turn them: each sends the beam the way its arrow points. When the beam reaches the receiver the seal opens, and the $(l)Xel\'Naga relic$() waits inside. $(l)The sunken scout$(): on a deep sea\'s floor, a protoss ship under a bubble of air, the relic in its hull.',
+                 '$(l)Хранилище зел-нага$(): зал из неразрушимого металла с головоломкой из лучей. Поворачивайте призмы (использование): каждая направляет луч туда, куда смотрит её стрелка. Когда луч дойдёт до приёмника, печать откроется, а внутри ждёт $(l)реликвия зел-нага$(). $(l)Затонувший разведчик$(): на дне глубокого моря — корабль протоссов под пузырём воздуха, реликвия в его корпусе.'),
+            text('$(l)Moebius\'s laboratory$(): cells of captured zerg behind glass, laboratories with the Foundation\'s notes on lecterns — four of them tell what happened there — and at the end the broken stasis chamber of the $(l)hybrid$(): it blinks behind you with a psionic shockwave and, hurt, calls psionic storms. It carries the relic.$(br2)$(l)The relic$(), used, shows every creature within 48 blocks through walls for 30 seconds and heals you; it rests two minutes after.',
+                 '$(l)Лаборатория Мебиуса$(): камеры с пленными зергами за стеклом, лаборатории с записками Фонда на кафедрах — четыре записки рассказывают, что здесь случилось, — и в конце разбитая стазисная камера $(l)гибрида$(): он телепортируется вам за спину с пси-волной, а раненым вызывает пси-шторм. Реликвия у него.$(br2)$(l)Реликвия$() при использовании на 30 секунд показывает сквозь стены всех существ в 48 блоках и лечит вас; потом две минуты отдыхает.'),
+        ]),
         ('potions', t('Potions of Attributes', 'Зелья атрибутов'), 'minecraft:potion', [
             text('Every unit, player and creature has SC2 $(l)attributes$(): light, armored, biological, mechanical, psionic, massive, structure, heroic, detector. You are biological, light and heroic. Weapons do bonus damage against some: a marauder +10 to armored, an adept +12 to light, an archon +10 to biological, a corruptor +6 to massive.',
                  'У каждого юнита, игрока и существа есть $(l)атрибуты$() SC2: лёгкий, бронированный, биологический, механический, псионический, массивный, здание, героический, детектор. Вы — биологический, лёгкий и героический. Оружие бьёт сильнее по некоторым: мародёр +10 по бронированным, адепт +12 по лёгким, архонт +10 по биологическим, порча +6 по массивным.'),
@@ -401,6 +409,12 @@ NOTES = {
                           'Большой страж храмов: медленный и живучий, его удары бьют всех вокруг.'),
     'VOID_MONOLITH': t('Zeratul\'s void monolith, standing in the temples\' rooms: it strikes ground and air from far off. Break it or go round it.',
                        'Монолит Пустоты Зератула стоит в комнатах храмов: бьёт по земле и воздуху издалека. Разрушьте его или обойдите.'),
+    'INFESTED_TERRAN': t('A terran taken by the zerg: it lives in the infested mine and shoots like the marine it was. Zerg now.',
+                         'Терран, захваченный зергами: живёт в заражённой шахте и стреляет, как пехотинец, которым был. Теперь — зерг.'),
+    'BROOD_MOTHER': t('The queen of the brood nest: while a foe is near she lays eggs round her that hatch into zerglings, roaches and hydralisks.',
+                      'Королева гнезда: пока рядом враг, откладывает вокруг яйца, из которых выводятся зерглинги, тараканы и гидралиски.'),
+    'HYBRID': t('Moebius\'s hybrid, zerg and protoss in one: it blinks behind its foe with a psionic shockwave and, hurt, calls psionic storms. It leaves the Xel\'Naga relic.',
+                'Гибрид Мебиуса, зерг и протосс в одном: телепортируется за спину врагу с пси-волной, раненым вызывает пси-шторм. Оставляет реликвию зел-нага.'),
 }
 
 JAVA = os.path.join(ROOT, 'src/main/java/dev/starmine')

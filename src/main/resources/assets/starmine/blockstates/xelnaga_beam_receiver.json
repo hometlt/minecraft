@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"lit=false": {
+			"model": "starmine:block/xelnaga_beam_receiver"
+		},
+		"lit=true": {
+			"model": "starmine:block/xelnaga_beam_receiver_on"
+		}
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"name": "Hybrid",
+	"icon": "starmine:hybrid_spawn_egg",
+	"category": "starmine:protoss_units",
+	"sortnum": 22,
+	"pages": [
+		{
+			"type": "patchouli:entity",
+			"entity": "starmine:hybrid",
+			"name": "Hybrid",
+			"rotate": true
+		},
+		{
+			"type": "patchouli:text",
+			"title": "Hybrid",
+			"text": "$(l)Health$(): 1000, shields 500$(br)$(l)Damage$(): 45, every 1.2 s, range 1$(br)$(l)Speed$(): 3.5, on the ground$(br2)$(o)StarCraft II numbers (LotV).$()"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Moebius's hybrid, zerg and protoss in one: it blinks behind its foe with a psionic shockwave and, hurt, calls psionic storms. It leaves the Xel'Naga relic."
+		}
+	]
+}

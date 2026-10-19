@@ -159,7 +159,11 @@ public enum UnitKind {
 	// ---- owner 19.10: the xel'naga temples' keepers (Zeratul's co-op avatars and his void monolith): wild, of no base ----
 	XELNAGA_CONSTRUCT(Race.PROTOSS, 250, 150,  2.8,   false, Attack.RANGED, 14,  1.0,   6,    true,  1.2f, 1.8f,    0x2a3a4a, 0x60ffd0),
 	XELNAGA_SENTINEL( Race.PROTOSS, 1100, 500, 2.4,   false, Attack.SPLASH, 40,  1.4,   1,    true,  2.7f, 4.4f,   0x2a3a4a, 0xffe080),
-	VOID_MONOLITH(    Race.PROTOSS, 900, 600,  0,     false, Attack.NONE,   30,  2.0,   12,   true,  2.1f, 2.9f,   0x1a1a2a, 0xa060ff);
+	VOID_MONOLITH(    Race.PROTOSS, 900, 600,  0,     false, Attack.NONE,   30,  2.0,   12,   true,  2.1f, 2.9f,   0x1a1a2a, 0xa060ff),
+	// ---- owner 19.10: the story dungeons' dwellers (dev.starmine.world.StoryDungeons) ----
+	INFESTED_TERRAN(  60,    2.25,  false, Attack.RANGED,          6,    0.86,  5,    true,  0.86f, 1.28f, 0x5a6a3a, 0xc0a060),
+	BROOD_MOTHER(     1500,  1.31,  false, Attack.RANGED,          20,   1.0,   6,    true,  2.6f, 4.2f,   0x4a1a4a, 0xff7040),
+	HYBRID(           Race.PROTOSS, 1000, 500, 3.5, false, Attack.MELEE, 45,  1.2,   1,    true,  1.7f, 1.8f,   0x2a1a3a, 0x60ffb0);
 
 	/** SC2 hit points and damage to Minecraft health (10 health per 35 hit points). */
 	public static final double SCALE = 10.0 / 35.0;
@@ -384,6 +388,11 @@ public enum UnitKind {
 	/** Owner 19.10: the xel'naga temples' keepers ({@link dev.starmine.world.XelNagaTemple}). */
 	public boolean xelnaga() {
 		return this == XELNAGA_CONSTRUCT || this == XELNAGA_SENTINEL || this == VOID_MONOLITH;
+	}
+
+	/** Owner 19.10: the story dungeons' bosses: the brood mother, the hybrid ({@link dev.starmine.world.DungeonBosses}). */
+	public boolean dungeonBoss() {
+		return this == BROOD_MOTHER || this == HYBRID;
 	}
 
 	/** The guardian of a race's main base. */
