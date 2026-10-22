@@ -345,6 +345,7 @@ public final class DronePlanner {
 
 	public static boolean breakable(ServerLevel level, BlockPos pos, Set<Long> routes) {
 		BlockState state = level.getBlockState(pos);
+		if (dev.starmine.world.Skirmish.terrainLocked(level)) return false; // owner 22.10: a skirmish's land is not dug
 		if (!state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) return false;
 		if (dev.starmine.world.BaseGround.protectedTop(state)) return false; // owner 17.10: a base's concrete is not dug
 		float hardness = state.getDestroySpeed(level, pos);

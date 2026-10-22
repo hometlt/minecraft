@@ -45,7 +45,7 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 	public static final Feature<NoneFeatureConfiguration> FEATURE = Registry.register(BuiltInRegistries.FEATURE, StarMine.id("wild_pack"),
 		new WildPacks(NoneFeatureConfiguration.CODEC));
 
-	public enum Kind { ZERG, PROTOSS, DARK_TEMPLAR, TERRAN }
+	public enum Kind { ZERG, PROTOSS, DARK_TEMPLAR, TERRAN, CHANGELING }
 
 	private WildPacks(Codec<NoneFeatureConfiguration> codec) {
 		super(codec);
@@ -62,13 +62,15 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 		RandomSource random = context.random();
 		int x = (context.origin().getX() & ~15) + 8, z = (context.origin().getZ() & ~15) + 8;
 		if (MapOverlay.covers(x, z)) return false; // a laid-over map has its own land
-		Kind kind = Kind.values()[random.nextInt(Kind.values().length)];
+		// owner 22.10: terran camps are much rarer (one in twelve), changelings lurk in caves
+		int roll = random.nextInt(100);
+		Kind kind = roll < 38 ? Kind.ZERG : roll < 64 ? Kind.PROTOSS : roll < 79 ? Kind.DARK_TEMPLAR : roll < 92 ? Kind.CHANGELING : Kind.TERRAN;
 		return build(level, random, kind, x, z) != null;
 	}
 
 	/** A pack of `kind` about the column (x, z); its heart, or null where it does not fit. */
 	public static @Nullable BlockPos build(WorldGenLevel level, RandomSource random, Kind kind, int x, int z) {
-		boolean cave = kind == Kind.DARK_TEMPLAR || kind == Kind.ZERG && random.nextBoolean();
+		boolean cave = kind == Kind.DARK_TEMPLAR || kind == Kind.CHANGELING || kind == Kind.ZERG && random.nextBoolean();
 		BlockPos ground = cave ? cave(level, x, z) : surface(level, x, z);
 		return ground == null ? null : build(level, random, kind, ground);
 	}
@@ -80,6 +82,7 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 			case PROTOSS -> protoss(level, random, ground);
 			case DARK_TEMPLAR -> darkTemplars(level, random, ground);
 			case TERRAN -> terrans(level, random, ground);
+			case CHANGELING -> changelings(level, random, ground);
 		};
 	}
 
@@ -183,7 +186,109 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 		return heart.getBlockPos();
 	}
 
+	/**
+	 * Owner 22.10: changelings in a cave, wild, one or two, among bones and a dim glow; seeing a player they take the
+	 * player's look ({@link dev.starmine.ability.Changeling}) and follow, as an overseer's changeling does.
+	 */
+	private static BlockPos changelings(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		DungeonHeart.Heart heart = heart(level, ground, Blocks.MOSSY_COBBLESTONE);
+		if (heart == null) return null;
+		set(level, ground.offset(2, 0, -1), Blocks.BONE_BLOCK.defaultBlockState());
+		set(level, ground.offset(-2, 0, 1), Blocks.GLOW_LICHEN.defaultBlockState()
+			.setValue(net.minecraft.world.level.block.GlowLichenBlock.getFaceProperty(Direction.DOWN), true));
+		int count = 1 + random.nextInt(2);
+		for (int i = 0; i < count; i++) heart.add(UnitKind.CHANGELING, around(ground, i, count, 2), null, 0);
+		return heart.getBlockPos();
+	}
+
+	/**
+	 * Owner 22.10: terran camps of four looks (a campfire with logs, a sandbag post with a watchtower, a crashed supply pod,
+	 * a field tent) and mostly one or two soldiers.
+	 */
 	private static BlockPos terrans(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		return switch (random.nextInt(4)) {
+			case 0 -> campfire(level, random, ground);
+			case 1 -> sandbagPost(level, random, ground);
+			case 2 -> crashedPod(level, random, ground);
+			default -> fieldTent(level, random, ground);
+		};
+	}
+
+	/** The camp's soldiers: one, two at times, three rarely; a marine first, then a marauder, a hellion (a hellbat) or a reaper. */
+	private static void soldiers(DungeonHeart.Heart heart, RandomSource random, BlockPos ground) {
+		List<UnitKind> pack = new ArrayList<>(List.of(UnitKind.MARINE));
+		if (random.nextInt(3) == 0) pack.add(switch (random.nextInt(4)) {
+			case 0 -> UnitKind.MARAUDER;
+			case 1 -> UnitKind.HELLION; // comes out a hellbat ({@link DungeonHeart})
+			case 2 -> UnitKind.REAPER;
+			default -> UnitKind.MARINE;
+		});
+		if (random.nextInt(8) == 0) pack.add(random.nextBoolean() ? UnitKind.GHOST : UnitKind.MARINE);
+		for (int i = 0; i < pack.size(); i++) heart.add(pack.get(i), around(ground, i, pack.size(), 2), null, 0);
+	}
+
+	/** A watchtower of scaffolding and a ring of sandbags (mud bricks) with a gap, a lamp on the tower. */
+	private static BlockPos sandbagPost(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		DungeonHeart.Heart heart = heart(level, ground, Blocks.PACKED_MUD);
+		if (heart == null) return null;
+		for (int dx = -4; dx <= 4; dx++)
+			for (int dz = -4; dz <= 4; dz++) {
+				int r = Math.max(Math.abs(dx), Math.abs(dz));
+				if (r == 4 && !(dz == 4 && Math.abs(dx) <= 1)) set(level, ground.offset(dx, 0, dz), Blocks.MUD_BRICKS.defaultBlockState());
+				else if (r < 4) for (int y = 0; y <= 2; y++) if (!(dx == 0 && dz == 0)) set(level, ground.offset(dx, y, dz), Blocks.AIR.defaultBlockState());
+			}
+		BlockPos tower = ground.offset(-2, 0, -2);
+		for (int y = 0; y < 4; y++) set(level, tower.above(y), Blocks.SCAFFOLDING.defaultBlockState());
+		set(level, tower.above(4), Blocks.SPRUCE_SLAB.defaultBlockState());
+		set(level, tower.offset(1, 4, 0), Blocks.SPRUCE_SLAB.defaultBlockState());
+		set(level, tower.offset(0, 5, 0), Blocks.LANTERN.defaultBlockState());
+		set(level, ground.offset(2, 0, -2), Blocks.BARREL.defaultBlockState());
+		set(level, ground.offset(3, 0, -2), Blocks.IRON_TRAPDOOR.defaultBlockState());
+		soldiers(heart, random, ground);
+		return heart.getBlockPos();
+	}
+
+	/** A supply pod come down hard: a broken capsule of iron, smoke, crates spilled round it. */
+	private static BlockPos crashedPod(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		DungeonHeart.Heart heart = heart(level, ground, Blocks.COARSE_DIRT);
+		if (heart == null) return null;
+		BlockPos pod = ground.offset(3, 0, 0);
+		for (int dx = -1; dx <= 1; dx++)
+			for (int dz = -1; dz <= 1; dz++) {
+				set(level, pod.offset(dx, -1, dz), Blocks.COARSE_DIRT.defaultBlockState());
+				if (random.nextInt(4) > 0) set(level, pod.offset(dx, 0, dz), Blocks.IRON_BLOCK.defaultBlockState());
+				if (Math.abs(dx) + Math.abs(dz) < 2 && random.nextBoolean()) set(level, pod.offset(dx, 1, dz), Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState());
+			}
+		set(level, pod.above(2), Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.LIT, true));
+		set(level, pod.offset(-1, 0, 2), Blocks.BARREL.defaultBlockState());
+		set(level, pod.offset(1, 0, -2), Blocks.BARREL.defaultBlockState());
+		set(level, pod.offset(-2, 0, -1), Blocks.IRON_TRAPDOOR.defaultBlockState());
+		soldiers(heart, random, ground);
+		return heart.getBlockPos();
+	}
+
+	/** A field tent of white wool on posts with a bed and a lamp, a flag by it. */
+	private static BlockPos fieldTent(WorldGenLevel level, RandomSource random, BlockPos ground) {
+		DungeonHeart.Heart heart = heart(level, ground, Blocks.GRAVEL);
+		if (heart == null) return null;
+		BlockPos tent = ground.offset(0, 0, -3);
+		for (int dx = -2; dx <= 2; dx++)
+			for (int dz = -1; dz <= 1; dz++) {
+				for (int y = 0; y <= 2; y++) set(level, tent.offset(dx, y, dz), Blocks.AIR.defaultBlockState());
+				int roof = 2 - Math.abs(dz);
+				set(level, tent.offset(dx, roof + 1, dz), Math.abs(dz) == 1 || dx != 0 ? Blocks.WHITE_WOOL.defaultBlockState() : Blocks.RED_WOOL.defaultBlockState());
+			}
+		for (int dx = -2; dx <= 2; dx += 4) set(level, tent.offset(dx, 0, 0), Blocks.SPRUCE_FENCE.defaultBlockState());
+		set(level, tent.offset(-1, 0, 0), Blocks.WHITE_BED.defaultBlockState());
+		set(level, tent.offset(1, 0, 0), Blocks.LANTERN.defaultBlockState());
+		for (int y = 0; y < 4; y++) set(level, ground.offset(3, y, 2), Blocks.SPRUCE_FENCE.defaultBlockState());
+		set(level, ground.offset(3, 4, 2), Blocks.BLUE_BANNER.defaultBlockState());
+		soldiers(heart, random, ground);
+		return heart.getBlockPos();
+	}
+
+	/** The old camp: a campfire with logs to sit on round it, a forge and an antenna mast. */
+	private static BlockPos campfire(WorldGenLevel level, RandomSource random, BlockPos ground) {
 		DungeonHeart.Heart heart = heart(level, ground.offset(0, 0, 0), Blocks.COARSE_DIRT);
 		if (heart == null) return null;
 		// a campfire, logs round it to sit on, a crate
@@ -212,11 +317,7 @@ public final class WildPacks extends Feature<NoneFeatureConfiguration> {
 		set(level, fire.offset(-4, 5, -3), Blocks.LIGHTNING_ROD.defaultBlockState());
 		set(level, fire.offset(-4, 3, -2), Blocks.LANTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LanternBlock.HANGING, true));
 		set(level, fire.offset(-4, 4, -2), Blocks.IRON_BARS.defaultBlockState());
-		List<UnitKind> pack = new ArrayList<>(List.of(UnitKind.MARINE, UnitKind.MARINE));
-		if (random.nextBoolean()) pack.add(UnitKind.MARINE);
-		pack.add(random.nextBoolean() ? UnitKind.MARAUDER : UnitKind.HELLION); // a hellion comes out a hellbat ({@link DungeonHeart})
-		if (random.nextInt(3) == 0) pack.add(UnitKind.GHOST);
-		for (int i = 0; i < pack.size(); i++) heart.add(pack.get(i), around(ground, i, pack.size(), 2), null, 0);
+		soldiers(heart, random, ground);
 		return heart.getBlockPos();
 	}
 }

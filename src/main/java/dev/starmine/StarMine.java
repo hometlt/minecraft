@@ -65,7 +65,7 @@ public final class StarMine implements ModInitializer {
 		for (UnitKind kind : UnitKind.values()) {
 			EntityType<StarUnit> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, id(kind.id),
 				EntityType.Builder.<StarUnit>of(StarUnit::new, MobCategory.MONSTER)
-					.sized(kind.width, kind.height)
+					.sized(kind.hitWidth(), kind.hitHeight())
 					.clientTrackingRange(kind.flying ? 12 : 10)
 					.build(kind.id));
 			TYPES.put(kind, type);
@@ -148,10 +148,12 @@ public final class StarMine implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		dev.starmine.ability.BurrowDamage.load();
 		StarMineBlocks.load();
 		dev.starmine.block.ArmorBlocks.load(); // owner 19.10: armour walls, doors, weapons wearing blocks
 		dev.starmine.gear.TraitPotions.load();
 		dev.starmine.world.VoidGate.load();
+		dev.starmine.world.VoidCraft.load();
 		dev.starmine.world.AmunInvasion.register();
 		dev.starmine.world.AmunSky.register(); // owner 19.10: the sky reddens when Amun wakes
 		dev.starmine.world.XelNagaTemple.load(); // owner 19.10: the xel'naga temples where the keys open the way to the Void
@@ -206,6 +208,8 @@ public final class StarMine implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.world.Painter::serverTick);
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.ability.Delayed::tick);
 		dev.starmine.colony.ColonyNetwork.register();
+		dev.starmine.world.Skirmish.register();
+		dev.starmine.world.SkirmishMap.register();
 		dev.starmine.entity.Fx.register();
 		dev.starmine.colony.CommanderEye.register();
 		dev.starmine.world.Stratosphere.register();
@@ -220,6 +224,7 @@ public final class StarMine implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(dev.starmine.colony.Engineering::serverTick);
 		// owner: a player may bring resources to a command center of their base
 		dev.starmine.colony.Storage.load(); // owner 17.10: storage buildings open as a chest of the base's resources
+		dev.starmine.colony.Escort.load(); // owner 22.10: an empty hand on an own unit: it follows the player, or stops
 		CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> HiveCommands.register(dispatcher));
 		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.SPAWN_EGGS).register(entries -> {
 			for (UnitKind kind : UnitKind.values()) entries.accept(EGGS.get(kind));

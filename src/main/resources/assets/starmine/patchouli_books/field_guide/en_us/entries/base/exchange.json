@@ -1,0 +1,12 @@
+{
+	"name": "Base Exchange",
+	"icon": "starmine:terran_armor_shard",
+	"category": "starmine:base",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A base trades its $(l)minerals$() for its race's $(l)armor$(): armor shards (suits, resource crates) and armor blocks — walls, doors, slabs, stairs, ramparts, portholes, bars. Open it with $(l)Exchange (O)$() under the selected storage building in the command view, or with an empty hand: $(l)sneak and right-click$() a storage building of yours. A click buys one, a shift-click eight; the price is paid from the base's minerals."
+		}
+	]
+}

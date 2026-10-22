@@ -111,7 +111,10 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 	}
 
 	/** A spiral stair round a column from `bottom` (its first step) up to the surface, in a shaft 5 across. */
-	static void spiral(WorldGenLevel level, BlockPos bottom, int surface, BlockState wall, BlockState step) {
+	static int spiral(WorldGenLevel level, BlockPos bottom, int surface, BlockState wall, BlockState step) {
+		// owner 22.10: the stair ends at the ground over its own shaft (not at a tree's top over the dungeon's middle:
+		// it came out several blocks over the ground)
+		surface = groundWG(level, bottom.getX(), bottom.getZ());
 		int[][] ring = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
 		for (int y = bottom.getY(); y <= surface + 3; y++)
 			for (int dx = -2; dx <= 2; dx++)
@@ -126,6 +129,19 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 			int[] cell = ring[i % ring.length];
 			set(level, new BlockPos(bottom.getX() + cell[0], y, bottom.getZ() + cell[1]), step);
 		}
+		return surface;
+	}
+
+	/** The ground's top in a column while chunks generate: under trees, leaves, plants and snow; over water's floor. */
+	static int groundWG(WorldGenLevel level, int x, int z) {
+		int y = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z);
+		while (y > level.getMinBuildHeight() + 1) {
+			BlockState below = level.getBlockState(new BlockPos(x, y - 1, z));
+			if (below.is(net.minecraft.tags.BlockTags.LOGS) || below.is(net.minecraft.tags.BlockTags.LEAVES)
+				|| below.canBeReplaced() && below.getFluidState().isEmpty()) y--;
+			else break;
+		}
+		return y;
 	}
 
 	// ---- the terran outpost ----
@@ -347,7 +363,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		// a tunnel up: a spiral in a shaft of flesh at the cave's side, a mound of flesh round its mouth
 		BlockPos shaft = centre.offset(11, -3, 0);
 		box(level, centre.offset(7, -3, -1), centre.offset(9, 0, 1), air);
-		spiral(level, shaft, surface, flesh, flesh);
+		surface = spiral(level, shaft, surface, flesh, flesh);
 		for (int dx = -3; dx <= 3; dx++)
 			for (int dz = -3; dz <= 3; dz++)
 				if (Math.max(Math.abs(dx), Math.abs(dz)) == 3) set(level, new BlockPos(shaft.getX() + dx, surface, shaft.getZ() + dz), flesh);
@@ -395,10 +411,10 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 		// a spiral stair up to a little shrine of two pillars
 		BlockPos shaft = floorCentre.offset(-12, 0, 0);
 		box(level, floorCentre.offset(-r - 1, 0, -1), floorCentre.offset(-10, 4, 1), air);
-		spiral(level, shaft, surface, wall, Blocks.DEEPSLATE_TILES.defaultBlockState());
-		for (int side = -1; side <= 1; side += 2) {
-			box(level, new BlockPos(shaft.getX() + side * 3, surface, shaft.getZ() + 3), new BlockPos(shaft.getX() + side * 3, surface + 4, shaft.getZ() + 3), pillar);
-			set(level, new BlockPos(shaft.getX() + side * 3, surface + 5, shaft.getZ() + 3), crystal);
+		surface = spiral(level, shaft, surface, wall, Blocks.DEEPSLATE_TILES.defaultBlockState());
+		for (int side = -1; side <= 1; side += 2) { // two low pillars on the ground by the way down
+			box(level, new BlockPos(shaft.getX() + side * 3, surface, shaft.getZ() + 3), new BlockPos(shaft.getX() + side * 3, surface + 1, shaft.getZ() + 3), pillar);
+			set(level, new BlockPos(shaft.getX() + side * 3, surface + 2, shaft.getZ() + 3), crystal);
 		}
 		DungeonHeart.Heart heart = heart(level, floorCentre.below(), Blocks.CHISELED_DEEPSLATE);
 		if (heart == null) return null;
@@ -451,7 +467,7 @@ public final class SmallDungeons extends Feature<NoneFeatureConfiguration> {
 			if (i % 2 == 0) set(level, pile.above(), Blocks.SKELETON_SKULL.defaultBlockState());
 		}
 		box(level, centre.offset(7, -3, -1), centre.offset(9, 0, 1), air);
-		spiral(level, centre.offset(11, -3, 0), surface, flesh, bone);
+		surface = spiral(level, centre.offset(11, -3, 0), surface, flesh, bone);
 		DungeonHeart.Heart heart = heart(level, floorCentre.below(), Blocks.PACKED_MUD);
 		if (heart == null) return null;
 		trader(level, dev.starmine.gear.Guns.DEHAKA, floorCentre);

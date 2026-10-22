@@ -60,7 +60,9 @@ MODELS = {
 	'SWANN': {'sc2Model': 'Swann'},
 	'HORNER': {'sc2ModelPath': r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer\SMX3_FirstOfficer.m3',
 		'sc2ModelAnims': [r'Assets\StoryModeCharacters\Terran\SMX3_FirstOfficer_RequiredAnims\SMX3_FirstOfficer_RequiredAnims.m3a']},
-	'ABATHUR': {'sc2ModelPath': 'Assets\\Portraits\\Zerg\\AbathurEx3_Portrait\\AbathurEx3_Portrait.m3'},
+	# owner 22.10: the portrait (a bust) looked broken in the world; now the story mode's Abathur, whole, with his animations
+	'ABATHUR': {'sc2ModelPath': r'Assets\StoryModeCharacters\Zerg\SMX1_EvolutionMaster\SMX1_EvolutionMaster.m3',
+		'sc2ModelAnims': [r'Assets\StoryModeCharacters\Zerg\SMX1_EvolutionMaster_RequiredAnims\SMX1_EvolutionMaster_RequiredAnims.m3a']},
 	# owner 19.10: the xel'naga temples' keepers, Zeratul's co-op avatars and void monolith (Base.SC2Assets; no campaign unit draws them)
 	'XELNAGA_CONSTRUCT': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Mini_Zeratul_Coop\\Construct_Mini_Zeratul_Coop.m3'},
 	'XELNAGA_SENTINEL': {'sc2ModelPath': 'Assets\\Coop\\Zeratul\\Units\\Construct_Form_Zeratul_Coop\\Construct_Form_Zeratul_Coop.m3'},
@@ -131,6 +133,9 @@ def main():
 	for kind, form, unit in FORMS:
 		assert kind in all_kinds, kind
 		models.append({'model': ident(kind) + '_' + form, 'kind': kind, 'race': races[kind], 'form': form, 'unit': unit, 'mod': MULTI, 'death': False})
+	# owner 22.10: Abathur's great form is the brutalisk (ModeLook `ultralisk_brutalisk`), with its own model (Base.SC2Assets)
+	models.append({'model': 'ultralisk_brutalisk', 'kind': 'ULTRALISK', 'race': 'ZERG', 'form': 'brutalisk', 'unit': 'Brutalisk', 'mod': SWARM,
+		'death': False, 'sc2ModelPath': r'Assets\Units\Zerg\Brutalisk\Brutalisk.m3'})
 	models.append({'model': 'creeptumor', 'kind': None, 'race': 'ZERG', 'unit': 'CreepTumorBurrowed', 'mod': MULTI, 'death': False})
 	# the Void's foes (world/Amun, VoidShard, VoidRift: not unit kinds), from the Legacy of the Void epilogue
 	for model, unit, sc2_model in [('amun', 'AmonEpilogue03Unit', 'Amon'), ('voidshard', 'AmonUmbraSpireEpilogue03', 'Void_ShardFortress'),

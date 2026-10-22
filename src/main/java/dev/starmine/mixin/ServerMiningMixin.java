@@ -28,6 +28,11 @@ abstract class ServerMiningMixin {
 	@Shadow private BlockPos destroyPos;
 	@Shadow private int gameTicks;
 
+	@Inject(method = "tick", at = @At("HEAD"))
+	private void starmine$digBurrowed(CallbackInfo info) {
+		if (isDestroyingBlock && gameTicks % 20 == 0) dev.starmine.ability.BurrowDamage.strike(player, destroyPos);
+	}
+
 	@Inject(method = "handleBlockBreakAction", at = @At("HEAD"))
 	private void starmine$leave(BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction face, int maxHeight, int sequence, CallbackInfo info) {
 		if (action != ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK || !isDestroyingBlock || !pos.equals(destroyPos)) return;

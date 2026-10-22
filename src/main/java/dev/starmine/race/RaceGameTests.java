@@ -22,6 +22,79 @@ import net.minecraft.world.phys.Vec3;
  * hatchery founds a hive whose larva morphs into a drone.
  */
 public class RaceGameTests implements FabricGameTest {
+	@GameTest(template = "starmine:arena", batch = "hatcheryExpansion", timeoutTicks = 100)
+	public void losingFirstHatcheryKeepsExpansionAndEconomy(GameTestHelper helper) {
+		arena(helper);
+		StarUnit first = main(helper, UnitKind.HATCHERY, 24, 24);
+		helper.runAfterDelay(5, () -> {
+			Hive base = HiveSavedData.get(helper.getLevel().getServer()).get(first.hiveId());
+			base.minerals = 777;
+			StarUnit second = HiveLogic.spawn(helper.getLevel(), base, UnitKind.HATCHERY,
+				Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(6, 2, 6))), null);
+			base.expect(UnitKind.HATCHERY, 1); second.startConstruction(5);
+			helper.runAfterDelay(20, () -> {
+				helper.assertTrue(base.count(UnitKind.HATCHERY) == 2, "expansion did not finish");
+				int workers = base.count(UnitKind.DRONE);
+				first.discard();
+				helper.runAfterDelay(5, () -> {
+					helper.assertTrue(HiveSavedData.get(helper.getLevel().getServer()).get(base.id) == base, "first hatchery loss erased the shared economy");
+					helper.assertTrue(base.count(UnitKind.HATCHERY) == 1 && base.hatchery.equals(second.blockPosition()), "main count/anchor did not transfer");
+					helper.assertTrue(base.minerals == 777 && base.count(UnitKind.DRONE) == workers, "expansion received another free starting economy");
+					helper.succeed();
+				});
+			});
+		});
+	}
+	@GameTest(template = "starmine:arena", batch = "construction", timeoutTicks = 160)
+	public void constructionGrowsHealthAndKeepsDamageAcrossReload(GameTestHelper helper) {
+		arena(helper);
+		StarUnit building = StarMine.type(UnitKind.PYLON).create(helper.getLevel());
+		building.moveTo(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(20, 2, 20))));
+		building.setNoAi(true);
+		helper.getLevel().addFreshEntity(building);
+		building.startConstruction(100);
+		float max = building.getMaxHealth();
+		helper.assertTrue(Math.abs(building.getHealth() - max * .1f) < .01f, "construction must start at 10% health");
+		helper.runAfterDelay(50, () -> {
+			helper.assertTrue(Math.abs(building.getHealth() - max * .55f) < max * .025f, "health must grow with actual build progress");
+			building.setHealth(building.getHealth() - max * .2f);
+			var saved = new net.minecraft.nbt.CompoundTag();
+			building.saveWithoutId(saved);
+			building.discard();
+			StarUnit loaded = StarMine.type(UnitKind.PYLON).create(helper.getLevel());
+			loaded.load(saved);
+			helper.getLevel().addFreshEntity(loaded);
+			helper.runAfterDelay(55, () -> {
+				helper.assertTrue(!loaded.underConstruction(), "building should finish after reload");
+				helper.assertTrue(Math.abs(loaded.getHealth() - max * .8f) < max * .025f, "completion must preserve damage and saved construction duration");
+				helper.succeed();
+			});
+		});
+	}
+
+	@GameTest(template = "starmine:arena", batch = "construction", timeoutTicks = 180)
+	public void terranHealthWaitsForItsBuilder(GameTestHelper helper) {
+		arena(helper);
+		StarUnit building = StarMine.type(UnitKind.SUPPLY_DEPOT).create(helper.getLevel());
+		building.moveTo(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(20, 2, 20))));
+		building.setNoAi(true);
+		helper.getLevel().addFreshEntity(building);
+		building.startConstruction(100);
+		float initial = building.getHealth();
+		helper.runAfterDelay(30, () -> {
+			helper.assertTrue(building.getHealth() == initial && building.progress() == 0, "a paused terran building must not gain health or progress");
+			StarUnit worker = StarMine.type(UnitKind.SCV).create(helper.getLevel());
+			worker.moveTo(building.position().add(5, 0, 0));
+			worker.setNoAi(true);
+			worker.setConstructing(building.getUUID());
+			helper.getLevel().addFreshEntity(worker);
+			helper.runAfterDelay(40, () -> {
+				helper.assertTrue(building.getHealth() > initial && building.progress() > 0, "the SCV must advance health and progress together");
+				helper.succeed();
+			});
+		});
+	}
+
 	private static final String ARENA = "starmine:arena";
 
 	private static void arena(GameTestHelper helper) {

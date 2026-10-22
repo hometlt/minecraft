@@ -233,11 +233,51 @@ public enum UnitKind {
 		// the hatchery's model was drawn twice its imported size; buildings now take their SC2 footprint in cells of CELL blocks
 		this.modelWidth = name().equals("HATCHERY") ? width / 2 : width;
 		int cells = unit ? 0 : footprintOf(name());
-		float grow = unit ? UNIT_SIZE : cells * CELL / this.modelWidth;
-		this.width = worker ? Math.min(WORKER_BODY, width * UNIT_SIZE) : unit ? width * grow : cells * CELL;
-		this.height = worker ? Math.min(WORKER_BODY, height * grow) : unit ? height * grow : (name().equals("HATCHERY") ? height / 2 : height) * grow;
+		float grow = unit ? UNIT_SIZE * capitalScale(name()) : cells * CELL / this.modelWidth;
+		boolean crate = name().endsWith("_PLATFORM"); // owner 22.10: a race's resource crate become the base's store: one block, as the crate
+		this.width = crate ? 0.95f : worker ? Math.min(WORKER_BODY, width * UNIT_SIZE) : unit ? width * grow : cells * CELL;
+		this.height = crate ? 0.9f : worker ? Math.min(WORKER_BODY, height * grow) : unit ? height * grow : (name().equals("HATCHERY") ? height / 2 : height) * grow;
 		this.eggBase = eggBase;
 		this.eggSpots = eggSpots;
+	}
+
+	/**
+	 * Owner 22.10: a building's hitbox follows its model, not its footprint — hitting or selecting a unit beside it must
+	 * not hit the building. data/starmine/hitboxes.json (tools/gen_hitboxes.py, from the SC2 models) gives per building
+	 * its model's breadth (75th percentile across) and height as fractions of the footprint's width. The footprint
+	 * ({@link #width}) still holds the grid, placement and pathing.
+	 */
+	private static java.util.Map<String, float[]> hitboxes;
+
+	private static synchronized float[] hitbox(String id) {
+		if (hitboxes == null) {
+			hitboxes = new java.util.HashMap<>();
+			try (var in = UnitKind.class.getResourceAsStream("/data/starmine/hitboxes.json")) {
+				if (in != null) {
+					var boxes = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
+						.getAsJsonObject().getAsJsonObject("boxes");
+					for (var entry : boxes.entrySet()) {
+						var pair = entry.getValue().getAsJsonArray();
+						hitboxes.put(entry.getKey(), new float[] {pair.get(0).getAsFloat(), pair.get(1).getAsFloat()});
+					}
+				}
+			} catch (java.io.IOException | RuntimeException e) {
+				org.slf4j.LoggerFactory.getLogger("starmine").warn("Hitboxes not read: {}", e.toString());
+			}
+		}
+		return hitboxes.get(id);
+	}
+
+	/** The entity's box width: for a building its model's breadth (at least one block), else {@link #width}. */
+	public float hitWidth() {
+		float[] box = footprint() > 1 ? hitbox(id) : null;
+		return box == null ? width : Math.max(1f, Math.min(width, width * box[0]));
+	}
+
+	/** The entity's box height: for a building its model's height (1 to 3 times its footprint), else {@link #height}. */
+	public float hitHeight() {
+		float[] box = footprint() > 1 ? hitbox(id) : null;
+		return box == null ? height : Math.max(1f, Math.min(width * 3, width * box[1]));
 	}
 
 	/** SC2 footprint in grid cells: main buildings 5x5, the small ones 2x2, the rest 3x3. */
@@ -595,7 +635,16 @@ public enum UnitKind {
 	 */
 	public float modelScale() {
 		if (structure() && this != EGG) return width / modelWidth; // its model stretched to its footprint
-		return UNIT_SIZE;
+		return UNIT_SIZE * capitalScale(name());
+	}
+
+	/** Capital flyers are large enough to need a seven-block gate; the mothership needs nine. */
+	private static float capitalScale(String name) {
+		return switch (name) {
+			case "BATTLECRUISER", "CARRIER", "TEMPEST", "BROOD_LORD", "HORNER", "STUKOV", "SELENDIS" -> 1.35f;
+			case "MOTHERSHIP" -> 1.42f;
+			default -> 1;
+		};
 	}
 
 

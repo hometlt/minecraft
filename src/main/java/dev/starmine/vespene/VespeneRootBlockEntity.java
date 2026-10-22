@@ -9,40 +9,50 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * A vespene vein (owner 14.10): its channel cells from the bedrock up and its outlets. The vein is one
- * store of vespene — the vespene blocks in its channel and outlets:
- * - an outlet emptied (by a worker, a bucket) is filled again after {@link #OUTLET_REFILL} from the
- *   channel, so taking from any outlet drains the whole vein;
- * - every {@link #REGEN} one more vespene grows: in the empty outlets first, one after another, then
- *   in the channel from the bottom up, until the vein is full again;
- * - cobblestone grows round the vein wherever nothing else is (air, water: a cave it passes through);
- * - an outlet open to the sky, full, with nothing built over it, rises slowly like a volcano (owner 16.10):
- *   every {@link #VOLCANO_TICKS} one block up, at most {@link #VOLCANO_HEIGHT}, a cone of cobblestone
- *   growing round it. A gas building on it or blocks over it stop it.
- * Only full (source) cells count: vespene that has flowed into an emptied cell is not taken or counted.
+/** Technical vespene source: each geyser outlet has a persistent finite reserve of 1100 gas.
+ * Channels and volcanoes are physical geometry; their size does not determine this reserve.
+ * Void lakes retain their existing liquid regeneration.
  */
 public final class VespeneRootBlockEntity extends BlockEntity {
-	public static final int OUTLET_REFILL = 100, REGEN = 600, VOLCANO_TICKS = 3600, VOLCANO_HEIGHT = 11; // owner 19.10: 3 blocks lower than the first 14
+	public static final int OUTLET_REFILL = 100, REGEN = 600, VOLCANO_TICKS = 3600, VOLCANO_HEIGHT = 4;
+	public static final int RADIUS = 3, BASE_HEIGHT = 2;
 
 	private long[] channel = new long[0], outlets = new long[0];
 	private long[] emptySince = new long[0];
 	private int nextOutlet;
+	public static final int GAS_PER_OUTLET = 1100;
+	private int[] remaining = new int[0];
 	private long nextRegen;
 	/** Blocks each outlet has risen as a volcano. */
 	private int[] risen = new int[0];
 	private long[] nextRise = new long[0];
+	private final java.util.Set<Long> rebuild = new java.util.HashSet<>();
 	/** Owner 17.10: a lake inside an island of the Void (no volcano, no cobblestone round it), and whether of terrazine. */
 	private boolean lake, terrazine;
+	/**
+	 * Owner 22.10: which outlets are geysers (a gas building may stand on them); the others are a branch's end underground,
+	 * a spot where vespene is taken by bucket only. An older world's veins have only geysers.
+	 */
+	private boolean[] geysers = new boolean[0];
 
 	public VespeneRootBlockEntity(BlockPos pos, BlockState state) {
 		super(Vespene.ROOT_ENTITY, pos, state);
 	}
 
-	/** Set by the world generation: the channel bottom-up and the outlets. */
+	/** Set by the world generation: the channel bottom-up and the outlets, every one a geyser. */
 	public void setVein(List<BlockPos> channelCells, List<BlockPos> outletCells) {
+		setVein(channelCells, outletCells, null);
+	}
+
+	/** {@link #setVein} with which outlets are geysers (null: all of them); the others are bucket spots. */
+	public void setVein(List<BlockPos> channelCells, List<BlockPos> outletCells, @org.jetbrains.annotations.Nullable List<Boolean> geyserOutlets) {
+		geysers = new boolean[outletCells.size()];
+		for (int i = 0; i < geysers.length; i++) geysers[i] = geyserOutlets == null || i >= geyserOutlets.size() || geyserOutlets.get(i);
+		rebuild.clear();
 		channel = channelCells.stream().mapToLong(BlockPos::asLong).toArray();
 		outlets = outletCells.stream().mapToLong(BlockPos::asLong).toArray();
+		remaining = new int[outlets.length];
+		java.util.Arrays.fill(remaining, GAS_PER_OUTLET);
 		emptySince = new long[outlets.length];
 		risen = new int[outlets.length];
 		nextRise = new long[outlets.length];
@@ -58,6 +68,30 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 
 	public int outletCount() {
 		return outlets.length;
+	}
+
+	/** Whether a gas building may stand on this outlet: a geyser, not a bucket spot (owner 22.10). */
+	public boolean geyser(BlockPos outlet) {
+		for (int k = 0; k < outlets.length; k++) if (outlets[k] == outlet.asLong()) return k >= geysers.length || geysers[k];
+		return true;
+	}
+
+	public boolean lake() { return lake; }
+
+	public int remaining(BlockPos outlet) {
+		for (int i = 0; i < outlets.length; i++) if (outlets[i] == outlet.asLong()) return remaining[i];
+		return 0;
+	}
+
+	/** The source block owns the budget; moving or replacing the refinery cannot refill it. */
+	public int extract(Level level, BlockPos outlet, int wanted) {
+		for (int i = 0; i < outlets.length; i++) if (outlets[i] == outlet.asLong()) {
+			int taken = Math.min(remaining[i], Math.max(0, wanted));
+			remaining[i] -= taken;
+			sync(level);
+			return taken;
+		}
+		return 0;
 	}
 
 	public BlockPos outlet(int i) {
@@ -102,12 +136,14 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 			}
 			if (vein.emptySince[i] == 0) vein.emptySince[i] = now;
 			if (now - vein.emptySince[i] < OUTLET_REFILL) continue;
+			if (!vein.lake && vein.remaining[i] == 0) continue;
 			BlockPos source = vein.topVespene(level);
-			if (source == null) continue;
-			level.setBlock(source, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			if (vein.lake && source == null) continue;
+			if (source != null) level.setBlock(source, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 			vein.fill(level, outlet, true);
 			vein.emptySince[i] = 0;
 		}
+		if (!vein.lake) return;
 		// slow growth: the outlets in turn, then the channel from the bottom
 		if (vein.nextRegen == 0) vein.nextRegen = now + REGEN;
 		if (now < vein.nextRegen) return;
@@ -138,7 +174,7 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		for (long cell : channel) vein.add(cell);
 		for (long cell : outlets) vein.add(cell);
 		vein.add(getBlockPos().asLong());
-		BlockState cobble = net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState();
+		BlockState cobble = Vespene.ROCK.defaultBlockState();
 		for (long cell : vein) {
 			BlockPos at = BlockPos.of(cell);
 			boolean outlet = java.util.Arrays.stream(outlets).anyMatch(o -> o == cell);
@@ -157,14 +193,24 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	private void volcanoes(Level level, long now) {
 		for (int i = 0; i < outlets.length; i++) {
 			BlockPos outlet = BlockPos.of(outlets[i]);
-			if (risen[i] >= VOLCANO_HEIGHT || !level.isLoaded(outlet) || !isVespene(level, outlet)) {
+			if (level.isLoaded(outlet) && (risen[i] > MOUND || hasOversizedMound(level, outlet))) {
+				// The previous version used SC2 cells here and produced 21x21x12 volcanoes.
+				int cx = outlet.getX(), cz = outlet.getZ();
+				if (!level.hasChunk((cx - 10) >> 4, (cz - 10) >> 4) || !level.hasChunk((cx + 10) >> 4, (cz - 10) >> 4)
+					|| !level.hasChunk((cx - 10) >> 4, (cz + 10) >> 4) || !level.hasChunk((cx + 10) >> 4, (cz + 10) >> 4)) continue;
+				collapse(level, outlet, true);
+				rise(level, i);
+				outlet = BlockPos.of(outlets[i]);
+			}
+			if (!level.isLoaded(outlet) || !isVespene(level, outlet) || i < geysers.length && !geysers[i]) { // a bucket spot does not rise
 				nextRise[i] = 0;
 				continue;
 			}
 			BlockPos up = outlet.above();
-			boolean open = level.getBlockState(up).isAir() && level.canSeeSky(up)
+			boolean open = level.getBlockState(up).isAir()
 				&& level.getEntitiesOfClass(dev.starmine.entity.StarUnit.class, new net.minecraft.world.phys.AABB(outlet).inflate(2, 3, 2),
-					unit -> unit.kind.gas()).isEmpty();
+					unit -> unit.kind.gas() && unit.isAlive()).isEmpty()
+				&& !gasPending(level, outlet); // a generated base's gas building not yet out: its cone must not rise under it
 			if (!open) {
 				nextRise[i] = 0;
 				continue;
@@ -172,43 +218,106 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 			if (level instanceof net.minecraft.server.level.ServerLevel server && level.random.nextInt(4) == 0)
 				server.sendParticles(net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE, up.getX() + 0.5, up.getY() + 0.2, up.getZ() + 0.5,
 					1, 0.2, 0.1, 0.2, 0.01);
-			if (nextRise[i] == 0) nextRise[i] = now + VOLCANO_TICKS;
-			if (now < nextRise[i]) continue;
-			nextRise[i] = now + VOLCANO_TICKS;
-			rise(level, i);
+			if (risen[i] == 0 && !hasMound(level, outlet)) {
+				if (nextRise[i] == 0) nextRise[i] = now + VOLCANO_TICKS;
+				if (rebuild.contains(outlet.asLong()) || now >= nextRise[i]) rise(level, i);
+			}
 		}
 	}
 
-	/** Tests: the outlet `i` rises a block now, as a volcano does in time. */
+	/** A gas building waits to come out over this outlet (a generated base's, until its chunk ticks). */
+	private static boolean gasPending(Level level, BlockPos outlet) {
+		if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return false;
+		String dimension = level.dimension().location().toString();
+		for (dev.starmine.hive.HiveStructure.Pending pending : dev.starmine.hive.HiveSavedData.get(server.getServer()).pending) {
+			if (!pending.kind().gas() || !dimension.equals(pending.dimension() == null ? "minecraft:overworld" : pending.dimension())) continue;
+			BlockPos at = pending.pos();
+			if (Math.abs(at.getX() - outlet.getX()) <= RADIUS && Math.abs(at.getZ() - outlet.getZ()) <= RADIUS && Math.abs(at.getY() - outlet.getY()) <= MOUND + 4)
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Seals this vein's outlets within `radius` (across) of `centre` for good (owner 22.10: a generated base keeps the
+	 * land's own geysers off): each one's cone and mound go, its opening is stone and its vespene is spent.
+	 */
+	public void retire(Level level, BlockPos centre, int radius) {
+		boolean changed = false;
+		for (int i = 0; i < outlets.length; i++) {
+			BlockPos outlet = BlockPos.of(outlets[i]);
+			double dx = outlet.getX() - centre.getX(), dz = outlet.getZ() - centre.getZ();
+			if (dx * dx + dz * dz > (double) radius * radius || !level.isLoaded(outlet)) continue;
+			BlockPos base = collapse(level, outlet);
+			for (int y = 0; y <= 3; y++) {
+				BlockPos at = base.below(y);
+				if (level.isLoaded(at) && (VespeneBlock.isSource(level.getBlockState(at)) || level.getBlockState(at).is(Vespene.VENT) || level.getBlockState(at).is(Vespene.VESPENE)))
+					level.setBlock(at, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+			}
+			if (i < remaining.length) remaining[i] = 0;
+			risen[i] = 0;
+			changed = true;
+		}
+		if (changed) {
+			rebuild.clear();
+			setChanged();
+			sync(level);
+		}
+	}
+
+	/** Tests: build the complete volcano now. */
 	void riseNow(Level level, int i) {
 		rise(level, i);
 	}
 
-	/** An outlet one block up: the old one joins the channel, cobblestone grows round the new one in a cone. */
-	private void rise(Level level, int i) {
-		BlockPos old = BlockPos.of(outlets[i]), top = old.above();
-		channel = java.util.Arrays.copyOf(channel, channel.length + 1);
-		channel[channel.length - 1] = old.asLong();
-		outlets[i] = top.asLong();
-		risen[i]++;
-		sync(level);
-		BlockState cobble = net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState();
-		for (int k = 0; k <= risen[i] + 2; k++) {
-			int y = top.getY() - k;
-			double radius = 1 + k * 0.75;
-			int r = (int) Math.ceil(radius);
-			for (int dx = -r; dx <= r; dx++)
-				for (int dz = -r; dz <= r; dz++) {
-					if (dx == 0 && dz == 0 || dx * dx + dz * dz > radius * radius + 1) continue;
-					BlockPos at = new BlockPos(top.getX() + dx, y, top.getZ() + dz);
-					if (!level.isLoaded(at)) continue;
-					BlockState there = level.getBlockState(at);
-					if (there.isAir() || there.canBeReplaced() && !there.is(Vespene.VESPENE)) level.setBlock(at, cobble, Block.UPDATE_ALL);
-				}
+	/** Adopts only a fresh imported 7x7x4 geyser footprint; its absolute channel and outlet stay put. */
+	public void adoptNativeVolcano(Level level, int i) {
+		BlockPos top = outlet(i), base = top.below(MOUND);
+		// The reserve is stored in this block entity, without carving a reservoir into map terrain.
+		for (int y = 1; y <= MOUND; y++) for (int dx = -RADIUS; dx <= RADIUS; dx++) for (int dz = -RADIUS; dz <= RADIUS; dz++) {
+			BlockPos at = base.offset(dx, y, dz);
+			if (dx == 0 && dz == 0) fill(level, at, y == MOUND);
+			else level.setBlock(at, inLayer(dx, y, dz) ? Vespene.ROCK.defaultBlockState() : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 		}
-		fill(level, old, false);
-		fill(level, top, true);
-		level.playSound(null, top, net.minecraft.sounds.SoundEvents.LAVA_POP, net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 0.6f);
+		risen[i] = MOUND;
+		sync(level);
+	}
+
+	/** Move the outlet to the top, extending its channel inside the compact cone. */
+	private void rise(Level level, int i) {
+		BlockPos base = baseOf(level, BlockPos.of(outlets[i]));
+		rebuild.remove(base.asLong());
+		BlockPos top = base.above(MOUND);
+		java.util.LinkedHashSet<Long> cells = new java.util.LinkedHashSet<>();
+		for (long cell : channel) cells.add(cell);
+		for (int y = 0; y < MOUND; y++) cells.add(base.above(y).asLong());
+		cells.remove(top.asLong());
+		channel = cells.stream().mapToLong(Long::longValue).toArray();
+		outlets[i] = top.asLong();
+		risen[i] = MOUND;
+		for (int y = 1; y <= MOUND; y++) {
+			int r = radiusAt(y);
+			for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
+				if (!inLayer(dx, y, dz)) continue;
+				BlockPos at = base.offset(dx, y, dz);
+				if (!level.isLoaded(at)) continue;
+				if (dx == 0 && dz == 0) fill(level, at, y == MOUND);
+				else if (level.getBlockState(at).canBeReplaced() || level.getBlockState(at).isAir())
+					level.setBlock(at, Vespene.ROCK.defaultBlockState(), Block.UPDATE_ALL);
+			}
+		}
+		fill(level, base, false);
+		sync(level);
+	}
+
+	/** Minecraft blocks: two identical 7-wide layers, then 5-wide and 3-wide. */
+	public static int radiusAt(int y) {
+		return y <= BASE_HEIGHT ? RADIUS : Math.max(1, RADIUS - (int) Math.ceil((y - BASE_HEIGHT) * (RADIUS - 1.0) / (MOUND - BASE_HEIGHT)));
+	}
+
+	public static boolean inLayer(int dx, int y, int dz) {
+		int radius = radiusAt(y);
+		return Math.max(Math.abs(dx), Math.abs(dz)) <= radius && Math.abs(dx) + Math.abs(dz) <= radius + 1;
 	}
 
 	/** The vein an outlet belongs to (its root is at the bedrock within a chunk of it), or null. */
@@ -231,27 +340,33 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	 * now. Left open again (the building destroyed) it rises once more as a volcano ({@link #volcanoes}).
 	 */
 	public BlockPos collapse(Level level, BlockPos outlet) {
+		return collapse(level, outlet, false);
+	}
+
+	private BlockPos collapse(Level level, BlockPos outlet, boolean resizing) {
 		int i = -1;
 		for (int k = 0; k < outlets.length; k++) if (outlets[k] == outlet.asLong()) i = k;
 		if (i < 0) return outlet;
 		BlockPos base = baseOf(level, outlet);
 		if (base.equals(outlet)) return outlet;
 		java.util.Set<Long> column = new java.util.HashSet<>();
-		for (int y = base.getY() + 1; y <= outlet.getY(); y++) column.add(new BlockPos(base.getX(), y, base.getZ()).asLong());
+		for (int y = base.getY(); y <= outlet.getY(); y++) column.add(new BlockPos(base.getX(), y, base.getZ()).asLong());
 		channel = java.util.Arrays.stream(channel).filter(cell -> !column.contains(cell)).toArray();
 		int reach = coneReach(level, outlet);
 		for (int y = base.getY() + 1; y <= outlet.getY() + 1; y++)
 			for (int dx = -reach; dx <= reach; dx++)
 				for (int dz = -reach; dz <= reach; dz++) {
-					if (dx * dx + dz * dz > reach * reach + 1) continue;
+					// The base is square on the SC2 grid.
 					BlockPos at = new BlockPos(base.getX() + dx, y, base.getZ() + dz);
 					if (!level.isLoaded(at)) continue;
 					BlockState there = level.getBlockState(at);
-					if (there.is(net.minecraft.world.level.block.Blocks.COBBLESTONE) || there.is(Vespene.VESPENE) || there.is(Vespene.TERRAZINE)
-						|| there.is(Vespene.VENT))
+					boolean wall = there.is(Vespene.ROCK) || !resizing && there.is(net.minecraft.world.level.block.Blocks.COBBLESTONE);
+					boolean fluid = there.is(Vespene.VESPENE) || there.is(Vespene.TERRAZINE) || there.is(Vespene.VENT);
+					if (wall || fluid && (!resizing || dx == 0 && dz == 0))
 						level.setBlock(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 				}
 		outlets[i] = base.asLong();
+		rebuild.add(base.asLong());
 		risen[i] = 0;
 		nextRise[i] = 0;
 		fill(level, base, true);
@@ -265,30 +380,39 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 	 * height, flush with the ground the trunk comes up through; the outlet itself when it has neither.
 	 */
 	public BlockPos baseOf(Level level, BlockPos outlet) {
-		BlockPos base = outlet.below(risen(outlet));
-		if (hasMound(level, base)) {
-			base = base.below(MOUND);
-			if (isVespene(level, base.below())) base = base.below();
-		}
-		return base;
-	}
-
-	/** How far round its outlet an outlet's cobblestone (mound, cone) reaches; 0 with none. */
-	public int coneReach(Level level, BlockPos outlet) {
-		int r = risen(outlet);
-		return Math.max(hasMound(level, outlet.below(r)) ? MOUND + 2 : 0, r == 0 ? 0 : (int) Math.ceil(1 + (r + 2) * 0.75) + 1);
-	}
-
-	/** How high a generated geyser's mound is over its base (VespeneVeinFeature: 4 layers, the outlet on the top one). */
-	public static final int MOUND = 3;
-
-	/** Whether the outlet at `top` stands on a geyser's mound: its widest ring (4 across from the middle) is cobblestone. */
-	private static boolean hasMound(Level level, BlockPos top) {
-		BlockPos ring = top.below(MOUND);
-		int cobble = 0;
+		int rise = risen(outlet);
+		if (rise > 0) return outlet.below(rise);
+		if (hasOversizedMound(level, outlet)) return outlet.below(12);
+		if (hasMound(level, outlet)) return outlet.below(MOUND);
+		// Retain the ground of old saved cobblestone mounds.
+		BlockPos ring = outlet.below(3);
+		int legacy = 0;
 		for (net.minecraft.core.Direction side : net.minecraft.core.Direction.Plane.HORIZONTAL)
-			if (level.getBlockState(ring.relative(side, 4)).is(net.minecraft.world.level.block.Blocks.COBBLESTONE)) cobble++;
-		return cobble >= 3;
+			if (level.getBlockState(ring.relative(side, 4)).is(net.minecraft.world.level.block.Blocks.COBBLESTONE)) legacy++;
+		return legacy >= 3 ? ring.below() : outlet;
+	}
+
+	public int coneReach(Level level, BlockPos outlet) {
+		int height = outlet.getY() - baseOf(level, outlet).getY();
+		return height > MOUND ? 10 : height > 0 ? Math.max(RADIUS, 4) : 0;
+	}
+
+	public static final int MOUND = VOLCANO_HEIGHT;
+
+	private static boolean hasOversizedMound(Level level, BlockPos top) {
+		BlockPos ring = top.below(11);
+		int rock = 0;
+		for (net.minecraft.core.Direction side : net.minecraft.core.Direction.Plane.HORIZONTAL)
+			if (level.getBlockState(ring.relative(side, 10)).is(Vespene.ROCK)) rock++;
+		return rock >= 3;
+	}
+
+	private static boolean hasMound(Level level, BlockPos top) {
+		BlockPos ring = top.below(MOUND - 1);
+		int rock = 0;
+		for (net.minecraft.core.Direction side : net.minecraft.core.Direction.Plane.HORIZONTAL)
+			if (level.getBlockState(ring.relative(side, RADIUS)).is(Vespene.ROCK)) rock++;
+		return rock >= 3;
 	}
 
 	/** The highest vespene block of the channel (taken first: the vein empties from the top). */
@@ -326,10 +450,15 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		super.saveAdditional(tag, registries);
 		tag.putLongArray("Channel", channel);
 		tag.putLongArray("Outlets", outlets);
+		tag.putIntArray("RemainingVespene", remaining);
 		tag.putInt("NextOutlet", nextOutlet);
 		tag.putIntArray("Risen", risen);
+		tag.putLongArray("Rebuild", rebuild.stream().mapToLong(Long::longValue).toArray());
 		tag.putBoolean("Lake", lake);
 		tag.putBoolean("Terrazine", terrazine);
+		byte[] flags = new byte[geysers.length];
+		for (int i = 0; i < flags.length; i++) flags[i] = (byte) (geysers[i] ? 1 : 0);
+		tag.putByteArray("Geysers", flags);
 	}
 
 	@Override
@@ -337,9 +466,18 @@ public final class VespeneRootBlockEntity extends BlockEntity {
 		super.loadAdditional(tag, registries);
 		channel = tag.getLongArray("Channel");
 		outlets = tag.getLongArray("Outlets");
+		byte[] flags = tag.getByteArray("Geysers"); // none in an older world: all geysers
+		geysers = new boolean[outlets.length];
+		for (int i = 0; i < geysers.length; i++) geysers[i] = i >= flags.length || flags[i] != 0;
+		remaining = new int[outlets.length];
+		java.util.Arrays.fill(remaining, GAS_PER_OUTLET);
+		int[] saved = tag.getIntArray("RemainingVespene");
+		for (int i = 0; i < Math.min(saved.length, remaining.length); i++) remaining[i] = Math.clamp(saved[i], 0, GAS_PER_OUTLET);
 		nextOutlet = tag.getInt("NextOutlet");
 		emptySince = new long[outlets.length];
 		risen = java.util.Arrays.copyOf(tag.getIntArray("Risen"), outlets.length);
+		rebuild.clear();
+		for (long base : tag.getLongArray("Rebuild")) rebuild.add(base);
 		nextRise = new long[outlets.length];
 		lake = tag.getBoolean("Lake");
 		terrazine = tag.getBoolean("Terrazine");

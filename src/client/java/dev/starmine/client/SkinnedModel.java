@@ -36,6 +36,8 @@ public final class SkinnedModel {
 	public final List<Clip> attacks = new ArrayList<>();
 	/** Index ranges drawn with one texture each (`textures/entity/sc2/<texture>.png`). */
 	public final List<Part> parts = new ArrayList<>();
+	/** Stable head membership from the reference pose, so walking legs cannot become neck attachments. */
+	final boolean[] spineHead;
 
 	public record Part(String texture, int first, int count) {
 	}
@@ -69,6 +71,8 @@ public final class SkinnedModel {
 		JsonObject header = JsonParser.parseString(new String(headerBytes, StandardCharsets.UTF_8).trim()).getAsJsonObject();
 		int bodyStart = 8 + headerLength;
 		vertexCount = header.get("vertexCount").getAsInt();
+		String modelName = header.has("name") ? header.get("name").getAsString() : "";
+		spineHead = modelName.equals("spinecrawler") || modelName.equals("spinecrawler_uprooted") ? new boolean[vertexCount] : null;
 		int indexCount = header.get("indexCount").getAsInt();
 		slots = header.get("slots").getAsInt();
 		fps = header.get("fps").getAsFloat();
@@ -113,6 +117,20 @@ public final class SkinnedModel {
 			int first = part.get("first").getAsInt(), count = part.get("count").getAsInt();
 			if (first < 0 || count < 0 || first + count > indexCount || count % 3 != 0) throw new IllegalArgumentException("bad part range");
 			parts.add(new Part(part.get("texture").getAsString(), first, count));
+		}
+		if (spineHead != null && clips.containsKey("stand")) {
+			float[] reference = new float[slots * 12];
+			pose(clips.get("stand"), 0, reference);
+			float headHeight = modelName.endsWith("_uprooted") ? 1.75f : 2.3f;
+			for (int v = 0; v < vertexCount; v++) {
+				float y = 0;
+				for (int k = 0; k < 4; k++) {
+					int m = (joints[v * 4 + k] & 0xFF) * 12;
+					y += weights[v * 4 + k] * (reference[m + 4] * positions[v * 3] + reference[m + 5] * positions[v * 3 + 1]
+						+ reference[m + 6] * positions[v * 3 + 2] + reference[m + 7]);
+				}
+				spineHead[v] = y > headHeight;
+			}
 		}
 	}
 

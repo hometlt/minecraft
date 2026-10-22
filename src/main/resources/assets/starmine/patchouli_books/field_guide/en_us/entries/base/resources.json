@@ -2,7 +2,7 @@
 	"name": "Minerals and Vespene",
 	"icon": "starmine:mineral_shard",
 	"category": "starmine:base",
-	"sortnum": 2,
+	"sortnum": 4,
 	"pages": [
 		{
 			"type": "patchouli:spotlight",

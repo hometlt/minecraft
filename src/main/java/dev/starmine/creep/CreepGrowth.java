@@ -66,7 +66,7 @@ public final class CreepGrowth {
 		if (s.cells.isEmpty() || level.random.nextInt(400) == 0) seed(level, source, seed, s);
 		CreepBlock creep = StarMineBlocks.CREEP;
 		MultifaceSpreader spreader = creep.getSpreader();
-		for (int step = 0; step < STEPS_PER_TICK && !s.cells.isEmpty(); step++) {
+		for (int step = 0; step < Math.max(STEPS_PER_TICK, radius / 6) && !s.cells.isEmpty(); step++) {
 			int index = level.random.nextInt(s.cells.size());
 			BlockPos cell = s.cells.get(index);
 			BlockState state = level.getBlockState(cell);

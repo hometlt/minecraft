@@ -1,5 +1,5 @@
 {
-	"name": "Zerg Supply Platform",
+	"name": "Zerg Resource Crate",
 	"icon": "starmine:zergplatform_spawn_egg",
 	"category": "starmine:zerg_buildings",
 	"sortnum": 15,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:zergplatform",
-			"name": "Zerg Supply Platform",
+			"name": "Zerg Resource Crate",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Zerg Supply Platform",
+			"title": "Zerg Resource Crate",
 			"text": "$(l)Health$(): 400$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
 		}
 	]

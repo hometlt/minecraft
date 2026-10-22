@@ -14,8 +14,8 @@
 		},
 		{
 			"type": "patchouli:spotlight",
-			"item": "starmine:void_gate",
-			"text": "A broken shard leaves $(l)void shards$(); the Void's crystals hold them too. Eight round an ender eye make a $(l)void gate$(): used, it takes you and your units near it into the Void, and a gate in the Void takes you out. The Void is small: a block there is 16 of the overworld's."
+			"item": "starmine:void_shard",
+			"text": "Void crystals are the main resource of the Void. Mine its glowing crystals for 2–4 each; nine make a block. Build dimensional gates from crystal blocks — see Artifact and the Void → Crystal Portals."
 		}
 	]
 }

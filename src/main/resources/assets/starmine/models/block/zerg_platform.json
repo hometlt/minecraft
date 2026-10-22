@@ -3,104 +3,70 @@
 	"textures": {
 		"particle": "starmine:block/zerg_flesh",
 		"body": "starmine:block/zerg_flesh",
-		"lid": "starmine:block/glowing_zerg_flesh",
-		"top": "minecraft:block/nether_wart_block",
-		"latch": "starmine:block/glowing_zerg_flesh"
+		"glow": "starmine:block/glowing_zerg_flesh"
 	},
 	"elements": [
 		{
 			"from": [
-				1,
+				2,
 				0,
-				1
+				2
 			],
 			"to": [
-				15,
-				9,
-				15
-			],
-			"faces": {
-				"down": {
-					"texture": "#body"
-				},
-				"up": {
-					"texture": "#body"
-				},
-				"north": {
-					"texture": "#body"
-				},
-				"south": {
-					"texture": "#body"
-				},
-				"west": {
-					"texture": "#body"
-				},
-				"east": {
-					"texture": "#body"
-				}
-			}
-		},
-		{
-			"from": [
-				1,
-				9,
-				1
-			],
-			"to": [
-				15,
 				14,
-				15
+				3,
+				14
 			],
 			"faces": {
-				"down": {
-					"texture": "#lid"
-				},
-				"up": {
-					"texture": "#top"
-				},
 				"north": {
-					"texture": "#lid"
+					"texture": "#body"
 				},
 				"south": {
-					"texture": "#lid"
+					"texture": "#body"
 				},
 				"west": {
-					"texture": "#lid"
+					"texture": "#body"
 				},
 				"east": {
-					"texture": "#lid"
+					"texture": "#body"
+				},
+				"up": {
+					"texture": "#body"
+				},
+				"down": {
+					"texture": "#body"
 				}
 			}
 		},
 		{
 			"from": [
-				7,
-				7,
-				15
+				3,
+				3,
+				3
 			],
 			"to": [
-				9,
-				11,
-				16
+				13,
+				5,
+				13
 			],
 			"faces": {
-				"down": {
-					"texture": "#latch"
-				},
-				"up": {
-					"texture": "#latch"
-				},
 				"north": {
-					"texture": "#latch"
+					"texture": "#body"
 				},
 				"south": {
-					"texture": "#latch"
+					"texture": "#body"
 				},
 				"west": {
-					"texture": "#latch"
+					"texture": "#body"
 				},
 				"east": {
-					"texture": "#latch"
+					"texture": "#body"
+				},
+				"up": {
+					"texture": "#glow"
+				},
+				"down": {
+					"texture": "#body"
 				}
 			}
 		}

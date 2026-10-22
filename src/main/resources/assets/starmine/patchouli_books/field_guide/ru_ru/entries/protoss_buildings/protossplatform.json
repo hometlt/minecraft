@@ -1,5 +1,5 @@
 {
-	"name": "Склад-платформа протоссов",
+	"name": "Ресурсный ящик протоссов",
 	"icon": "starmine:protossplatform_spawn_egg",
 	"category": "starmine:protoss_buildings",
 	"sortnum": 15,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:protossplatform",
-			"name": "Склад-платформа протоссов",
+			"name": "Ресурсный ящик протоссов",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Склад-платформа протоссов",
+			"title": "Ресурсный ящик протоссов",
 			"text": "$(l)Здоровье$(): 200, щиты 200$(br)Без атаки$(br2)$(o)Цифры StarCraft II (LotV).$()"
 		}
 	]

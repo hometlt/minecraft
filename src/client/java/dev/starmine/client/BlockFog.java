@@ -70,6 +70,7 @@ public final class BlockFog {
 	public static boolean hidden(int x, int y, int z) {
 		if (!hiding) return false;
 		if (clipped(x, y, z)) return true;
+		if (SkirmishOverview.inside(x, z)) return false; // owner 22.10: a skirmish's map is all explored from its start
 		long[] bits = explored.get(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
 		if (bits == null) return true;
 		int i = (y & 15) << 8 | (z & 15) << 4 | x & 15;

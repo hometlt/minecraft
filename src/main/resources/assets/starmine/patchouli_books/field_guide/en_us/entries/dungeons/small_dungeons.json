@@ -1,0 +1,16 @@
+{
+	"name": "Small Dungeons and Camps",
+	"icon": "minecraft:mossy_cobblestone",
+	"category": "starmine:dungeons",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "About the world, now and then: a $(l)zerg nest$() under the ground with its brood; a $(l)xel'naga temple$() deep below, a spiral stair down from a little shrine; $(l)Dehaka's cave$(); an abandoned $(l)terran outpost$(). Wild packs wait in their hearts until a player comes: zerg packs, protoss by a lone pylon, dark templars in caves."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Terran camps$() are rare and of four kinds — a campfire, a sandbag post with a watchtower, a crashed supply pod, a field tent — with one or two soldiers mostly. $(l)Changelings$() lurk in caves: seeing you they take your look and follow you."
+		}
+	]
+}

@@ -1,0 +1,12 @@
+{
+	"name": "Vespene and Minerals Underground",
+	"icon": "starmine:vespene_bucket",
+	"category": "starmine:dungeons",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "A vespene vein's $(l)branches$() end underground in small pockets where vespene is taken $(l)by bucket$() only: no gas building stands there.$(br2)In some regions of the world a vein ends $(l)deep underground$() in a geyser of its own, far from the geysers on the surface: in a cave of natural shape, now and then with mineral crystals round it, and a $(l)great cave$() winds up to it from the surface. $(l)Mineral halls$() deep down have such a cave too."
+		}
+	]
+}

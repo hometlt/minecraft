@@ -228,7 +228,7 @@ public final class VoidIslands {
 					painter.set(c.offset(dx, dy, dz), state);
 				}
 				for (int up = 1; up <= 6; up++) painter.set(c.offset(dx, top + up, dz), Blocks.AIR.defaultBlockState());
-				if (d < edge - 2 && random.nextInt(amun ? 140 : 90) == 0) // a glowing crystal spike
+				if (d < edge - 2 && random.nextInt(amun ? 40 : 18) == 0) // a glowing crystal spike
 					for (int up = 1; up <= 1 + random.nextInt(3); up++) painter.set(c.offset(dx, top + up, dz), CRYSTAL.defaultBlockState());
 				else if (d < edge - 1 && random.nextInt(70) == 0)
 					painter.set(c.offset(dx, top + 1, dz), Blocks.AMETHYST_CLUSTER.defaultBlockState().setValue(AmethystClusterBlock.FACING, net.minecraft.core.Direction.UP));

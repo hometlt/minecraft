@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:block/template_lantern",
+	"textures": {
+		"lantern": "starmine:block/void_crystal"
+	}
+}

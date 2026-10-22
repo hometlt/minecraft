@@ -1,0 +1,189 @@
+{
+	"schemaVersion": 1,
+	"boxes": {
+		"armory": [
+			0.674,
+			0.562
+		],
+		"assimilator": [
+			0.745,
+			0.522
+		],
+		"autoturret": [
+			0.624,
+			0.766
+		],
+		"banelingnest": [
+			0.597,
+			0.874
+		],
+		"barracks": [
+			0.818,
+			0.553
+		],
+		"bunker": [
+			0.771,
+			0.389
+		],
+		"commandcenter": [
+			0.721,
+			0.516
+		],
+		"cyberneticscore": [
+			0.741,
+			0.35
+		],
+		"darkshrine": [
+			0.735,
+			2.145
+		],
+		"egg": [
+			0.739,
+			0.879
+		],
+		"engineeringbay": [
+			0.795,
+			0.473
+		],
+		"evolutionchamber": [
+			0.801,
+			0.319
+		],
+		"extractor": [
+			0.757,
+			0.546
+		],
+		"factory": [
+			0.782,
+			0.666
+		],
+		"fleetbeacon": [
+			0.67,
+			0.582
+		],
+		"forge": [
+			0.685,
+			0.33
+		],
+		"fusioncore": [
+			0.661,
+			0.364
+		],
+		"gateway": [
+			0.62,
+			0.638
+		],
+		"ghostacademy": [
+			0.699,
+			0.856
+		],
+		"hatchery": [
+			0.427,
+			0.384
+		],
+		"hydraliskden": [
+			0.75,
+			0.506
+		],
+		"infestationpit": [
+			0.648,
+			0.254
+		],
+		"lurkerden": [
+			0.722,
+			0.405
+		],
+		"missileturret": [
+			0.773,
+			1.308
+		],
+		"nexus": [
+			0.58,
+			0.4
+		],
+		"nyduscanal": [
+			0.617,
+			0.505
+		],
+		"nydusnetwork": [
+			0.665,
+			0.298
+		],
+		"photoncannon": [
+			0.42,
+			0.574
+		],
+		"pylon": [
+			0.492,
+			0.692
+		],
+		"refinery": [
+			0.699,
+			0.603
+		],
+		"roachwarren": [
+			0.714,
+			0.503
+		],
+		"roboticsbay": [
+			0.699,
+			0.574
+		],
+		"roboticsfacility": [
+			0.535,
+			0.565
+		],
+		"sensortower": [
+			0.641,
+			1.968
+		],
+		"shieldbattery": [
+			0.658,
+			0.514
+		],
+		"spawningpool": [
+			0.678,
+			0.258
+		],
+		"spinecrawler": [
+			0.508,
+			0.952
+		],
+		"spire": [
+			0.768,
+			1.336
+		],
+		"sporecrawler": [
+			0.46,
+			0.429
+		],
+		"stargate": [
+			0.679,
+			0.922
+		],
+		"starport": [
+			0.74,
+			0.514
+		],
+		"supplydepot": [
+			0.606,
+			0.351
+		],
+		"templararchives": [
+			0.743,
+			0.379
+		],
+		"twilightcouncil": [
+			0.636,
+			0.651
+		],
+		"ultraliskcavern": [
+			0.716,
+			0.502
+		],
+		"voidmonolith": [
+			0.668,
+			1.864
+		]
+	}
+}

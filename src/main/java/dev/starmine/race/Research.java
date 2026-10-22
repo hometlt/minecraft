@@ -382,7 +382,7 @@ public enum Research {
 	public static boolean has(dev.starmine.entity.StarUnit unit, Research research) {
 		if (research == null || dev.starmine.faction.Faction.amun(unit)) return true;
 		Hive base = dev.starmine.ability.Abilities.base(unit);
-		return base == null || base.owner == null || base.researched.contains(research.id());
+		return base == null ? research != BURROW : base.researched.contains(research.id());
 	}
 
 	public static Research byId(String id) {

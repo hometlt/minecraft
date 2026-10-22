@@ -8,6 +8,7 @@ import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -84,6 +85,8 @@ public final class BeamRenderer {
 			}
 		}
 		pose.popPose();
+		// Flush this custom batch while the world matrices and shader phase are still active.
+		if (context.consumers() instanceof MultiBufferSource.BufferSource source) source.endBatch(RenderType.lightning());
 	}
 
 	/** A strip of `width` from a to b facing the camera. */

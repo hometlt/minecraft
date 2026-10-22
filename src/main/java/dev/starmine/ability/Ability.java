@@ -160,9 +160,9 @@ public enum Ability {
 	}
 
 	/** The kinds that have it. */
-	/** SC2's autocast that is on when the unit comes: a zealot's charge (repair and the rest wait for the player). */
+	/** Default autocast: charge and idle SCV repair; the player can disable either. */
 	public boolean autocastByDefault() {
-		return this == CHARGE;
+		return this == CHARGE || this == REPAIR;
 	}
 
 	public List<UnitKind> users() {

@@ -30,8 +30,25 @@ public final class Placement {
 
 	/** No other building (or main building) overlaps the footprint. */
 	public static boolean siteFree(Level level, UnitKind kind, BlockPos site) {
+		site = site(level, kind, site);
+		if (site == null) return false;
 		AABB box = new AABB(site).inflate(half(kind), 0, half(kind)).expandTowards(0, kind.height, 0);
 		return level.getEntitiesOfClass(StarUnit.class, box, mob -> mob.kind.structure() && mob.isAlive()).isEmpty();
+	}
+
+	/** Checks the actual snapped footprint, without clearing blocks or spending resources. */
+	public static @Nullable String siteRefusal(Level level, UnitKind kind, BlockPos chosen, java.util.UUID base) {
+		BlockPos site = site(level, kind, chosen);
+		if (site == null) return "message.starmine.need_outlet";
+		if (!kind.gas() && dev.starmine.vespene.Vespene.overlapsGeyser(level, site, kind.width / 2.0))
+			return "message.starmine.site_blocked";
+		String refusal = kind.race.rules().siteRefusal(level, kind, site, base);
+		if (refusal != null) return refusal;
+		if ((kind.main() || kind == UnitKind.HATCHERY) && dev.starmine.mineral.Minerals.nearSite(level, site, kind.width / 2.0))
+			return "message.starmine.near_minerals";
+		if (!siteFree(level, kind, site) || !kind.gas() && !HiveTerrain.prepare(level, site, half(kind), (int) Math.ceil(kind.height), false))
+			return "message.starmine.site_blocked";
+		return null;
 	}
 
 	/** Why the base cannot have this now (a lang key), or null: tech, minerals, vespene, supply. */
@@ -55,11 +72,7 @@ public final class Placement {
 	public static @Nullable StarUnit put(StarUnit worker, ServerLevel level, Hive base, UnitKind kind, BlockPos chosen) {
 		String refusal = refusal(base, kind);
 		BlockPos site = site(level, kind, chosen);
-		if (refusal == null && site == null) refusal = "message.starmine.need_outlet";
-		if (refusal == null) refusal = kind.race.rules().siteRefusal(level, kind, site, base.id);
-		if (refusal == null && (kind.main() || kind == UnitKind.HATCHERY) && dev.starmine.mineral.Minerals.nearSite(level, site, kind.width / 2.0))
-			refusal = "message.starmine.near_minerals"; // owner 16.10: main buildings keep 16 blocks off mineral crystals
-		if (refusal == null && !siteFree(level, kind, site)) refusal = "message.starmine.site_blocked";
+		if (refusal == null) refusal = siteRefusal(level, kind, chosen, base.id);
 		if (refusal == null && !kind.gas() && !HiveTerrain.prepare(level, site, half(kind), (int) Math.ceil(kind.height), true))
 			refusal = "message.starmine.site_blocked";
 		if (refusal != null) {

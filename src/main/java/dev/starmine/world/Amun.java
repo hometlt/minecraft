@@ -84,6 +84,7 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 	static boolean foe(LivingEntity entity) {
 		if (!entity.isAlive() || Faction.amun(entity)) return false;
 		if (entity instanceof Player player) return !player.isCreative() && !player.isSpectator();
+		if (entity instanceof VoidRift portal) return !portal.invasion();
 		return entity instanceof StarUnit unit && unit.owner().isPresent();
 	}
 
@@ -202,7 +203,7 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 
 	/** A rift near the foe, on the ground (unless there are enough). */
 	private void rift(ServerLevel level, LivingEntity target) {
-		if (level.getEntities(VoidForces.RIFT, Entity::isAlive).size() >= RIFTS) return;
+		if (level.getEntities(VoidForces.RIFT, rift -> rift.isAlive() && rift.invasion()).size() >= RIFTS) return;
 		for (int attempt = 0; attempt < 8; attempt++) {
 			double a = random.nextDouble() * Math.PI * 2, r = 10 + random.nextDouble() * 8;
 			int x = Mth.floor(target.getX() + Math.cos(a) * r), z = Mth.floor(target.getZ() + Math.sin(a) * r);
@@ -249,7 +250,7 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 
 	@Override
 	public boolean canChangeDimensions(Level from, Level to) {
-		return false;
+		return false; // owner 20.10: only his troops invade; Amun stays in the Void for now
 	}
 
 	@Override
@@ -257,7 +258,8 @@ public class Amun extends Monster implements Enemy, VoidForces.Member {
 		super.die(source);
 		if (!(level() instanceof ServerLevel level)) return;
 		bar.removeAllPlayers();
-		for (VoidRift rift : level.getEntities(VoidForces.RIFT, Entity::isAlive)) rift.kill(); // his rifts close with him
+		for (ServerLevel world : level.getServer().getAllLevels())
+			for (VoidRift rift : world.getEntities(VoidForces.RIFT, r -> r.isAlive() && r.invasion())) rift.kill();
 		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 2, getZ(), 6, 3, 2, 3, 0);
 		level.playSound(null, blockPosition(), SoundEvents.ENDER_DRAGON_DEATH, SoundSource.HOSTILE, 8.0f, 0.7f);
 		for (ItemStack loot : List.of(new ItemStack(Items.DRAGON_EGG), new ItemStack(Items.NETHER_STAR, 2), new ItemStack(Items.DIAMOND, 16)))

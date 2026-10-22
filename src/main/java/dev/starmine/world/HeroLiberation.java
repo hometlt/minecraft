@@ -87,6 +87,10 @@ public final class HeroLiberation {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(HeroLiberation::respawn);
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
 			!(entity instanceof StarUnit hero && hero.kind.boss() && hero.level() instanceof ServerLevel level && beaten(hero, level, source)));
+		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+			if (entity instanceof StarUnit main && main.kind.main() && main.owner().isEmpty() && main.hiveId() != null && main.level() instanceof ServerLevel level)
+				surface(main, level);
+		});
 		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
 			if (!(level instanceof ServerLevel server) || !(state.getBlock() instanceof Artifact.Part part)) return true;
 			VoidWorld.State data = VoidWorld.State.get(server.getServer());
@@ -95,6 +99,34 @@ public final class HeroLiberation {
 			player.displayClientMessage(Component.translatable("message.starmine.part_held", heroName(part.race)), true);
 			return false; // the hero's part stays while Amun holds the hero
 		});
+	}
+
+	/** Blocks round a fallen main building its base's guardian is looked for in. */
+	static final int SURFACE_REACH = 256;
+
+	/**
+	 * Owner 22.10: a wild base's main building destroyed on the surface — its guardian, still Amun's, comes up from its hall
+	 * under the base (a flash, a portal's sound) to where the building stood and fights there; its post is there now.
+	 */
+	static void surface(StarUnit main, ServerLevel level) {
+		java.util.UUID base = main.hiveId();
+		for (StarUnit hero : level.getEntitiesOfClass(StarUnit.class, main.getBoundingBox().inflate(SURFACE_REACH),
+			unit -> unit.isAlive() && unit.kind.guardian() && base.equals(unit.hiveId()) && !freed(unit))) {
+			if (hero.getTags().contains("starmine_surfaced")) continue;
+			hero.addTag("starmine_surfaced");
+			BlockPos at = BlockPos.containing(main.position());
+			Vec3 to = Vec3.atBottomCenterOf(at);
+			level.sendParticles(ParticleTypes.REVERSE_PORTAL, hero.getX(), hero.getY() + 1, hero.getZ(), 60, 0.6, 1, 0.6, 0.1);
+			StarUnit carrier = hero.getVehicle() instanceof StarUnit form ? form : hero; // in its great form: the form comes up with it
+			carrier.teleportTo(to.x, to.y, to.z);
+			carrier.setDeltaMovement(Vec3.ZERO);
+			carrier.getNavigation().stop();
+			hero.makeNest(at);
+			level.sendParticles(ParticleTypes.REVERSE_PORTAL, to.x, to.y + 1, to.z, 80, 1, 1.5, 1, 0.15);
+			level.playSound(null, at, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.HOSTILE, 2f, 0.6f);
+			for (net.minecraft.server.level.ServerPlayer player : level.getPlayers(p -> p.distanceToSqr(to) < 160 * 160))
+				player.sendSystemMessage(Component.translatable("message.starmine.guardian_surfaced", hero.getDisplayName()));
+		}
 	}
 
 	public static boolean freed(StarUnit hero) {

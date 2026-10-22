@@ -126,7 +126,9 @@ public final class CommandScreen extends Screen {
 		Minecraft mc = Minecraft.getInstance();
 		double mx = mc.mouseHandler.xpos() * width / mc.getWindow().getScreenWidth();
 		double my = mc.mouseHandler.ypos() * height / mc.getWindow().getScreenHeight();
-		int edge = 3;
+		// the screen edges pan only while the window has the cursor: an inactive window reports it at a corner, and the
+		// view drifted off the map on its own
+		int edge = mc.isWindowActive() ? 3 : -1;
 		CommandView.panX = (right || mx >= width - edge ? 1 : 0) - (left || mx <= edge ? 1 : 0);
 		CommandView.panZ = (up || my <= edge ? 1 : 0) - (down || my >= height - edge ? 1 : 0);
 		CommandView.turn = 0;
@@ -135,7 +137,28 @@ public final class CommandScreen extends Screen {
 	@Override
 	public void removed() {
 		CommandView.panX = CommandView.panZ = CommandView.turn = CommandView.climbing = 0;
-		CommandView.exit(Minecraft.getInstance());
+		if (!SkirmishScreen.active) leaveSoon = true; // owner 22.10: a window opened from the view (a chest, a bank) comes back to it
+	}
+
+	/** The command screen was closed: the view ends next tick, unless a window (a chest…) took its place. */
+	private static boolean leaveSoon, resume;
+
+	/** Client tick: ends the view after its screen, or opens it again once the window opened from it is closed. */
+	static void tickResume(Minecraft mc) {
+		if (leaveSoon) {
+			leaveSoon = false;
+			if (mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) resume = true;
+			else if (!(mc.screen instanceof CommandScreen) && CommandView.active()) CommandView.exit(mc);
+		}
+		if (resume && !CommandView.active()) resume = false;
+		if (resume && mc.screen == null && mc.player != null) {
+			resume = false;
+			mc.setScreen(new CommandScreen());
+		} else if (resume && mc.screen != null && !(mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>)
+			&& !(mc.screen instanceof CommandScreen)) {
+			resume = false; // another screen (the pause menu…): the view ends as before
+			CommandView.exit(mc);
+		}
 	}
 
 	// ---- drawing ----
@@ -147,6 +170,7 @@ public final class CommandScreen extends Screen {
 		BaseStatusClient.drawPanel(graphics, width);
 		CommandMinimap.draw(graphics, width, height);
 		drawSelection(graphics);
+		drawExtras(graphics, mouseX, mouseY);
 		drawGroups(graphics, mouseX, mouseY);
 		List<Button> buttons = buttons();
 		Button hover = null;
@@ -286,7 +310,7 @@ public final class CommandScreen extends Screen {
 		int[] army = groupBox(ARMY_GROUP);
 		if (x >= army[0] && x < army[0] + 3 * GROUP_SIZE && y >= army[1] && y < army[1] + GROUP_SIZE - 4) return ARMY_GROUP;
 		int[] hero = groupBox(HERO_GROUP);
-		if (x >= hero[0] && x < hero[0] + 3 * GROUP_SIZE && y >= hero[1] && y < hero[1] + GROUP_SIZE - 4) return HERO_GROUP;
+		if (!SkirmishScreen.active && x >= hero[0] && x < hero[0] + 3 * GROUP_SIZE && y >= hero[1] && y < hero[1] + GROUP_SIZE - 4) return HERO_GROUP;
 		for (int group = 1; group <= 9; group++) {
 			if (!GROUPS.containsKey(group)) continue;
 			int[] at = groupBox(group);
@@ -385,6 +409,7 @@ public final class CommandScreen extends Screen {
 		graphics.drawString(font, Component.translatable("command.starmine.army", armySize), army[0] + 4, army[1] + 4, 0xFFFFFFFF);
 		graphics.drawString(font, "F2", army[0] + 3 * GROUP_SIZE - 14, army[1] + 14, 0xFFFFD040);
 		// owner 17.10: the player as a hero (HeroPilot)
+		if (!SkirmishScreen.active) {
 		int[] hero = groupBox(HERO_GROUP);
 		boolean overHero = groupAt(mouseX, mouseY) == HERO_GROUP;
 		graphics.fill(hero[0], hero[1], hero[0] + 3 * GROUP_SIZE, hero[1] + GROUP_SIZE - 4,
@@ -392,6 +417,7 @@ public final class CommandScreen extends Screen {
 		graphics.renderOutline(hero[0], hero[1], 3 * GROUP_SIZE, GROUP_SIZE - 4, CommandView.heroSelected() ? 0xFF40E0FF : 0xFF6080B0);
 		graphics.drawString(font, Component.translatable("command.starmine.hero"), hero[0] + 4, hero[1] + 4, 0xFF80F0FF);
 		graphics.drawString(font, "F4", hero[0] + 3 * GROUP_SIZE - 14, hero[1] + 14, 0xFFFFD040);
+		}
 		for (int group = 1; group <= 9; group++) {
 			if (!GROUPS.containsKey(group)) continue;
 			List<StarUnit> units = members(group);
@@ -464,7 +490,25 @@ public final class CommandScreen extends Screen {
 	}
 
 	/** Bottom middle: one unit in detail, or the selected units' icons with their health. */
+	private void drawHeroStats(GuiGraphics graphics) {
+		var player = Minecraft.getInstance().player;
+		if (player == null) return;
+		int x = width / 2 - 140, y = height - 3 * (CELL + GAP) - 4;
+		graphics.fill(x, y, x + 280, y + 108, 0xB0101418);
+		graphics.drawString(font, player.getDisplayName(), x + 6, y + 6, 0xFF40E0FF);
+		graphics.drawString(font, (int) Math.ceil(player.getHealth()) + " / " + (int) Math.ceil(player.getMaxHealth()), x + 6, y + 19, 0xFF80FF80);
+		bar(graphics, x + 6, y + 31, 268, player.getHealth() / player.getMaxHealth(), 0xFF40C040);
+		graphics.drawString(font, Component.translatable("command.starmine.hero_stats", player.getArmorValue(),
+			String.format(java.util.Locale.ROOT, "%.1f", player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)),
+			String.format(java.util.Locale.ROOT, "%.2f", player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED))), x + 6, y + 43, 0xFFD0D0D0);
+		graphics.drawString(font, Component.translatable("command.starmine.hero_food", player.getFoodData().getFoodLevel(), player.experienceLevel), x + 6, y + 57, 0xFFE0C080);
+		ItemStack held = player.getMainHandItem();
+		graphics.renderItem(held, x + 6, y + 74);
+		graphics.drawString(font, held.isEmpty() ? Component.translatable("command.starmine.empty_hand") : held.getHoverName(), x + 28, y + 78, 0xFFFFFFFF);
+	}
+
 	private void drawSelection(GuiGraphics graphics) {
+		if (CommandView.heroSelected()) { drawHeroStats(graphics); return; }
 		List<StarUnit> units = CommandView.selected();
 		if (units.isEmpty()) {
 			if (!CommandView.selectedTurrets().isEmpty()) drawTurrets(graphics, CommandView.selectedTurrets());
@@ -607,6 +651,69 @@ public final class CommandScreen extends Screen {
 	 * The card: its buttons in the slots SC2 gives them on this kind's card (a barracks' marine, reaper, marauder, ghost
 	 * on the top row, its rally at the end of the middle row…); buttons SC2 has not keep their slot, or the first free one.
 	 */
+	// ---- one unit's own buttons (owner 22.10): its window and taking control of it, apart from the command card ----
+
+	/** A button of the one selected unit: its action, label key and hotkey. */
+	private record Extra(String action, String label, char key) {
+	}
+
+	/**
+	 * The one selected unit's buttons: its window (a storage building's bank, a unit's base resources, the hero's
+	 * inventory), taking control of it (not in a skirmish: no body there), and a storage building's exchange.
+	 */
+	private static List<Extra> extras() {
+		List<Extra> list = new ArrayList<>();
+		if (CommandView.heroSelected()) {
+			list.add(new Extra("inventory", "command.starmine.interface", 'I'));
+			return list;
+		}
+		List<StarUnit> selected = CommandView.selected();
+		if (selected.size() != 1 || !CommandView.own(selected.get(0))) return list;
+		StarUnit unit = selected.get(0);
+		list.add(new Extra("interface", "command.starmine.interface", 'I'));
+		if (!SkirmishScreen.active) list.add(new Extra("possess", "command.starmine.possess", 'U'));
+		if (unit.kind.storage()) list.add(new Extra("exchange", "command.starmine.exchange", 'O'));
+		return list;
+	}
+
+	private static final int EXTRA_WIDTH = 90, EXTRA_HEIGHT = 14;
+
+	/** Top left of the `i`th of the selected unit's buttons: along the selection panel's bottom, from its right. */
+	private int[] extraBox(int i) {
+		int panelLeft = width / 2 - 140, panelTop = height - 3 * (CELL + GAP) - 4;
+		return new int[] {panelLeft + 280 - (i + 1) * (EXTRA_WIDTH + 2), panelTop + 3 * (CELL + GAP) - EXTRA_HEIGHT - 3};
+	}
+
+	private int extraAt(double x, double y) {
+		List<Extra> list = extras();
+		for (int i = 0; i < list.size(); i++) {
+			int[] at = extraBox(i);
+			if (x >= at[0] && x < at[0] + EXTRA_WIDTH && y >= at[1] && y < at[1] + EXTRA_HEIGHT) return i;
+		}
+		return -1;
+	}
+
+	private void drawExtras(GuiGraphics graphics, int mouseX, int mouseY) {
+		List<Extra> list = extras();
+		int hover = extraAt(mouseX, mouseY);
+		for (int i = 0; i < list.size(); i++) {
+			int[] at = extraBox(i);
+			graphics.fill(at[0], at[1], at[0] + EXTRA_WIDTH, at[1] + EXTRA_HEIGHT, i == hover ? 0xE0305080 : 0xD0203048);
+			graphics.renderOutline(at[0], at[1], EXTRA_WIDTH, EXTRA_HEIGHT, 0xFF6080B0);
+			String text = Component.translatable(list.get(i).label()).getString() + " (" + list.get(i).key() + ")";
+			graphics.drawCenteredString(font, font.plainSubstrByWidth(text, EXTRA_WIDTH - 4), at[0] + EXTRA_WIDTH / 2, at[1] + 3, 0xFFFFFFFF);
+		}
+	}
+
+	private static void runExtra(Extra extra) {
+		Minecraft mc = Minecraft.getInstance();
+		if (extra.action().equals("inventory")) {
+			if (mc.player != null) mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+			return;
+		}
+		CommandView.send(extra.action(), Vec3.ZERO, -1, null);
+	}
+
 	private List<Button> buttons() {
 		List<Button> buttons = cardButtons();
 		List<StarUnit> own = CommandView.selected().stream().filter(CommandView::own).toList();
@@ -692,10 +799,7 @@ public final class CommandScreen extends Screen {
 			List<dev.starmine.ability.Ability> abilities = dev.starmine.ability.Abilities.shown(mobile.get(0));
 			int[] slots = worker == null ? new int[] {10, 11, 12, 13} : new int[] {7, 8, 9};
 			for (int i = 0; i < abilities.size() && i < slots.length; i++) buttons.add(abilityButton(slots[i], abilities.get(i), mobile));
-			if (own.size() == 1) // owner 14.10: play as this unit (dev.starmine.possess)
-				buttons.add(new Button(14, Component.translatable("command.starmine.possess"), 'U', null, true,
-					List.of(Component.translatable("command.starmine.possess").append(" (U)"), Component.translatable("command.starmine.possess.tip").withColor(0xFFC0C0C0)),
-					() -> CommandView.send("possess", Vec3.ZERO, -1, null), null));
+			// owner 22.10: taking control of one unit is its own button by the selection panel ({@link #extras}), not the card's
 			// morphs of the first selected kind (a zergling into a baneling…): every selected one of that kind morphs
 			List<UnitKind> morphs = worker != null ? List.of() : mobile.get(0).kind.trains();
 			for (int i = 0; i < morphs.size() && i < 3; i++) {
@@ -754,7 +858,7 @@ public final class CommandScreen extends Screen {
 			tooltip.add(stack.isEmpty() ? Component.translatable("command.starmine.empty_hand") : stack.getHoverName());
 			tooltip.add(Component.translatable(mc.player.getInventory().selected == i ? "command.starmine.hand_use" : "command.starmine.hand_take")
 				.withColor(0xFFC0C0C0));
-			buttons.add(new Button(5 + i, stack.isEmpty() ? Component.literal(String.valueOf(i + 1)) : stack.getHoverName(), 0, null, true, tooltip, () -> HeroPilot.hand(slot), null,
+			buttons.add(new Button(5 + i, stack.isEmpty() ? Component.literal(String.valueOf(i + 1)) : stack.getHoverName(), 0, null, !stack.isEmpty(), tooltip, () -> { HeroPilot.hand(slot); targeting = "hero_item"; }, null,
 				stack.isEmpty() ? new ItemStack(net.minecraft.world.item.Items.AIR) : stack));
 		}
 		return buttons;
@@ -886,7 +990,8 @@ public final class CommandScreen extends Screen {
 					CommandView.selection.clear();
 					CommandView.hero = false;
 				} else {
-					onClose();
+					if (SkirmishScreen.active) Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.PauseScreen(true));
+					else onClose();
 				}
 				return true;
 			}
@@ -904,6 +1009,11 @@ public final class CommandScreen extends Screen {
 			return true;
 		}
 		if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_9) {
+			if (CommandView.heroSelected() && (modifiers & GLFW.GLFW_MOD_CONTROL) == 0) {
+				HeroPilot.hand(key - GLFW.GLFW_KEY_1);
+				targeting = "hero_item";
+				return true;
+			}
 			int group = key - GLFW.GLFW_KEY_0;
 			if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) GROUPS.put(group, new ArrayList<>(CommandView.selection));
 			else if (GROUPS.containsKey(group)) {
@@ -926,6 +1036,11 @@ public final class CommandScreen extends Screen {
 			}
 			found = true;
 		}
+		if (!found) for (Extra extra : extras()) // the card's letters first, then the selected unit's own buttons
+			if (extra.key() == key) {
+				runExtra(extra);
+				return true;
+			}
 		return found;
 	}
 
@@ -1054,6 +1169,14 @@ public final class CommandScreen extends Screen {
 				page = Page.MAIN;
 				return true;
 			}
+			int extra = extraAt(mouseX, mouseY);
+			if (extra >= 0) { // owner 22.10: the selected unit's window, taking control, the exchange
+				runExtra(extras().get(extra));
+				this.dragX = mouseX;
+				this.dragY = mouseY;
+				dragging = false;
+				return true;
+			}
 			Entity rider = cargoAt(mouseX, mouseY);
 			if (rider != null) { // SC2: a click on a rider in the cargo lets it out alone
 				CommandView.send("unload_one", Vec3.ZERO, rider.getId(), null);
@@ -1143,6 +1266,7 @@ public final class CommandScreen extends Screen {
 			return true;
 		}
 		clickSelect(mouseX, mouseY);
+		RtsAudio.selection();
 		return true;
 	}
 
@@ -1225,12 +1349,14 @@ public final class CommandScreen extends Screen {
 
 	/** An outlet within 2 blocks of a clicked block, or null. */
 	private static net.minecraft.core.BlockPos nearOutlet(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos at) {
-		for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(at.offset(-2, -2, -2), at.offset(2, 2, 2)))
-			if (dev.starmine.vespene.Vespene.isOutlet(level.getBlockState(pos))) return pos.immutable();
-		return null;
+		return dev.starmine.vespene.Vespene.outletFor(level, at);
 	}
 
-	private void boxSelect(double x0, double y0, double x1, double y1) {
+	void boxSelect(double x0, double y0, double x1, double y1) {
+		Minecraft mc = Minecraft.getInstance();
+		double[] playerAt = mc.player == null || SkirmishScreen.active ? null : CommandView.project(mc.player.position(), width, height);
+		boolean includesHero = playerAt != null && playerAt[0] >= Math.min(x0, x1) && playerAt[0] <= Math.max(x0, x1)
+			&& playerAt[1] >= Math.min(y0, y1) && playerAt[1] <= Math.max(y0, y1);
 		List<StarUnit> inside = onScreen(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1));
 		List<StarUnit> units = inside.stream().filter(unit -> !unit.kind.structure()).toList();
 		List<dev.starmine.gear.Turrets.Turret> turrets = units.isEmpty() ? turretsOnScreen(Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1))
@@ -1239,7 +1365,8 @@ public final class CommandScreen extends Screen {
 		if (!hasShiftDown()) CommandView.selection.clear();
 		for (StarUnit unit : units) CommandView.selection.add(unit.getId());
 		for (dev.starmine.gear.Turrets.Turret turret : turrets) CommandView.selection.add(turret.getId());
-		if (!units.isEmpty() || !turrets.isEmpty()) CommandView.hero = false;
+		CommandView.hero = includesHero || hasShiftDown() && CommandView.hero;
+		RtsAudio.selection();
 		page = Page.MAIN;
 	}
 
@@ -1275,6 +1402,15 @@ public final class CommandScreen extends Screen {
 			heroTarget(action, mouseX, mouseY, false);
 			return;
 		}
+		net.minecraft.world.entity.LivingEntity portalHit = CommandView.creature(mouseX, mouseY, width, height);
+		if (action.equals("attack") && portalHit instanceof dev.starmine.world.VoidRift portal) {
+			CommandView.send("attack", portal.position(), portal.getId(), null);
+			return;
+		}
+		if (action.equals("move") && portalHit instanceof dev.starmine.world.VoidRift portal && !portal.invasion()) {
+			CommandView.send("portal", portal.position(), portal.getId(), null);
+			return;
+		}
 		StarUnit unit = CommandView.unit(mouseX, mouseY, width, height);
 		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
 		Vec3 at = unit != null ? unit.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;
@@ -1288,7 +1424,7 @@ public final class CommandScreen extends Screen {
 			case "attack" -> { // owner 17.10: any creature — a unit of another side, a monster, an animal, a villager
 				if (unit != null && !CommandView.own(unit)) CommandView.send("attack", at, unit.getId(), null);
 				else if (creature != null) CommandView.send("attack", creature.position(), creature.getId(), null);
-				else CommandView.send("attack_move", at, -1, null);
+				else CommandView.send("attack_ground", at, -1, null);
 			}
 			case "gather" -> {
 				if (block != null) CommandView.send("gather", Vec3.atCenterOf(block.getBlockPos()), -1, null);
@@ -1320,8 +1456,13 @@ public final class CommandScreen extends Screen {
 				StarUnit foe = CommandView.unit(mouseX, mouseY, width, height);
 				net.minecraft.world.entity.LivingEntity creature = foe == null ? CommandView.creature(mouseX, mouseY, width, height) : null;
 				if (foe != null && !CommandView.own(foe)) CommandView.send("attack", foe.position(), foe.getId(), null);
-				else if (creature instanceof net.minecraft.world.entity.monster.Enemy) CommandView.send("attack", creature.position(), creature.getId(), null);
+				else if (creature instanceof net.minecraft.world.entity.monster.Enemy || creature != null && dev.starmine.faction.Faction.amun(creature)) CommandView.send("attack", creature.position(), creature.getId(), null);
 			}
+			return;
+		}
+		net.minecraft.world.entity.LivingEntity gateHit = CommandView.creature(mouseX, mouseY, width, height);
+		if (gateHit instanceof dev.starmine.world.VoidRift portal) {
+			CommandView.send(portal.invasion() ? "attack" : "portal", portal.position(), portal.getId(), null);
 			return;
 		}
 		StarUnit unit = CommandView.unit(mouseX, mouseY, width, height);
@@ -1359,11 +1500,18 @@ public final class CommandScreen extends Screen {
 	private void heroTarget(String action, double mouseX, double mouseY, boolean smart) {
 		net.minecraft.world.entity.LivingEntity creature = CommandView.creature(mouseX, mouseY, width, height);
 		BlockHitResult block = CommandView.block(mouseX, mouseY, width, height);
+		if (action.equals("hero_item")) { HeroPilot.use(creature, block); return; }
 		boolean own = creature instanceof StarUnit unit && CommandView.own(unit);
 		boolean foe = creature != null && !own && (creature instanceof net.minecraft.world.entity.monster.Enemy
 			|| creature instanceof StarUnit unit && Minecraft.getInstance().player != null && dev.starmine.faction.Faction.hostile(unit, Minecraft.getInstance().player));
 		if (creature != null && !own && (action.equals("attack") || smart && foe)) {
 			HeroPilot.attack(creature);
+			return;
+		}
+		// owner 22.10: the hero sent to a chest (anything with a window: a barrel, a furnace, a race's crate) goes and opens it
+		if (smart && creature == null && block != null && Minecraft.getInstance().level != null
+			&& Minecraft.getInstance().level.getBlockEntity(block.getBlockPos()) instanceof net.minecraft.world.MenuProvider) {
+			HeroPilot.use(null, block);
 			return;
 		}
 		Vec3 at = creature != null ? creature.position() : block != null ? Vec3.atBottomCenterOf(block.getBlockPos().above()) : null;

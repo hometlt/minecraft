@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"BBB",
+		"BBB"
+	],
+	"key": {
+		"B": {
+			"item": "starmine:void_crystal_block"
+		}
+	},
+	"result": {
+		"id": "starmine:void_crystal_wall",
+		"count": 6
+	}
+}

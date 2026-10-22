@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"III",
+		"ICI",
+		"III"
+	],
+	"key": {
+		"I": {
+			"item": "minecraft:iron_nugget"
+		},
+		"C": {
+			"item": "starmine:void_shard"
+		}
+	},
+	"result": {
+		"id": "starmine:void_lantern",
+		"count": 1
+	}
+}

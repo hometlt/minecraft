@@ -1,0 +1,16 @@
+{
+	"name": "Under the Bases",
+	"icon": "minecraft:spawner",
+	"category": "starmine:dungeons",
+	"sortnum": 0,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Under each race's main base lie $(l)three storeys$() of tunnels and rooms and, at the bottom, the $(l)great hall$() of its guardian. The way in leaves the plaza's east and climbs to the surface. Guards keep the rooms; chests hold the race's loot; in two rooms of every city lie $(l)stores$() of mineral blocks and full vespene canisters."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Zerg$(): caves, not corridors — winding tunnels, spiral ways down round pillars of rock, uneven rooms with $(l)lakes of liquid creep$(), eggs, and ways out into the caves round about. Zerglings, banelings, roaches, hydralisks and lurkers lie $(l)burrowed in the tunnels$() and come up when you are near.$(br2)$(l)Terrans$(): steel technical tunnels with pipes, consoles and lockers. $(l)Protoss$(): hidden temples of sandstone and prismarine, statues and khaydarin crystals; sentries there conjure no flyers."
+		}
+	]
+}

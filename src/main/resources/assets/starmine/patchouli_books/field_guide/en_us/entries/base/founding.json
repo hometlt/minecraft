@@ -11,7 +11,7 @@
 		{
 			"type": "patchouli:crafting",
 			"recipe": "starmine:terran_platform",
-			"text": "A map ringed with 8 armor shards of a race makes its $(l)race block$(). Set it on top of $(l)3 x 3 mineral blocks$(): that is a founding pedestal. Right-click the race block while you have no base here: the pedestal goes, a transport brings a worker, who founds your base there and builds its main building at once. Your second base needs a step pyramid: 5 x 5, then 3 x 3, then the race block; every one after that 7 x 7 under it all.",
+			"text": "A map ringed with 8 armor shards of a race makes its $(l)resource crate$(), your base's store that opens from its top. Without a base, the $(l)summoning beacon$() of a crate calls a worker: see $(l)Summoning Beacon$().",
 			"recipe2": "starmine:zerg_platform"
 		},
 		{

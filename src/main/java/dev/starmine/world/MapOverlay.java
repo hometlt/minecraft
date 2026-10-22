@@ -183,6 +183,13 @@ public final class MapOverlay {
 		return loaded;
 	}
 
+	public static List<BlockPos> skirmishStarts() {
+		if (loaded.isEmpty()) return List.of();
+		MapOverlay map = loaded.getFirst();
+		return map.markers.stream().filter(m -> m.role().equals("start"))
+			.sorted(Comparator.comparingInt(Marker::index)).map(m -> siteOf(map, m)).toList();
+	}
+
 	/** Whether a laid-over map covers the column. */
 	public static boolean covers(int x, int z) {
 		for (MapOverlay overlay : loaded) if (overlay.column(x, z) >= 0) return true;
@@ -203,6 +210,7 @@ public final class MapOverlay {
 	 * the map's weight there (0–1); null outside every map.
 	 */
 	static double @Nullable [] relief(int x, int z) {
+		if (SkirmishMap.nativeWorld()) return null;
 		for (MapOverlay overlay : loaded) {
 			int dx = x - overlay.minX, dz = z - overlay.minZ;
 			if (dx < 0 || dz < 0 || dx >= overlay.sizeX || dz >= overlay.sizeZ) continue;
@@ -377,6 +385,7 @@ public final class MapOverlay {
 
 		@Override
 		public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
+			if (SkirmishMap.nativeWorld()) return false;
 			ChunkPos chunk = new ChunkPos(context.origin());
 			boolean any = false;
 			for (MapOverlay overlay : loaded) {
@@ -435,6 +444,7 @@ public final class MapOverlay {
 
 	/** A loaded overworld chunk's markers wait until its neighbours are loaded too. */
 	private static void chunkLoaded(ServerLevel level, net.minecraft.world.level.chunk.LevelChunk chunk) {
+		if (SkirmishMap.nativeWorld()) return;
 		if (level.dimension() != net.minecraft.world.level.Level.OVERWORLD || loaded.isEmpty()) return;
 		ChunkPos pos = chunk.getPos();
 		for (MapOverlay overlay : loaded)
@@ -502,6 +512,7 @@ public final class MapOverlay {
 
 	/** The starts become the bases' sites, once per world; the world spawn goes to a free start or the map's centre. */
 	private static void serverStarted(MinecraftServer server) {
+		if (SkirmishMap.nativeWorld()) return;
 		if (loaded.isEmpty()) return;
 		Progress progress = Progress.get(server);
 		if (progress.sites) return;

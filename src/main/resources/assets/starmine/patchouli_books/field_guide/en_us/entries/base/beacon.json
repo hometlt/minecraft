@@ -1,0 +1,28 @@
+{
+	"name": "Summoning Beacon",
+	"icon": "starmine:terran_platform",
+	"category": "starmine:base",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Every race has its $(l)resource crate$(): a map in the middle, 8 armor shards of the race round it. It keeps your $(l)valuable resources$() — minerals, vespene and what the base shows — at most $(l)9999$() of each, as an ender chest does: every crate and main building of your base in a world opens onto the $(l)same store$(), and what is in it counts in the command view and pays for building."
+		},
+		{
+			"type": "patchouli:image",
+			"images": [
+				"starmine:textures/gui/guide/beacon.png"
+			],
+			"border": true,
+			"text": "The beacon from above (1: the command panel) and the ritual (2: the beam, 3: the transport takes the ring, 4: the worker lands)."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)The ritual$():$(li)put the crate at least $(l)9 blocks$() from minerals and vespene (nearer it cannot be put);$(li)ring it with $(l)8 mineral blocks$() on its level;$(li)use the $(l)command panel$() on the crate: it becomes a $(l)beacon$(), a beam goes up;$(li)the transport flies in, takes the ring of mineral blocks up and lands a $(l)worker$()."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The crate stays: your base is founded at it. Workers bring what they gather to the crate as to a main building; with $(l)400 minerals$() build your command center (hatchery, nexus). Do not break the ring or the crate while the transport comes: it flies off with its worker. One base per world: with a base there the crate only keeps resources. The same ritual for every race, each with its own crate."
+		}
+	]
+}

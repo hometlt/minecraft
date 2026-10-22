@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 	/** The side of an entity: a unit's owner or its wild race, a player's own side; null for anything else. */
 	public static @Nullable Faction of(Entity entity) {
+		if (entity instanceof dev.starmine.world.VoidRift portal && !portal.invasion()) return new Faction(portal.owner(), null);
 		if (entity instanceof StarUnit unit) {
 			Faction parasite = unit.abilities.parasiteSide(); // a neural parasite's hold: the infestor's side for a while
 			return parasite != null ? parasite : new Faction(unit.owner().orElse(null), unit.kind.race);
@@ -39,7 +40,8 @@ public record Faction(@Nullable UUID owner, @Nullable UnitKind.Race race) {
 
 	/** Amun's side (owner 17.10): Amun, the void shards and rifts, and the troops the rifts bring, of every race. */
 	public static boolean amun(Entity entity) {
-		return entity instanceof dev.starmine.world.VoidForces.Member || entity.getTags().contains(dev.starmine.world.VoidForces.TAG);
+		return entity instanceof dev.starmine.world.VoidForces.Member || entity instanceof dev.starmine.world.VoidRift rift && rift.invasion()
+			|| entity.getTags().contains(dev.starmine.world.VoidForces.TAG);
 	}
 
 	/** Never fight each other: one owner, or wild units of one race, or Amun's side. */

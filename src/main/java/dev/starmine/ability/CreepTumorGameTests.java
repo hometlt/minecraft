@@ -26,6 +26,22 @@ import net.minecraft.world.phys.Vec3;
  * down by units that see them, wounded by arrows.
  */
 public class CreepTumorGameTests implements FabricGameTest {
+	@GameTest(template = ARENA, batch = "creepCellScale", timeoutTicks = 20)
+	public void creepUsesTheThreeBlockCellAndTerranBasesDoNotFeedIt(GameTestHelper helper) {
+		clear(helper);
+		ServerLevel level = helper.getLevel();
+		BlockPos at = helper.absolutePos(new BlockPos(24, 2, 24));
+		var base = new dev.starmine.hive.Hive(UUID.randomUUID(), level.dimension().location().toString(), at);
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(base);
+		base.race = UnitKind.Race.TERRAN;
+		helper.assertFalse(dev.starmine.creep.CreepSources.covered(level, at), "terran base feeds creep");
+		base.race = UnitKind.Race.ZERG;
+		helper.assertTrue(dev.starmine.creep.CreepSources.covered(level, at.east(35)), "hatchery stops before twelve three-block cells");
+		helper.assertFalse(dev.starmine.creep.CreepSources.covered(level, at.east(38)), "hatchery exceeds its radius");
+		helper.assertTrue(FieldAbilities.OVERLORD_CREEP_RADIUS == 12, "overlord radius ignores cell scale");
+		helper.succeed();
+	}
+
 	/** A creep floor and a wild tumor on it at (24, 24). */
 	private static BlockPos tumor(GameTestHelper helper, UUID owner) {
 		ServerLevel level = helper.getLevel();

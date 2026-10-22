@@ -133,7 +133,7 @@ public final class GuardianFights {
 	/** The great form a guardian takes at its third phase: its kind, its name, how much larger. */
 	static UnitKind formKind(UnitKind guardian) {
 		return switch (guardian) {
-			case ABATHUR -> UnitKind.ULTRALISK; // the brutalisk (drawn as a great ultralisk until its own model is in)
+			case ABATHUR -> UnitKind.ULTRALISK; // the brutalisk: an ultralisk in Modes.BRUTALISK, drawn with the brutalisk model (owner 22.10)
 			case SWANN -> UnitKind.THOR; // Odin
 			default -> UnitKind.TEMPEST; // Karax's archive guardian
 		};
@@ -166,6 +166,7 @@ public final class GuardianFights {
 			if (form == null) return;
 			form.addTag(FORM);
 			form.setCustomName(Component.translatable(formName(hero.kind)));
+			if (hero.kind == UnitKind.ABATHUR) form.setMode(Modes.BRUTALISK); // owner 22.10: drawn as the brutalisk, not a great ultralisk
 			var scale = form.getAttribute(Attributes.SCALE);
 			if (scale != null && scale.getModifier(StarMine.id("form_size")) == null)
 				scale.addPermanentModifier(new AttributeModifier(StarMine.id("form_size"), hero.kind == UnitKind.ABATHUR ? 0.8 : 0.4,

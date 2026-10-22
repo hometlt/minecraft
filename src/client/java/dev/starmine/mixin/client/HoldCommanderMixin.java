@@ -20,6 +20,9 @@ abstract class HoldCommanderMixin {
 	private void starmine$holdBody(Vec3 travel, CallbackInfo ci) {
 		if (!((Object) this instanceof LocalPlayer player) || !CommandView.bodyHeld()) return;
 		player.setDeltaMovement(Vec3.ZERO);
+		player.xxa = player.zza = 0;
+		player.setJumping(false);
+		player.walkAnimation.update(0, 1);
 		player.fallDistance = 0;
 		ci.cancel();
 	}

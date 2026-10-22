@@ -95,8 +95,23 @@ public final class PlatformBlock extends Block implements EntityBlock {
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
 			BlockHitResult hit) {
-		if (level instanceof ServerLevel server) use(server, pos, player);
+		if (!stack.is(CommandPanel.ITEM)) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION; // with anything else it opens
+		if (level instanceof ServerLevel server) { // owner 22.10: the command panel lights the summoning beacon
+			String why = Pedestal.use(server, pos, race, player);
+			player.displayClientMessage(Component.translatable(why != null ? why : "message.starmine.beacon_lit", Pedestal.KEEP_OFF), true);
+		}
 		return ItemInteractionResult.sidedSuccess(level.isClientSide);
+	}
+
+	/** Owner 22.10: a resource crate stands at least {@link Pedestal#KEEP_OFF} blocks from minerals and vespene. */
+	@Override
+	public @Nullable BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext context) {
+		if (!context.getLevel().isClientSide && Pedestal.nearResources(context.getLevel(), context.getClickedPos())) {
+			if (context.getPlayer() != null)
+				context.getPlayer().displayClientMessage(Component.translatable("message.starmine.crate_near_resources", Pedestal.KEEP_OFF), true);
+			return null;
+		}
+		return super.getStateForPlacement(context);
 	}
 
 	@Override
@@ -105,14 +120,33 @@ public final class PlatformBlock extends Block implements EntityBlock {
 		return InteractionResult.sidedSuccess(level.isClientSide);
 	}
 
-	/** Used: an older world's block with resources in it becomes its platform building; else the pedestal's call. */
+	/**
+	 * Owner 22.10: a resource crate opens as its player's store, an ender chest's way: the store of their base in this
+	 * world (the same in every crate and main building of it), only valuable things, at most 9999 of each; before the
+	 * base, the crate's own store (it goes to the base when it is founded at the crate).
+	 */
 	private void use(ServerLevel level, BlockPos pos, Player player) {
-		if (level.getBlockEntity(pos) instanceof PlatformBlockEntity old && (!old.isEmpty() || old.minerals > 0 || old.vespene > 0 || !old.stock.isEmpty())) {
-			Storage.fromBlock(level, pos, race, player.getUUID());
-			return;
-		}
-		String why = Pedestal.use(level, pos, race, player);
-		if (why != null) player.displayClientMessage(Component.translatable(why, Pedestal.args(level, player)), true);
+		if (!(level.getBlockEntity(pos) instanceof PlatformBlockEntity crate)) return;
+		Hive base = HiveSavedData.get(level.getServer()).baseOf(player.getUUID(), level.dimension().location().toString());
+		Storage.Bank bank = base != null ? Storage.bankOf(level, base) : crate.bank();
+		level.blockEvent(pos, this, 1, 1); // its top opens
+		Storage.openBank(player, bank, Component.translatable(base != null ? "container.starmine.crate_base" : "container.starmine.crate_own", getName(),
+			bank.minerals(), bank.vespene()), () -> level.blockEvent(pos, this, 1, 0));
+	}
+
+	@Override
+	protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
+		super.triggerEvent(state, level, pos, id, param);
+		BlockEntity entity = level.getBlockEntity(pos);
+		return entity != null && entity.triggerEvent(id, param);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T extends BlockEntity> net.minecraft.world.level.block.entity.BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+		return level.isClientSide && type == ENTITY
+			? (net.minecraft.world.level.block.entity.BlockEntityTicker<T>) (net.minecraft.world.level.block.entity.BlockEntityTicker<PlatformBlockEntity>) PlatformBlockEntity::clientTick
+			: null;
 	}
 
 	/** Broken: what is in its slots falls out, as from a chest. */

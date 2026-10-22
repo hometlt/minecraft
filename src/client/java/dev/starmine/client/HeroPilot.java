@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * steps), turns it to its foe and strikes with what is in the right hand, or fires it when it is a gun.
  */
 public final class HeroPilot {
-	enum Order { NONE, MOVE, ATTACK, ATTACK_MOVE, PATROL, HOLD }
+	enum Order { NONE, MOVE, ATTACK, ATTACK_MOVE, PATROL, HOLD, USE, MINE }
 
 	private static Order order = Order.NONE;
 	private static Vec3 goal, patrolFrom;
@@ -30,6 +30,8 @@ public final class HeroPilot {
 	private static int stuck;
 	private static Vec3 lastPos;
 	private static Input saved;
+	private static net.minecraft.world.phys.BlockHitResult blockTarget;
+	private static boolean usingItem;
 	/** What the hero's legs do this tick (read by {@link Legs}). */
 	private static boolean walking, jumping;
 	/** A foe within this many blocks is attacked on an attack-move, patrol or hold. */
@@ -65,22 +67,32 @@ public final class HeroPilot {
 	}
 
 	private static void start(Order next, @Nullable Vec3 to, int foe) {
+		if (saved != null) endInteraction(Minecraft.getInstance().player);
 		order = next;
 		goal = to;
 		target = foe;
 		stuck = 0;
+		if (next != Order.NONE) RtsAudio.order(next == Order.ATTACK || next == Order.ATTACK_MOVE ? "attack" : "move");
 	}
 
-	/** Selects a hotbar slot (the right hand), or uses the item when it is already in hand. */
+	/** Selects the item; the command card then asks for its world target. */
 	static void hand(int slot) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.player == null || mc.gameMode == null) return;
-		if (mc.player.getInventory().selected == slot) {
-			mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
-			return;
-		}
 		mc.player.getInventory().selected = slot;
 		mc.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
+	}
+
+	static void use(@Nullable LivingEntity entity, @Nullable net.minecraft.world.phys.BlockHitResult hit) {
+		var player = Minecraft.getInstance().player;
+		if (player == null) return;
+		ItemStack stack = player.getMainHandItem();
+		boolean tool = stack.is(net.minecraft.tags.ItemTags.MINING_ENCHANTABLE) || stack.is(net.minecraft.tags.ItemTags.SWORDS);
+		if (entity != null && (tool || ranged(stack))) { attack(entity); return; }
+		if (hit == null && entity == null) return;
+		start(tool && hit != null ? Order.MINE : Order.USE, entity != null ? entity.position() : hit.getLocation(), entity == null ? -1 : entity.getId());
+		blockTarget = hit;
+		usingItem = false;
 	}
 
 	/** Client tick: carries out the order. */
@@ -98,6 +110,10 @@ public final class HeroPilot {
 		if (!(player.input instanceof Legs)) {
 			saved = player.input;
 			player.input = new Legs();
+		}
+		if (order == Order.USE || order == Order.MINE) {
+			useAt(mc, player);
+			return;
 		}
 		LivingEntity foe = target >= 0 && mc.level.getEntity(target) instanceof LivingEntity living && living.isAlive() ? living : null;
 		if (order == Order.ATTACK && foe == null) {
@@ -122,6 +138,35 @@ public final class HeroPilot {
 		walkTo(player, goal);
 	}
 
+	private static void useAt(Minecraft mc, LocalPlayer player) {
+		Entity entity = target < 0 ? null : mc.level.getEntity(target);
+		Vec3 at = entity != null ? entity.getEyePosition() : blockTarget != null ? blockTarget.getLocation() : goal;
+		if (at == null || target >= 0 && (entity == null || !entity.isAlive())) { stop(); return; }
+		double reach = entity == null ? player.blockInteractionRange() : player.entityInteractionRange();
+		if (player.getEyePosition().distanceToSqr(at) > (reach - 0.4) * (reach - 0.4)) { walkTo(player, at); return; }
+		face(player, at, true);
+		if (order == Order.MINE) {
+			if (blockTarget == null || mc.level.getBlockState(blockTarget.getBlockPos()).isAir()) { stop(); return; }
+			if (!mc.gameMode.isDestroying()) mc.gameMode.startDestroyBlock(blockTarget.getBlockPos(), blockTarget.getDirection());
+			else mc.gameMode.continueDestroyBlock(blockTarget.getBlockPos(), blockTarget.getDirection());
+			player.swing(InteractionHand.MAIN_HAND);
+			return;
+		}
+		if (usingItem) {
+			if (!player.isUsingItem()) stop();
+			return;
+		}
+		net.minecraft.world.InteractionResult result = net.minecraft.world.InteractionResult.PASS;
+		if (entity != null) {
+			result = mc.gameMode.interactAt(player, entity, new net.minecraft.world.phys.EntityHitResult(entity, at), InteractionHand.MAIN_HAND);
+			if (!result.consumesAction()) result = mc.gameMode.interact(player, entity, InteractionHand.MAIN_HAND);
+		} else if (blockTarget != null) result = mc.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, blockTarget);
+		if (!result.consumesAction()) result = mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
+		if (result.shouldSwing()) player.swing(InteractionHand.MAIN_HAND);
+		usingItem = player.isUsingItem();
+		if (!usingItem) stop();
+	}
+
 	/** Walks toward a point: faces it, steps forward, jumps up what blocks it; gives up after being stuck for 6 s. */
 	private static void walkTo(LocalPlayer player, Vec3 to) {
 		face(player, to, false);
@@ -142,7 +187,9 @@ public final class HeroPilot {
 		}
 		face(player, foe.getEyePosition(), true);
 		if (ranged(player.getMainHandItem())) {
-			if (!player.getCooldowns().isOnCooldown(player.getMainHandItem().getItem())) mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
+			if (player.isUsingItem()) {
+				if (player.getTicksUsingItem() >= 20) mc.gameMode.releaseUsingItem(player);
+			} else if (!player.getCooldowns().isOnCooldown(player.getMainHandItem().getItem())) mc.gameMode.useItem(player, InteractionHand.MAIN_HAND);
 		} else if (player.getAttackStrengthScale(0.5f) >= 0.95f) {
 			mc.gameMode.attack(player, foe);
 			player.swing(InteractionHand.MAIN_HAND);
@@ -150,7 +197,8 @@ public final class HeroPilot {
 	}
 
 	private static boolean ranged(ItemStack stack) {
-		return stack.getItem() instanceof dev.starmine.gear.GunItem || stack.getItem() instanceof dev.starmine.gear.LauncherItem;
+		return stack.getItem() instanceof dev.starmine.gear.GunItem || stack.getItem() instanceof dev.starmine.gear.LauncherItem
+			|| stack.getItem() instanceof net.minecraft.world.item.ProjectileWeaponItem || stack.getItem() instanceof net.minecraft.world.item.TridentItem;
 	}
 
 	/** How close the hero must be to strike: a gun's reach, or the arm's. */
@@ -189,9 +237,30 @@ public final class HeroPilot {
 	}
 
 	private static void release(@Nullable LocalPlayer player) {
+		if (saved != null) endInteraction(player);
+		order = Order.NONE;
 		if (player != null && player.input instanceof Legs) player.input = saved != null ? saved : new KeyboardInput(Minecraft.getInstance().options);
 		saved = null;
 		walking = jumping = false;
+	}
+
+	private static void endInteraction(@Nullable LocalPlayer player) {
+		if (Minecraft.getInstance().gameMode != null) {
+			Minecraft.getInstance().gameMode.stopDestroyBlock();
+			if (player != null && player.isUsingItem()) Minecraft.getInstance().gameMode.releaseUsingItem(player);
+		}
+		usingItem = false;
+	}
+
+	static void command(String action, Vec3 at, @Nullable Entity entity) {
+		switch (action) {
+			case "move", "portal" -> move(at);
+			case "attack_move" -> attackMove(at);
+			case "attack" -> { if (entity != null) attack(entity); else attackMove(at); }
+			case "patrol" -> patrol(at);
+			case "stop" -> stop();
+			case "hold" -> hold();
+		}
 	}
 
 	/** Whether the hero has an order under way (the card and the minimap show it). */

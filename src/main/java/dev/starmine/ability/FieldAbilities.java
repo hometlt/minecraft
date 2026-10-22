@@ -33,7 +33,7 @@ public final class FieldAbilities {
 	/** The tag of a supplied depot and the base's count of them ({@link Hive#levels}). */
 	public static final String SUPPLIED = "starmine_supplied", SUPPLY_DROP_ID = "supply_drop";
 	/** Blocks of creep an overlord spreads under it, and how long its creep outlives it there. */
-	public static final int OVERLORD_CREEP_RADIUS = 4, OVERLORD_CREEP_TICKS = 200;
+	public static final int OVERLORD_CREEP_RADIUS = 4 * 3, OVERLORD_CREEP_TICKS = 200;
 	/** SC2 crawler speed: 1.0, 2.5 on creep. */
 	public static final double CRAWL_SPEED = 1.0, CRAWL_CREEP_SPEED = 2.5;
 
@@ -110,7 +110,11 @@ public final class FieldAbilities {
 
 	/** A crawler roots only on creep (SC2). */
 	static @Nullable String rootRefusal(StarUnit unit) {
-		return CreepTouch.onCreep(unit) ? null : "message.starmine.need_creep";
+		if (!CreepTouch.onCreep(unit)) return "message.starmine.need_creep";
+		if (dev.starmine.vespene.Vespene.overlapsGeyser(unit.level(), unit.blockPosition(), unit.kind.width / 2.0)
+			|| !unit.level().getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().deflate(.1),
+				other -> other != unit && other.isAlive() && other.kind.structure()).isEmpty()) return "message.starmine.site_blocked";
+		return null;
 	}
 
 	/** Each tick: an uprooted crawler crawls to its order point; an overlord spreads creep under it. */

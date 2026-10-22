@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/outer_stairs",
+	"textures": {
+		"bottom": "starmine:block/void_crystal",
+		"top": "starmine:block/void_crystal",
+		"side": "starmine:block/void_crystal"
+	}
+}

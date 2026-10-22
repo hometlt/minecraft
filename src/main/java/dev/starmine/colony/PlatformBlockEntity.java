@@ -15,6 +15,7 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import dev.starmine.entity.UnitKind;
 
 /**
  * What a supply platform holds ({@link PlatformBlock}). Owner 17.10: the platform is a chest of its race — 27 slots
@@ -30,9 +31,91 @@ public class PlatformBlockEntity extends BaseContainerBlockEntity {
 	final Map<String, Integer> stock = new LinkedHashMap<>();
 	/** A transport is on its way: the platform takes nothing more. */
 	boolean called;
+	/** Owner 22.10: the crate opens from its top to every side while someone has it open (as a chest's lid; drawn by the client). */
+	private final net.minecraft.world.level.block.entity.ChestLidController lid = new net.minecraft.world.level.block.entity.ChestLidController();
+	private final net.minecraft.world.level.block.entity.ContainerOpenersCounter openers = new net.minecraft.world.level.block.entity.ContainerOpenersCounter() {
+		@Override
+		protected void onOpen(net.minecraft.world.level.Level level, BlockPos pos, BlockState state) {
+			level.playSound(null, pos, openSound(true), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 0.9f + level.random.nextFloat() * 0.1f);
+		}
+
+		@Override
+		protected void onClose(net.minecraft.world.level.Level level, BlockPos pos, BlockState state) {
+			level.playSound(null, pos, openSound(false), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 0.9f + level.random.nextFloat() * 0.1f);
+		}
+
+		@Override
+		protected void openerCountChanged(net.minecraft.world.level.Level level, BlockPos pos, BlockState state, int before, int now) {
+			level.blockEvent(pos, state.getBlock(), 1, now);
+		}
+
+		@Override
+		protected boolean isOwnContainer(net.minecraft.world.entity.player.Player player) {
+			return player.containerMenu instanceof ChestMenu menu && menu.getContainer() == PlatformBlockEntity.this;
+		}
+	};
 
 	public PlatformBlockEntity(BlockPos pos, BlockState state) {
 		super(PlatformBlock.ENTITY, pos, state);
+	}
+
+	/** The crate's sound: flesh for the zerg's egg, a hatch for the terrans', a shield's hum for the protoss'. */
+	private net.minecraft.sounds.SoundEvent openSound(boolean open) {
+		UnitKind.Race race = getBlockState().getBlock() instanceof PlatformBlock block ? block.race : UnitKind.Race.TERRAN;
+		return switch (race) {
+			case ZERG -> open ? net.minecraft.sounds.SoundEvents.SLIME_BLOCK_BREAK : net.minecraft.sounds.SoundEvents.SLIME_BLOCK_PLACE;
+			case TERRAN -> open ? net.minecraft.sounds.SoundEvents.IRON_DOOR_OPEN : net.minecraft.sounds.SoundEvents.IRON_DOOR_CLOSE;
+			case PROTOSS -> open ? net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE : net.minecraft.sounds.SoundEvents.BEACON_DEACTIVATE;
+		};
+	}
+
+	@Override
+	public void startOpen(net.minecraft.world.entity.player.Player player) {
+		if (!remove && !player.isSpectator()) openers.incrementOpeners(player, level, getBlockPos(), getBlockState());
+	}
+
+	@Override
+	public void stopOpen(net.minecraft.world.entity.player.Player player) {
+		if (!remove && !player.isSpectator()) openers.decrementOpeners(player, level, getBlockPos(), getBlockState());
+	}
+
+	@Override
+	public boolean triggerEvent(int id, int type) {
+		if (id == 1) {
+			lid.shouldBeOpen(type > 0);
+			return true;
+		}
+		return super.triggerEvent(id, type);
+	}
+
+	/** The crate's own store before its player has a base: its minerals and vespene, at most 9999 of each (owner 22.10). */
+	Storage.Bank bank() {
+		return new Storage.Bank() {
+			public int minerals() {
+				return PlatformBlockEntity.this.minerals();
+			}
+
+			public int vespene() {
+				return PlatformBlockEntity.this.vespene();
+			}
+
+			public void add(int addMinerals, int addVespene) {
+				absorb();
+				minerals = Math.clamp(minerals + (long) addMinerals, 0, dev.starmine.hive.Hive.STORE_CAP);
+				vespene = Math.clamp(vespene + (long) addVespene, 0, dev.starmine.hive.Hive.STORE_CAP);
+				setChanged();
+			}
+		};
+	}
+
+	/** Client tick: the lid moves. */
+	static void clientTick(net.minecraft.world.level.Level level, BlockPos pos, BlockState state, PlatformBlockEntity crate) {
+		crate.lid.tickLid();
+	}
+
+	/** How far the crate is open (0 shut, 1 open), for its renderer. */
+	public float openness(float partialTick) {
+		return lid.getOpenness(partialTick);
 	}
 
 	/** Minerals it holds: in numbers and in its slots. */
@@ -89,7 +172,7 @@ public class PlatformBlockEntity extends BaseContainerBlockEntity {
 
 	@Override
 	public boolean canPlaceItem(int slot, ItemStack stack) {
-		return !called && HiveResources.yieldOfItem(stack).any(); // hoppers: resources only
+		return !called; // owner 22.10: an armoured crate, a chest of anything
 	}
 
 	@Override

@@ -52,6 +52,7 @@ final class ModeLook {
 			case Modes.UPROOTED -> "uprooted"; // a crawler on the move
 			case Modes.OVERSIGHT -> "oversight";
 			case Modes.SURVEILLANCE -> "surveillance";
+			case Modes.BRUTALISK -> "brutalisk"; // owner 22.10: Abathur's great form (ultralisk_brutalisk)
 			default -> "normal";
 		};
 	}
@@ -111,7 +112,8 @@ final class ModeLook {
 
 	/** Whether the model shows the mode itself (its clips): then the shape is left alone. */
 	static boolean clipped(SkinnedModel model, StarUnit unit) {
-		return model != null && (model.clips.containsKey("morph") || model.clips.containsKey("stand_" + name(unit.mode())));
+		return model != null && (model == StarMineModels.get(unit.kind.id + "_" + name(unit.mode()))
+			|| model.clips.containsKey("morph") || model.clips.containsKey("stand_" + name(unit.mode())));
 	}
 
 	/** Shapes the body for its mode, easing over a change; a change into another kind shudders and gathers in. */

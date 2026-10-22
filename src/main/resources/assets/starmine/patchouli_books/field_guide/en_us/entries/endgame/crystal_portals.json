@@ -1,0 +1,35 @@
+{
+	"name": "Crystal Portals",
+	"icon": "starmine:void_crystal_block",
+	"category": "starmine:endgame",
+	"sortnum": 2,
+	"pages": [
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:void_crystal_block",
+			"text": "Mine Void crystals for 2–4 crystals each. Nine pack into a block; unpacking returns nine. Slabs, stairs, walls and chiseled blocks also cut at a stonecutter."
+		},
+		{
+			"type": "patchouli:crafting",
+			"recipe": "starmine:void_lantern",
+			"text": "A crystal among eight iron nuggets makes a lantern (light 15). One redstone and one crystal give four redstone.",
+			"recipe2": "starmine:void_redstone"
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Place the destination stone at the centre. Extend six equal arms of crystal blocks: up, down, north, south, east, west. Arms 1/2/3/4 long cost 6/12/18/24 blocks and make a spherical gate of diameter 3/5/7/9. Leave the other cells empty. Use flint and steel on an arm: the construction becomes a gate and its linked return gate appears in the destination."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Any world to any other: stone → Overworld (green), netherrack → Nether (orange-red), end stone → End (gold), Void stone → Void (violet), quartz block → Stratosphere (blue). Colour shows the destination of each half. Sixteen Void blocks equal one outside block. Direct Overworld–Nether gates use the vanilla 8:1 ratio."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Right-click a gate in command view to send the army into it; A + right-click attacks it. Small gates filter by height. Seven admits every mobile ground unit, battlecruisers, carriers, tempests and brood lords. Nine admits the mothership. Amun is that size too, but stays in the Void for now. Passengers travel with transports. Ordinary mobs are neutral and can pass; survival players stand inside for four seconds. Breaking either half removes both, even after unloading or a restart."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "Amun opens dark red spheres only in the target world. They have no return gate and admit no travellers. Every minute they grow 3 → 5 → 7 → 9 and release only troops their current size can pass. Destroy them before the larger troops arrive."
+		}
+	]
+}

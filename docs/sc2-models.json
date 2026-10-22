@@ -864,7 +864,10 @@
 			"unit": "Abathur",
 			"mod": "Campaigns/SwarmStory.SC2Campaign",
 			"death": false,
-			"sc2ModelPath": "Assets\\Portraits\\Zerg\\AbathurEx3_Portrait\\AbathurEx3_Portrait.m3"
+			"sc2ModelPath": "Assets\\StoryModeCharacters\\Zerg\\SMX1_EvolutionMaster\\SMX1_EvolutionMaster.m3",
+			"sc2ModelAnims": [
+				"Assets\\StoryModeCharacters\\Zerg\\SMX1_EvolutionMaster_RequiredAnims\\SMX1_EvolutionMaster_RequiredAnims.m3a"
+			]
 		},
 		{
 			"model": "swann",
@@ -1264,6 +1267,16 @@
 			"unit": "UltraliskBurrowed",
 			"mod": "Mods/VoidMulti.SC2Mod",
 			"death": false
+		},
+		{
+			"model": "ultralisk_brutalisk",
+			"kind": "ULTRALISK",
+			"race": "ZERG",
+			"form": "brutalisk",
+			"unit": "Brutalisk",
+			"mod": "Campaigns/SwarmStory.SC2Campaign",
+			"death": false,
+			"sc2ModelPath": "Assets\\Units\\Zerg\\Brutalisk\\Brutalisk.m3"
 		},
 		{
 			"model": "creeptumor",

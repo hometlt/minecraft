@@ -156,12 +156,14 @@ public final class Engineering {
 			break;
 		}
 		if (steps == null) {
+			Set<UUID> carried = Ferry.start(level, base, army, order, goal, raid, until);
+			if (!carried.isEmpty()) return carried;
 			BaseLogic.tell(level, base, "message.starmine.no_way");
 			return Set.of();
 		}
 		// over water with transports at hand: they carry the army (CLOUD_TASK_2 stage 4), else workers bridge it
 		boolean water = steps.stream().anyMatch(step -> step.fill().stream().anyMatch(cell -> !level.getFluidState(cell).isEmpty()));
-		if (water) {
+		if (water || steps.stream().anyMatch(step -> !step.dig().isEmpty())) {
 			Set<UUID> carried = Ferry.start(level, base, army, order, goal, raid, until);
 			if (!carried.isEmpty()) return carried;
 		}
@@ -170,6 +172,8 @@ public final class Engineering {
 		job.until = until;
 		hireWorkers(level, job, Vec3.atCenterOf(start));
 		if (job.workers.isEmpty()) {
+			Set<UUID> carried = Ferry.start(level, base, army, order, goal, raid, until);
+			if (!carried.isEmpty()) return carried;
 			BaseLogic.tell(level, base, water ? "message.starmine.no_way" : "message.starmine.engineering_no_workers");
 			return Set.of();
 		}

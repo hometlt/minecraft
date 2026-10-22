@@ -47,13 +47,22 @@ final class CommandMinimap {
 	}
 
 	/** The world point (x, z) under a minimap point. */
+	/**
+	 * Blocks from the minimap's middle to its edge: {@link #RADIUS} round the camera; owner 22.10: in a skirmish the
+	 * whole map, its middle fixed.
+	 */
+	static double radius() {
+		int[] b = SkirmishScreen.bounds;
+		return b == null ? RADIUS : Math.max(b[2] - b[0], b[3] - b[1]) / 2.0;
+	}
+
 	static Vec3 world(double x, double y, int height) {
-		double scale = 2.0 * RADIUS / SIZE;
+		double scale = 2.0 * radius() / SIZE;
 		return new Vec3(centreX + (x - left() - SIZE / 2.0) * scale, 0, centreZ + (y - top(height) - SIZE / 2.0) * scale);
 	}
 
 	private static int[] screen(double wx, double wz, int height) {
-		double scale = SIZE / (2.0 * RADIUS);
+		double scale = SIZE / (2.0 * radius());
 		return new int[] {(int) (left() + SIZE / 2.0 + (wx - centreX) * scale), (int) (top(height) + SIZE / 2.0 + (wz - centreZ) * scale)};
 	}
 
@@ -115,7 +124,7 @@ final class CommandMinimap {
 	 * them, when the view is far away.
 	 */
 	private static void player(GuiGraphics graphics, Minecraft mc, int height) {
-		if (mc.player == null) return;
+		if (mc.player == null || SkirmishScreen.active) return;
 		int x0 = left(), y0 = top(height);
 		int[] at = screen(mc.player.getX(), mc.player.getZ(), height);
 		boolean inside = at[0] >= x0 + 3 && at[1] >= y0 + 3 && at[0] < x0 + SIZE - 3 && at[1] < y0 + SIZE - 3;
@@ -148,15 +157,20 @@ final class CommandMinimap {
 	private static void repaint(ClientLevel level) {
 		NativeImage image = texture.getPixels();
 		if (image == null) return;
-		centreX = Math.floor(CommandView.targetX);
-		centreZ = Math.floor(CommandView.targetZ);
-		double scale = 2.0 * RADIUS / SIZE;
+		int[] bounds = SkirmishScreen.bounds;
+		centreX = bounds != null ? (bounds[0] + bounds[2]) / 2.0 : Math.floor(CommandView.targetX);
+		centreZ = bounds != null ? (bounds[1] + bounds[3]) / 2.0 : Math.floor(CommandView.targetZ);
+		double scale = 2.0 * radius() / SIZE;
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		for (int py = 0; py < SIZE; py++)
 			for (int px = 0; px < SIZE; px++) {
 				int wx = Mth.floor(centreX + (px - SIZE / 2.0) * scale), wz = Mth.floor(centreZ + (py - SIZE / 2.0) * scale);
-				int argb;
-				if (!level.hasChunk(wx >> 4, wz >> 4)) argb = 0xFF000000;
+				int argb, painted = SkirmishOverview.at(wx, wz); // owner 22.10: the skirmish map, painted by the server
+				if (painted != 0 || bounds != null && !SkirmishOverview.inside(wx, wz)) {
+					argb = painted != 0 ? painted : 0xFF000000;
+					float dark = CommandView.fogAt(level, wx, wz);
+					if (dark > 0 && painted != 0) argb = darken(argb, dark);
+				} else if (!level.hasChunk(wx >> 4, wz >> 4)) argb = 0xFF000000;
 				else {
 					int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
 					BlockState state = level.getBlockState(pos.set(wx, top, wz));

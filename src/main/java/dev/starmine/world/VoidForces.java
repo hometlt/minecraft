@@ -19,12 +19,12 @@ public final class VoidForces {
 	/** Units that came out of a rift: Amun's, whatever their race. */
 	public static final String TAG = "starmine_amun";
 
-	/** Amun, his shards and his rifts. */
+	/** Amun and his shards; shared rifts are classified by VoidRift.invasion() in Faction. */
 	public interface Member {
 	}
 
 	public static final EntityType<Amun> AMUN = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("amun"),
-		EntityType.Builder.of(Amun::new, MobCategory.MONSTER).sized(7.0f, 4.0f).fireImmune().clientTrackingRange(16).build("amun"));
+		EntityType.Builder.of(Amun::new, MobCategory.MONSTER).sized(9.0f, 9.0f).fireImmune().clientTrackingRange(16).build("amun"));
 	public static final EntityType<VoidShard> SHARD = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("void_shard"),
 		EntityType.Builder.of(VoidShard::new, MobCategory.MONSTER).sized(2.0f, 2.0f).fireImmune().clientTrackingRange(16).build("void_shard"));
 	public static final EntityType<VoidRift> RIFT = Registry.register(BuiltInRegistries.ENTITY_TYPE, StarMine.id("void_rift"),

@@ -72,7 +72,7 @@ public final class Hive {
 	/** Game time until which villages count this base as dangerous (its terrans hurt a villager or a golem). */
 	public long villageHostileUntil;
 	/** Minerals ever brought in: the worker target grows with it. */
-	public int mineralsCollected;
+	public int mineralsCollected, vespeneCollected;
 	public int larvaTimer, decisionTimer, queenTicks = -1;
 	/**
 	 * Cells drones of this hive walk (body corners): their floors are never dug, so new tunnels do not
@@ -100,6 +100,12 @@ public final class Hive {
 	/** A drone has been sent to mutate into this building (until it arrives or gives up). */
 	public String buildOrder;
 	public long buildOrderUntil;
+	/** Recomputed after loading: a checked resource expansion and when to retry an unsuccessful search. */
+	public @org.jetbrains.annotations.Nullable BlockPos aiExpansionSite;
+	public long aiExpansionRetry;
+	public long aiResearchAfter;
+	public long aiDevelopmentAfter;
+	public final java.util.Map<BlockPos, Long> aiRejectedSites = new java.util.HashMap<>();
 	/** Hive tunnels dug (owner: not too many) and when the next may start. */
 	public int tunnels;
 	public long nextTunnel;
@@ -149,7 +155,7 @@ public final class Hive {
 	public boolean unlocked(UnitKind kind) {
 		UnitKind need = kind.requires();
 		// owner 17.10: brood lords need the spire made greater (a player's base; the wild need no research)
-		if (kind == UnitKind.BROOD_LORD && owner != null && !researched.contains(dev.starmine.ability.Modes.GREATER_SPIRE_ID)) return false;
+		if (kind == UnitKind.BROOD_LORD && !researched.contains(dev.starmine.ability.Modes.GREATER_SPIRE_ID)) return false;
 		return (need == null || count(need) > 0) && tier >= kind.tier();
 	}
 
@@ -191,9 +197,22 @@ public final class Hive {
 	public void deliver(int minerals, int vespene, int diamonds, String label, int blocks) {
 		this.minerals += minerals;
 		this.mineralsCollected += minerals;
+		this.vespeneCollected += vespene;
 		this.vespene += vespene;
 		this.diamonds += diamonds;
 		if (label != null && blocks > 0) collected.merge(label, blocks, Integer::sum);
+		capStore();
+	}
+
+	/** Owner 22.10: a player's store (its resource crates, its main building) keeps at most this many of each resource. */
+	public static final int STORE_CAP = 9999;
+
+	/** A player's base keeps at most {@link #STORE_CAP} minerals, vespene and of each resource it shows; more is lost. */
+	public void capStore() {
+		if (owner == null) return;
+		if (minerals > STORE_CAP) minerals = STORE_CAP;
+		if (vespene > STORE_CAP) vespene = STORE_CAP;
+		collected.replaceAll((label, count) -> Math.min(count, STORE_CAP));
 	}
 
 	/** Gives back what a cancelled order cost. */
@@ -276,6 +295,7 @@ public final class Hive {
 		tag.putLong("villageHostileUntil", villageHostileUntil);
 		tag.putInt("diamonds", diamonds);
 		tag.putInt("mineralsCollected", mineralsCollected);
+		tag.putInt("vespeneCollected", vespeneCollected);
 		tag.putInt("larvaTimer", larvaTimer);
 		tag.putInt("queenTicks", queenTicks);
 		tag.putBoolean("foundation", foundation);
@@ -333,6 +353,7 @@ public final class Hive {
 		hive.villageHostileUntil = tag.getLong("villageHostileUntil");
 		hive.diamonds = tag.getInt("diamonds");
 		hive.mineralsCollected = tag.getInt("mineralsCollected");
+		hive.vespeneCollected = tag.getInt("vespeneCollected");
 		hive.larvaTimer = tag.getInt("larvaTimer");
 		hive.queenTicks = tag.getInt("queenTicks");
 		hive.foundation = tag.getBoolean("foundation");

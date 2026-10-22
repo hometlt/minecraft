@@ -70,6 +70,11 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 	@Override
 	public void render(StarUnit entity, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int packedLight) {
 		if (entity.isInvisible()) return; // a worker inside a vespene building
+		if (entity.kind.platform() && entity.deathTime == 0) { // owner 22.10: the base's store is the resource crate it was
+			PlatformRenderer.drawCrate(entity.kind.race, poseStack, buffers, packedLight);
+			super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
+			return;
+		}
 		// a changeling in disguise looks like what it copied, except to its own side (dev.starmine.ability.Changeling)
 		if (entity.kind == UnitKind.CHANGELING && !entity.disguise().isEmpty() && entity.deathTime == 0
 			&& !(net.minecraft.client.Minecraft.getInstance().player != null && dev.starmine.faction.Faction.allied(entity, net.minecraft.client.Minecraft.getInstance().player))
@@ -96,7 +101,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		}
 		float drop = groundGap(entity, partialTick); // a wide body resting on a ledge: its feet drawn on the ground under it
 		if (drop > 0f) sink += drop;
-		if (entity.kind == UnitKind.SUPPLY_DEPOT && entity.deathTime == 0) // a lowered depot: its roof level with the ground (it eases down and up)
+		if (entity.kind == UnitKind.SUPPLY_DEPOT && entity.deathTime == 0 && model == StarMineModels.get(shown(entity.kind).id)) // native lowered models already contain the underground offset
 			sink = Math.max(sink, entity.kind.height * 0.85f * ModeLook.sunk(entity, partialTick, dev.starmine.ability.Modes.LOWERED));
 		if (entity.deathTime == 0) // burrowed (dev.starmine.ability.Modes): only the back shows above the ground; it digs in and comes up over its change
 			sink = Math.max(sink, entity.kind.height * 0.8f * ModeLook.sunk(entity, partialTick, dev.starmine.ability.Modes.BURROWED));
@@ -104,7 +109,12 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			choosePose(model, entity, partialTick);
 			drawer.skin(model, palette);
+			var neck = entity.kind == UnitKind.SPINE_CRAWLER && entity.deathTime == 0
+				? drawer.aimSpine(entity, model, partialTick) : null;
+			drawer.clipBelow(entity.deathTime == 0 && (entity.kind == UnitKind.SPINE_CRAWLER || entity.kind == UnitKind.SPORE_CRAWLER)
+				&& entity.mode() != dev.starmine.ability.Modes.UPROOTED && entity.changingTo() < 0 ? 0 : Float.NEGATIVE_INFINITY);
 			poseStack.pushPose();
+			constructionShape(entity, partialTick, poseStack);
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
@@ -124,11 +134,18 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				}
 			}
 			float scale = entity.kind.modelScale();
-			if (scale != 1f) poseStack.scale(scale, scale, scale);
+			if (entity.kind.structure() && model.size[0] > 0 && model.size[2] > 0) {
+				float bodyWidth = entity.kind.width * (entity.kind == UnitKind.PYLON ? 0.65f : 1f);
+				float vertical = bodyWidth / Math.max(model.size[0], model.size[2]);
+				poseStack.scale(bodyWidth / model.size[0], vertical, bodyWidth / model.size[2]);
+			} else if (scale != 1f) poseStack.scale(scale, scale, scale);
 			int overlay = OverlayTexture.pack(OverlayTexture.u(0f), OverlayTexture.v(entity.hurtTime > 0 && entity.deathTime == 0));
 			// cloaked (dev.starmine.ability.Cloak): see-through for its own side, a faint shimmer for others unless a detector reveals it
 			var player = net.minecraft.client.Minecraft.getInstance().player;
-			if (dev.starmine.ability.ProtossAbilities.SHADE.equals(entity.disguise())) // an adept's shade: see-through, violet
+			if (constructing(entity) && entity.kind.race == UnitKind.Race.PROTOSS)
+				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay,
+					((int) (80 + 175 * entity.progress() / 1000f) << 24) | 0xAADDFF);
+			else if (dev.starmine.ability.ProtossAbilities.SHADE.equals(entity.disguise())) // an adept's shade: see-through, violet
 				drawer.drawTranslucent(model, poseStack.last(), buffers, packedLight, overlay, 0x90B080FF);
 			else if (entity.cloaked() && entity.deathTime == 0 && !entity.revealed()) {
 				boolean ours = player != null && dev.starmine.faction.Faction.allied(entity, player);
@@ -138,14 +155,17 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 				else drawer.draw(model, poseStack.last(), buffers, packedLight, overlay);
 				drawer.drawTeam(model, poseStack.last(), buffers, packedLight, overlay, entity.teamColor()); // owner 19.10: its side's colour
 			}
+			CrawlerNeck.draw(neck, entity.mode() == dev.starmine.ability.Modes.UPROOTED, poseStack.last(), buffers, packedLight, overlay);
 			if (entity.kind.worker() && entity.deathTime == 0) drawCarried(entity, model, poseStack, buffers, packedLight); // owner 18.10: every race's workers
 			poseStack.popPose();
 		}
+		EnergyOrb.draw(entity, partialTick, poseStack, buffers); // owner 22.10: the archon's and the sentry's sphere of energy
 		if (entity.deathTime == 0 && sink <= 0f) // a tech lab or reactor on its side (SC2: beside it, to the east)
 			AddOnRenderer.attached(entity, poseStack, buffers, packedLight, (entity.tickCount + partialTick) / 20f);
 		if (!imported) { // owner 17.10: no imported SC2 model — StarMine's own stand-in (FallbackModels), not an outline
 			this.shadowRadius = entity.kind.flying ? entity.kind.width * 0.3f : entity.kind.width * 0.5f;
 			poseStack.pushPose();
+			constructionShape(entity, partialTick, poseStack);
 			if (sink > 0f) poseStack.translate(0f, -sink, 0f);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot)));
 			if (entity.deathTime == 0) ModeLook.shape(entity, partialTick, poseStack, false);
@@ -169,6 +189,36 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			poseStack.popPose();
 		}
 		super.render(entity, entityYaw, partialTick, poseStack, buffers, packedLight);
+	}
+
+	/** Uses synchronized construction state: server-only timers are not available to a renderer. */
+	private static boolean constructing(StarUnit unit) {
+		return unit.kind.structure() && unit.deathTime == 0 && unit.queueIds().equals("construct");
+	}
+
+	/** Visible fallback when the imported model has no native construction clip. */
+	private static void constructionShape(StarUnit unit, float partialTick, PoseStack poses) {
+		if (!constructing(unit)) return;
+		SkinnedModel model = StarMineModels.get(shown(unit.kind).id);
+		if (model != null && constructionClip(model) != null) return;
+		float progress = Mth.clamp(unit.progress() / 1000f, 0, 1);
+		float remaining = 1 - progress, time = (unit.tickCount + partialTick) / 20f;
+		switch (unit.kind.race) {
+			case TERRAN -> poses.scale(1, .12f + .88f * progress, 1);
+			case ZERG -> {
+				float pulse = (float) Math.sin(time * 5) * .035f * remaining;
+				poses.scale(.7f + .3f * progress + pulse, .15f + .85f * progress, .7f + .3f * progress + pulse);
+			}
+			case PROTOSS -> {
+				poses.translate(0, remaining * (.3f + .1f * (float) Math.sin(time * 4)), 0);
+				poses.scale(.8f + .2f * progress, .25f + .75f * progress, .8f + .2f * progress);
+			}
+		}
+	}
+
+	private static SkinnedModel.Clip constructionClip(SkinnedModel model) {
+		SkinnedModel.Clip clip = model.clips.get("construct");
+		return clip != null ? clip : model.clips.get("birth");
 	}
 
 	/**
@@ -225,6 +275,11 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 			second = new float[size];
 		}
 		float time = (entity.tickCount + partialTick) / 20f;
+		SkinnedModel.Clip construction = constructionClip(model);
+		if (constructing(entity) && construction != null) {
+			model.pose(construction, construction.seconds(model.fps) * entity.progress() / 1000f, palette);
+			return;
+		}
 		SkinnedModel.Clip death = model.clips.get("death");
 		if (entity.deathTime > 0 && death != null) {
 			model.pose(death, (entity.deathTime - 1 + partialTick) / 20f, palette);
@@ -232,7 +287,7 @@ public class UnitRenderer extends EntityRenderer<StarUnit> {
 		}
 		if (entity.deathTime > 0 && model.clips.isEmpty()) return;
 		SkinnedModel.Clip stand = model.clips.get("stand");
-		if (stand == null) stand = model.clips.values().iterator().next();
+		if (stand == null && !model.clips.isEmpty()) stand = model.clips.values().iterator().next();
 		if (stand == null) return;
 		model.pose(stand, time, palette);
 		ModeLook.pose(model, entity, partialTick, time, palette); // a morph under way, or the mode's stand

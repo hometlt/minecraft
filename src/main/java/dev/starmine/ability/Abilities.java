@@ -82,8 +82,7 @@ public final class Abilities {
 			case PLANETARY_FORTRESS -> lacks(unit, UnitKind.ENGINEERING_BAY);
 			case HELLBAT -> unit.kind == UnitKind.HELLION ? lacks(unit, UnitKind.ARMORY) : null;
 			// SC2 LotV: a lair first (a player's; the wild's overlords carry anyway)
-			case GENERATE_CREEP -> base(unit) != null && base(unit).owner != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
-			case VENTRAL_SACS -> base(unit) != null && base(unit).owner != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
+			case GENERATE_CREEP, VENTRAL_SACS -> base(unit) != null && base(unit).tier < 2 ? "message.starmine.need_tech" : null;
 			default -> null;
 		};
 	}
@@ -91,7 +90,7 @@ public final class Abilities {
 	/** "need_tech" when a player's base has no `building` (the wild and Amun need none, as for brood lords). */
 	private static @Nullable String lacks(StarUnit unit, UnitKind building) {
 		Hive base = base(unit);
-		return base == null || base.owner == null || base.count(building) > 0 ? null : "message.starmine.need_tech";
+		return base == null || base.count(building) > 0 ? null : "message.starmine.need_tech";
 	}
 
 	/**
@@ -100,7 +99,7 @@ public final class Abilities {
 	 */
 	public static boolean available(StarUnit unit, Ability ability) {
 		int mode = unit.mode();
-		if (ability == Ability.VENTRAL_SACS && unit.owner().isEmpty()) return false; // the wild's overlords carry without
+		if (ability == Ability.VENTRAL_SACS) return mode == Modes.NORMAL || mode == Modes.CREEPING;
 		if (Modes.oneWay(ability)) return mode == Modes.NORMAL;
 		// SC2: an add-on stays on the ground and an orbital command flies; only a planetary fortress keeps it down
 		if (ability == Ability.LIFT_OFF) return mode == Modes.NORMAL || mode == Modes.AIRBORNE || LiftOff.leaves(mode);
@@ -131,6 +130,7 @@ public final class Abilities {
 		if (ability == Ability.CLOAK) return unit.cloaked() && !Cloak.forced(unit);
 		if (Morphs.target(unit.kind, ability) != null) return Morphs.on(unit.kind, ability);
 		if (ability == Ability.GENERATE_CREEP) return FieldAbilities.creeping(unit);
+		if (ability == Ability.VENTRAL_SACS) return unit.mode() == Modes.SACS || unit.mode() == Modes.CREEPING_SACS;
 		int mode = Modes.of(ability);
 		return mode >= 0 && unit.mode() == mode;
 	}

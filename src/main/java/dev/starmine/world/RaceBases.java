@@ -277,7 +277,7 @@ public final class RaceBases {
 	 * The plaza's radius (owner 19.10: twice the old 30); the main building and its ring of buildings stand within CORE
 	 * (round a main building 15 wide, a ring of buildings 9 wide: 3 blocks a cell), the guns round the edge at EDGE.
 	 */
-	public static final int PLAZA = 60, CORE = 30, EDGE = PLAZA - 8;
+	public static final int PLAZA = 60, CORE = 38, EDGE = PLAZA - 8; // owner 22.10: the ring of buildings farther out (CORE was 30)
 
 	/** Builds a wild base of `race` at `site` (the main building's ground cell), its dungeon and its sky ship. */
 	public static Report build(ServerLevel level, UnitKind.Race race, BlockPos site, RandomSource random) {
@@ -301,6 +301,7 @@ public final class RaceBases {
 
 		// the plaza (owner 19.10: twice as wide; the buildings keep round the main one within CORE)
 		HiveStructure.flatten(level, centre, PLAZA, 16, true); // the disc only
+		dev.starmine.vespene.Vespene.retireNear(level, centre, PLAZA + 32); // owner 22.10: the land's own geysers keep off the base (its two are its own)
 		BaseGround.fillUnder(level, centre, PLAZA); // owner 17.10: land under the plaza, and the land round it sloping to it
 		BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 20);
 		BlockState pave = terran ? Blocks.GRAY_CONCRETE.defaultBlockState() : Blocks.SMOOTH_SANDSTONE.defaultBlockState();
@@ -327,14 +328,16 @@ public final class RaceBases {
 
 		// buildings round the main one (east left free for the way down); protoss pylons between them
 		UnitKind[] ring = terran ? TERRAN_RING : PROTOSS_RING;
-		double step = Math.PI * 2 / (ring.length + 1), radius = main.width / 2 + 7.5;
+		// owner 22.10: a little farther from the middle (was 7.5 off the main building), no farther than three pylons between
+		// it and the ring can power every building (a building 60 degrees off a pylon still within ProtossRace.POWER_RADIUS)
+		double step = Math.PI * 2 / (ring.length + 1), radius = main.width / 2 + 10;
 		for (int i = 0; i < ring.length; i++) {
 			double angle = (i + 1) * step;
 			structure.accept(ring[i], groundAt(level, centre, angle, radius + ring[i].width / 2));
 		}
 		// three pylons power the whole ring (owner 16.10: four and more were too many)
 		if (!terran) for (int i = 0; i < 3; i++)
-			structure.accept(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, radius - 1.5));
+			structure.accept(UnitKind.PYLON, groundAt(level, centre, Math.PI / 3 + i * Math.PI * 2 / 3, main.width / 2 + 4.5)); // between it and the ring
 		// owner 19.10: the base's edge always guarded — every 30 degrees (the way down in the east left free): terran missile
 		// turrets and manned bunkers, protoss photon cannons with a pylon between each two
 		for (int i = 0; i < 12; i++) {

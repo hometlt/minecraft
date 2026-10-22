@@ -1,0 +1,16 @@
+{
+	"name": "Orders Without the View",
+	"icon": "minecraft:lead",
+	"category": "starmine:basics",
+	"sortnum": 3,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "Right-click one of your units with an $(l)empty hand$(): it $(l)follows you$(), keeping a few blocks behind. Right-click it again: it $(l)stops$() where it is. Any order from the command view ends the escort.$(br2)In the command view, with one unit selected, its own buttons stand under its panel: $(l)Interface (I)$() — its window (a storage building's bank, its base's resources, your inventory for the hero), $(l)Take control (U)$() and, for a storage building, $(l)Exchange (O)$()."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "The hero sent to a $(l)chest$() (or a barrel, furnace, armored crate — anything with a window) with a right click in the command view walks to it and opens it; the view comes back when the window is closed."
+		}
+	]
+}

@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "redstone",
+	"ingredients": [
+		{
+			"item": "minecraft:redstone"
+		},
+		{
+			"item": "starmine:void_shard"
+		}
+	],
+	"result": {
+		"id": "minecraft:redstone",
+		"count": 4
+	}
+}

@@ -74,21 +74,30 @@ public final class HiveLogic {
 	}
 
 	public static void tick(StarUnit hatchery, ServerLevel level) {
+		if (hatchery.underConstruction()) return;
 		Hive hive = found(hatchery, level);
 		if (hive == null) return;
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		if (hive.id.equals(hatchery.getUUID())) hive.hatchery = hatchery.blockPosition(); // the base's first hatchery anchors it
+		else if (hatchery.tickCount % 20 == 0 && !hive.hatchery.equals(hatchery.blockPosition())
+			&& level.getEntitiesOfClass(StarUnit.class, new AABB(hive.hatchery).inflate(1),
+				other -> other.kind == UnitKind.HATCHERY && other.isAlive() && hive.id.equals(other.hiveId())).isEmpty())
+			hive.hatchery = hatchery.blockPosition(); // a surviving expansion loaded after the original was destroyed
 		if (!hive.foundation) {
 			HiveTerrain.lay(level, hive.hatchery, HiveTerrain.HATCHERY_FOUNDATION);
 			hive.foundation = true;
 		}
-		CreepGrowth.grow(level, hive.hatchery, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
+		BlockPos creepSource = hatchery.blockPosition();
+		if (hatchery.tickCount % 20 == 0) CreepSources.drip(level, creepSource, CreepSources.HATCHERY_RADIUS, 60);
+		CreepGrowth.grow(level, creepSource, CreepSources.HATCHERY_RADIUS, HiveTerrain.HATCHERY_FOUNDATION + 1);
 		// SC2: every hatchery (lair, hive) makes its own larvae, up to 3 of them, one every 11 s
 		if (larvae(hatchery, level) < MAX_LARVAE && ++hatchery.larvaTicks >= LARVA_TICKS) {
 			hatchery.larvaTicks = 0;
 			larva(level, hive, hatchery, around(hatchery, level, UnitKind.LARVA));
 		}
 		if (hive.hatchery != null && hive.hatchery.equals(hatchery.blockPosition())) hive.larvaTimer = hatchery.larvaTicks; // shown by /hive
+		if (hive.lastTick == level.getGameTime()) return;
+		hive.lastTick = level.getGameTime(); // larvae are per hatchery; shared timers and AI run once per base
 		if (hive.queenTicks >= 0 && --hive.queenTicks < 0) {
 			hive.born(UnitKind.QUEEN, 1);
 			spawn(level, hive, UnitKind.QUEEN, around(hatchery, level, UnitKind.QUEEN), null);
@@ -133,6 +142,7 @@ public final class HiveLogic {
 			site = dev.starmine.vespene.Vespene.collapseUnder(level, site); // owner 17.10: on a volcano it destroys it
 		} else {
 			site = BlockPos.containing(kind.gridCentre(Vec3.atBottomCenterOf(site))); // on the grid (owner 15.10)
+			if (dev.starmine.race.Placement.siteRefusal(level, kind, site, hive.id) != null) return null;
 			if (!HiveTerrain.prepare(level, site, half - 1, (int) Math.ceil(kind.height), true)) return null;
 		}
 		hive.pay(kind, 1);
@@ -162,8 +172,8 @@ public final class HiveLogic {
 		LivingEntity threat = null;
 		double best = 16 * 16;
 		for (LivingEntity other : level.getEntitiesOfClass(LivingEntity.class, hatchery.getBoundingBox().inflate(16),
-			entity -> entity.isAlive() && !(entity instanceof StarUnit)
-				&& (entity instanceof Player player ? !player.isCreative() && !player.isSpectator() : entity instanceof Enemy))) {
+			entity -> entity.isAlive() && dev.starmine.faction.Faction.hostile(hatchery, entity)
+				&& (entity instanceof Player player ? !player.isCreative() && !player.isSpectator() : entity instanceof Enemy || entity instanceof StarUnit))) {
 			double distance = other.distanceToSqr(hatchery);
 			if (distance < best) {
 				best = distance;
@@ -212,7 +222,7 @@ public final class HiveLogic {
 	/** The hive's warriors within 32 blocks of the alarm and without a target go for the attacker. */
 	public static void alarm(ServerLevel level, java.util.UUID hiveId, Vec3 where, LivingEntity attacker) {
 		for (StarUnit guard : level.getEntitiesOfClass(StarUnit.class, new AABB(where, where).inflate(32),
-			mob -> hiveId.equals(mob.hiveId()) && mob.isAlive() && mob.getTarget() == null && mob.kind != UnitKind.DRONE
+			mob -> hiveId.equals(mob.hiveId()) && mob.isAlive() && mob.getTarget() == null && !mob.kind.worker()
 				&& mob.kind.attack != UnitKind.Attack.NONE && !mob.kind.structure()))
 			guard.setTarget(attacker);
 	}

@@ -169,12 +169,13 @@ public final class TerranRace implements RaceRules {
 	 */
 	@Override
 	public void tendConstruction(StarUnit main, ServerLevel level, Hive base) {
-		net.minecraft.world.phys.AABB around = main.getBoundingBox().inflate(48);
+		net.minecraft.world.phys.AABB around = new net.minecraft.world.phys.AABB(base.hatchery).inflate(128);
 		List<StarUnit> scvs = level.getEntitiesOfClass(StarUnit.class, around, unit -> unit.kind == SCV && unit.isAlive() && base.id.equals(unit.hiveId()));
 		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, around, unit -> unit.kind.building() && unit.isAlive()
 				&& unit.underConstruction() && base.id.equals(unit.hiveId()))) {
 			if (scvs.stream().anyMatch(scv -> building.getUUID().equals(scv.constructing()))) continue;
-			scvs.stream().filter(scv -> scv.buildKind() == null && scv.constructing() == null && scv.raidTarget() == null && scv.cargoBlocks == 0)
+			scvs.stream().filter(scv -> scv.buildKind() == null && scv.constructing() == null && scv.raidTarget() == null && scv.cargoBlocks == 0
+				&& scv.order() == StarUnit.Order.NONE && scv.getTarget() == null && !scv.abilities.repairing())
 				.min(java.util.Comparator.comparingDouble(scv -> scv.distanceToSqr(building))).ifPresent(scv -> {
 					scv.orderBuild(building.kind, building.blockPosition());
 					scv.setConstructing(building.getUUID());

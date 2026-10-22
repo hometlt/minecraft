@@ -1,21 +1,18 @@
 {
 	"type": "minecraft:crafting_shaped",
-	"category": "misc",
+	"category": "building",
 	"pattern": [
-		"SSS",
-		"SES",
-		"SSS"
+		"CCC",
+		"CCC",
+		"CCC"
 	],
 	"key": {
-		"S": {
+		"C": {
 			"item": "starmine:void_shard"
-		},
-		"E": {
-			"item": "minecraft:ender_eye"
 		}
 	},
 	"result": {
-		"id": "starmine:void_gate",
+		"id": "starmine:void_crystal_block",
 		"count": 1
 	}
 }

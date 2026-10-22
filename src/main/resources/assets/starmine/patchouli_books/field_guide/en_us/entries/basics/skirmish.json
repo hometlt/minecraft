@@ -1,0 +1,16 @@
+{
+	"name": "Skirmish",
+	"icon": "minecraft:iron_sword",
+	"category": "starmine:basics",
+	"sortnum": 4,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Skirmish$(): a match against the AI without a hero, only the command view. In the main menu the button beside $(l)Singleplayer$(); in a game the pause menu or $(k:key.starmine.skirmish). Choose your race, the AI's race and the map: $(l)Amphion$() (a fresh copy of the prepared map), $(l)a new generated world$() (from the main menu) or $(l)a dimension$() of the world you play."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "In a skirmish the land is not broken and no blocks are placed: workers mine crystals and vespene only, blasts break nothing. The whole map is explored from the start and shown on the minimap with its relief, under the fog of war: what your units do not see now is dimmed."
+		}
+	]
+}

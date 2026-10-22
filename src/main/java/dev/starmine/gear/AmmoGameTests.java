@@ -149,6 +149,13 @@ public class AmmoGameTests implements FabricGameTest {
 			pig.setNoAi(true);
 			level.addFreshEntity(pig);
 			boolean chosen = turret.foe(level) == pig;
+			dev.starmine.world.VoidRift rift = dev.starmine.world.VoidForces.RIFT.create(level);
+			rift.moveTo(at.getX() + 7.5, at.getY(), at.getZ() + 0.5, 0, 0);
+			level.addFreshEntity(rift);
+			helper.assertTrue(turret.foe(level) == rift, "turret ignores Amun's spherical rift");
+			rift.configure(player, java.util.UUID.randomUUID(), net.minecraft.world.level.Level.NETHER, net.minecraft.world.phys.Vec3.ZERO, 3);
+			helper.assertTrue(turret.foe(level) != rift, "turret attacks a friendly player gate");
+			rift.discard();
 			turret.focus(pig);
 			boolean ordered = turret.foe(level) == pig;
 			pig.discard();

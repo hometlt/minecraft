@@ -182,51 +182,115 @@ final class VoidRenderers {
 		}
 	}
 
-	/** A void rift: a turning disc of the Void, upright, facing the viewer. */
+	/** Player gates and Amun's one-way rifts share a rotating spherical surface at their actual diameter. */
 	static final class RiftRenderer extends net.minecraft.client.renderer.entity.EntityRenderer<VoidRift> {
-		private static final ResourceLocation SKIN = StarMine.id("textures/entity/void_rift.png");
-
-		RiftRenderer(EntityRendererProvider.Context context) {
-			super(context);
-		}
-
-		@Override
-		public void render(VoidRift rift, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
-			if (drawSc2("voidrift", rift, 0, partial, pose, buffers, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)) {
-				super.render(rift, yaw, partial, pose, buffers, light);
-				return;
-			}
+		private static final ResourceLocation SKIN = StarMine.id("textures/entity/void_portal_surface.png");
+		RiftRenderer(EntityRendererProvider.Context context) { super(context); }
+		/**
+		 * Owner 22.10: a gate is see-through and glowing, and through it the world it leads to shows faintly — a panorama of
+		 * that world (tools/gen_portal_views.py) seen as through a window: each point of the sphere shows what lies in the
+		 * direction from the eye through it, so the view shifts as one walks round the gate. Over it a thin swirl of the
+		 * gate's colour, round it a glow.
+		 */
+		@Override public void render(VoidRift rift, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light) {
+			float radius = rift.size() / 2f;
+			int color = rift.color();
+			net.minecraft.world.phys.Vec3 cam = this.entityRenderDispatcher.camera.getPosition();
+			net.minecraft.world.phys.Vec3 centre = new net.minecraft.world.phys.Vec3(net.minecraft.util.Mth.lerp(partial, rift.xo, rift.getX()),
+				net.minecraft.util.Mth.lerp(partial, rift.yo, rift.getY()) + radius, net.minecraft.util.Mth.lerp(partial, rift.zo, rift.getZ()));
 			pose.pushPose();
-			pose.translate(0, rift.getBbHeight() / 2, 0);
-			pose.mulPose(entityRenderDispatcher.cameraOrientation());
-			float age = rift.tickCount + partial;
-			float pulse = 1 + Mth.sin(age * 0.15f) * 0.06f;
-			int full = net.minecraft.client.renderer.LightTexture.FULL_BRIGHT;
-			for (int layer = 0; layer < 2; layer++) {
-				pose.pushPose();
-				pose.mulPose(Axis.ZP.rotationDegrees(age * (layer == 0 ? 4 : -6)));
-				float w = (layer == 0 ? 1.6f : 1.1f) * pulse, h = (layer == 0 ? 2.2f : 1.6f) * pulse;
-				VertexConsumer buffer = buffers.getBuffer(RenderType.entityTranslucentEmissive(SKIN));
-				var last = pose.last();
-				int alpha = layer == 0 ? 230 : 160;
-				vertex(buffer, last, -w, -h, 0, 1, full, alpha);
-				vertex(buffer, last, w, -h, 1, 1, full, alpha);
-				vertex(buffer, last, w, h, 1, 0, full, alpha);
-				vertex(buffer, last, -w, h, 0, 0, full, alpha);
-				pose.popPose();
+			pose.translate(0, radius, 0);
+			// the world beyond: a window onto its panorama
+			VertexConsumer view = buffers.getBuffer(RenderType.entityTranslucentEmissive(viewOf(color)));
+			for (int lat = 0; lat < 16; lat++) for (int lon = 0; lon < 32; lon++) window(view, pose.last(), radius * 0.97f, lat, lon, centre, cam);
+			// the swirl of the gate, thin
+			pose.pushPose();
+			pose.mulPose(Axis.YP.rotationDegrees((rift.tickCount + partial) * 1.2f));
+			VertexConsumer buffer = buffers.getBuffer(RenderType.entityTranslucentEmissive(SKIN));
+			for (int lat = 0; lat < 12; lat++) for (int lon = 0; lon < 24; lon++) {
+				vertex(buffer, pose.last(), radius, lat, lon, color, 70);
+				vertex(buffer, pose.last(), radius, lat, lon + 1, color, 70);
+				vertex(buffer, pose.last(), radius, lat + 1, lon + 1, color, 70);
+				vertex(buffer, pose.last(), radius, lat + 1, lon, color, 70);
 			}
+			pose.popPose();
+			// the glow: a ring facing the eye at the gate's edge, brightest on the edge, fading out
+			glow(buffers.getBuffer(RenderType.lightning()), pose, radius, color, centre, cam, (rift.tickCount + partial) * 0.08f);
 			pose.popPose();
 			super.render(rift, yaw, partial, pose, buffers, light);
 		}
 
-		private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float u, float v, int light, int alpha) {
-			buffer.addVertex(pose, x, y, 0).setColor(255, 255, 255, alpha).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light)
-				.setNormal(pose, 0, 0, 1);
+		private static final ResourceLocation OVERWORLD_VIEW = StarMine.id("textures/entity/portal_view/overworld.png"),
+			NETHER_VIEW = StarMine.id("textures/entity/portal_view/nether.png"), END_VIEW = StarMine.id("textures/entity/portal_view/end.png"),
+			SKY_VIEW = StarMine.id("textures/entity/portal_view/stratosphere.png"), VOID_VIEW = StarMine.id("textures/entity/portal_view/void.png");
+
+		/** The world a gate leads to, by its colour ({@link VoidRift#color}). */
+		private static ResourceLocation viewOf(int color) {
+			return switch (color & 0xFFFFFF) {
+				case 0x44DD77 -> OVERWORLD_VIEW;
+				case 0xFF6028 -> NETHER_VIEW;
+				case 0xF3D45A -> END_VIEW;
+				case 0x70CBFF -> SKY_VIEW;
+				default -> VOID_VIEW;
+			};
 		}
 
-		@Override
-		public ResourceLocation getTextureLocation(VoidRift rift) {
-			return SKIN;
+		/** One quad of the window: its corners take the panorama's point in the direction from the eye through them. */
+		private static void window(VertexConsumer buffer, PoseStack.Pose pose, float r, int lat, int lon, net.minecraft.world.phys.Vec3 centre,
+			net.minecraft.world.phys.Vec3 cam) {
+			int[][] corners = {{lat, lon}, {lat, lon + 1}, {lat + 1, lon + 1}, {lat + 1, lon}};
+			float[][] uv = new float[4][];
+			float[][] at = new float[4][];
+			for (int i = 0; i < 4; i++) {
+				double a = Math.PI * corners[i][0] / 16 - Math.PI / 2, b = Math.PI * 2 * corners[i][1] / 32;
+				float x = (float) (Math.cos(a) * Math.cos(b)), y = (float) Math.sin(a), z = (float) (Math.cos(a) * Math.sin(b));
+				at[i] = new float[] {x, y, z};
+				double dx = centre.x + x * r - cam.x, dy = centre.y + y * r - cam.y, dz = centre.z + z * r - cam.z, len = Math.sqrt(dx * dx + dy * dy + dz * dz) + 1e-6;
+				float u = (float) (Math.atan2(dz, dx) / (Math.PI * 2) + 0.5), v = (float) (0.5 - Math.asin(dy / len) / Math.PI);
+				if (i > 0 && u - uv[0][0] > 0.5f) u -= 1; // the panorama's seam: corners of one quad stay on one side
+				else if (i > 0 && uv[0][0] - u > 0.5f) u += 1;
+				uv[i] = new float[] {u, v};
+			}
+			for (int i = 0; i < 4; i++)
+				buffer.addVertex(pose, at[i][0] * r, at[i][1] * r, at[i][2] * r).setColor(255, 255, 255, 120).setUv(uv[i][0], uv[i][1])
+					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT).setNormal(pose, at[i][0], at[i][1], at[i][2]);
 		}
+
+		/** A glowing ring round the gate's silhouette (additive), turned to the eye, pulsing a little. */
+		private static void glow(VertexConsumer buffer, PoseStack pose, float r, int color, net.minecraft.world.phys.Vec3 centre, net.minecraft.world.phys.Vec3 cam,
+			float time) {
+			org.joml.Vector3f toEye = new org.joml.Vector3f((float) (cam.x - centre.x), (float) (cam.y - centre.y), (float) (cam.z - centre.z));
+			if (toEye.lengthSquared() < 1e-4f) return;
+			toEye.normalize();
+			org.joml.Vector3f side = new org.joml.Vector3f(0, 1, 0).cross(toEye);
+			if (side.lengthSquared() < 1e-4f) side.set(1, 0, 0);
+			side.normalize();
+			org.joml.Vector3f up = new org.joml.Vector3f(toEye).cross(side).normalize();
+			float red = (color >> 16 & 255) / 255f, green = (color >> 8 & 255) / 255f, blue = (color & 255) / 255f;
+			float pulse = 0.75f + 0.25f * (float) Math.sin(time * 2.0);
+			float inner = r * 0.9f, outer = r * (1.12f + 0.03f * (float) Math.sin(time * 3.1));
+			PoseStack.Pose last = pose.last();
+			int segments = 48;
+			for (int i = 0; i < segments; i++) {
+				double a0 = Math.PI * 2 * i / segments, a1 = Math.PI * 2 * (i + 1) / segments;
+				float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0), c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+				org.joml.Vector3f e0 = new org.joml.Vector3f(side).mul(c0).add(new org.joml.Vector3f(up).mul(s0));
+				org.joml.Vector3f e1 = new org.joml.Vector3f(side).mul(c1).add(new org.joml.Vector3f(up).mul(s1));
+				// inner edge bright, outer edge faded out
+				buffer.addVertex(last, e0.x * inner, e0.y * inner, e0.z * inner).setColor(red, green, blue, 0.55f * pulse);
+				buffer.addVertex(last, e0.x * outer, e0.y * outer, e0.z * outer).setColor(red, green, blue, 0f);
+				buffer.addVertex(last, e1.x * outer, e1.y * outer, e1.z * outer).setColor(red, green, blue, 0f);
+				buffer.addVertex(last, e1.x * inner, e1.y * inner, e1.z * inner).setColor(red, green, blue, 0.55f * pulse);
+			}
+		}
+
+		private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float r, int lat, int lon, int color, int alpha) {
+			double a = Math.PI * lat / 12 - Math.PI / 2, b = Math.PI * 2 * lon / 24;
+			float x = (float)(Math.cos(a) * Math.cos(b)), y = (float)Math.sin(a), z = (float)(Math.cos(a) * Math.sin(b));
+			buffer.addVertex(pose, x * r, y * r, z * r).setColor(color >> 16 & 255, color >> 8 & 255, color & 255, alpha)
+				.setUv(lon / 24f, lat / 12f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
+				.setNormal(pose, x, y, z);
+		}
+		@Override public ResourceLocation getTextureLocation(VoidRift rift) { return SKIN; }
 	}
 }

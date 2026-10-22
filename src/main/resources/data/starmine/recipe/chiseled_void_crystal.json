@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "building",
+	"pattern": [
+		"B",
+		"B"
+	],
+	"key": {
+		"B": {
+			"item": "starmine:void_crystal_slab"
+		}
+	},
+	"result": {
+		"id": "starmine:chiseled_void_crystal",
+		"count": 1
+	}
+}

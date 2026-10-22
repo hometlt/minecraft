@@ -46,6 +46,9 @@ final class AbilityAi {
 	static void think(StarUnit unit, ServerLevel level, @Nullable AbilityState autocast) {
 		AbilityState state = unit.abilities;
 		if (state.changingMode() || state.channelling() || state.pending != null || Ability.of(unit.kind).isEmpty()) return;
+		if (unit.kind == UnitKind.BUNKER && autocast == null)
+			for (net.minecraft.world.entity.Entity rider : List.copyOf(unit.getPassengers()))
+				if (rider instanceof StarUnit worker && worker.kind.worker()) Transport.unloadOne(unit, rider);
 		LivingEntity target = unit.getTarget();
 		if (target != null && !target.isAlive()) target = null;
 		state.calmTicks = target == null && !foeWithin(unit, 12) ? state.calmTicks + 20 : 0;
@@ -63,6 +66,8 @@ final class AbilityAi {
 		double reach = target == null ? 0 : unit.distanceTo(target);
 		Vec3 at = target == null ? null : target.position();
 		return switch (ability) {
+			case GENERATE_CREEP -> !on && unit.order() == StarUnit.Order.NONE && unit.raidTarget() == null && cast(unit, level, ability);
+			case VENTRAL_SACS -> !on && unit.order() == StarUnit.Order.NONE && cast(unit, level, ability);
 			case CLOAK -> !on && target != null && reach < 15 && unit.energy() >= 50 || on && calm ? cast(unit, level, ability) : false;
 			case SIEGE_MODE -> {
 				Modes.Weapon siege = Modes.weapon(unit.kind, Modes.SIEGED);
@@ -127,11 +132,16 @@ final class AbilityAi {
 				&& cast(unit, level, ability, target);
 			case ANTI_ARMOR_MISSILE -> target != null && foesAround(unit, at, TerranAbilities.ANTI_ARMOR_RADIUS) >= 3 && cast(unit, level, ability, at);
 			case REPAIR -> {
-				if (state.repairTarget != null || unit.cargoBlocks > 0) yield false;
+				if (state.repairTarget != null || unit.cargoBlocks > 0 || target != null || unit.order() != StarUnit.Order.NONE
+					|| unit.buildKind() != null || unit.constructing() != null || unit.raidTarget() != null) yield false;
 				StarUnit broken = nearestOwn(unit, 16, other -> other.kind.mechanical() && other.kind.race == UnitKind.Race.TERRAN
-					&& !other.underConstruction() && other.getHealth() < other.getMaxHealth() * 0.7f);
+					&& !other.underConstruction() && other.getHealth() < other.getMaxHealth());
 				Hive base = Abilities.base(unit);
-				yield broken != null && base != null && base.minerals >= 50 && Abilities.order(level, List.of(unit), ability, broken, null);
+				long repairing = level.getEntitiesOfClass(StarUnit.class, unit.getBoundingBox().inflate(48),
+					other -> other.isAlive() && Faction.allied(unit, other) && other.abilities.repairTarget != null).size();
+				int limit = base != null && base.owner == null ? Math.min(2, Math.max(0, base.count(UnitKind.SCV) - 3)) : 2;
+				yield broken != null && repairing < limit && base != null && base.minerals > TerranAbilities.repairMineralReserve(base)
+					&& Abilities.order(level, List.of(unit), ability, broken, null);
 			}
 			case ORBITAL_COMMAND, PLANETARY_FORTRESS -> {
 				Hive base = Abilities.base(unit);
@@ -150,11 +160,12 @@ final class AbilityAi {
 			case LOWER_DEPOT -> !on && calm || on && foeWithin(unit, 12) ? cast(unit, level, ability) : false;
 			case BUILD_TECHLAB, BUILD_REACTOR -> {
 				Hive base = Abilities.base(unit);
-				boolean reactor = unit.kind == UnitKind.BARRACKS && unit.getUUID().getLeastSignificantBits() % 2 == 0;
+				boolean reactor = unit.kind == UnitKind.BARRACKS && nearestOwn(unit, 128,
+					other -> other != unit && other.kind == UnitKind.BARRACKS && other.mode() == Modes.TECHLAB) != null;
 				yield base != null && base.minerals >= 200 && base.vespene >= 75 && reactor == (ability == Ability.BUILD_REACTOR)
 					&& unit.queue().isEmpty() && cast(unit, level, ability);
 			}
-			case LOAD -> unit.kind == UnitKind.BUNKER ? foeWithin(unit, 12) && cast(unit, level, ability)
+			case LOAD -> unit.kind == UnitKind.BUNKER ? foeWithin(unit, 12) && Transport.loadDefenders(unit)
 				// a flying transport takes up the badly wounded out of a fight (a command center or a nydus does not)
 				: unit.flying() && foeWithin(unit, 12) && nearestOwn(unit, 6, other -> !other.flying() && !other.kind.structure() && !other.isPassenger()
 					&& other.kind.race == unit.kind.race && other.getHealth() < other.getMaxHealth() * 0.3f) != null && cast(unit, level, ability);
@@ -177,7 +188,10 @@ final class AbilityAi {
 			case GUARDIAN_SHIELD -> foesAround(unit, unit.position(), 9) >= 2 && cast(unit, level, ability);
 			case HALLUCINATION -> {
 				if (target == null || unit.energy() < 150) yield false;
-				unit.abilities.hallucinate = HALLUCINATED.get(level.random.nextInt(HALLUCINATED.size())); // owner 17.10: what to fake, its pick
+				// owner 22.10: under a roof (a dungeon, a cave) no flyers — a void ray or a phoenix has no room there
+				List<UnitKind> kinds = level.canSeeSky(unit.blockPosition().above((int) Math.ceil(unit.getBbHeight()))) ? HALLUCINATED
+					: HALLUCINATED.stream().filter(kind -> !kind.flying).toList();
+				unit.abilities.hallucinate = kinds.get(level.random.nextInt(kinds.size())); // owner 17.10: what to fake, its pick
 				yield cast(unit, level, ability);
 			}
 			// owner 17.10: the AI uses every ability
@@ -228,7 +242,7 @@ final class AbilityAi {
 				&& cast(unit, level, ability, unit.position());
 			case CONTAMINATE -> target instanceof StarUnit building && building.kind.structure() && !building.queue().isEmpty()
 				&& cast(unit, level, ability, target);
-			case UPROOT -> on && unit.orderPos() == null && FieldAbilities.rootRefusal(unit) == null && cast(unit, level, ability); // a crawler left uprooted roots again
+			case UPROOT -> relocateCrawler(unit, level, target, on);
 			case SUPPLY_DROP -> {
 				StarUnit depot = supplyDepot(unit);
 				yield depot != null && cast(unit, level, ability, depot);
@@ -244,8 +258,37 @@ final class AbilityAi {
 		return nearestOwn(unit, 48, other -> other.kind == UnitKind.SUPPLY_DEPOT && !other.getTags().contains(FieldAbilities.SUPPLIED) && !other.underConstruction());
 	}
 
+	/** Reposition a crawler toward threats at its base, then root before engaging. */
+	private static boolean relocateCrawler(StarUnit unit, ServerLevel level, @Nullable LivingEntity target, boolean on) {
+		if (on) return unit.orderPos() == null && FieldAbilities.rootRefusal(unit) == null && cast(unit, level, Ability.UPROOT);
+		if (target != null) return false;
+		LivingEntity threat = level.getEntitiesOfClass(LivingEntity.class, unit.getBoundingBox().inflate(36),
+			other -> other.isAlive() && Faction.hostile(unit, other)
+				&& (unit.kind == UnitKind.SPORE_CRAWLER) == Modes.airborne(other)
+				&& (!(other instanceof StarUnit hidden) || Cloak.seen(hidden, unit))).stream()
+			.min(Comparator.comparingDouble(unit::distanceToSqr)).orElse(null);
+		if (threat == null || unit.distanceTo(threat) <= unit.weapon().range()) return false;
+		Vec3 toward = threat.position().subtract(unit.position()).multiply(1, 0, 1).normalize();
+		Vec3 at = unit.position().add(toward.scale(Math.min(12, unit.distanceTo(threat) - unit.weapon().range() + 2)));
+		net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(at);
+		if (!dev.starmine.block.StarMineBlocks.isCreep(level.getBlockState(feet))
+			&& !level.getBlockState(feet.below()).is(dev.starmine.block.StarMineBlocks.THICK_CREEP)) return false;
+		if (!cast(unit, level, Ability.UPROOT)) return false;
+		unit.command(StarUnit.Order.MOVE, at);
+		return true;
+	}
+
+	/** The tag of a zerg lying in wait burrowed (a dungeon's ambush): it comes up when a foe is this near. */
+	static final String AMBUSH = dev.starmine.world.Spawn.AMBUSH;
+	public static final double AMBUSH_REACH = 6;
+
 	/** A lurker burrows to fight and comes up when calm; others burrow to heal when badly hurt and unseen, and come up healed or found. */
 	private static boolean burrow(StarUnit unit, ServerLevel level, @Nullable LivingEntity target, boolean on, boolean calm) {
+		if (on && unit.getTags().contains(AMBUSH)) { // owner 22.10: lying in wait in a tunnel; a lurker fights burrowed anyway
+			if (unit.kind == UnitKind.LURKER || !foeWithin(unit, AMBUSH_REACH)) return false;
+			unit.removeTag(AMBUSH);
+			return cast(unit, level, Ability.BURROW);
+		}
 		if (unit.kind == UnitKind.LURKER) {
 			double range = Modes.weapon(UnitKind.LURKER, Modes.BURROWED).range();
 			return !on && target != null && unit.distanceTo(target) <= range || on && calm ? cast(unit, level, Ability.BURROW) : false;

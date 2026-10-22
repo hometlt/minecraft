@@ -52,6 +52,12 @@
 		"starmine:stasis_trap",
 		"starmine:zerg_chest",
 		"starmine:terran_safe",
-		"starmine:protoss_chest"
+		"starmine:protoss_chest",
+		"starmine:void_crystal_block",
+		"starmine:void_crystal_slab",
+		"starmine:void_crystal_stairs",
+		"starmine:void_crystal_wall",
+		"starmine:chiseled_void_crystal",
+		"starmine:void_lantern"
 	]
 }

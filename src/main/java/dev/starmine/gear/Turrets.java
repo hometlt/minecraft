@@ -239,7 +239,7 @@ public final class Turrets {
 			LivingEntity best = null;
 			double bestDistance = range * range;
 			for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(range), e -> e.isAlive() && e != this)) {
-				if (e instanceof Player || e instanceof Turret || !(e instanceof Enemy)) continue;
+				if (e instanceof Player || e instanceof Turret || !(e instanceof Enemy) && !dev.starmine.faction.Faction.amun(e)) continue;
 				if (e instanceof StarUnit unit && owner != null && unit.owner().filter(owner::equals).isPresent()) continue;
 				double d = distanceToSqr(e);
 				if (d < bestDistance && hasLineOfSight(e)) {

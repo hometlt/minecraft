@@ -278,6 +278,12 @@ public final class UnitGoals {
 			}
 			double dx = unit.getX() - goal.x, dz = unit.getZ() - goal.z;
 			double flat = Math.sqrt(dx * dx + dz * dz);
+			dev.starmine.world.VoidRift portal = dev.starmine.world.VoidRift.orderedPortal(unit);
+			if (portal != null && unit.flying() && flat < 12) {
+				unit.getNavigation().stop();
+				unit.getMoveControl().setWantedPosition(goal.x, goal.y + 0.2, goal.z, 1.0);
+				return;
+			}
 			if (flat < Math.min(1.0 + unit.kind.width / 2, 1.5)) {
 				if (order == StarUnit.Order.PATROL) {
 					unit.turnPatrol();

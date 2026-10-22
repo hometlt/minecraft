@@ -183,6 +183,8 @@ final class ZergGoals {
 	static final class ReturnHome extends Goal {
 		private final StarUnit mob;
 		private final double radius;
+		private Vec3 destination;
+		private long retryAt;
 
 		ReturnHome(StarUnit mob, double radius) {
 			this.mob = mob;
@@ -193,19 +195,33 @@ final class ZergGoals {
 		@Override
 		public boolean canUse() {
 			BlockPos home = mob.home();
-			return home != null && mob.getTarget() == null && !mob.isPassenger() && mob.raidTarget() == null
-				&& mob.distanceToSqr(Vec3.atBottomCenterOf(home)) > radius * radius;
+			if (home == null || mob.getTarget() != null || mob.isPassenger() || mob.raidTarget() != null
+				|| mob.order() != StarUnit.Order.NONE || mob.level().getGameTime() < retryAt) return false;
+			Vec3 centre = Vec3.atBottomCenterOf(home);
+			double keep = radius, rim = 0;
+			for (StarUnit building : mob.level().getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(home).inflate(1),
+				unit -> unit.kind.structure() && unit.isAlive() && unit.getBoundingBox().contains(centre.add(0, .1, 0)))) {
+				rim = Math.max(rim, Math.sqrt(2) * (building.getBbWidth() / 2 + mob.getBbWidth() / 2 + .8));
+				keep = Math.max(keep, rim + 1);
+			}
+			double distance = mob.flying() ? Math.pow(mob.getX() - centre.x, 2) + Math.pow(mob.getZ() - centre.z, 2) : mob.distanceToSqr(centre);
+			if (distance <= keep * keep) return false;
+			destination = rim == 0 ? centre : Spots.outside(mob.level(), mob.kind, centre,
+				Math.atan2(mob.getZ() - centre.z, mob.getX() - centre.x), rim);
+			return true;
 		}
 
 		@Override
 		public void start() {
-			BlockPos home = mob.home();
-			if (mob.kind.flying) {
-				double y = ground(mob, home.getX(), home.getZ()) + mob.kind.hoverHeight();
-				if (!mob.getNavigation().moveTo(home.getX() + 0.5, y, home.getZ() + 0.5, 1.0))
-					mob.getMoveControl().setWantedPosition(home.getX() + 0.5, y, home.getZ() + 0.5, 1.0);
-			} else
-				mob.getNavigation().moveTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, 1.0);
+			retryAt = mob.level().getGameTime() + 40;
+			if (mob.flying()) {
+				double y = ground(mob, destination.x, destination.z) + mob.kind.hoverHeight();
+				if (!mob.getNavigation().moveTo(destination.x, y, destination.z, 1.0))
+					mob.getMoveControl().setWantedPosition(destination.x, y, destination.z, 1.0);
+			} else if (mob.getNavigation() instanceof UnitNavigation navigation) {
+				navigation.route(destination.x, destination.y, destination.z, 1.0);
+				if (navigation.deferred) retryAt = mob.level().getGameTime() + 1;
+			} else mob.getNavigation().moveTo(destination.x, destination.y, destination.z, 1.0);
 		}
 
 		@Override

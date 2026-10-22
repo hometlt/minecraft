@@ -25,9 +25,11 @@ public final class Modes {
 	public static final int NORMAL = 0, SIEGED = 1, BURROWED = 2, LANDED = 3, HELLBAT = 4, PHASING = 5, PULSAR = 6, HIGH_IMPACT = 7,
 		LOWERED = 8, WARPGATE = 9, TECHLAB = 10, REACTOR = 11, ORBITAL = 12, PLANETARY = 13,
 		AIRBORNE = 14, DEFENDER = 15, GREATER = 16, SACS = 17,
-		UPROOTED = 18, OVERSIGHT = 19, SURVEILLANCE = 20, CREEPING = 21, CREEPING_SACS = 22;
+		UPROOTED = 18, OVERSIGHT = 19, SURVEILLANCE = 20, CREEPING = 21, CREEPING_SACS = 22,
+		/** Owner 22.10: Abathur's great form, the brutalisk (an ultralisk drawn with the brutalisk's own model). */
+		BRUTALISK = 23;
 	/** The last mode (forms' own models are looked up for every mode up to it). */
-	public static final int LAST = CREEPING_SACS;
+	public static final int LAST = BRUTALISK;
 	public static final int CHANGE_TICKS = 60;
 	/** The mark of a base that has a greater spire (brood lords need it). */
 	public static final String GREATER_SPIRE_ID = "greater_spire";
@@ -67,6 +69,7 @@ public final class Modes {
 
 	/** The mode `ability` turns `unit` to (an overlord with ventral sacs keeps them while it spreads creep). */
 	public static int to(StarUnit unit, Ability ability, boolean turningOff) {
+		if (ability == Ability.VENTRAL_SACS) return FieldAbilities.creeping(unit) ? CREEPING_SACS : SACS;
 		if (ability == Ability.GENERATE_CREEP) {
 			boolean sacs = unit.mode() == SACS || unit.mode() == CREEPING_SACS;
 			return turningOff ? (sacs ? SACS : NORMAL) : (sacs ? CREEPING_SACS : CREEPING);

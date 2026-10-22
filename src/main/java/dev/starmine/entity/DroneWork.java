@@ -95,12 +95,14 @@ final class DroneWork extends Goal {
 	/** Vespene: the outlet worked, whether the worker is inside its building, ticks left inside or pumping. */
 	private BlockPos gasOutlet;
 	private boolean inside;
+	private boolean automaticGas;
 	private int gasTicks;
 	/** What the vespene drawn on this trip is worth (owner 17.10: terrazine twice vespene). */
 	private int gasWorth = Vespene.PER_TRIP;
-	static final int INSIDE = 60, PUMP = 160, GAS_WORKERS = 3;
-	/** Workers per outlet (a vespene building takes 3, as in SC2). */
-	private static final Map<BlockPos, Set<UUID>> GAS = new HashMap<>();
+	static final int INSIDE = 60, PUMP = 160, GAS_WORKERS = 2;
+	/** Maximum two workers per outlet, including trips back to storage. */
+	private static final Map<ServerLevel, Map<BlockPos, Set<UUID>>> GAS = new java.util.WeakHashMap<>();
+	private static final Map<ServerLevel, Map<BlockPos, Set<UUID>>> MINERS = new java.util.WeakHashMap<>();
 	private boolean deep;
 	private BlockPos breaking;
 	private int breakTicks, breakNeeded, stateTicks, misses, seekCooldown;
@@ -158,8 +160,10 @@ final class DroneWork extends Goal {
 		if (outlet != null) {
 			startGas(outlet);
 		} else if (HiveResources.isOre(state)) {
+			BlockPos core = dev.starmine.mineral.Minerals.core(level, pos);
 			endGas();
 			releaseAll(drone.getUUID());
+			if (core != null && !reserveMineral(level, core)) return;
 			claimGroup(level, pos);
 			mineTarget = pos.immutable();
 			deep = false;
@@ -186,6 +190,7 @@ final class DroneWork extends Goal {
 
 	@Override
 	public void stop() {
+		releaseAll(drone.getUUID());
 		// an enemy took its attention: the cracks fade, the block is left, the plan is redone later
 		cancelBreak();
 		if (inside) { // it comes out of the building with what it drew
@@ -193,6 +198,7 @@ final class DroneWork extends Goal {
 			drone.setInvisible(false);
 			drone.takeVespene(gasWorth);
 		}
+		endGas();
 		resetMove();
 	}
 
@@ -200,6 +206,14 @@ final class DroneWork extends Goal {
 	public void tick() {
 		if (!(drone.level() instanceof ServerLevel level)) return;
 		stateTicks++;
+		if (mineTarget != null && (state == State.MINE || state == State.CARRY && resume == State.MINE)) {
+			BlockPos core = dev.starmine.mineral.Minerals.core(level, mineTarget);
+			// Combat releases the old job; resuming or moving to another crystal must claim its two slots again.
+			if (core != null && !reserveMineral(level, core)) {
+				cancelBreak(); release(mineTarget); mineTarget = null; resume = State.SEEK;
+				if (state == State.MINE) to(State.SEEK);
+			}
+		}
 		if (!inside && drone.isInvisible()) drone.setInvisible(false); // saved while inside a building
 		if (breaking != null) { // a block once started is finished first
 			if (breakBlock(level, breaking)) afterBreak(level);
@@ -240,6 +254,7 @@ final class DroneWork extends Goal {
 	}
 
 	private void to(State next) {
+		if (next == State.BUILD || next == State.ENGINEER || next == State.RAID || next == State.EXPLORE || next == State.TUNNEL) endGas();
 		// work elsewhere (a building, an army's way, a raid): its marks on ore are given up, or nobody mines that ore again
 		if ((next == State.BUILD || next == State.ENGINEER || next == State.RAID || next == State.EXPLORE || next == State.TUNNEL) && mineTarget != null) {
 			releaseAll(drone.getUUID());
@@ -381,6 +396,7 @@ final class DroneWork extends Goal {
 		BlockPos gas = freeGasBuilding(level);
 		if (gas != null) {
 			startGas(gas);
+			automaticGas = true;
 			return;
 		}
 		if (griefing) {
@@ -396,6 +412,7 @@ final class DroneWork extends Goal {
 		BlockPos outlet = freeOutlet(level); // owner 17.10: a geyser within RESOURCES of its base, pumped by hand
 		if (outlet != null) {
 			startGas(outlet);
+			automaticGas = true;
 			return;
 		}
 		if (drone.cargoBlocks > 0) {
@@ -417,38 +434,79 @@ final class DroneWork extends Goal {
 
 	/** Works this outlet from now on (it gives up any other one); a load of another kind goes home first. */
 	private void startGas(BlockPos outlet) {
+		if (!(drone.level() instanceof ServerLevel level)) return;
+		Map<BlockPos, Set<UUID>> assignments = GAS.computeIfAbsent(level, k -> new HashMap<>());
+		if (workersOn(level, outlet) >= GAS_WORKERS && !assignments.getOrDefault(outlet, Set.of()).contains(drone.getUUID())) return;
+		releaseAll(drone.getUUID());
+		automaticGas = false; // explicit orders retain their two slots despite a full automatic reserve
 		endGas();
 		gasOutlet = outlet.immutable();
-		GAS.computeIfAbsent(gasOutlet, k -> new HashSet<>()).add(drone.getUUID());
+		assignments.computeIfAbsent(gasOutlet, k -> new HashSet<>()).add(drone.getUUID());
 		to(drone.cargoBlocks > 0 && !"vespene".equals(drone.cargoLabel) ? State.CARRY : State.GAS);
 		resume = State.GAS;
 	}
 
 	private void endGas() {
-		if (gasOutlet != null) {
-			Set<UUID> workers = GAS.get(gasOutlet);
-			if (workers != null && workers.remove(drone.getUUID()) && workers.isEmpty()) GAS.remove(gasOutlet);
+		if (inside) { inside = false; drone.setInvisible(false); }
+		if (gasOutlet != null && drone.level() instanceof ServerLevel level) {
+			Map<BlockPos, Set<UUID>> assignments = GAS.getOrDefault(level, Map.of());
+			Set<UUID> workers = assignments.get(gasOutlet);
+			if (workers != null && workers.remove(drone.getUUID()) && workers.isEmpty()) assignments.remove(gasOutlet);
 		}
 		gasOutlet = null;
 	}
 
 	/** Living workers on an outlet (entries of dead or unloaded ones are dropped). */
 	private static int workersOn(ServerLevel level, BlockPos outlet) {
-		Set<UUID> workers = GAS.get(outlet);
+		Set<UUID> workers = GAS.getOrDefault(level, Map.of()).get(outlet);
 		if (workers == null) return 0;
 		workers.removeIf(id -> !(level.getEntity(id) instanceof StarUnit unit) || !unit.isAlive());
 		return workers.size();
 	}
 
+	/** Automatic gas allocation must leave the small base enough workers to recover its mineral economy. */
+	private boolean automaticGasRoom(ServerLevel level, boolean assigned) {
+		Hive base = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+		if (base == null) return false;
+		int workers = base.count(UnitKind.SCV) + base.count(UnitKind.DRONE) + base.count(UnitKind.PROBE);
+		int capacity = Math.max(0, workers - Math.min(3, workers));
+		// Stop hoarding gas while minerals are scarce; separate thresholds avoid changing jobs every delivery.
+		if (base.vespene >= automaticGasBudget(base) + (assigned ? 100 : 0)) capacity = 0;
+		int onGas = 0;
+		for (Set<UUID> slots : GAS.getOrDefault(level, Map.of()).values()) for (UUID id : slots)
+			if (level.getEntity(id) instanceof StarUnit unit && unit.isAlive() && base.id.equals(unit.hiveId())) onGas++;
+		return assigned ? onGas <= capacity : onGas < capacity;
+	}
+
+	private boolean reserveMineral(ServerLevel level, BlockPos core) {
+		Map<BlockPos, Set<UUID>> assignments = MINERS.computeIfAbsent(level, k -> new HashMap<>());
+		Set<UUID> slots = assignments.computeIfAbsent(core.immutable(), k -> new HashSet<>());
+		slots.removeIf(id -> !(level.getEntity(id) instanceof StarUnit unit) || !unit.isAlive()
+			|| unit.buildKind() != null || unit.order() != StarUnit.Order.NONE);
+		if (slots.contains(drone.getUUID())) return true;
+		if (slots.size() >= 2) return false;
+		for (Set<UUID> other : assignments.values()) other.remove(drone.getUUID());
+		slots.add(drone.getUUID());
+		return true;
+	}
+
+	/** A reserve must still cover an available capital ship, even in a mineral-starved base. */
+	static int automaticGasBudget(Hive base) {
+		int required = 150;
+		for (UnitKind kind : UnitKind.values())
+			if (kind.race == base.race && base.unlocked(kind)) required = Math.max(required, kind.economy().vespene());
+		return Math.max(required, base.minerals / 2);
+	}
+
 	/** The outlet of a finished vespene building of its own hive or base nearby that wants another worker. */
 	private BlockPos freeGasBuilding(ServerLevel level) {
-		if (drone.hiveId() == null) return null;
+		if (!automaticGasRoom(level, false)) return null;
 		BlockPos best = null;
 		double bestDist = Double.MAX_VALUE;
 		for (StarUnit building : level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(RESOURCES, 48, RESOURCES),
 				mob -> mob.kind.gas() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive() && !mob.underConstruction())) {
 			BlockPos outlet = Vespene.outletUnder(level, building.blockPosition());
-			if (outlet == null || workersOn(level, outlet) >= GAS_WORKERS) continue;
+			if (outlet == null || Vespene.depleted(level, outlet) || unreachable.containsKey(outlet) || workersOn(level, outlet) >= GAS_WORKERS) continue;
 			double d = building.distanceToSqr(drone);
 			if (d < bestDist) {
 				best = outlet;
@@ -472,6 +530,14 @@ final class DroneWork extends Goal {
 			return;
 		}
 		BlockState at = level.getBlockState(gasOutlet);
+		double remaining = drone.position().distanceToSqr(Vec3.atCenterOf(gasOutlet));
+		if (!inside && remaining > 36) {
+			if (remaining < mineBest - 0.5) { mineBest = remaining; mineStuck = 0; }
+			else if (++mineStuck > MINE_PATIENCE) {
+				unreachable.put(gasOutlet, level.getGameTime() + GIVE_UP_FOR);
+				endGas(); to(State.SEEK); return;
+			}
+		}
 		if (inside) {
 			drone.getNavigation().stop();
 			if (--gasTicks > 0) return;
@@ -481,7 +547,12 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		if (!Vespene.isOutlet(at)) { // the vein is gone
+		if (automaticGas && !automaticGasRoom(level, true)) {
+			endGas();
+			to(State.SEEK);
+			return;
+		}
+		if (!Vespene.isOutlet(at) || Vespene.depleted(level, gasOutlet)) {
 			endGas();
 			to(State.SEEK);
 			return;
@@ -501,15 +572,17 @@ final class DroneWork extends Goal {
 			if (move == Move.ARRIVED) {
 				drone.getNavigation().stop();
 				if (VespeneBlock.isSource(at)) { // in it goes; the outlet is emptied and its vein refills it
-					gasWorth = Vespene.perTrip(at);
-					VespeneBlock.take(level, gasOutlet, at);
+					gasWorth = VespeneBlock.take(level, gasOutlet, at);
+					if (gasWorth == 0) return;
 					inside = true;
 					gasTicks = INSIDE;
 					drone.setInvisible(true);
 					drone.playSound(net.minecraft.sounds.SoundEvents.BUCKET_FILL, 0.6f, 0.7f);
 				}
 			} else if (move == Move.FAILED) {
-				resetMove();
+				unreachable.put(gasOutlet, level.getGameTime() + GIVE_UP_FOR);
+				endGas();
+				to(State.SEEK);
 			}
 			return;
 		}
@@ -519,8 +592,10 @@ final class DroneWork extends Goal {
 			return;
 		}
 		// a bare outlet: pumped by hand beside it
-		if (!reach(gasOutlet)) {
-			if (moveTo(level, besideOutlet(level, gasOutlet), 1.5, true) == Move.FAILED) {
+		// A four-block cone cannot be climbed: pump from its foot with the hose.
+		if (remaining > 36) {
+			if (moveTo(level, besideOutlet(level, gasOutlet), 0.4, true) == Move.FAILED) {
+				unreachable.put(gasOutlet, level.getGameTime() + GIVE_UP_FOR);
 				endGas();
 				to(State.SEEK);
 			}
@@ -536,9 +611,10 @@ final class DroneWork extends Goal {
 				gasOutlet.getX() + 0.5, gasOutlet.getY() + 1.1, gasOutlet.getZ() + 0.5, 6, 0.3, 0.3, 0.3, 0);
 		}
 		if (--gasTicks > 0) return;
-		VespeneBlock.take(level, gasOutlet, at);
+		int gathered = VespeneBlock.take(level, gasOutlet, at);
 		drone.playSound(net.minecraft.sounds.SoundEvents.BUCKET_FILL, 0.8f, 0.8f);
-		drone.takeVespene(Vespene.perTrip(at));
+		if (gathered == 0) { endGas(); to(State.SEEK); return; }
+		drone.takeVespene(gathered);
 		gasTicks = PUMP;
 		to(State.CARRY);
 	}
@@ -549,11 +625,12 @@ final class DroneWork extends Goal {
 	 */
 	private Vec3 besideOutlet(ServerLevel level, BlockPos outlet) {
 		Vec3 best = null;
-		for (Direction side : Direction.Plane.HORIZONTAL)
-			for (int dy = 0; dy <= 1; dy++) {
-				BlockPos floor = outlet.relative(side).above(dy);
+		for (int dx = -5; dx <= 5; dx++) for (int dz = -5; dz <= 5; dz++)
+			for (int dy = -4; dy <= 1; dy++) {
+				BlockPos floor = outlet.offset(dx, dy, dz);
 				if (!DronePlanner.solid(level, floor) || DronePlanner.solid(level, floor.above()) || DronePlanner.solid(level, floor.above(2))) continue;
 				Vec3 spot = Vec3.atBottomCenterOf(floor.above());
+				if (spot.distanceToSqr(Vec3.atCenterOf(outlet)) > 5.5 * 5.5) continue;
 				if (best == null || spot.distanceToSqr(drone.position()) < best.distanceToSqr(drone.position())) best = spot;
 				break;
 			}
@@ -585,7 +662,12 @@ final class DroneWork extends Goal {
 		if (crystal != null) return crystal;
 		// owner 17.10: other valuables only within ORE_RADIUS of the worker itself — through walls, but no farther;
 		// beyond that it explores (and finds them as it goes)
-		return findOre(level, drone.blockPosition(), ORE_RADIUS, drone.getUUID(), unreachable.keySet());
+		BlockPos ore = findOre(level, drone.blockPosition(), ORE_RADIUS, drone.getUUID(), unreachable.keySet());
+		if (ore != null && dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(ore))) {
+			BlockPos core = dev.starmine.mineral.Minerals.core(level, ore);
+			if (core == null || !reserveMineral(level, core)) return null;
+		}
+		return ore;
 	}
 
 	/** The nearest crystal or ore in a mining area this worker can still reach (minerals first, as everywhere). */
@@ -596,6 +678,13 @@ final class DroneWork extends Goal {
 			if (unreachable.containsKey(at)) continue;
 			BlockState state = level.getBlockState(at);
 			boolean crystal = dev.starmine.mineral.Minerals.isCrystal(state);
+			if (crystal) {
+				BlockPos core = dev.starmine.mineral.Minerals.core(level, at);
+				if (core == null) continue;
+				Set<UUID> slots = MINERS.getOrDefault(level, Map.of()).getOrDefault(core, Set.of());
+				if (!slots.isEmpty()) slots.removeIf(id -> !(level.getEntity(id) instanceof StarUnit worker) || !worker.isAlive() || worker.buildKind() != null);
+				if (slots.size() >= 2 && !slots.contains(drone.getUUID())) continue;
+			}
 			if (!crystal && !HiveResources.isOre(state)) continue;
 			double d = at.distSqr(drone.blockPosition());
 			if (crystal ? d < crystalDistance : d < bestDistance) {
@@ -608,7 +697,11 @@ final class DroneWork extends Goal {
 				}
 			}
 		}
-		return bestCrystal != null ? bestCrystal : best;
+		if (bestCrystal != null) {
+			BlockPos core = dev.starmine.mineral.Minerals.core(level, bestCrystal);
+			if (core != null && reserveMineral(level, core)) return core;
+		}
+		return best;
 	}
 
 	/** How far from its base a worker looks for mineral crystals and vespene geysers (owner 17.10: 100). */
@@ -621,7 +714,8 @@ final class DroneWork extends Goal {
 	 * base's storage that wants a worker, nearest the storage; none with another base's building on it.
 	 */
 	private BlockPos freeOutlet(ServerLevel level) {
-		if (drone.hiveId() == null) return null;
+		unreachable.values().removeIf(until -> until < level.getGameTime());
+		if (!automaticGasRoom(level, false)) return null;
 		StarUnit storage = level.getEntitiesOfClass(StarUnit.class, drone.getBoundingBox().inflate(RESOURCES),
 			mob -> mob.kind.storage() && drone.hiveId().equals(mob.hiveId()) && mob.isAlive()).stream()
 			.min(java.util.Comparator.comparingDouble(mob -> mob.distanceToSqr(drone))).orElse(null);
@@ -638,7 +732,7 @@ final class DroneWork extends Goal {
 						BlockPos outlet = vein.outlet(i);
 						double d = outlet.distSqr(from);
 						if (d > (double) RESOURCES * RESOURCES || d >= bestDist || unreachable.containsKey(outlet)) continue;
-						if (!Vespene.isOutlet(level.getBlockState(outlet)) || workersOn(level, outlet) >= GAS_WORKERS) continue;
+						if (!Vespene.isOutlet(level.getBlockState(outlet)) || Vespene.depleted(level, outlet) || workersOn(level, outlet) >= GAS_WORKERS) continue;
 						StarUnit building = buildingOn(level, outlet, false);
 						if (building != null && buildingOn(level, outlet, true) == null) continue; // another base's, or being built
 						best = outlet;
@@ -665,7 +759,8 @@ final class DroneWork extends Goal {
 		List<BlockPos> cores = dev.starmine.mineral.Minerals.coresNear(level, from, CRYSTALS);
 		cores.removeIf(unreachable::containsKey);
 		if (cores.isEmpty()) return null;
-		return cores.get(Math.floorMod(drone.getUUID().hashCode(), Math.min(3, cores.size())));
+		for (BlockPos core : cores) if (reserveMineral(level, core)) return core;
+		return null;
 	}
 
 	/** What a worker at `at` sees to mine besides crystals: the nearest valuable within {@link #ORE_RADIUS}, through walls. */
@@ -680,9 +775,11 @@ final class DroneWork extends Goal {
 				others.add(claim.getKey());
 		BlockPos best = null, crowded = null;
 		double bestDist = Double.MAX_VALUE, crowdedDist = Double.MAX_VALUE;
+		boolean locked = dev.starmine.world.Skirmish.terrainLocked(level);
 		for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-radius, -radius, -radius), centre.offset(radius, radius, radius))) {
 			UUID owner = CLAIMS.get(pos);
 			if (owner != null && !owner.equals(self) || skip.contains(pos) || !HiveResources.isOre(level.getBlockState(pos))) continue;
+			if (locked && !dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(pos))) continue; // a skirmish: crystals only
 			double d = pos.distSqr(centre);
 			boolean near = false;
 			for (BlockPos other : others) if (other.distSqr(pos) < SPREAD * SPREAD) { near = true; break; }
@@ -727,7 +824,7 @@ final class DroneWork extends Goal {
 			to(State.CARRY);
 			return;
 		}
-		if (ore && reach(mineTarget)) {
+		if (ore && reach(mineTarget) && sees(level, mineTarget)) { // owner 22.10: not through the ground in between
 			start(level, mineTarget);
 			return;
 		}
@@ -770,7 +867,7 @@ final class DroneWork extends Goal {
 			}
 		}
 		mineTarget = null;
-		releaseAll(drone.getUUID());
+		CLAIMS.values().removeIf(drone.getUUID()::equals);
 		return false;
 	}
 
@@ -818,10 +915,20 @@ final class DroneWork extends Goal {
 		}
 		Vec3 edge = flat < 0.01 ? centre.add(rim, 0, 0) : centre.add(dx / flat * rim, 0, dz / flat * rim);
 		// leg by leg when far: the plan's reach is 40 blocks
-		Vec3 goal = drone.position().distanceTo(edge) > 36 ? surface(level, drone.position().add(edge.subtract(drone.position()).normalize().scale(32))) : edge;
+		Vec3 goal = deliveryLeg(level, drone.position(), edge);
 		Move move = moveTo(level, goal, 2.0, griefing);
 		if (move == Move.FAILED) resetMove();
 		else if (move == Move.ARRIVED && goal == edge) drone.getMoveControl().setWantedPosition(centre.x, drone.getY(), centre.z, 1.0); // the last steps straight in
+	}
+
+	/** Long underground deliveries stay on their route instead of targeting the world's surface. */
+	static Vec3 deliveryLeg(ServerLevel level, Vec3 from, Vec3 edge) {
+		if (from.distanceTo(edge) <= 36) return edge;
+		Vec3 leg = from.add(edge.subtract(from).normalize().scale(32));
+		if (level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(from.x), (int) Math.floor(from.z)) <= from.y + 1
+			&& level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(edge.x), (int) Math.floor(edge.z)) <= edge.y + 1)
+			return new Vec3(leg.x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(leg.x), (int) Math.floor(leg.z)), leg.z);
+		return leg;
 	}
 
 	private Vec3 surface(ServerLevel level, Vec3 point) {
@@ -916,7 +1023,7 @@ final class DroneWork extends Goal {
 		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), buildReach(level, kind, site), kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused: " + dev.starmine.race.Placement.refusal(base, kind) + "/" + dev.starmine.race.Placement.siteRefusal(level, kind, site, base.id) + " funds=" + base.minerals + "/" + base.vespene);
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			giveUp(kind, site, move == Move.FAILED ? "no way there" : "too long on the way");
 		}
@@ -932,6 +1039,13 @@ final class DroneWork extends Goal {
 	/** The build order is given up (logged: a wild base's AI then orders it again elsewhere). */
 	private void giveUp(UnitKind kind, BlockPos site, String why) {
 		LOG.info("A {} gave up building a {} at {} ({}); it stood at {}", drone.kind.id, kind.id, site.toShortString(), why, drone.blockPosition().toShortString());
+		if (drone.level() instanceof ServerLevel level) {
+			Hive base = HiveSavedData.get(level.getServer()).get(drone.hiveId());
+			if (base != null && kind.name().equals(base.buildOrder) && base.pending(kind) == 0) {
+				base.aiRejectedSites.put(site.immutable(), level.getGameTime() + 1200);
+				base.aiDevelopmentAfter = 0; base.buildOrder = null;
+			}
+		}
 		drone.cancelBuild();
 	}
 
@@ -960,7 +1074,7 @@ final class DroneWork extends Goal {
 		}
 		Move move = moveTo(level, Vec3.atBottomCenterOf(site), buildReach(level, kind, site), kind.gas()); // an outlet may be underground
 		if (move == Move.ARRIVED) {
-			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused at the site");
+			if (kind.race.rules().placeBuilding(drone, level, base, kind, site) == null) giveUp(kind, site, "refused: " + dev.starmine.race.Placement.refusal(base, kind) + "/" + dev.starmine.race.Placement.siteRefusal(level, kind, site, base.id) + " funds=" + base.minerals + "/" + base.vespene);
 		} else if (move == Move.FAILED || stateTicks > 1200) {
 			giveUp(kind, site, move == Move.FAILED ? "no way there" : "too long on the way");
 		}
@@ -1129,6 +1243,22 @@ final class DroneWork extends Goal {
 		return drone.getEyePosition().distanceToSqr(centre) <= REACH * REACH || drone.position().distanceToSqr(centre) <= REACH * REACH;
 	}
 
+	/**
+	 * Owner 22.10: a worker takes ore it can get at — nothing solid between its eyes (or its middle) and the block.
+	 * Workers took ore through the ground before.
+	 */
+	private boolean sees(ServerLevel level, BlockPos pos) {
+		boolean crystal = dev.starmine.mineral.Minerals.isCrystal(level.getBlockState(pos));
+		if (crystal) return true; // a crystal stands in the open (a field, a hall): its own shards would hide it from the ray
+		Vec3 to = Vec3.atCenterOf(pos);
+		for (Vec3 from : new Vec3[] {drone.getEyePosition(), drone.position().add(0, Math.min(0.5, drone.getBbHeight() / 2), 0)}) {
+			net.minecraft.world.phys.BlockHitResult hit = level.clip(new net.minecraft.world.level.ClipContext(from, to,
+				net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, drone));
+			if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS || hit.getBlockPos().equals(pos)) return true;
+		}
+		return false;
+	}
+
 	private void start(ServerLevel level, BlockPos pos) {
 		if (pos.equals(breaking)) return;
 		mineStuck = 0; // breaking its way is progress
@@ -1141,6 +1271,7 @@ final class DroneWork extends Goal {
 
 	/** One tick of breaking: cracks, swings; true once the block is gone. */
 	private boolean breakBlock(ServerLevel level, BlockPos pos) {
+		if (breakTicks % 20 == 0) dev.starmine.ability.BurrowDamage.strike(drone, pos);
 		BlockState state = level.getBlockState(pos);
 		if (state.isAir()) {
 			breaking = null;
@@ -1207,5 +1338,7 @@ final class DroneWork extends Goal {
 	/** A drone that dies or unloads gives up its claims. */
 	static void releaseAll(UUID drone) {
 		CLAIMS.values().removeIf(drone::equals);
+		for (Map<BlockPos, Set<UUID>> assignments : MINERS.values()) for (Set<UUID> slots : assignments.values()) slots.remove(drone);
+		for (Map<BlockPos, Set<UUID>> assignments : GAS.values()) for (Set<UUID> slots : assignments.values()) slots.remove(drone);
 	}
 }

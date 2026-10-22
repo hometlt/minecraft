@@ -16,6 +16,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +26,8 @@ import static dev.starmine.entity.UnitKind.*;
 
 /**
  * The balance stand (docs/CLOUD_TASK.md, stage E; results in docs/BALANCE.md): two wild armies of equal
- * cost (SC2 minerals + vespene) of two races meet in a walled arena and fight to the end; every fight
- * runs with the sides swapped and with two seeds (formation jitter), at three tech levels. Each logs a
+ * cost (SC2 minerals + vespene) of two races meet on an open, level arena and fight to the end; every fight
+ * runs in its own batch, with the sides swapped and with two seeds (formation jitter), at three tech levels. Each logs a
  * `[balance]` line: who won, what is left of the winner's army (its cost), how long it took. Both armies
  * are wild, so both use their abilities by the AI's rules ({@link dev.starmine.ability.AbilityAi}).
  *
@@ -109,7 +110,13 @@ public class BalanceGameTests implements FabricGameTest {
 	/** A fight of tier `tier` between army `a` (west) and army `b` (east). */
 	private static void fight(GameTestHelper helper, int tier, int a, int b, long seed) {
 		if (off(helper)) return;
-		walls(helper, false); // not every base: the fights of a batch start together, each with bases of its own
+		// Blink can cross the old walls and strand stalkers two blocks below their foes.
+		TestArena.clear(helper, false);
+		BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+		helper.getLevel().getEntitiesOfClass(StarUnit.class, new AABB(Vec3.atLowerCornerOf(origin.offset(-80, 0, -80)), Vec3.atLowerCornerOf(origin.offset(128, 30, 128))))
+			.forEach(StarUnit::discard); // isolated batches: remove survivors of earlier fixtures before opening the ground
+		for (BlockPos rel : BlockPos.betweenClosed(-64, 1, -64, 111, 18, 111))
+			helper.getLevel().setBlock(origin.offset(rel), rel.getY() == 1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
 		Army west = TIERS[tier][a], east = TIERS[tier][b];
 		Random random = new Random(seed);
 		List<StarUnit> left = deploy(helper, buy(west, BUDGET[tier]), 5, random), right = deploy(helper, buy(east, BUDGET[tier]), 42, random);
@@ -143,6 +150,14 @@ public class BalanceGameTests implements FabricGameTest {
 					if (foe != null) for (StarUnit unit : side) if (unit.isAlive() && unit.getTarget() == null) unit.command(StarUnit.Order.ATTACK_MOVE, foe.position());
 				}
 			if (!over) return;
+			boolean outside = java.util.stream.Stream.concat(left.stream(), right.stream()).filter(StarUnit::isAlive)
+				.anyMatch(unit -> { Vec3 at = TestArena.rel(helper, unit); return at.x < -63 || at.x > 111 || at.z < -63 || at.z > 111 || at.y < 1.7; });
+			if (outside) {
+				for (List<StarUnit> side : List.of(left, right)) side.forEach(StarUnit::discard);
+				for (Hive base : bases) HiveSavedData.get(helper.getLevel().getServer()).remove(base.id);
+				helper.fail("balance participants left the prepared ground; winner is invalid");
+				return;
+			}
 			String winner = l > r ? west.name() : r > l ? east.name() : "draw";
 			double share = l > r ? l / (double) leftWorth : r > l ? r / (double) rightWorth : 0;
 			LOG.info("[balance] tier {} | {} ({} {}) vs {} ({} {}) | seed {} | winner {} {} | left {}% of {} | {} ticks{}", tier + 1,
@@ -157,6 +172,7 @@ public class BalanceGameTests implements FabricGameTest {
 							: unit.getTarget(), unit.order(), unit.goalsRunning()));
 			done[0] = true;
 			for (Hive base : bases) HiveSavedData.get(helper.getLevel().getServer()).remove(base.id);
+			for (List<StarUnit> side : List.of(left, right)) side.forEach(StarUnit::discard);
 			helper.succeed();
 		});
 	}
@@ -206,44 +222,44 @@ public class BalanceGameTests implements FabricGameTest {
 	}
 
 	// tier 1: zerglings, marines, zealots — each pair with the sides swapped, two seeds
-	@GameTest(template = ARENA, batch = "balance1zt", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvT1(GameTestHelper h) { fight(h, 0, 0, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance1zt", timeoutTicks = FIGHT_TICKS + 200) public void t1TvZ1(GameTestHelper h) { fight(h, 0, 1, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance1zt", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvT2(GameTestHelper h) { fight(h, 0, 0, 1, 2); }
-	@GameTest(template = ARENA, batch = "balance1zt", timeoutTicks = FIGHT_TICKS + 200) public void t1TvZ2(GameTestHelper h) { fight(h, 0, 1, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance1zp", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvP1(GameTestHelper h) { fight(h, 0, 0, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance1zp", timeoutTicks = FIGHT_TICKS + 200) public void t1PvZ1(GameTestHelper h) { fight(h, 0, 2, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance1zp", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvP2(GameTestHelper h) { fight(h, 0, 0, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance1zp", timeoutTicks = FIGHT_TICKS + 200) public void t1PvZ2(GameTestHelper h) { fight(h, 0, 2, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance1tp", timeoutTicks = FIGHT_TICKS + 200) public void t1TvP1(GameTestHelper h) { fight(h, 0, 1, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance1tp", timeoutTicks = FIGHT_TICKS + 200) public void t1PvT1(GameTestHelper h) { fight(h, 0, 2, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance1tp", timeoutTicks = FIGHT_TICKS + 200) public void t1TvP2(GameTestHelper h) { fight(h, 0, 1, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance1tp", timeoutTicks = FIGHT_TICKS + 200) public void t1PvT2(GameTestHelper h) { fight(h, 0, 2, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance1zt_t1ZvT1", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvT1(GameTestHelper h) { fight(h, 0, 0, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance1zt_t1TvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t1TvZ1(GameTestHelper h) { fight(h, 0, 1, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance1zt_t1ZvT2", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvT2(GameTestHelper h) { fight(h, 0, 0, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance1zt_t1TvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t1TvZ2(GameTestHelper h) { fight(h, 0, 1, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance1zp_t1ZvP1", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvP1(GameTestHelper h) { fight(h, 0, 0, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance1zp_t1PvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t1PvZ1(GameTestHelper h) { fight(h, 0, 2, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance1zp_t1ZvP2", timeoutTicks = FIGHT_TICKS + 200) public void t1ZvP2(GameTestHelper h) { fight(h, 0, 0, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance1zp_t1PvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t1PvZ2(GameTestHelper h) { fight(h, 0, 2, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance1tp_t1TvP1", timeoutTicks = FIGHT_TICKS + 200) public void t1TvP1(GameTestHelper h) { fight(h, 0, 1, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance1tp_t1PvT1", timeoutTicks = FIGHT_TICKS + 200) public void t1PvT1(GameTestHelper h) { fight(h, 0, 2, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance1tp_t1TvP2", timeoutTicks = FIGHT_TICKS + 200) public void t1TvP2(GameTestHelper h) { fight(h, 0, 1, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance1tp_t1PvT2", timeoutTicks = FIGHT_TICKS + 200) public void t1PvT2(GameTestHelper h) { fight(h, 0, 2, 1, 2); }
 	// tier 2: roaches and hydralisks, bio with a medivac, stalkers and a sentry
-	@GameTest(template = ARENA, batch = "balance2zt", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvT1(GameTestHelper h) { fight(h, 1, 0, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance2zt", timeoutTicks = FIGHT_TICKS + 200) public void t2TvZ1(GameTestHelper h) { fight(h, 1, 1, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance2zt", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvT2(GameTestHelper h) { fight(h, 1, 0, 1, 2); }
-	@GameTest(template = ARENA, batch = "balance2zt", timeoutTicks = FIGHT_TICKS + 200) public void t2TvZ2(GameTestHelper h) { fight(h, 1, 1, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance2zp", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvP1(GameTestHelper h) { fight(h, 1, 0, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance2zp", timeoutTicks = FIGHT_TICKS + 200) public void t2PvZ1(GameTestHelper h) { fight(h, 1, 2, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance2zp", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvP2(GameTestHelper h) { fight(h, 1, 0, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance2zp", timeoutTicks = FIGHT_TICKS + 200) public void t2PvZ2(GameTestHelper h) { fight(h, 1, 2, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance2tp", timeoutTicks = FIGHT_TICKS + 200) public void t2TvP1(GameTestHelper h) { fight(h, 1, 1, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance2tp", timeoutTicks = FIGHT_TICKS + 200) public void t2PvT1(GameTestHelper h) { fight(h, 1, 2, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance2tp", timeoutTicks = FIGHT_TICKS + 200) public void t2TvP2(GameTestHelper h) { fight(h, 1, 1, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance2tp", timeoutTicks = FIGHT_TICKS + 200) public void t2PvT2(GameTestHelper h) { fight(h, 1, 2, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance2zt_t2ZvT1", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvT1(GameTestHelper h) { fight(h, 1, 0, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance2zt_t2TvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t2TvZ1(GameTestHelper h) { fight(h, 1, 1, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance2zt_t2ZvT2", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvT2(GameTestHelper h) { fight(h, 1, 0, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance2zt_t2TvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t2TvZ2(GameTestHelper h) { fight(h, 1, 1, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance2zp_t2ZvP1", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvP1(GameTestHelper h) { fight(h, 1, 0, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance2zp_t2PvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t2PvZ1(GameTestHelper h) { fight(h, 1, 2, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance2zp_t2ZvP2", timeoutTicks = FIGHT_TICKS + 200) public void t2ZvP2(GameTestHelper h) { fight(h, 1, 0, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance2zp_t2PvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t2PvZ2(GameTestHelper h) { fight(h, 1, 2, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance2tp_t2TvP1", timeoutTicks = FIGHT_TICKS + 200) public void t2TvP1(GameTestHelper h) { fight(h, 1, 1, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance2tp_t2PvT1", timeoutTicks = FIGHT_TICKS + 200) public void t2PvT1(GameTestHelper h) { fight(h, 1, 2, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance2tp_t2TvP2", timeoutTicks = FIGHT_TICKS + 200) public void t2TvP2(GameTestHelper h) { fight(h, 1, 1, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance2tp_t2PvT2", timeoutTicks = FIGHT_TICKS + 200) public void t2PvT2(GameTestHelper h) { fight(h, 1, 2, 1, 2); }
 	// tier 3: ultralisks, tanks, colossi with air support
-	@GameTest(template = ARENA, batch = "balance3zt", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvT1(GameTestHelper h) { fight(h, 2, 0, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance3zt", timeoutTicks = FIGHT_TICKS + 200) public void t3TvZ1(GameTestHelper h) { fight(h, 2, 1, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance3zt", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvT2(GameTestHelper h) { fight(h, 2, 0, 1, 2); }
-	@GameTest(template = ARENA, batch = "balance3zt", timeoutTicks = FIGHT_TICKS + 200) public void t3TvZ2(GameTestHelper h) { fight(h, 2, 1, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance3zp", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvP1(GameTestHelper h) { fight(h, 2, 0, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance3zp", timeoutTicks = FIGHT_TICKS + 200) public void t3PvZ1(GameTestHelper h) { fight(h, 2, 2, 0, 1); }
-	@GameTest(template = ARENA, batch = "balance3zp", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvP2(GameTestHelper h) { fight(h, 2, 0, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance3zp", timeoutTicks = FIGHT_TICKS + 200) public void t3PvZ2(GameTestHelper h) { fight(h, 2, 2, 0, 2); }
-	@GameTest(template = ARENA, batch = "balance3tp", timeoutTicks = FIGHT_TICKS + 200) public void t3TvP1(GameTestHelper h) { fight(h, 2, 1, 2, 1); }
-	@GameTest(template = ARENA, batch = "balance3tp", timeoutTicks = FIGHT_TICKS + 200) public void t3PvT1(GameTestHelper h) { fight(h, 2, 2, 1, 1); }
-	@GameTest(template = ARENA, batch = "balance3tp", timeoutTicks = FIGHT_TICKS + 200) public void t3TvP2(GameTestHelper h) { fight(h, 2, 1, 2, 2); }
-	@GameTest(template = ARENA, batch = "balance3tp", timeoutTicks = FIGHT_TICKS + 200) public void t3PvT2(GameTestHelper h) { fight(h, 2, 2, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance3zt_t3ZvT1", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvT1(GameTestHelper h) { fight(h, 2, 0, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance3zt_t3TvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t3TvZ1(GameTestHelper h) { fight(h, 2, 1, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance3zt_t3ZvT2", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvT2(GameTestHelper h) { fight(h, 2, 0, 1, 2); }
+	@GameTest(template = ARENA, batch = "balance3zt_t3TvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t3TvZ2(GameTestHelper h) { fight(h, 2, 1, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance3zp_t3ZvP1", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvP1(GameTestHelper h) { fight(h, 2, 0, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance3zp_t3PvZ1", timeoutTicks = FIGHT_TICKS + 200) public void t3PvZ1(GameTestHelper h) { fight(h, 2, 2, 0, 1); }
+	@GameTest(template = ARENA, batch = "balance3zp_t3ZvP2", timeoutTicks = FIGHT_TICKS + 200) public void t3ZvP2(GameTestHelper h) { fight(h, 2, 0, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance3zp_t3PvZ2", timeoutTicks = FIGHT_TICKS + 200) public void t3PvZ2(GameTestHelper h) { fight(h, 2, 2, 0, 2); }
+	@GameTest(template = ARENA, batch = "balance3tp_t3TvP1", timeoutTicks = FIGHT_TICKS + 200) public void t3TvP1(GameTestHelper h) { fight(h, 2, 1, 2, 1); }
+	@GameTest(template = ARENA, batch = "balance3tp_t3PvT1", timeoutTicks = FIGHT_TICKS + 200) public void t3PvT1(GameTestHelper h) { fight(h, 2, 2, 1, 1); }
+	@GameTest(template = ARENA, batch = "balance3tp_t3TvP2", timeoutTicks = FIGHT_TICKS + 200) public void t3TvP2(GameTestHelper h) { fight(h, 2, 1, 2, 2); }
+	@GameTest(template = ARENA, batch = "balance3tp_t3PvT2", timeoutTicks = FIGHT_TICKS + 200) public void t3PvT2(GameTestHelper h) { fight(h, 2, 2, 1, 2); }
 
 	// ---- economy: 4 workers of each race on the same ore for 2 minutes ----
 

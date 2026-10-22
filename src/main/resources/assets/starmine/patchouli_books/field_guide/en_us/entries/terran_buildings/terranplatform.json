@@ -1,5 +1,5 @@
 {
-	"name": "Terran Supply Platform",
+	"name": "Terran Resource Crate",
 	"icon": "starmine:terranplatform_spawn_egg",
 	"category": "starmine:terran_buildings",
 	"sortnum": 14,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:terranplatform",
-			"name": "Terran Supply Platform",
+			"name": "Terran Resource Crate",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Terran Supply Platform",
+			"title": "Terran Resource Crate",
 			"text": "$(l)Health$(): 400$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
 		}
 	]

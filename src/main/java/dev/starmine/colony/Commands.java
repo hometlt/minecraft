@@ -85,17 +85,19 @@ public final class Commands {
 
 	public static void command(ServerPlayer player, ColonyNetwork.UnitCommand command) {
 		ServerLevel level = player.serverLevel();
-		if (!CommandPanel.carried(player)) return; // owner 14.10: commands only with a command panel
+		if (!CommandPanel.carried(player) && !player.getTags().contains(dev.starmine.world.Skirmish.TAG)) return;
 		turrets(player, level, command); // owner 19.10: the player's turrets fire at what they are told
 		Hive base = HiveSavedData.get(level.getServer()).baseOrHome(player.getUUID(), level.dimension().location().toString());
 		if (base == null) return;
 		boolean away = !base.dimension.equals(level.dimension().location().toString()); // its army away from home: orders, no building
 		List<StarUnit> units = new ArrayList<>();
 		for (int id : command.ids())
-			if (level.getEntity(id) instanceof StarUnit unit && (base.id.equals(unit.hiveId()) || unit.controller().map(player.getUUID()::equals).orElse(false))
+			if (level.getEntity(id) instanceof StarUnit unit && (base.id.equals(unit.hiveId()) || unit.owner().filter(player.getUUID()::equals).isPresent()
+				|| unit.controller().map(player.getUUID()::equals).orElse(false))
 				&& unit.isAlive()
 				&& CommanderEye.near(player, unit.position(), COMMAND_RANGE)) units.add(unit);
 		Vec3 at = new Vec3(command.x(), command.y(), command.z());
+		if (level.getEntity(command.target()) instanceof StarUnit hidden && !dev.starmine.ability.Cloak.seen(hidden, player)) return;
 		List<StarUnit> mobile = units.stream().filter(unit -> !unit.kind.structure() && unit.kind != UnitKind.LARVA).toList();
 		List<StarUnit> buildings = units.stream().filter(unit -> unit.kind.structure()).toList();
 		List<StarUnit> lifted = buildings.stream().filter(building -> dev.starmine.ability.LiftOff.airborne(building)
@@ -103,6 +105,12 @@ public final class Commands {
 		List<StarUnit> workers = mobile.stream().filter(unit -> unit.kind.worker()).toList();
 		for (StarUnit unit : units) Engineering.release(unit.getUUID()); // a new order ends the army's way work
 		switch (command.action()) {
+			case "portal" -> {
+				if (level.getEntity(command.target()) instanceof dev.starmine.world.VoidRift portal && portal.isAlive() && !portal.invasion()) {
+					for (StarUnit unit : mobile) portal.order(unit);
+					for (StarUnit unit : lifted) portal.order(unit);
+				}
+			}
 			case "move", "attack_move", "patrol" -> {
 				StarUnit.Order order = switch (command.action()) {
 					case "move" -> StarUnit.Order.MOVE;
@@ -136,6 +144,7 @@ public final class Commands {
 					mobile.stream().filter(unit -> unit.kind.attack != UnitKind.Attack.NONE).forEach(unit -> unit.commandAttack(target));
 				else formation(mobile, StarUnit.Order.ATTACK_MOVE, at);
 			}
+			case "attack_ground" -> mobile.stream().filter(unit -> unit.kind.attack != UnitKind.Attack.NONE).forEach(unit -> unit.commandGround(at));
 			case "gather" -> workers.forEach(unit -> unit.commandWork(StarUnit.Work.GATHER, BlockPos.containing(at)));
 			case "gather_area" -> { // owner 17.10: mining an area — `at` one corner, the arg the other (x,y,z); at most 32 across, 6 up and down
 				String[] other = command.arg().split(",");
@@ -185,6 +194,17 @@ public final class Commands {
 			}
 			case "possess" -> { // owner 14.10: play as this unit (dev.starmine.possess)
 				if (units.size() == 1) dev.starmine.possess.Possession.start(player, units.get(0));
+			}
+			case "interface" -> { // owner 22.10: one unit's own window — a storage building's bank, else its base's resources
+				if (units.size() == 1) {
+					StarUnit unit = units.get(0);
+					if (unit.kind.storage() || unit.hiveId() != null) Storage.open(level, unit, player);
+					else player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.no_interface"), true);
+				}
+			}
+			case "exchange" -> { // owner 22.10: the base's minerals for its race's armour
+				if (units.size() == 1 && !Exchange.open(level, units.get(0), player))
+					player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.starmine.no_interface"), true);
 			}
 			case "research" -> {
 				boolean started = buildings.stream().anyMatch(building -> building.startResearch(command.arg()));

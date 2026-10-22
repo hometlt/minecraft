@@ -225,6 +225,7 @@ public final class AmunInvasion {
 		LivingEntity foe = foe(level, source, 64);
 		int made = 0;
 		for (int i = 0; i < wave.size() && near + made < CAP; i++) {
+			if (source instanceof VoidRift rift && !rift.admits(wave.get(i), wave.get(i).flying)) continue;
 			double a = level.random.nextDouble() * Math.PI * 2;
 			Vec3 at = dev.starmine.entity.Spots.near(level, wave.get(i), Vec3.atBottomCenterOf(ground).add(Math.cos(a) * 3, 0, Math.sin(a) * 3));
 			StarUnit unit = dev.starmine.hive.HiveLogic.spawnNest(level, null, wave.get(i), at, ground);
@@ -251,7 +252,7 @@ public final class AmunInvasion {
 		if (!(player.level() instanceof ServerLevel level) || VoidWorld.is(level) || !invading(level)) return marks;
 		AABB area = player.getBoundingBox().inflate(PLAYER_REACH, 384, PLAYER_REACH);
 		for (VoidShard shard : level.getEntitiesOfClass(VoidShard.class, area, VoidShard::isAlive)) marks.add(java.util.Map.entry(true, shard.blockPosition()));
-		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, area, VoidRift::isAlive)) marks.add(java.util.Map.entry(false, rift.blockPosition()));
+		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, area, r -> r.isAlive() && r.invasion())) marks.add(java.util.Map.entry(false, rift.blockPosition()));
 		return marks;
 	}
 
@@ -404,7 +405,7 @@ public final class AmunInvasion {
 		HiveSavedData data = HiveSavedData.get(level.getServer());
 		String dimension = level.dimension().location().toString();
 		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, new AABB(level.getWorldBorder().getMinX(), level.getMinBuildHeight(),
-			level.getWorldBorder().getMinZ(), level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()), VoidRift::isAlive)) {
+			level.getWorldBorder().getMinZ(), level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()), rift -> rift.isAlive() && rift.invasion())) {
 			Hive base = data.all().stream().filter(h -> h.owner != null && h.dimension.equals(dimension))
 				.min(java.util.Comparator.comparingDouble(h -> h.hatchery.distSqr(rift.blockPosition()))).orElse(null);
 			if (base == null || base.hatchery.distSqr(rift.blockPosition()) > 600 * 600) continue;
@@ -421,7 +422,7 @@ public final class AmunInvasion {
 	 */
 	static void ferry(ServerLevel level) {
 		for (VoidRift rift : level.getEntitiesOfClass(VoidRift.class, new AABB(level.getWorldBorder().getMinX(), level.getMinBuildHeight(),
-			level.getWorldBorder().getMinZ(), level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()), VoidRift::isAlive)) {
+			level.getWorldBorder().getMinZ(), level.getWorldBorder().getMaxX(), level.getMaxBuildHeight(), level.getWorldBorder().getMaxZ()), rift -> rift.isAlive() && rift.invasion())) {
 			List<StarUnit> stuck = level.getEntitiesOfClass(StarUnit.class, rift.getBoundingBox().inflate(VoidRift.AREA, 12, VoidRift.AREA),
 				u -> u.isAlive() && dev.starmine.faction.Faction.amun(u) && !u.flying() && !u.kind.structure() && !u.isPassenger() && !u.kind.worker());
 			if (stuck.isEmpty()) continue;
@@ -434,6 +435,7 @@ public final class AmunInvasion {
 				case TERRAN -> UnitKind.MEDIVAC;
 				case PROTOSS -> UnitKind.WARP_PRISM;
 			};
+			if (!rift.admits(kind, true)) continue;
 			StarUnit transport = StarMine.type(kind).create(level);
 			if (transport == null) continue;
 			transport.moveTo(rift.getX(), rift.getY() + 4, rift.getZ(), 0, 0);

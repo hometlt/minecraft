@@ -1,11 +1,10 @@
 {
 	"parent": "minecraft:block/block",
 	"textures": {
-		"particle": "minecraft:block/iron_block",
-		"body": "minecraft:block/iron_block",
-		"lid": "minecraft:block/light_gray_concrete",
-		"top": "minecraft:block/polished_andesite",
-		"latch": "minecraft:block/redstone_lamp_on"
+		"particle": "starmine:block/terran_armor_plating",
+		"body": "starmine:block/terran_armor_plating",
+		"top": "starmine:block/terran_armor_panel",
+		"lamp": "minecraft:block/redstone_lamp_on"
 	},
 	"elements": [
 		{
@@ -16,16 +15,10 @@
 			],
 			"to": [
 				15,
-				9,
+				6,
 				15
 			],
 			"faces": {
-				"down": {
-					"texture": "#body"
-				},
-				"up": {
-					"texture": "#body"
-				},
 				"north": {
 					"texture": "#body"
 				},
@@ -37,70 +30,12 @@
 				},
 				"east": {
 					"texture": "#body"
-				}
-			}
-		},
-		{
-			"from": [
-				1,
-				9,
-				1
-			],
-			"to": [
-				15,
-				14,
-				15
-			],
-			"faces": {
-				"down": {
-					"texture": "#lid"
 				},
 				"up": {
 					"texture": "#top"
 				},
-				"north": {
-					"texture": "#lid"
-				},
-				"south": {
-					"texture": "#lid"
-				},
-				"west": {
-					"texture": "#lid"
-				},
-				"east": {
-					"texture": "#lid"
-				}
-			}
-		},
-		{
-			"from": [
-				7,
-				7,
-				15
-			],
-			"to": [
-				9,
-				11,
-				16
-			],
-			"faces": {
 				"down": {
-					"texture": "#latch"
-				},
-				"up": {
-					"texture": "#latch"
-				},
-				"north": {
-					"texture": "#latch"
-				},
-				"south": {
-					"texture": "#latch"
-				},
-				"west": {
-					"texture": "#latch"
-				},
-				"east": {
-					"texture": "#latch"
+					"texture": "#body"
 				}
 			}
 		}

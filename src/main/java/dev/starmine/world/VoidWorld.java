@@ -151,6 +151,12 @@ public final class VoidWorld {
 
 	/** Where one comes into the Void: on its first island, beside the portal back (built the first time). */
 	static Vec3 arrival(ServerLevel level) {
+		prepare(level);
+		return new Vec3(RETURN.getX() + 0.5, RETURN.getY() + 1, RETURN.getZ() + Artifact.PORTAL_RADIUS + 4.5);
+	}
+
+	/** Every entrance prepares the same Void once, including a player's first crystal gate. */
+	public static void prepare(ServerLevel level) {
 		level.getChunk(RETURN.getX() >> 4, RETURN.getZ() >> 4);
 		if (!level.getBlockState(RETURN.below()).is(Artifact.FRAME)) firstIsland(level);
 		State state = State.get(level.getServer());
@@ -159,7 +165,6 @@ public final class VoidWorld {
 			state.setDirty();
 			VoidIslands.build(level);
 		}
-		return new Vec3(RETURN.getX() + 0.5, RETURN.getY() + 1, RETURN.getZ() + Artifact.PORTAL_RADIUS + 4.5);
 	}
 
 	/** The first island: a shelf of stone round the portal back, sunk in its floor. */

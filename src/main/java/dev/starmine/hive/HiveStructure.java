@@ -51,7 +51,8 @@ import net.minecraft.world.phys.Vec3;
 public final class HiveStructure {
 	public static final int MIN_DISTANCE = 256, MAX_DISTANCE = 256, TRIGGER = 112;
 	/** A tunnel's cross-section and a hall's headroom for the units twice the model size (an ultralisk hatched in a hall is 7.4 tall). */
-	public static final int TUNNEL_WIDTH = 5, TUNNEL_HEIGHT = 6, HALL_HEIGHT = 10;
+	public static final int TUNNEL_WIDTH = dev.starmine.world.BattleSpaces.PASSAGE_WIDTH,
+		TUNNEL_HEIGHT = dev.starmine.world.BattleSpaces.HEADROOM, HALL_HEIGHT = 24;
 	/** Tunnels and halls this close to the hatchery are the hive's own: creep, tumors, larvae. */
 	public static final int NEAR = 40;
 	/** How far from the hatchery tunnels may reach (owner 14.10: farther and deeper); chunks are loaded so far. */
@@ -246,7 +247,10 @@ public final class HiveStructure {
 			level.addFreshEntity(main);
 		} else if (p.hall() != null) {
 			StarUnit mob = HiveLogic.spawnNest(level, hive, p.kind(), at, p.hall());
-			if (mob != null && p.brood() != null && dev.starmine.possess.Vehicles.parked(p.kind(), p.brood())) dev.starmine.possess.Vehicles.park(mob); // owner 19.10
+			if (mob != null && p.broodCount() == dev.starmine.world.Spawn.BURROWED) { // owner 22.10: an ambush, burrowed in its tunnel
+				mob.setMode(dev.starmine.ability.Modes.BURROWED);
+				mob.addTag(dev.starmine.world.Spawn.AMBUSH);
+			} else if (mob != null && p.brood() != null && dev.starmine.possess.Vehicles.parked(p.kind(), p.brood())) dev.starmine.possess.Vehicles.park(mob); // owner 19.10
 			else if (mob != null && p.brood() != null) mob.becomeCocoon(p.brood(), p.broodCount(), StarUnit.DORMANT);
 		} else if (hive != null) {
 			StarUnit made = HiveLogic.spawn(level, hive, p.kind(), at, null);
@@ -292,6 +296,7 @@ public final class HiveStructure {
 			data.add(hive);
 			flatten(centre, HiveTerrain.HATCHERY_FOUNDATION + 1, 14);
 			HiveStructure.flatten(level, centre, PLAZA, 14, true); // owner 19.10: the lair's ground twice as wide
+			dev.starmine.vespene.Vespene.retireNear(level, centre, PLAZA + 32); // owner 22.10: the land's own geysers keep off the lair
 			dev.starmine.world.BaseGround.fillUnder(level, centre, PLAZA); // owner 17.10: land under the lair, sloping to it round about
 			dev.starmine.world.BaseGround.blend(level, centre, PLAZA + 1, PLAZA + 16);
 			BlockPos raised = pedestal(UnitKind.HATCHERY, centre); // owner 19.10: every building on a pedestal with stairs round it
@@ -309,11 +314,11 @@ public final class HiveStructure {
 			for (int b = 0; b < branches; b++) {
 				double angle = start + (gaps.get(b) + 0.5) * turn;
 				tunnel(centre.getX() + Math.cos(angle) * 9.5, centre.getY(), centre.getZ() + Math.sin(angle) * 9.5, angle,
-					80 + random.nextInt(51), centre.getY() - 20 - random.nextInt(21), true);
+					80 + random.nextInt(51), centre.getY() - HALL_HEIGHT - 8 - random.nextInt(21), true);
 			}
 			for (int i = 0; i < SURFACE.length; i++) {
 				UnitKind kind = SURFACE[i];
-				double angle = start + i * turn, distance = 8 + HiveTerrain.foundation(kind) + 3 + random.nextInt(2);
+				double angle = start + i * turn, distance = 13 + HiveTerrain.foundation(kind) + 3 + random.nextInt(2); // owner 22.10: farther out (was 8)
 				int x = Mth.floor(centre.getX() + 0.5 + Math.cos(angle) * distance), z = Mth.floor(centre.getZ() + 0.5 + Math.sin(angle) * distance);
 				BlockPos feet = new BlockPos(x, centre.getY(), z); // on the lair's level (the ground there may be a neighbour's pedestal)
 				flatten(feet, HiveTerrain.foundation(kind) + 1, (int) Math.ceil(kind.height) + 2);
@@ -333,7 +338,7 @@ public final class HiveStructure {
 			}
 			// owner 18.10: the hive's resources between two of its buildings: 5 crystals, 2 geysers with extractors
 			double toward = Math.PI; // west: the east is the way down
-			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 34), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 34);
+			int depositX = Mth.floor(centre.getX() + Math.cos(toward) * 40), depositZ = Mth.floor(centre.getZ() + Math.sin(toward) * 40);
 			if (level.dimension() == net.minecraft.world.level.Level.OVERWORLD) // a nether or End lair's halls lie where a vein would climb
 				for (BlockPos gas : dev.starmine.mineral.Deposits.build(level, random, depositX, depositZ, centre.getX(), centre.getZ()))
 					wait(UnitKind.EXTRACTOR, dev.starmine.vespene.Vespene.collapseUnder(level, gas), null, null, 0); // its mound taken away

@@ -16,6 +16,39 @@ public final class SkinnedModelDrawer {
 	private float[] skinned = new float[0], skinnedNormals = new float[0];
 
 	private int color = 0xFFFFFFFF;
+	private float floor = Float.NEGATIVE_INFINITY;
+
+	/** Rooted crawler rigs retain their underground legs; cut them at the terrain plane even in cutaway views. */
+	public void clipBelow(float y) { floor = y; }
+
+	/** Connect the baked head and base, aiming at the synchronized strike point. */
+	net.minecraft.world.phys.Vec3 aimSpine(dev.starmine.entity.StarUnit unit, SkinnedModel model, float partial) {
+		// shortcut: SMM1 has no attachment names; replace the height mask when the export carries those names.
+		if (model.spineHead == null) return null;
+		boolean uprooted = unit.mode() == dev.starmine.ability.Modes.UPROOTED;
+		float bottom = Float.POSITIVE_INFINITY;
+		for (int v = 0; v < model.vertexCount; v++) if (model.spineHead[v]) bottom = Math.min(bottom, skinned[v * 3 + 1]);
+		if (!Float.isFinite(bottom)) return null;
+		double x = 0, z = 0; int count = 0;
+		for (int v = 0; v < model.vertexCount; v++) if (model.spineHead[v] && skinned[v * 3 + 1] <= bottom + .12f) {
+			x += skinned[v * 3]; z += skinned[v * 3 + 2]; count++;
+		}
+		if (count == 0) return null;
+		var tip = new net.minecraft.world.phys.Vec3(x / count, bottom, z / count);
+		float since = (unit.tickCount - unit.attackStartTick + partial) / 20f;
+		double thrust = !uprooted && since >= 0 && since <= .8f ? Math.sin(Math.PI * since / .8f) : 0;
+		var aim = unit.strikePoint();
+		if (thrust > 0 && aim.lengthSqr() > .01) {
+			double vertical = unit.kind.width / Math.max(model.size[0], model.size[2]);
+			var delta = new net.minecraft.world.phys.Vec3(aim.x * model.size[0] / unit.kind.width - tip.x,
+				Math.max(.6, aim.y / vertical) - tip.y, aim.z * model.size[2] / unit.kind.width - tip.z).scale(thrust);
+			for (int v = 0; v < model.vertexCount; v++) if (model.spineHead[v]) {
+				skinned[v * 3] += (float) delta.x; skinned[v * 3 + 1] += (float) delta.y; skinned[v * 3 + 2] += (float) delta.z;
+			}
+			tip = tip.add(delta);
+		}
+		return tip;
+	}
 
 	/** Draws the last skinned pose. */
 	public void draw(SkinnedModel model, PoseStack.Pose pose, MultiBufferSource buffers, int light, int overlay) {
@@ -111,6 +144,7 @@ public final class SkinnedModelDrawer {
 		int[] indices = model.indices;
 		int end = part.first() + part.count();
 		for (int t = part.first(); t + 2 < end; t += 3) {
+			if (skinned[indices[t] * 3 + 1] < floor && skinned[indices[t + 1] * 3 + 1] < floor && skinned[indices[t + 2] * 3 + 1] < floor) continue;
 			vertex(model, pose, consumer, indices[t], light, overlay);
 			vertex(model, pose, consumer, indices[t + 1], light, overlay);
 			vertex(model, pose, consumer, indices[t + 2], light, overlay);
@@ -119,7 +153,7 @@ public final class SkinnedModelDrawer {
 	}
 
 	private void vertex(SkinnedModel model, PoseStack.Pose pose, VertexConsumer consumer, int v, int light, int overlay) {
-		consumer.addVertex(pose, skinned[v * 3], skinned[v * 3 + 1], skinned[v * 3 + 2])
+		consumer.addVertex(pose, skinned[v * 3], Math.max(floor, skinned[v * 3 + 1]), skinned[v * 3 + 2])
 			.setColor(color)
 			.setUv(model.uvs[v * 2], model.uvs[v * 2 + 1])
 			.setOverlay(overlay)

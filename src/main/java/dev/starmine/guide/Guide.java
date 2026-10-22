@@ -25,7 +25,7 @@ import net.minecraft.world.item.component.WrittenBookContent;
  */
 public final class Guide {
 	/** The number of pages: keys book.starmine.guide.1 .. PAGES in every language. */
-	public static final int PAGES = 33;
+	public static final int PAGES = 36; // owner 22.10: the pedestal, dungeons and bosses (34-36)
 	/** The Patchouli book (`data/starmine/patchouli_books/field_guide`). */
 	public static final net.minecraft.resources.ResourceLocation BOOK = dev.starmine.StarMine.id("field_guide");
 	private static final String GIVEN = "starmine_guide_given";

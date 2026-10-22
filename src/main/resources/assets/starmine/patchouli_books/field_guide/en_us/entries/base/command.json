@@ -2,7 +2,7 @@
 	"name": "Command View",
 	"icon": "starmine:command_panel",
 	"category": "starmine:base",
-	"sortnum": 1,
+	"sortnum": 3,
 	"pages": [
 		{
 			"type": "patchouli:crafting",

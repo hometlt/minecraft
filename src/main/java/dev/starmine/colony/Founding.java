@@ -30,6 +30,7 @@ public final class Founding {
 		Hive base = owner == null ? null : data.baseOf(owner, dimension);
 		boolean fresh = base == null;
 		if (fresh) {
+			if (owner != null && !dev.starmine.world.SkirmishMap.nativeWorld()) dev.starmine.world.BattleSpaces.clearBase(level, main.blockPosition());
 			base = new Hive(main.getUUID(), dimension, main.blockPosition());
 			base.race = main.kind.race;
 			base.owner = owner;

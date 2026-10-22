@@ -50,11 +50,18 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 	public void render(Minerals.Core core, float partialTick, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
 		VertexConsumer out = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
 		RandomSource random = RandomSource.create(core.getBlockPos().asLong());
-		float left = 0.5f + 0.5f * Math.max(0, core.amount()) / Minerals.AMOUNT;
+		float left = core.visualHeight() / 1.85f;
 		int glow = Math.max(light, GLOW);
 		int shards = 6 + random.nextInt(3);
 		pose.pushPose();
-		pose.scale(core.size() / 2f, core.size() / 2f, core.size() / 2f); // drawn for 2 x 2 x 2
+		pose.scale(core.size() / 2f, 1f, core.size() / 2f);
+		for (int i = 0; i < 8; i++) {
+			double angle = i * Math.PI / 4;
+			pose.pushPose();
+			pose.translate(1 + Math.cos(angle) * .65, 0, 1 + Math.sin(angle) * .65);
+			shard(pose.last(), out, .45f, .3f, overlay, glow, 220, core.rich());
+			pose.popPose();
+		}
 		for (int i = 0; i < shards; i++) {
 			float x, z, height, width;
 			if (i == 0) { // the tallest in the middle
@@ -73,9 +80,11 @@ public final class MineralRenderer implements BlockEntityRenderer<Minerals.Core>
 			pose.pushPose();
 			pose.translate(x, 0, z);
 			pose.mulPose(Axis.YP.rotationDegrees(random.nextFloat() * 360));
-			float lean = i == 0 ? random.nextFloat() * 6 : 10 + random.nextFloat() * 18;
+			float lean = i == 0 ? 0 : 10 + random.nextFloat() * 18;
 			pose.mulPose(Axis.ZP.rotationDegrees(lean));
-			shard(pose.last(), out, width, height * left, overlay, glow, i == 0 ? 255 : 220 + random.nextInt(36), core.rich());
+			int shade = i == 0 ? 255 : 220 + random.nextInt(36);
+			if (i < core.visibleShards(shards))
+				shard(pose.last(), out, width, height * left, overlay, glow, shade, core.rich());
 			pose.popPose();
 		}
 		pose.popPose();

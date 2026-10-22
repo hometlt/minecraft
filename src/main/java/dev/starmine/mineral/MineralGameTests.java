@@ -16,6 +16,23 @@ import net.minecraft.world.level.block.Blocks;
 
 /** Mineral crystals (owner 16.10): gathered, never broken; gone when empty, their earth back to dirt; no main building beside them. */
 public class MineralGameTests implements FabricGameTest {
+	@GameTest(template = ARENA, batch = "flatMineralField", timeoutTicks = 100)
+	public void generatedFieldHasFiveCoresAndRefusesAFloodedBasePad(GameTestHelper h) {
+		TestArena.clear(h);
+		var level = h.getLevel(); BlockPos origin = h.absolutePos(new BlockPos(24, 2, 8));
+		BlockPos centre = new BlockPos(origin.getX(), level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, origin.getX(), origin.getZ()), origin.getZ());
+		for (BlockPos at : BlockPos.betweenClosed(centre.offset(-16, -1, -6), centre.offset(16, 4, 36)))
+			level.setBlock(at, at.getY() == centre.getY() - 1 ? Blocks.STONE.defaultBlockState() : Blocks.AIR.defaultBlockState(), 2);
+		var set = (Minerals.Setter) (pos, state) -> level.setBlock(pos, state, 2);
+		BlockPos flooded = centre.offset(0, 0, 22); level.setBlock(flooded, Blocks.WATER.defaultBlockState(), 2);
+		h.assertTrue(Minerals.field(level, level.random, centre.getX(), centre.getZ(), 22, set) == 0, "field accepted a flooded base pad: water=" + level.getBlockState(flooded)
+			+ " centre=" + centre + " floor=" + level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, flooded.getX(), flooded.getZ())
+			+ " surface=" + level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, flooded.getX(), flooded.getZ()));
+		h.assertTrue(Minerals.coresNear(level, centre, 14).isEmpty(), "refused field left partial crystals");
+		level.setBlock(flooded, Blocks.AIR.defaultBlockState(), 2);
+		h.assertTrue(Minerals.field(level, level.random, centre.getX(), centre.getZ(), 22, set) == 5, "flat field did not contain all five minerals");
+		h.succeed();
+	}
 	private static BlockPos crystal(GameTestHelper helper, int x, int z) {
 		ServerLevel level = helper.getLevel();
 		BlockPos core = helper.absolutePos(new BlockPos(x, 2, z));
@@ -33,9 +50,32 @@ public class MineralGameTests implements FabricGameTest {
 		java.util.List<BlockPos> sites = Deposits.build(level, level.random, middle.getX(), middle.getZ(), base.getX(), base.getZ());
 		int crystals = Minerals.coresNear(level, middle, 12).size();
 		helper.assertTrue(crystals == Deposits.MINERALS, crystals + " crystals, not 5");
+		int total = 0, large = 0, small = 0;
+		for (BlockPos pos : Minerals.coresNear(level, middle, 12)) {
+			Minerals.Core core = (Minerals.Core) level.getBlockEntity(pos);
+			helper.assertTrue(core.size() == 3, "deposit crystal footprint is not 3 x 3");
+			total += core.amount();
+			if (core.amount() == 1300) large++;
+			if (core.amount() == 800) small++;
+		}
+		helper.assertTrue(total == 5500 && large == 3 && small == 2, "deposit must contain 3 x 1300 and 2 x 800 minerals");
 		helper.assertTrue(sites.size() == Deposits.GEYSERS, sites.size() + " geysers, not 2");
 		for (BlockPos site : sites)
 			helper.assertTrue(dev.starmine.vespene.Vespene.outletUnder(level, site) != null, "no outlet under the gas building's site " + site);
+		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "minerals", timeoutTicks = 100)
+	public void depletionKeepsTheFootprintAndReducesHeightAndShards(GameTestHelper helper) {
+		TestArena.clear(helper);
+		Minerals.Core core = (Minerals.Core) helper.getLevel().getBlockEntity(crystal(helper, 24, 24));
+		core.setSize(3);
+		core.setAmount(1300);
+		helper.assertTrue(Math.abs(core.visualHeight() - 2.2f) < 0.001f && core.visibleShards(8) == 8, "full crystal dimensions");
+		core.setAmount(500);
+		helper.assertTrue(core.visualHeight() < 2.2f && core.visualHeight() > 1.25f && core.visibleShards(8) < 8, "half-empty crystal must shrink");
+		core.setAmount(1);
+		helper.assertTrue(core.size() == 3 && Math.abs(core.visualHeight() - 1.25f) < 0.002f, "depletion changed the footprint or minimum height");
 		helper.succeed();
 	}
 

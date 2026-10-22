@@ -37,24 +37,31 @@ public final class Dungeons {
 	public static BlockPos stairsUp(Painter painter, BlockPos door, Direction toward, BlockState wall, BlockState gate) {
 		Direction side = toward.getClockWise();
 		BlockState step = Blocks.STONE_BRICK_STAIRS.defaultBlockState().setValue(StairBlock.FACING, toward);
+		int[] surface = new int[120];
+		for (int k = 0; k < surface.length; k++) {
+			BlockPos column = door.relative(toward, k);
+			// owner 22.10: the ground itself, not a tree's top (the stair climbed trees and came out 4-5 blocks over the ground)
+			surface[k] = dev.starmine.hive.HiveStructure.ground(painter.level(), column.getX(), column.getZ());
+		}
 		BlockPos feet = door;
-		for (int k = 0; k < 120; k++) {
+		for (int k = 0; k < surface.length; k++) {
 			for (int s = -2; s <= 2; s++)
 				for (int up = -1; up <= 5; up++) {
 					BlockPos pos = feet.relative(side, s).above(up);
+					boolean open = pos.getY() >= surface[k]; // over the ground: nothing is built there, the way is only cleared
 					if (Math.abs(s) == 2 || up == -1 || up == 5) {
-						if (painter.level().getBlockState(pos).isAir() || !painter.level().getFluidState(pos).isEmpty()) painter.set(pos, wall);
+						if (!open && (painter.level().getBlockState(pos).isAir() || !painter.level().getFluidState(pos).isEmpty())) painter.set(pos, wall);
 					} else if (up == 0 && k > 0) painter.set(pos, step);
-					else painter.carve(pos, wall);
+					else if (!open) painter.carve(pos, wall);
+					else if (!painter.level().getBlockState(pos).isAir()) painter.set(pos, Blocks.AIR.defaultBlockState());
 				}
-			int surface = painter.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, feet.getX(), feet.getZ());
-			if (feet.getY() >= surface - 1) break;
+			if (feet.getY() >= surface[k] - 1) break;
 			feet = feet.relative(toward).above();
 		}
-		// the gate: two posts and a lintel
+		// the gate on the ground: two low posts and a lintel
 		for (int s = -2; s <= 2; s += 4)
-			for (int up = 0; up <= 4; up++) painter.set(feet.relative(side, s).above(up), gate);
-		for (int s = -2; s <= 2; s++) painter.set(feet.relative(side, s).above(5), gate);
+			for (int up = 1; up <= 3; up++) painter.set(feet.relative(side, s).above(up), gate);
+		for (int s = -2; s <= 2; s++) painter.set(feet.relative(side, s).above(4), gate);
 		return feet;
 	}
 
@@ -210,7 +217,9 @@ public final class Dungeons {
 	 * prismarine 34 blocks out, each with a chest and a gold statue; corridors join them to the hall.
 	 * The stair to the surface leaves the north shrine.
 	 */
-	public static List<Spawn> ancientTemples(Painter painter, BlockPos centre) {
+	public static List<Spawn> ancientTemples(Painter painter, BlockPos requested) {
+		BlockPos centre = buriedFloor(painter, requested, 41, 12);
+		if (centre == null) return List.of();
 		RandomSource random = painter.random;
 		BlockState sandstone = Blocks.CUT_SANDSTONE.defaultBlockState(), smooth = Blocks.SMOOTH_SANDSTONE.defaultBlockState(),
 			glyph = Blocks.CHISELED_SANDSTONE.defaultBlockState(), prism = Blocks.PRISMARINE_BRICKS.defaultBlockState(),
@@ -281,6 +290,16 @@ public final class Dungeons {
 		painter.hollow(north.offset(-1, 0, -7), north.offset(1, 3, -7), dark);
 		stairsUp(painter, north.offset(0, 0, -8), Direction.NORTH, sandstone, gold);
 		return spawns;
+	}
+
+	/** Keep the whole roof below the local terrain; shallow superflat has no room for this dungeon. */
+	static @org.jetbrains.annotations.Nullable BlockPos buriedFloor(Painter painter, BlockPos requested, int half, int roof) {
+		painter.load(requested, half);
+		int floor = requested.getY();
+		for (int x = requested.getX() - half; x <= requested.getX() + half; x++)
+			for (int z = requested.getZ() - half; z <= requested.getZ() + half; z++)
+				floor = Math.min(floor, painter.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - roof - 2);
+		return floor < painter.level().getMinBuildHeight() + 2 ? null : new BlockPos(requested.getX(), floor, requested.getZ());
 	}
 
 	private static BlockPos min(BlockPos a, BlockPos b) {

@@ -176,6 +176,7 @@ public final class BlockWear {
 
 	/** A weapon's hit of `damage` on a block: its cracks grow (a protoss block's shield takes it first); true when it broke. */
 	public static boolean hit(ServerLevel level, BlockPos pos, float damage, @Nullable Entity by) {
+		if (dev.starmine.world.Skirmish.terrainLocked(level)) return false; // owner 22.10: a skirmish's land does not wear
 		BlockState state = level.getBlockState(pos);
 		float durability = durability(level, pos, state);
 		if (durability <= 0 || damage <= 0) return false;

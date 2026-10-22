@@ -21,6 +21,7 @@ import net.minecraft.world.item.BucketItem;
 import dev.starmine.block.StarFluid;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -48,6 +49,8 @@ public final class Vespene {
 		.sound(SoundType.EMPTY).pushReaction(PushReaction.DESTROY).isValidSpawn((state, level, pos, type) -> false)));
 	/** An emptied outlet: unbreakable, it fills again from its vein. */
 	public static final Block VENT = block("vespene_vent", new Block(BlockBehaviour.Properties.of()
+		.mapColor(MapColor.STONE).strength(-1f, 3_600_000f).noLootTable().pushReaction(PushReaction.BLOCK)));
+	public static final Block ROCK = block("vespene_rock", new Block(BlockBehaviour.Properties.of()
 		.mapColor(MapColor.STONE).strength(-1f, 3_600_000f).noLootTable().pushReaction(PushReaction.BLOCK)));
 	public static final VespeneRootBlock ROOT = block("vespene_root", new VespeneRootBlock(BlockBehaviour.Properties.of()
 		.mapColor(MapColor.STONE).strength(-1f, 3_600_000f).noLootTable().pushReaction(PushReaction.BLOCK)));
@@ -122,6 +125,17 @@ public final class Vespene {
 	 * Owner 17.10: a gas building's site over a volcano (an outlet risen from the ground) — the volcano is destroyed,
 	 * the outlet is back at the ground; the site over it now (the same site when it was no volcano).
 	 */
+	/**
+	 * Owner 22.10: a generated base keeps its own two geysers and no others: the land's own geysers within `radius` of its
+	 * middle (blocks, across) are sealed for good ({@link VespeneRootBlockEntity#retire}). Call before the base's deposit.
+	 */
+	public static void retireNear(net.minecraft.server.level.ServerLevel level, BlockPos centre, int radius) {
+		for (int cx = (centre.getX() - radius) >> 4; cx <= (centre.getX() + radius) >> 4; cx++)
+			for (int cz = (centre.getZ() - radius) >> 4; cz <= (centre.getZ() + radius) >> 4; cz++)
+				for (net.minecraft.world.level.block.entity.BlockEntity entity : java.util.List.copyOf(level.getChunk(cx, cz).getBlockEntities().values()))
+					if (entity instanceof VespeneRootBlockEntity vein) vein.retire(level, centre, radius);
+	}
+
 	public static BlockPos collapseUnder(net.minecraft.world.level.Level level, BlockPos site) {
 		BlockPos outlet = outletFor(level, site);
 		if (outlet == null) return site;
@@ -136,11 +150,22 @@ public final class Vespene {
 	 */
 	public static @Nullable BlockPos outletFor(BlockGetter level, BlockPos chosen) {
 		BlockPos under = outletUnder(level, chosen);
-		if (under != null) return under;
+		if (under != null && geyser(level, under)) return under;
 		BlockPos best = null;
-		for (BlockPos pos : BlockPos.betweenClosed(chosen.offset(-6, -2, -6), chosen.offset(6, VespeneRootBlockEntity.VOLCANO_HEIGHT + 2, 6)))
-			if (isOutlet(level.getBlockState(pos)) && (best == null || pos.distSqr(chosen) < best.distSqr(chosen))) best = pos.immutable();
+		int radius = VespeneRootBlockEntity.RADIUS + 1;
+		for (BlockPos pos : BlockPos.betweenClosed(chosen.offset(-radius, -2, -radius), chosen.offset(radius, VespeneRootBlockEntity.VOLCANO_HEIGHT + 2, radius)))
+			if (isOutlet(level.getBlockState(pos)) && geyser(level, pos) && (best == null || pos.distSqr(chosen) < best.distSqr(chosen))) best = pos.immutable();
 		return best;
+	}
+
+	/**
+	 * Whether a gas building may stand on an outlet (owner 22.10): a geyser's, not a branch's bucket spot underground,
+	 * where vespene is taken by bucket only. True where the vein is not known (an older world, an unloaded root).
+	 */
+	public static boolean geyser(BlockGetter level, BlockPos outlet) {
+		if (!(level instanceof net.minecraft.world.level.Level world)) return true;
+		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(world, outlet);
+		return vein == null || vein.geyser(outlet);
 	}
 
 	/** Where a gas building at `chosen` will stand: over its outlet, at the ground it rose from when it is a volcano. */
@@ -159,14 +184,20 @@ public final class Vespene {
 	}
 
 	/**
-	 * The vespene left in an outlet's vein and what it holds full, both in vespene (a block is a trip's worth); null
+	 * The vespene left in an outlet and its original budget; null
 	 * when its vein is not known here. Works on the client too (the vein is sent with its chunk).
 	 */
 	public static int @Nullable [] gasLeft(net.minecraft.world.level.Level level, BlockPos outlet) {
 		VespeneRootBlockEntity vein = VespeneRootBlockEntity.veinOf(level, outlet);
 		if (vein == null || vein.capacity() == 0) return null;
+		if (!vein.lake()) return new int[] {vein.remaining(outlet), VespeneRootBlockEntity.GAS_PER_OUTLET};
 		int per = perTrip(level.getBlockState(outlet));
 		return new int[] {vein.content(level) * per, vein.capacity() * per};
+	}
+
+	public static boolean depleted(Level level, BlockPos outlet) {
+		int[] gas = gasLeft(level, outlet);
+		return gas != null && gas[0] == 0;
 	}
 
 	/** The outlets within `radius` of a point (nearest first). */
@@ -176,6 +207,25 @@ public final class Vespene {
 			if (isOutlet(level.getBlockState(pos))) found.add(pos.immutable());
 		found.sort(java.util.Comparator.comparingDouble(pos -> pos.distSqr(centre)));
 		return found;
+	}
+
+	/** Reserve a geyser's whole 7x7 SC2-cell footprint, including a collapsed gas building site. */
+	public static boolean overlapsGeyser(Level level, BlockPos site, double half) {
+		int radius = (int) Math.ceil(half) + VespeneRootBlockEntity.RADIUS + 1;
+		for (int cx = (site.getX() - radius) >> 4; cx <= (site.getX() + radius) >> 4; cx++)
+			for (int cz = (site.getZ() - radius) >> 4; cz <= (site.getZ() + radius) >> 4; cz++) {
+				if (!level.hasChunk(cx, cz)) continue;
+				for (var entity : level.getChunk(cx, cz).getBlockEntities().values()) {
+					if (!(entity instanceof VespeneRootBlockEntity vein) || vein.lake()) continue;
+					for (int i = 0; i < vein.outletCount(); i++) {
+						BlockPos base = vein.baseOf(level, vein.outlet(i));
+						if (Math.abs(base.getY() - site.getY()) <= VespeneRootBlockEntity.MOUND + 2
+							&& Math.abs(base.getX() - site.getX()) < half + VespeneRootBlockEntity.RADIUS + 1
+							&& Math.abs(base.getZ() - site.getZ()) < half + VespeneRootBlockEntity.RADIUS + 1) return true;
+					}
+				}
+			}
+		return false;
 	}
 
 	public static void load() {

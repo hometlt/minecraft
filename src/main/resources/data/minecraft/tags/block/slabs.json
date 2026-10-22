@@ -3,6 +3,7 @@
 	"values": [
 		"starmine:zerg_armor_slab",
 		"starmine:terran_armor_slab",
-		"starmine:protoss_armor_slab"
+		"starmine:protoss_armor_slab",
+		"starmine:void_crystal_slab"
 	]
 }

@@ -284,14 +284,14 @@ public class StructureGameTests implements FabricGameTest {
 			BlockPos heartAt = WildPacks.build(level, RandomSource.create(3 + i), kind, at.atY(top));
 			helper.assertTrue(heartAt != null && level.getBlockEntity(heartAt) instanceof DungeonHeart.Heart, kind + ": no heart");
 			List<UnitKind> kinds = ((DungeonHeart.Heart) level.getBlockEntity(heartAt)).guards().stream().map(DungeonHeart.Guard::kind).toList();
-			UnitKind.Race race = kind == WildPacks.Kind.ZERG ? UnitKind.Race.ZERG : kind == WildPacks.Kind.TERRAN ? UnitKind.Race.TERRAN : UnitKind.Race.PROTOSS;
+			UnitKind.Race race = kind == WildPacks.Kind.ZERG || kind == WildPacks.Kind.CHANGELING ? UnitKind.Race.ZERG
+				: kind == WildPacks.Kind.TERRAN ? UnitKind.Race.TERRAN : UnitKind.Race.PROTOSS;
 			helper.assertTrue(!kinds.isEmpty() && kinds.stream().allMatch(k -> k.race == race), kind + " keeps " + kinds);
 			if (kind == WildPacks.Kind.ZERG) helper.assertTrue(kinds.contains(UnitKind.EGG) && kinds.contains(UnitKind.ZERGLING), "the zerg keep " + kinds);
 			if (kind == WildPacks.Kind.DARK_TEMPLAR) helper.assertTrue(kinds.stream().allMatch(k -> k == UnitKind.DARK_TEMPLAR), "dark templars: " + kinds);
-			if (kind == WildPacks.Kind.TERRAN) helper.assertTrue(level.getBlockState(heartAt.above()).is(Blocks.CAMPFIRE), "no campfire");
-			// owner 16.10: a camp shows it is the terrans', every pack has its line infantry
-			if (kind == WildPacks.Kind.TERRAN) helper.assertTrue(kinds.contains(UnitKind.MARINE)
-				&& level.getBlockState(heartAt.above().offset(4, 0, -1)).is(Blocks.BLAST_FURNACE), "a terran camp without a marine or its machines: " + kinds);
+			// owner 22.10: a terran camp of one of four looks keeps a marine, mostly one or two soldiers, three at most
+			if (kind == WildPacks.Kind.TERRAN) helper.assertTrue(kinds.contains(UnitKind.MARINE) && kinds.size() <= 3, "a terran camp keeps " + kinds);
+			if (kind == WildPacks.Kind.CHANGELING) helper.assertTrue(kinds.stream().allMatch(k -> k == UnitKind.CHANGELING) && kinds.size() <= 2, "changelings: " + kinds);
 			if (kind == WildPacks.Kind.PROTOSS) helper.assertTrue(kinds.contains(UnitKind.ZEALOT), "no zealot by the pylon: " + kinds);
 		}
 		helper.succeed();

@@ -10,9 +10,32 @@
 | `<юнит>.fire` | **каждый** выстрел или удар оружия юнита (и игрока в его роли) | звук оружия юнита (weapon launch / impact), не реплику |
 | `<юнит>.attack` | изредка (каждый 4-й выстрел) | реплика атаки (`Attack` VO) |
 | `<юнит>.ambient` | раз в ~90 секунд | реплики «Yes» / «What» / idle |
+| `<юнит>.select` | выбор в РТС (один голос на выделение) | `What` / `Ready` |
+| `<юнит>.yes` | приказ в РТС (локально, без затухания от расстояния) | `Yes`; для атаки — `.attack`, а при его отсутствии `.yes` |
 | `<юнит>.hurt` | не чаще раза в 8 секунд | звук ранения |
 | `<юнит>.death` | смерть | звук гибели |
 | `ability.<id>` | каждое применение способности | звук каста способности (stim, blink, storm…) |
+| `music.rts.terran/protoss/zerg` | музыка при входе в РТС и смене управляемой расы | `Race.GameMusic` → `Soundtrack.CueArray.MasterLayer.Sound` → файлы `CSound`, полные стереотреки с `stream: true` |
+
+Дополнение к уже подготовленному личному пакету (не заменяет модели, звуки оружия и способностей):
+
+```text
+pnpm --dir <Modkit-Blizzard>/starcraft2 exec tsx <StarMine>/tools/sc2-export/export-rts-audio.mjs --out <prepared-assets> --voice-locale enUS
+```
+
+Планирование остаётся у `starcraft2/modules/mod/shared/export/unit-sounds.ts`: `planUnitSounds` с фильтром
+`events`, `planRtsMusic`, `soundFiles` и `readUnitSound`. Новый скрипт только вызывает владельца, конвертирует
+через ffmpeg и дополняет `sounds.json`. Отчёт источников — `C:/MKTEMP/starmine-rts-sound/rts-audio-receipt.json`.
+Для сюжетных моделей без собственного управляемого юнита заданы явные CSound-наборы через тот же
+`planUnitSounds(..., {sounds})`: Абатур — `AbathurA_GameResumed`, Хорнер — совместный
+`HornerHanAnnouncer_GoodLuckHaveFun/GameResumed`; гибрид — `Hybrid_What/Yes`, монолит —
+`KhaydarinMonolith_What/Ready`, оба конструкта — короткие `XelnagaConstruct_StandWorkStart_A/End_A`.
+Перехватчик отвечает голосом авианосца; здания, личинки и яйца без отдельного Yes используют собственный
+звук выбора. Это явные замены, а не найденные личные What/Yes. `nativeMissing` и `aliases` в отчёте сохраняют
+это различие. После прерванного дополнения можно закончить его тем же скриптом с `--complete` (нужен отчёт
+первой выгрузки). Неполный итоговый набор завершается ошибкой.
+В РТС музыку выбирают управляемая форма игрока, полный костюм, выделенные свои юниты или база; без них — терраны.
+При выходе музыка SC2 останавливается, обычный музыкальный менеджер Minecraft продолжает работу.
 
 `<юнит>` — имя из `UnitKind` в нижнем регистре без подчёркиваний (`siegetank`), `<id>` — из `Ability`
 (`psionic_storm`). Полный список событий и проверка готового каталога:

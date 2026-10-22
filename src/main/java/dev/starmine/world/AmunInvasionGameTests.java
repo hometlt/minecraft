@@ -144,14 +144,14 @@ public class AmunInvasionGameTests implements FabricGameTest {
 	}
 
 	@GameTest(template = ARENA, batch = "amunGate", timeoutTicks = 20)
-	public void theVoidIsSixteenTimesSmaller(GameTestHelper helper) {
+	public void sixteenVoidBlocksEqualOneOutsideBlock(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		BlockPos out = VoidGate.target(level, new BlockPos(1600, 70, -320));
-		helper.assertTrue(out.getX() == 100 && out.getZ() == -20, "the overworld's (1600, -320) leads to " + out);
+		helper.assertTrue(out.getX() == 25600 && out.getZ() == -5120, "the overworld's (1600, -320) leads to " + out);
 		ServerLevel nether = level.getServer().getLevel(Level.NETHER);
 		if (nether != null) {
 			BlockPos fromNether = VoidGate.target(nether, new BlockPos(200, 70, 40));
-			helper.assertTrue(fromNether.getX() == 100 && fromNether.getZ() == 20, "the Nether's (200, 40) leads to " + fromNether);
+			helper.assertTrue(fromNether.getX() == 3200 && fromNether.getZ() == 640, "the Nether's (200, 40) leads to " + fromNether);
 		}
 		helper.succeed();
 	}

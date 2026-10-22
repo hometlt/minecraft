@@ -70,14 +70,21 @@ public final class VespeneBlock extends LiquidBlock {
 	}
 
 	/** Takes the vespene from a block: an outlet becomes an empty vent, a vein cell air. */
-	public static void take(LevelAccessor level, BlockPos pos, BlockState state) {
+	public static int take(LevelAccessor level, BlockPos pos, BlockState state) {
+		if (!isSource(state)) return 0;
+		int amount = Vespene.perTrip(state);
+		if (state.getValue(OUTLET) && level instanceof Level world) {
+			var source = VespeneRootBlockEntity.veinOf(world, pos);
+			if (source != null && !source.lake()) amount = source.extract(world, pos, amount);
+		}
 		level.setBlock(pos, state.getValue(OUTLET) ? Vespene.VENT.defaultBlockState() : Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL_IMMEDIATE);
+		return amount;
 	}
 
 	@Override
 	public ItemStack pickupBlock(@Nullable Player player, LevelAccessor level, BlockPos pos, BlockState state) {
 		if (state.getValue(LEVEL) != 0) return ItemStack.EMPTY;
-		take(level, pos, state);
+		if (take(level, pos, state) == 0) return ItemStack.EMPTY;
 		return new ItemStack(Vespene.BUCKET);
 	}
 

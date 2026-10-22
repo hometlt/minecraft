@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": {
+		"item": "starmine:void_crystal_block"
+	},
+	"result": {
+		"id": "starmine:chiseled_void_crystal",
+		"count": 1
+	}
+}

@@ -1,5 +1,5 @@
 {
-	"name": "Склад-платформа зергов",
+	"name": "Ресурсный ящик зергов",
 	"icon": "starmine:zergplatform_spawn_egg",
 	"category": "starmine:zerg_buildings",
 	"sortnum": 15,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:zergplatform",
-			"name": "Склад-платформа зергов",
+			"name": "Ресурсный ящик зергов",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Склад-платформа зергов",
+			"title": "Ресурсный ящик зергов",
 			"text": "$(l)Здоровье$(): 400$(br)Без атаки$(br2)$(o)Цифры StarCraft II (LotV).$()"
 		}
 	]

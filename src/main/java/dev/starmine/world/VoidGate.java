@@ -1,139 +1,186 @@
 package dev.starmine.world;
 
 import dev.starmine.StarMine;
-import dev.starmine.entity.StarUnit;
-import java.util.List;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.particles.ParticleTypes;
+import java.util.*;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.portal.DimensionTransition;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * A way to the Void of one's own (owner 17.10). Void shards — dropped by the shards Amun sets in the world when he
- * invades ({@link AmunInvasion}) and by those of the Void, and found in the Void's crystals — make a void gate (eight
- * round an ender eye). Used, the gate takes its player, and the player's units within {@link #ESCORT} blocks, into the
- * Void; a gate in the Void takes them out to the overworld. The Void is small: a block there is {@link #SCALE} of the
- * overworld's (the Nether's 8 count as one overworld block first). A gate stands where they come out, to go back.
- */
+/** Six crystal arms around a world's stone become a paired, destructible spherical gate between worlds. */
 public final class VoidGate {
-	public static final int SCALE = 16, ESCORT = 8;
+	/** Owner 20.10: sixteen blocks in the Void equal one in any outside world (no extra Nether multiplier). */
+	public static final int SCALE = 16;
 	public static final Item SHARD = Registry.register(BuiltInRegistries.ITEM, StarMine.id("void_shard"), new Item(new Item.Properties().rarity(Rarity.UNCOMMON)));
-	public static final Block GATE = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("void_gate"), new Gate(BlockBehaviour.Properties.of()
-		.strength(5.0f, 1200.0f).lightLevel(state -> 11).sound(SoundType.AMETHYST)));
-
-	static {
-		Registry.register(BuiltInRegistries.ITEM, StarMine.id("void_gate"), new BlockItem(GATE, new Item.Properties().rarity(Rarity.RARE)));
-	}
-
-	private VoidGate() {
-	}
+	/** The old block is retained for saved worlds; it no longer bypasses the six-arm construction. */
+	public static final Block GATE = Registry.register(BuiltInRegistries.BLOCK, StarMine.id("void_gate"), new Block(BlockBehaviour.Properties.of().strength(5, 1200)));
+	static { Registry.register(BuiltInRegistries.ITEM, StarMine.id("void_gate"), new BlockItem(GATE, new Item.Properties())); }
+	private VoidGate() { }
 
 	public static void load() {
-		ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
-			entries.accept(GATE);
-			entries.accept(SHARD);
+		net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(SHARD));
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			ItemStack held = player.getItemInHand(hand);
+			if (!held.is(Items.FLINT_AND_STEEL) || !level.getBlockState(hit.getBlockPos()).is(VoidCraft.BLOCK)) return InteractionResult.PASS;
+			if (!player.mayBuild()) return InteractionResult.FAIL;
+			if (level.isClientSide) return InteractionResult.SUCCESS;
+			if (!(level instanceof ServerLevel server) || !(player instanceof ServerPlayer traveller)) return InteractionResult.PASS;
+			if (!activate(server, hit.getBlockPos(), traveller)) {
+				player.displayClientMessage(Component.translatable("message.starmine.gate_pattern"), true);
+				return InteractionResult.FAIL;
+			}
+			held.hurtAndBreak(1, player, hand == net.minecraft.world.InteractionHand.MAIN_HAND ? net.minecraft.world.entity.EquipmentSlot.MAINHAND : net.minecraft.world.entity.EquipmentSlot.OFFHAND);
+			return InteractionResult.CONSUME;
 		});
 	}
 
-	static final class Gate extends Block {
-		Gate(Properties properties) {
-			super(properties);
-		}
-
-		@Override
-		protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-			if (level instanceof ServerLevel server && player instanceof ServerPlayer traveller) travel(server, pos, traveller);
-			return InteractionResult.sidedSuccess(level.isClientSide);
-		}
-	}
-
-	/** The column a gate in `from` at `pos` leads to, in the other world. */
-	public static BlockPos target(Level from, BlockPos pos) {
-		if (VoidWorld.is(from)) return new BlockPos(pos.getX() * SCALE, 0, pos.getZ() * SCALE);
-		int scale = from.dimension() == Level.NETHER ? 8 : 1;
-		return new BlockPos(Math.floorDiv(pos.getX() * scale, SCALE), 0, Math.floorDiv(pos.getZ() * scale, SCALE));
-	}
-
-	/** Through the gate at `pos`: the player and their units near it, into the Void or out of it. */
-	public static boolean travel(ServerLevel level, BlockPos pos, ServerPlayer player) {
-		ServerLevel to = VoidWorld.is(level) ? level.getServer().overworld() : VoidWorld.level(level.getServer());
-		if (to == null) {
-			player.displayClientMessage(Component.translatable("message.starmine.no_void"), true);
-			return false;
-		}
-		BlockPos column = target(level, pos);
-		to.getChunk(column.getX() >> 4, column.getZ() >> 4);
-		Vec3 at = landing(to, column);
-		List<StarUnit> escort = level.getEntitiesOfClass(StarUnit.class, new AABB(pos).inflate(ESCORT), unit -> unit.isAlive()
-			&& unit.owner().filter(player.getUUID()::equals).isPresent() && !unit.kind.structure() && !unit.isPassenger());
-		level.sendParticles(ParticleTypes.REVERSE_PORTAL, pos.getX() + 0.5, pos.getY() + 1.5, pos.getZ() + 0.5, 60, 0.8, 1, 0.8, 0.2);
-		level.playSound(null, pos, SoundEvents.PORTAL_TRAVEL, SoundSource.BLOCKS, 0.5f, 1.3f);
-		int i = 0;
-		for (StarUnit unit : escort) {
-			double angle = i++ * 2.4, spread = 2 + unit.getBbWidth() + i * 0.4;
-			Vec3 spot = at.add(Math.cos(angle) * spread, unit.kind.flying ? unit.kind.hoverHeight() : 0, Math.sin(angle) * spread);
-			unit.command(StarUnit.Order.NONE, null);
-			unit.changeDimension(new DimensionTransition(to, spot, Vec3.ZERO, unit.getYRot(), unit.getXRot(), DimensionTransition.DO_NOTHING));
-		}
-		player.teleportTo(to, at.x, at.y, at.z, java.util.Set.of(), player.getYRot(), player.getXRot());
-		to.playSound(null, BlockPos.containing(at), SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0f, 0.7f);
-		player.displayClientMessage(Component.translatable(VoidWorld.is(to) ? "message.starmine.void_in" : "message.starmine.void_out"), true);
-		if (VoidWorld.is(to)) VoidArmy.arrive(to, player);
-		return true;
-	}
-
-	/** Where one comes out over `column` in `level`: on its ground, a ledge of void stone where there is none; a gate beside, to go back. */
-	static Vec3 landing(ServerLevel level, BlockPos column) {
-		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
-		if (y <= level.getMinBuildHeight() + 1) { // nothing there (the Void between its islands): a ledge
-			y = VoidWorld.RETURN.getY();
-			for (int dx = -3; dx <= 3; dx++)
-				for (int dz = -3; dz <= 3; dz++) level.setBlock(new BlockPos(column.getX() + dx, y - 1, column.getZ() + dz),
-					VoidIslands.BRICKS.defaultBlockState(), Block.UPDATE_ALL);
-		}
-		BlockPos feet = new BlockPos(column.getX(), y, column.getZ());
-		if (nearestGate(level, feet) == null) {
-			BlockPos gate = feet.offset(2, 0, 0);
-			if (level.getBlockState(gate.below()).isAir()) level.setBlock(gate.below(), VoidIslands.BRICKS.defaultBlockState(), Block.UPDATE_ALL);
-			level.setBlock(gate, GATE.defaultBlockState(), Block.UPDATE_ALL);
-			level.setBlock(gate.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-		}
-		return new Vec3(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5);
-	}
-
-	private static @Nullable BlockPos nearestGate(ServerLevel level, BlockPos near) {
-		for (BlockPos pos : BlockPos.betweenClosed(near.offset(-5, -3, -5), near.offset(5, 3, 5)))
-			if (level.getBlockState(pos).is(GATE)) return pos.immutable();
+	/** The centre's stone selects the destination, independently of the source world. */
+	public static @Nullable ResourceKey<Level> world(Block block) {
+		if (block == Blocks.STONE) return Level.OVERWORLD;
+		if (block == Blocks.NETHERRACK) return Level.NETHER;
+		if (block == Blocks.END_STONE) return Level.END;
+		if (block == VoidIslands.STONE) return VoidWorld.KEY;
+		if (block == Blocks.QUARTZ_BLOCK) return Stratosphere.KEY;
 		return null;
 	}
 
-	/** Whether an entity is in the Void, where nothing dies with loot or experience for anyone (owner 17.10). */
-	public static boolean inVoid(Entity entity) {
-		return VoidWorld.is(entity.level());
+	/** Radius 1..4 when all six arms have the same length, otherwise zero. No blocks are consumed on failure. */
+	public static int radius(ServerLevel level, BlockPos centre) {
+		int radius = 0;
+		for (Direction dir : Direction.values()) {
+			int length = 0;
+			while (length < 5 && level.getBlockState(centre.relative(dir, length + 1)).is(VoidCraft.BLOCK)) length++;
+			if (length < 1 || length > 4 || radius != 0 && length != radius) return 0;
+			radius = length;
+		}
+		return radius;
 	}
+
+	/** Activates a centre or one of its arms: validates both destinations before removing the construction. */
+	public static boolean activate(ServerLevel level, BlockPos clicked, ServerPlayer player) {
+		List<BlockPos> candidates = new ArrayList<>();
+		candidates.add(clicked);
+		for (Direction dir : Direction.values()) for (int n = 1; n <= 4; n++) candidates.add(clicked.relative(dir, n));
+		for (BlockPos centre : candidates) {
+			ResourceKey<Level> selected = world(level.getBlockState(centre).getBlock());
+			if (selected == null || selected == level.dimension()) continue;
+			int radius = radius(level, centre);
+			if (radius == 0) continue;
+			boolean allowed = level.mayInteract(player, centre);
+			for (Direction dir : Direction.values()) for (int n = 1; n <= radius; n++) allowed &= level.mayInteract(player, centre.relative(dir, n));
+			if (!allowed) return false;
+			ServerLevel to = level.getServer().getLevel(selected);
+			if (to == null) return false;
+			if (VoidWorld.is(to)) VoidWorld.prepare(to);
+			BlockPos column = target(level, to, centre);
+			Vec3 other = landing(to, column, radius * 2 + 1);
+			if (other == null) return false;
+			Vec3 here = Vec3.atCenterOf(centre).add(0, -radius - 0.5, 0);
+			// The six arms must stand in open space; do not leave the new sphere inside unrelated building blocks.
+			for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-radius, -radius, -radius), centre.offset(radius, radius, radius))) {
+				boolean arm = (pos.getX() == centre.getX() ? 1 : 0) + (pos.getY() == centre.getY() ? 1 : 0) + (pos.getZ() == centre.getZ() ? 1 : 0) >= 2;
+				if (!arm && !level.getBlockState(pos).canBeReplaced()) return false;
+			}
+			if (pair(level, here, to, other, radius * 2 + 1, player.getUUID()) == null) return false;
+			level.setBlock(centre, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			for (Direction dir : Direction.values()) for (int n = 1; n <= radius; n++) level.setBlock(centre.relative(dir, n), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+			platform(level, here, radius);
+			platform(to, other, radius);
+			return true;
+		}
+		return false;
+	}
+
+	/** Maps horizontal coordinates only; vertical placement is found safely in the destination. */
+	public static BlockPos target(Level from, BlockPos pos) {
+		return VoidWorld.is(from) ? new BlockPos(Math.floorDiv(pos.getX(), SCALE), 0, Math.floorDiv(pos.getZ(), SCALE))
+			: new BlockPos(pos.getX() * SCALE, 0, pos.getZ() * SCALE);
+	}
+
+	public static BlockPos target(Level from, Level to, BlockPos pos) {
+		if (VoidWorld.is(from)) return new BlockPos(Math.floorDiv(pos.getX(), SCALE), 0, Math.floorDiv(pos.getZ(), SCALE));
+		if (VoidWorld.is(to)) return new BlockPos(pos.getX() * SCALE, 0, pos.getZ() * SCALE);
+		double scale = from.dimensionType().coordinateScale() / to.dimensionType().coordinateScale();
+		return new BlockPos(net.minecraft.util.Mth.floor(pos.getX() * scale), 0, net.minecraft.util.Mth.floor(pos.getZ() * scale));
+	}
+
+	/** An empty volume near the mapped column. Never clears a player's buildings, a Nether roof or a fluid. */
+	static @Nullable Vec3 landing(ServerLevel level, BlockPos column, int size) {
+		if (!level.getWorldBorder().isWithinBounds(column.offset(-size, 0, -size)) || !level.getWorldBorder().isWithinBounds(column.offset(size, 0, size))) return null;
+		level.getChunkAt(column);
+		int start = level.dimension() == Level.NETHER ? 64 : Math.max(VoidWorld.is(level) ? 80 : 64,
+			level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ()));
+		int top = Math.min(level.getMaxBuildHeight() - size - 1, level.dimension() == Level.NETHER ? 119 - size : level.getMaxBuildHeight() - size - 1);
+		int r = size / 2;
+		for (int step = 0; step < 256; step++) {
+			int y = start + (step % 2 == 0 ? step / 2 : -(step + 1) / 2);
+			if (y < level.getMinBuildHeight() + 2 || y > top) continue;
+			boolean clear = true;
+			for (BlockPos at : BlockPos.betweenClosed(column.offset(-r, y, -r), column.offset(r, y + size - 1, r))) {
+				if (!level.getBlockState(at).isAir()) { clear = false; break; }
+			}
+			if (clear) return new Vec3(column.getX() + 0.5, y, column.getZ() + 0.5);
+		}
+		return null;
+	}
+
+	private static void platform(ServerLevel level, Vec3 feet, int radius) {
+		BlockPos floor = BlockPos.containing(feet).below();
+		for (BlockPos pos : BlockPos.betweenClosed(floor.offset(-radius - 1, 0, -radius - 1), floor.offset(radius + 1, 0, radius + 1)))
+			if (level.getBlockState(pos).canBeReplaced()) level.setBlock(pos, VoidIslands.BRICKS.defaultBlockState(), Block.UPDATE_ALL);
+	}
+
+	/** Creates both entities with one durable pair id; callers may provide an already prepared landing. */
+	public static @Nullable VoidRift pair(ServerLevel from, Vec3 here, ServerLevel to, Vec3 there, int size, UUID owner) {
+		if (from == to || size < 3 || size > 9 || size % 2 == 0) return null;
+		from.getChunkAt(BlockPos.containing(here));
+		to.getChunkAt(BlockPos.containing(there));
+		VoidRift a = VoidForces.RIFT.create(from), b = VoidForces.RIFT.create(to);
+		if (a == null || b == null) return null;
+		UUID id = UUID.randomUUID();
+		a.configure(owner, id, to.dimension(), there, size);
+		b.configure(owner, id, from.dimension(), here, size);
+		a.moveTo(here.x, here.y, here.z, 0, 0);
+		b.moveTo(there.x, there.y, there.z, 0, 0);
+		if (!from.addFreshEntity(a)) return null;
+		if (!to.addFreshEntity(b)) { a.discard(); return null; }
+		return a;
+	}
+
+	/** Destroyed pair ids survive restarts so an unloaded counterpart cannot reappear later. */
+	public static final class Broken extends SavedData {
+		private final Set<UUID> ids = new HashSet<>();
+		private static final Factory<Broken> FACTORY = new Factory<>(Broken::new, (tag, registries) -> {
+			Broken data = new Broken();
+			for (Tag id : tag.getList("pairs", Tag.TAG_INT_ARRAY)) data.ids.add(NbtUtils.loadUUID(id));
+			return data;
+		}, null);
+		public static Broken get(MinecraftServer server) { return server.overworld().getDataStorage().computeIfAbsent(FACTORY, "starmine_broken_gates"); }
+		public boolean contains(UUID id) { return ids.contains(id); }
+		public void add(UUID id) { if (ids.add(id)) setDirty(); }
+		@Override public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+			ListTag list = new ListTag();
+			ids.forEach(id -> list.add(NbtUtils.createUUID(id)));
+			tag.put("pairs", list);
+			return tag;
+		}
+	}
+
+	public static boolean inVoid(Entity entity) { return VoidWorld.is(entity.level()); }
 }

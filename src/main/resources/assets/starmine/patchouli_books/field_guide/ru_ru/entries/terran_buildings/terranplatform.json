@@ -1,5 +1,5 @@
 {
-	"name": "Склад-платформа терранов",
+	"name": "Ресурсный ящик терранов",
 	"icon": "starmine:terranplatform_spawn_egg",
 	"category": "starmine:terran_buildings",
 	"sortnum": 14,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:terranplatform",
-			"name": "Склад-платформа терранов",
+			"name": "Ресурсный ящик терранов",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Склад-платформа терранов",
+			"title": "Ресурсный ящик терранов",
 			"text": "$(l)Здоровье$(): 400$(br)Без атаки$(br2)$(o)Цифры StarCraft II (LotV).$()"
 		}
 	]

@@ -26,8 +26,8 @@ final class Bars {
 		for (Entity entity : mc.level.entitiesForRendering()) {
 			// owner 17.10: any creature's health too — monsters, animals, the Void's foes — when hurt or looked at
 			if (entity instanceof net.minecraft.world.entity.LivingEntity living && !(entity instanceof StarUnit) && living.isAlive()
-				&& !living.isInvisible() && entity != mc.player && CommandView.visible(entity)) {
-				boolean looked = CommandView.inspected != null && CommandView.inspected == entity.getId();
+				&& !living.isInvisible() && CommandView.visible(entity)) {
+				boolean looked = entity == mc.player && CommandView.hero || CommandView.inspected != null && CommandView.inspected == entity.getId();
 				if (!looked && living.getHealth() >= living.getMaxHealth()) continue;
 				Vec3 at = living.getPosition(partial);
 				if (at.distanceToSqr(camera) > RANGE * RANGE) continue;
@@ -43,7 +43,8 @@ final class Bars {
 			if (!CommandView.own(unit) && !CommandView.visible(unit)) continue;
 			boolean selected = CommandView.selection.contains(unit.getId());
 			boolean hurt = unit.getHealth() < unit.getMaxHealth() || unit.kind.shields > 0 && unit.shield() < unit.maxShield();
-			if (!selected && !hurt) continue;
+			boolean busy = unit.kind.structure() && !unit.queueIds().isEmpty();
+			if (!selected && !hurt && !busy) continue;
 			Vec3 at = unit.getPosition(partial);
 			if (at.distanceToSqr(camera) > RANGE * RANGE) continue;
 			double[] top = CommandView.project(at.add(0, unit.getBbHeight() + 0.4, 0), width, height);
@@ -58,6 +59,8 @@ final class Bars {
 			float health = unit.getHealth() / unit.getMaxHealth();
 			bar(graphics, x - half, y - 3, half * 2, health, health > 0.6f ? 0xFF30E030 : health > 0.3f ? 0xFFE0D020 : 0xFFE03020);
 			if (unit.maxEnergy() > 0) bar(graphics, x - half, y, half * 2, unit.energy() / unit.maxEnergy(), 0xFFC050FF);
+			if (busy) bar(graphics, x - half, y + (unit.maxEnergy() > 0 ? 4 : 1), half * 2,
+				Math.abs(unit.progress()) / 1000f, unit.queueIds().equals("construct") ? 0xFFFFD040 : 0xFF60A0FF);
 		}
 	}
 

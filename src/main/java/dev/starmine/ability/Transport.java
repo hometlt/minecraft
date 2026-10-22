@@ -49,7 +49,7 @@ public final class Transport {
 	/** Cargo slots of this transport now: a player's overlord without its sacs and an orbital carry none, neosteel adds 2 to a bunker. */
 	public static int capacity(StarUnit transport) {
 		UnitKind kind = transport.kind;
-		if (kind == UnitKind.OVERLORD && transport.owner().isPresent() && transport.mode() != Modes.SACS && transport.mode() != Modes.CREEPING_SACS) return 0;
+		if (kind == UnitKind.OVERLORD && transport.mode() != Modes.SACS && transport.mode() != Modes.CREEPING_SACS) return 0;
 		if (kind == UnitKind.COMMAND_CENTER && transport.mode() == Modes.ORBITAL) return 0;
 		int bonus = kind == UnitKind.BUNKER && Abilities.researched(transport, dev.starmine.race.Research.NEOSTEEL_ARMOR) ? NEOSTEEL_BONUS : 0;
 		return capacity(kind) + bonus;
@@ -106,10 +106,21 @@ public final class Transport {
 
 	/** Takes aboard the units of its side and race around it, nearest first, while there is room. */
 	static void load(StarUnit transport) {
+		load(transport, true);
+	}
+
+	/** Automatic bunker defence keeps workers outside to mine and repair. */
+	static boolean loadDefenders(StarUnit transport) {
+		return load(transport, false);
+	}
+
+	private static boolean load(StarUnit transport, boolean workers) {
+		int before = transport.getPassengers().size();
 		List<StarUnit> near = transport.level().getEntitiesOfClass(StarUnit.class, transport.getBoundingBox().inflate(LOAD_RANGE, transport.kind.hoverHeight() + 4, LOAD_RANGE),
-			unit -> unit.isAlive() && !unit.isPassenger() && unit != transport);
+			unit -> unit.isAlive() && !unit.isPassenger() && unit != transport && (workers || !unit.kind.worker()));
 		near.sort(Comparator.comparingDouble(unit -> unit.distanceToSqr(transport)));
 		for (StarUnit unit : near) if (carries(transport, unit)) unit.startRiding(transport, true);
+		return transport.getPassengers().size() > before;
 	}
 
 	/** Flies to the point; {@link #tick} puts the cargo down there. A building lets it out at once. */

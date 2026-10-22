@@ -218,6 +218,15 @@ public final class Minerals {
 			return amount;
 		}
 
+		/** Depletion changes the cluster above its fixed footprint, never its width. */
+		public float visualHeight() {
+			return 1.25f + 0.95f * Math.clamp(amount / 1000f, 0f, 1f);
+		}
+
+		public int visibleShards(int fullCount) {
+			return Math.min(fullCount, 3 + (int) Math.ceil((fullCount - 3) * Math.clamp(amount / 1000f, 0f, 1f)));
+		}
+
 		public boolean rich() {
 			return rich;
 		}
@@ -409,17 +418,34 @@ public final class Minerals {
 	 * apart; only where they fit (on land, dry). `limit` bounds how far from `centre` it may write.
 	 */
 	public static int field(WorldGenLevel level, RandomSource random, int x, int z, int limit, Setter set) {
-		int count = 3 + random.nextInt(4), made = 0;
-		for (int i = 0; i < count * 3 && made < count; i++) {
-			double angle = random.nextDouble() * Math.PI * 2, distance = i == 0 ? 0 : 3 + random.nextDouble() * 5;
-			int cx = x + (int) Math.round(Math.cos(angle) * distance), cz = z + (int) Math.round(Math.sin(angle) * distance);
-			if (Math.abs(cx - x) > limit - 4 || Math.abs(cz - z) > limit - 4) continue;
-			int ground = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, cx, cz);
-			if (level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, cx, cz) > ground + 2) continue; // water or a tree
-			if (Math.abs(level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, cx + 1, cz + 1) - ground) > 1) continue; // too steep
-			if (!level.getFluidState(new BlockPos(cx, ground - 1, cz)).isEmpty()) continue;
-			if (crystalWithin(level, new BlockPos(cx, ground, cz), 2)) continue;
-			if (place(level, new BlockPos(cx, ground, cz), set)) made++;
+		if (limit < 14) return 0;
+		Heightmap.Types floorMap = level instanceof ServerLevel ? Heightmap.Types.OCEAN_FLOOR : Heightmap.Types.OCEAN_FLOOR_WG;
+		Heightmap.Types surfaceMap = level instanceof ServerLevel ? Heightmap.Types.WORLD_SURFACE : Heightmap.Types.WORLD_SURFACE_WG;
+		int ground = level.getHeight(floorMap, x, z);
+		// A dry, level pad beyond the ore line leaves room for a main and nine blocks of clearance.
+		for (int dx = -10; dx <= 10; dx += 2) for (int dz = 14; dz <= 34; dz += 2) {
+			int y = level.getHeight(floorMap, x + dx, z + dz);
+			if (Math.abs(y - ground) > 1 || level.getHeight(surfaceMap, x + dx, z + dz) > y + 2
+				|| !level.getFluidState(new BlockPos(x + dx, y - 1, z + dz)).isEmpty()
+				|| !level.getFluidState(new BlockPos(x + dx, y, z + dz)).isEmpty()) return 0;
+		}
+		List<BlockPos> cores = new ArrayList<>();
+		for (int i = 0; i < 5; i++) {
+			int cx = x + (i - 2) * 5, cz = z - Math.abs(i - 2);
+			int y = level.getHeight(floorMap, cx, cz);
+			BlockPos core = new BlockPos(cx, y, cz);
+			if (Math.abs(y - ground) > 1 || crystalWithin(level, core, 2)) return 0;
+			for (BlockPos at : BlockPos.betweenClosed(core, core.offset(2, 2, 2)))
+				if ((!level.getBlockState(at).isAir() && !level.getBlockState(at).canBeReplaced()) || !level.getFluidState(at).isEmpty()) return 0;
+			for (int dx = 0; dx < 3; dx++) for (int dz = 0; dz < 3; dz++)
+				if (Math.abs(level.getHeight(floorMap, cx + dx, cz + dz) - y) > 1
+					|| !level.getFluidState(core.offset(dx, -1, dz)).isEmpty()) return 0;
+			cores.add(core);
+		}
+		int made = 0;
+		for (BlockPos core : cores) if (place(level, core, 3, set)) {
+			if (level.getBlockEntity(core) instanceof Core crystal) { crystal.setSize(3); crystal.setAmount(made < 3 ? 1300 : 800); }
+			made++;
 		}
 		return made;
 	}

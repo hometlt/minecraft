@@ -1,0 +1,24 @@
+{
+	"name": "The Guardians' Fights",
+	"icon": "starmine:karax_spawn_egg",
+	"category": "starmine:dungeons",
+	"sortnum": 1,
+	"pages": [
+		{
+			"type": "patchouli:text",
+			"text": "The guardians of the main bases wait in the great halls: $(l)Abathur$() under the lair, $(l)Swann$() under the terran base, $(l)Karax$() under the protoss one. Each fights in three phases; what a phase brings stays on through the next. Their base's army comes to them when they are threatened.$(br2)$(l)If the base's main building on the surface is destroyed$(), its guardian comes up from below and fights there."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Abathur$(): toxic nests that burst under you; then he evolves his units and tentacles hold you; at the third phase tentacles strike from the walls, he sheds a copy and becomes the $(l)brutalisk$(), leaping at you with a symbiote flying by it. The creep tumors of his hall heal him: burn them."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "$(l)Swann$(): grenades and mines; then flaming Betty turrets; at the third phase he climbs into $(l)Odin$(), whose shells break blocks, and once calls a nuke — its red dot shows seconds before.$(br2)$(l)Karax$(): interceptors and warped-in photon cannons; then khaydarin monoliths burning through blocks; at the third phase the Spear of Adun's purifier beam and his $(l)archive guardian$()."
+		},
+		{
+			"type": "patchouli:text",
+			"text": "A guardian beaten keeps a tenth of its health and is $(l)freed$(): yours to command. Then its race's ship comes to the stratosphere over the base — the leviathan, the Hyperion, the mothership — with its own crew and arena (see Heroes and The Stratosphere)."
+		}
+	]
+}

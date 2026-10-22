@@ -22,7 +22,8 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  */
 public final class MineralHallFeature extends Feature<NoneFeatureConfiguration> {
 	/** Half the hall's width (it must stay within 15 blocks of the chunk centre: a feature writes only into the neighbours). */
-	static final int RADIUS_MIN = 9, RADIUS_MAX = 12;
+	static final int RADIUS_MIN = 15, RADIUS_MAX = 15;
+	static final int HEIGHT = dev.starmine.world.BattleSpaces.HEADROOM + 4;
 
 	public MineralHallFeature(Codec<NoneFeatureConfiguration> codec) {
 		super(codec);
@@ -35,14 +36,37 @@ public final class MineralHallFeature extends Feature<NoneFeatureConfiguration> 
 		int cx = (context.origin().getX() & ~15) + 8, cz = (context.origin().getZ() & ~15) + 8;
 		int bottom = level.getMinBuildHeight();
 		int ground = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, cx, cz);
-		int low = bottom + 8, high = ground - 18; // any depth: from just over the bedrock to well under the land
+		int low = bottom + 8, high = ground - HEIGHT - 4;
 		if (high <= low) return false;
 		int floor = low + random.nextInt(high - low + 1);
 		int rx = RADIUS_MIN + random.nextInt(RADIUS_MAX - RADIUS_MIN + 1), rz = RADIUS_MIN + random.nextInt(RADIUS_MAX - RADIUS_MIN + 1);
-		int height = 7 + random.nextInt(3);
+		int height = HEIGHT;
+		// owner 22.10: a great cave winds up from the hall to the surface (none: the hall is not made, it would flood)
+		double a = random.nextDouble() * Math.PI * 2;
 		return carve(level, cx, floor, cz, rx, height, rz)
 			&& dev.starmine.vespene.VespeneVeinFeature.build(level, random, cx, cz, floor)
-			&& crystals(level, random, cx, floor, cz, rx, rz) > 0;
+			&& crystals(level, random, cx, floor, cz, rx, rz) > 0
+			&& dev.starmine.vespene.VespeneVeinFeature.caveToSurface(level, random, cx, cz, cx + Math.cos(a) * 9, floor, cz + Math.sin(a) * 9);
+	}
+
+	/**
+	 * `count` crystals (3 x 3, 1300 then 800 minerals) on a floor round (x, floorY, z), `radius` blocks off at most (owner
+	 * 22.10: a deep geyser's cave has a few now and then); returns how many stand.
+	 */
+	public static int crystalsAround(WorldGenLevel level, RandomSource random, int x, int floorY, int z, int radius, int count, Minerals.Setter set) {
+		int made = 0;
+		double rotation = random.nextDouble() * Math.PI * 2;
+		for (int i = 0; i < 60 && made < count; i++) {
+			double angle = rotation + i * 2.399963229728653, distance = Math.max(4, radius - 1) + random.nextDouble() * 2;
+			BlockPos core = new BlockPos(x - 1 + (int) Math.round(Math.cos(angle) * distance), floorY, z - 1 + (int) Math.round(Math.sin(angle) * distance));
+			if (Minerals.crystalWithin(level, core, 2)) continue;
+			if (Minerals.place(level, core, 3, set) && level.getBlockEntity(core) instanceof Minerals.Core crystal) {
+				crystal.setSize(3);
+				crystal.setAmount(made < 3 ? 1300 : 800);
+				made++;
+			}
+		}
+		return made;
 	}
 
 	/** Whether (dx, dy, dz) from the hall's floor centre is inside it: a half-ellipsoid on a flat floor. */
@@ -86,22 +110,29 @@ public final class MineralHallFeature extends Feature<NoneFeatureConfiguration> 
 		return true;
 	}
 
-	/** 4 to 7 crystals round the hall's middle (the geyser), on its floor. */
+	/** Five crystals, retrying sites around the vein's additional outlets. */
 	static int crystals(WorldGenLevel level, RandomSource random, int cx, int floor, int cz, int rx, int rz) {
-		int count = 4 + random.nextInt(4), made = 0;
-		for (int i = 0; i < count * 4 && made < count; i++) {
-			double angle = random.nextDouble() * Math.PI * 2, distance = 5 + random.nextDouble() * (Math.min(rx, rz) - 7);
-			int x = cx + (int) Math.round(Math.cos(angle) * distance), z = cz + (int) Math.round(Math.sin(angle) * distance);
+		int count = 5, made = 0;
+		double rotation = random.nextDouble() * Math.PI * 2;
+		for (int i = 0; i < 160 && made < count; i++) {
+			double angle = rotation + i * 2.399963229728653, distance = 7.5 + random.nextDouble() * 5;
+			int x = cx - 1 + (int) Math.round(Math.cos(angle) * distance), z = cz - 1 + (int) Math.round(Math.sin(angle) * distance);
 			BlockPos core = new BlockPos(x, floor, z);
 			if (Minerals.crystalWithin(level, core, 2)) continue;
-			if (Minerals.place(level, core, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS))) made++;
+			if (Minerals.place(level, core, 3, (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS))) {
+				if (level.getBlockEntity(core) instanceof Minerals.Core crystal) {
+					crystal.setSize(3);
+					crystal.setAmount(made < 3 ? 1300 : 800);
+				}
+				made++;
+			}
 		}
 		return made;
 	}
 
 	/** Tests: a hall of the largest size at `floor` under (cx, cz). */
 	public static boolean carveForTest(WorldGenLevel level, int cx, int floor, int cz) {
-		return carve(level, cx, floor, cz, RADIUS_MAX, 8, RADIUS_MAX);
+		return carve(level, cx, floor, cz, RADIUS_MAX, HEIGHT, RADIUS_MAX);
 	}
 
 	/** Tests: the crystals of such a hall. */

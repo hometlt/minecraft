@@ -1,3 +1,266 @@
 {
-	"parent": "starmine:block/protoss_platform"
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "starmine:block/protoss_armor_plating",
+		"body": "starmine:block/protoss_armor_plating",
+		"top": "starmine:block/protoss_armor_panel",
+		"shield": "starmine:block/psi_barrier",
+		"gold": "minecraft:block/gold_block"
+	},
+	"elements": [
+		{
+			"from": [
+				1,
+				0,
+				1
+			],
+			"to": [
+				15,
+				5,
+				15
+			],
+			"faces": {
+				"north": {
+					"texture": "#body"
+				},
+				"south": {
+					"texture": "#body"
+				},
+				"west": {
+					"texture": "#body"
+				},
+				"east": {
+					"texture": "#body"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#body"
+				}
+			}
+		},
+		{
+			"from": [
+				1,
+				5,
+				1
+			],
+			"to": [
+				3,
+				9,
+				3
+			],
+			"faces": {
+				"north": {
+					"texture": "#gold"
+				},
+				"south": {
+					"texture": "#gold"
+				},
+				"west": {
+					"texture": "#gold"
+				},
+				"east": {
+					"texture": "#gold"
+				},
+				"up": {
+					"texture": "#gold"
+				},
+				"down": {
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				13,
+				5,
+				1
+			],
+			"to": [
+				15,
+				9,
+				3
+			],
+			"faces": {
+				"north": {
+					"texture": "#gold"
+				},
+				"south": {
+					"texture": "#gold"
+				},
+				"west": {
+					"texture": "#gold"
+				},
+				"east": {
+					"texture": "#gold"
+				},
+				"up": {
+					"texture": "#gold"
+				},
+				"down": {
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				1,
+				5,
+				13
+			],
+			"to": [
+				3,
+				9,
+				15
+			],
+			"faces": {
+				"north": {
+					"texture": "#gold"
+				},
+				"south": {
+					"texture": "#gold"
+				},
+				"west": {
+					"texture": "#gold"
+				},
+				"east": {
+					"texture": "#gold"
+				},
+				"up": {
+					"texture": "#gold"
+				},
+				"down": {
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				13,
+				5,
+				13
+			],
+			"to": [
+				15,
+				9,
+				15
+			],
+			"faces": {
+				"north": {
+					"texture": "#gold"
+				},
+				"south": {
+					"texture": "#gold"
+				},
+				"west": {
+					"texture": "#gold"
+				},
+				"east": {
+					"texture": "#gold"
+				},
+				"up": {
+					"texture": "#gold"
+				},
+				"down": {
+					"texture": "#gold"
+				}
+			}
+		},
+		{
+			"from": [
+				3,
+				5,
+				3
+			],
+			"to": [
+				13,
+				13,
+				13
+			],
+			"faces": {
+				"north": {
+					"texture": "#shield"
+				},
+				"south": {
+					"texture": "#shield"
+				},
+				"west": {
+					"texture": "#shield"
+				},
+				"east": {
+					"texture": "#shield"
+				},
+				"up": {
+					"texture": "#shield"
+				},
+				"down": {
+					"texture": "#shield"
+				}
+			}
+		}
+	],
+	"display": {
+		"gui": {
+			"rotation": [
+				30,
+				225,
+				0
+			],
+			"scale": [
+				0.625,
+				0.625,
+				0.625
+			]
+		},
+		"ground": {
+			"translation": [
+				0,
+				3,
+				0
+			],
+			"scale": [
+				0.25,
+				0.25,
+				0.25
+			]
+		},
+		"fixed": {
+			"scale": [
+				0.5,
+				0.5,
+				0.5
+			]
+		},
+		"thirdperson_righthand": {
+			"rotation": [
+				75,
+				45,
+				0
+			],
+			"translation": [
+				0,
+				2.5,
+				0
+			],
+			"scale": [
+				0.375,
+				0.375,
+				0.375
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				0,
+				45,
+				0
+			],
+			"scale": [
+				0.4,
+				0.4,
+				0.4
+			]
+		}
+	}
 }

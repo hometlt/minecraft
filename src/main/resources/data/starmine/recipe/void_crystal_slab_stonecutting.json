@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:stonecutting",
+	"ingredient": {
+		"item": "starmine:void_crystal_block"
+	},
+	"result": {
+		"id": "starmine:void_crystal_slab",
+		"count": 2
+	}
+}

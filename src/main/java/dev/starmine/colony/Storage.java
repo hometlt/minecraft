@@ -90,6 +90,7 @@ public final class Storage {
 			public void add(int minerals, int vespene) {
 				hive.minerals += minerals;
 				hive.vespene += vespene;
+				hive.capStore(); // owner 22.10: up to 9999 of each
 				HiveSavedData.get(level.getServer()).setDirty();
 			}
 		};
@@ -161,6 +162,7 @@ public final class Storage {
 			storage.playSound(SoundEvents.ITEM_PICKUP, 1.0f, 0.8f);
 			return InteractionResult.SUCCESS;
 		}
+		if (player.isShiftKeyDown() && stack.isEmpty() && Exchange.open(server, storage, player)) return InteractionResult.SUCCESS; // owner 22.10
 		open(server, storage, player);
 		return InteractionResult.SUCCESS;
 	}
@@ -174,6 +176,35 @@ public final class Storage {
 		} else {
 			bankOf(level, storage).add(yield.minerals() * count, yield.vespene() * count);
 		}
+	}
+
+	/** A base's bank (its minerals and vespene, at most 9999 of each for a player's). */
+	static Bank bankOf(ServerLevel level, Hive hive) {
+		return new Bank() {
+			public int minerals() {
+				return hive.minerals;
+			}
+
+			public int vespene() {
+				return hive.vespene;
+			}
+
+			public void add(int minerals, int vespene) {
+				hive.minerals += minerals;
+				hive.vespene += vespene;
+				hive.capStore();
+				HiveSavedData.get(level.getServer()).setDirty();
+			}
+		};
+	}
+
+	/** Any bank as a chest (a resource crate's, owner 22.10); `closed` runs when it is shut. */
+	static void openBank(Player player, Bank bank, Component title, Runnable closed) {
+		player.openMenu(new SimpleMenuProvider((id, inventory, who) -> {
+			View view = new View(bank, who);
+			view.closed = closed;
+			return ChestMenu.sixRows(id, inventory, view);
+		}, title));
 	}
 
 	/** The bank as a chest: mineral shards for its minerals; the title says the minerals and vespene. */
@@ -193,6 +224,9 @@ public final class Storage {
 		private final Player viewer;
 		private int minerals, vespene;
 		private boolean filling;
+		/** Runs when the view is shut (a resource crate closes its top). */
+		Runnable closed = () -> {
+		};
 
 		View(Bank bank, Player viewer) {
 			super(ROWS * 9);
@@ -239,6 +273,7 @@ public final class Storage {
 		@Override
 		public void stopOpen(Player player) {
 			super.stopOpen(player);
+			closed.run();
 			// what was laid in is the bank's now; a vespene bucket's bucket goes back to the player
 			for (int i = 0; i < getContainerSize(); i++) {
 				ItemStack stack = getItem(i);

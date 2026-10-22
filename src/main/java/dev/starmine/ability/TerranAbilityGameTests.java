@@ -25,6 +25,67 @@ import static dev.starmine.ability.TestArena.unit;
  * Yamato and the medivac are in {@link AbilityGameTests}; concussive shells in {@link MechanicsGameTests}.
  */
 public class TerranAbilityGameTests implements FabricGameTest {
+	@GameTest(template = ARENA, batch = "terranDamageParity", timeoutTicks = 30)
+	public void wildMainBuildingsTakeTheSameWeaponDamageAsOwnedOnes(GameTestHelper h) {
+		TestArena.clear(h);
+		StarUnit attacker = TestArena.unit(h, UnitKind.STALKER, 8, 8, null);
+		StarUnit wild = TestArena.unit(h, UnitKind.COMMAND_CENTER, 24, 24, null);
+		StarUnit owned = TestArena.unit(h, UnitKind.COMMAND_CENTER, 44, 24, java.util.UUID.randomUUID());
+		float beforeWild = wild.getHealth(), beforeOwned = owned.getHealth();
+		wild.hurt(h.getLevel().damageSources().mobAttack(attacker), 10);
+		owned.hurt(h.getLevel().damageSources().mobAttack(attacker), 10);
+		h.assertTrue(Math.abs((beforeWild - wild.getHealth()) - (beforeOwned - owned.getHealth())) < 0.001f,
+			"wild main still has hidden damage resistance");
+		h.succeed();
+	}
+	@GameTest(template = ARENA, batch = "automaticBunkerWorkers", timeoutTicks = 40)
+	public void automaticBunkersKeepWorkersOutsideButManualLoadingStillWorks(GameTestHelper h) {
+		clear(h);
+		var level = h.getLevel();
+		Hive base = new Hive(UUID.randomUUID(), level.dimension().location().toString(), h.absolutePos(new BlockPos(24, 2, 24)));
+		base.race = UnitKind.Race.TERRAN; base.join(UnitKind.BUNKER);
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(base);
+		StarUnit bunker = TestArena.member(h, base, UnitKind.BUNKER, 24, 24);
+		StarUnit worker = TestArena.member(h, base, UnitKind.SCV, 26, 24);
+		StarUnit second = TestArena.member(h, base, UnitKind.SCV, 26, 26);
+		StarUnit marine = TestArena.member(h, base, UnitKind.MARINE, 27, 24);
+		unit(h, UnitKind.ZERGLING, 33, 24, UUID.randomUUID()).setNoAi(true);
+		worker.startRiding(bunker, true);
+		AbilityAi.think(bunker, level, null);
+		h.assertTrue(!worker.isPassenger() && !second.isPassenger(), "automatic bunker trapped economic workers");
+		h.assertTrue(marine.getVehicle() == bunker, "bunker did not take its defender");
+		UUID owner = UUID.randomUUID();
+		StarUnit manual = unit(h, UnitKind.BUNKER, 10, 10, owner), scv = unit(h, UnitKind.SCV, 12, 10, owner);
+		h.assertTrue(Abilities.cast(manual, level, Ability.LOAD, null, null) && scv.getVehicle() == manual,
+			"explicit player loading no longer accepts workers");
+		h.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "repairEconomicReserve", timeoutTicks = 40)
+	public void automaticRepairLeavesWorkersAndTheNextScvsPriceForRecovery(GameTestHelper h) {
+		clear(h);
+		var level = h.getLevel();
+		Hive base = new Hive(UUID.randomUUID(), level.dimension().location().toString(), h.absolutePos(new BlockPos(24, 2, 24)));
+		base.race = UnitKind.Race.TERRAN; base.minerals = 15; base.join(UnitKind.COMMAND_CENTER);
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(base);
+		StarUnit cc = TestArena.member(h, base, UnitKind.COMMAND_CENTER, 24, 24); cc.setHealth(cc.getMaxHealth() * .9f);
+		StarUnit worker = TestArena.member(h, base, UnitKind.SCV, 30, 24);
+		TestArena.member(h, base, UnitKind.SCV, 32, 24);
+		AbilityAi.think(worker, level, null);
+		h.assertTrue(!worker.abilities.repairing(), "last mineral workers started repair");
+		TerranAbilities.repair(worker, cc); TerranAbilities.repairTick(worker, level);
+		h.assertTrue(!worker.abilities.repairing(), "existing repair kept the last workers occupied");
+		for (int i = 0; i < 3; i++) TestArena.member(h, base, UnitKind.SCV, 30, 26 + i * 2);
+		base.minerals = 51; AbilityAi.think(worker, level, null);
+		h.assertTrue(worker.abilities.repairing(), "surplus above the next SCV was not used for repair");
+		base.minerals = 50; TerranAbilities.repairTick(worker, level);
+		h.assertTrue(!worker.abilities.repairing(), "repair spent the replacement SCV's reserve");
+		TestArena.member(h, base, UnitKind.SCV, 32, 30); base.minerals = 1;
+		AbilityAi.think(worker, level, null);
+		h.assertTrue(worker.abilities.repairing(), "a recovered economy could not repair with a small bank");
+		h.succeed();
+	}
+
 	/** A player's command center that founded its base, with minerals. */
 	private static StarUnit commandCenter(GameTestHelper helper) {
 		return unit(helper, UnitKind.COMMAND_CENTER, 34, 34, UUID.randomUUID());

@@ -91,7 +91,7 @@ public final class VoidBlackHole {
 		if (age % 40 == 0) level.playSound(null, centre.x, centre.y, centre.z, SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 3f, 0.5f);
 		double reach = REACH * (0.4 + 0.6 * grown);
 		for (Entity entity : level.getEntities((Entity) null, new AABB(centre, centre).inflate(reach),
-			e -> e.isAlive() && !(e instanceof Amun) && !(e instanceof VoidForces.Member) && !e.isSpectator()
+			e -> e.isAlive() && !(e instanceof Amun) && !(e instanceof VoidForces.Member) && !(e instanceof VoidRift rift && rift.invasion()) && !e.isSpectator()
 				&& !(e instanceof ServerPlayer p && p.isCreative()))) {
 			Vec3 in = centre.subtract(entity.position().add(0, entity.getBbHeight() / 2, 0));
 			double d = in.length();
@@ -119,7 +119,7 @@ public final class VoidBlackHole {
 			level.removeBlock(pos, false);
 		}
 		for (LivingEntity living : level.getEntitiesOfClass(LivingEntity.class, new AABB(centre, centre).inflate(RADIUS),
-			e -> !(e instanceof Amun) && !(e instanceof VoidForces.Member) && e.position().distanceTo(centre) <= RADIUS + 0.5))
+			e -> !(e instanceof Amun) && !(e instanceof VoidForces.Member) && !(e instanceof VoidRift rift && rift.invasion()) && e.position().distanceTo(centre) <= RADIUS + 0.5))
 			living.hurt(level.damageSources().magic(), BURST_DAMAGE);
 	}
 }

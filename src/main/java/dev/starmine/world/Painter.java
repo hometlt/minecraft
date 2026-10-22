@@ -31,7 +31,7 @@ public final class Painter {
 	final RandomSource random;
 	private int placed;
 	/** A deferred painter's plan: blocks by position (in order), steps after the blocks put before them. */
-	private final it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<BlockState> plan;
+	private it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<BlockState> plan;
 	private final java.util.ArrayDeque<Object> queue;
 	/** Cells or steps a server tick puts for all deferred painters. */
 	public static final int BUDGET = 12_000;
@@ -73,8 +73,8 @@ public final class Painter {
 
 	private void flushPlan() {
 		if (plan.isEmpty()) return;
-		queue.add(plan.clone());
-		plan.clear();
+		queue.add(plan); // handed over, not copied: a copy of a ship's plan per chest ran the server out of memory (crash 22.10)
+		plan = new it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<>();
 	}
 
 	/** Starts putting a deferred painter's plan, {@link #BUDGET} a tick. */

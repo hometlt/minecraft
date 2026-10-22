@@ -1,5 +1,5 @@
 {
-	"name": "Protoss Supply Platform",
+	"name": "Protoss Resource Crate",
 	"icon": "starmine:protossplatform_spawn_egg",
 	"category": "starmine:protoss_buildings",
 	"sortnum": 15,
@@ -7,12 +7,12 @@
 		{
 			"type": "patchouli:entity",
 			"entity": "starmine:protossplatform",
-			"name": "Protoss Supply Platform",
+			"name": "Protoss Resource Crate",
 			"rotate": true
 		},
 		{
 			"type": "patchouli:text",
-			"title": "Protoss Supply Platform",
+			"title": "Protoss Resource Crate",
 			"text": "$(l)Health$(): 200, shields 200$(br)No attack$(br2)$(o)StarCraft II numbers (LotV).$()"
 		}
 	]

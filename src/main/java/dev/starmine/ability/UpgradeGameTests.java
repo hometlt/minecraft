@@ -20,6 +20,51 @@ import net.minecraft.server.level.ServerLevel;
  * unit has them all); speed, range and armor upgrades change the units; a sentry hallucinates what it is told.
  */
 public class UpgradeGameTests implements FabricGameTest {
+	@GameTest(template = ARENA, batch = "wildResearch", timeoutTicks = 40)
+	public void aiBaseNeedsBurrowAndBlindDiggingStillHurts(GameTestHelper h) {
+		clear(h);
+		var level = h.getLevel();
+		Hive base = new Hive(UUID.randomUUID(), level.dimension().location().toString(), h.absolutePos(new net.minecraft.core.BlockPos(34, 2, 34)));
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(base);
+		StarUnit roach = TestArena.member(h, base, UnitKind.ROACH, 20, 20);
+		roach.setNoAi(true);
+		StarUnit marine = unit(h, UnitKind.MARINE, 24, 20, UUID.randomUUID()); marine.setNoAi(true);
+		h.assertTrue("message.starmine.need_research".equals(Abilities.refusal(roach, Ability.BURROW)), "AI bypassed burrow research");
+		Research.BURROW.apply(base);
+		h.assertTrue(Abilities.refusal(roach, Ability.BURROW) == null, "research did not unlock burrow for AI");
+		roach.setMode(Modes.BURROWED); roach.setCloaked(true);
+		h.assertFalse(Cloak.seen(roach, marine), "blind opponent sees buried roach");
+		float before = roach.getHealth();
+		h.assertTrue(BurrowDamage.strike(marine, roach.blockPosition().below()) && roach.getHealth() < before, "blind ground strike did no damage");
+		h.assertFalse(Cloak.seen(roach, marine), "blind damage revealed the roach");
+		h.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "allResearch", timeoutTicks = 40)
+	public void everyUpgradeHasATechGateAndAppliesOnlyItsNextLevel(GameTestHelper h) {
+		for (Research what : Research.values()) {
+			Hive base = new Hive(UUID.randomUUID(), h.getLevel().dimension().location().toString(), net.minecraft.core.BlockPos.ZERO);
+			base.minerals = base.vespene = 100000;
+			UnitKind building = java.util.Arrays.stream(UnitKind.values()).filter(what::at).findFirst().orElseThrow();
+			base.race = building.race;
+			if (what == Research.LAIR || what == Research.HIVE || what == Research.CENTRIFUGAL_HOOKS || what == Research.GLIAL_RECONSTITUTION
+				|| what == Research.TUNNELING_CLAWS || what == Research.ADRENAL_GLANDS)
+				h.assertTrue("message.starmine.need_tech".equals(what.refusal(base, building)), "missing tier requirement: " + what);
+			for (UnitKind kind : UnitKind.values()) if (kind.race == base.race && kind.structure()) base.join(kind);
+			base.tier = what == Research.LAIR ? 1 : what == Research.HIVE ? 2 : 3;
+			h.assertTrue(what.refusal(base, building) == null, "fully funded/unlocked research refused: " + what);
+			what.apply(base);
+			if (what.once() || what == Research.LAIR || what == Research.HIVE)
+				h.assertTrue("message.starmine.research_done".equals(what.refusal(base, building)), "research can repeat: " + what);
+			if (what.leveled()) {
+				h.assertTrue(Research.level(base, what) == 1, "incorrect level after applying " + what);
+				what.apply(base); what.apply(base);
+				h.assertTrue("message.starmine.research_done".equals(what.refusal(base, building)), "fourth level allowed: " + what);
+			}
+		}
+		h.succeed();
+	}
+
 	@GameTest(template = ARENA, batch = "upgradeGates", timeoutTicks = 60)
 	public void abilitiesWaitForTheirResearch(GameTestHelper helper) {
 		clear(helper);
@@ -31,7 +76,7 @@ public class UpgradeGameTests implements FabricGameTest {
 			StarUnit zergling = TestArena.member(helper, base, UnitKind.ZERGLING, 10, 10);
 			helper.assertTrue("message.starmine.need_research".equals(Abilities.refusal(zergling, Ability.BURROW)),
 				"a zergling burrows unresearched: " + Abilities.refusal(zergling, Ability.BURROW));
-			helper.assertTrue(Abilities.refusal(wild, Ability.BURROW) == null, "a wild zergling cannot burrow: " + Abilities.refusal(wild, Ability.BURROW));
+			helper.assertTrue("message.starmine.need_research".equals(Abilities.refusal(wild, Ability.BURROW)), "a lone wild zergling bypassed burrow research");
 			helper.assertTrue(Research.of(Ability.BURROW, UnitKind.LURKER) == null, "a lurker needs burrow researched");
 			helper.assertTrue(Research.of(Ability.CLOAK, UnitKind.BANSHEE) == Research.CLOAKING_FIELD
 				&& Research.of(Ability.CLOAK, UnitKind.GHOST) == Research.PERSONAL_CLOAKING, "the cloaks need no research");

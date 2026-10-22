@@ -109,13 +109,20 @@ public class VoidGameTests implements FabricGameTest {
 		rift.moveTo(at.x, at.y, at.z, 0, 0);
 		level.addFreshEntity(rift);
 		helper.runAfterDelay(5, () -> {
+			VoidRift friendly = VoidForces.RIFT.create(level);
+			friendly.configure(UUID.randomUUID(), UUID.randomUUID(), net.minecraft.world.level.Level.NETHER, Vec3.ZERO, 3);
+			friendly.moveTo(at.x + 8, at.y, at.z, 0, 0);
+			level.addFreshEntity(friendly);
 			amun.kill();
+			boolean friendlyAlive = friendly.isAlive();
+			friendly.discard();
 			boolean closed = !rift.isAlive(), marked = state.amunDead;
 			state.shards = shards;
 			state.amunDead = dead;
 			state.setDirty();
 			level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, amun.getBoundingBox().inflate(8)).forEach(Entity::discard);
 			helper.assertTrue(closed, "a rift outlived Amun");
+			helper.assertTrue(friendlyAlive, "Amun's death destroyed a player's gate");
 			helper.assertTrue(marked, "the Void does not know Amun is dead");
 			helper.succeed();
 		});

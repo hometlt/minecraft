@@ -2,7 +2,7 @@
 	"required": true,
 	"package": "dev.starmine.mixin.client",
 	"compatibilityLevel": "JAVA_21",
-	"client": ["HideInFogMixin", "PilotRenderMixin", "HideUnseenBlocksMixin", "CutawayLightMixin", "SilhouetteMixin", "HoldCommanderMixin", "AmunSkyMixin", "AmunFogMixin", "ClientMiningMixin"],
+	"client": ["HideInFogMixin", "PilotRenderMixin", "HideUnseenBlocksMixin", "CutawayLightMixin", "SilhouetteMixin", "HoldCommanderMixin", "CommanderPlayerMixin", "RtsMusicMixin", "AmunSkyMixin", "AmunFogMixin", "ClientMiningMixin"],
 	"injectors": {
 		"defaultRequire": 1
 	}

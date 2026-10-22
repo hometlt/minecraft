@@ -14,12 +14,12 @@ import net.minecraft.world.level.saveddata.SavedData;
 
 /**
  * What keeps creep alive (owner: creep disappears where no tumor or hatchery/lair/hive is near):
- * hatcheries of this dimension's hives (radius {@link #HATCHERY_RADIUS}: SC2 12, the hatchery is twice SC2 size) and creep tumors
+ * hatcheries of this dimension's zerg bases (radius {@link #HATCHERY_RADIUS}: 12 cells of 3 blocks) and creep tumors
  * (radius {@link #TUMOR_RADIUS}, SC2 10). Tumor positions are kept per dimension as saved data, so
  * receding never mistakes an unloaded tumor for a dead one.
  */
 public final class CreepSources extends SavedData {
-	public static final int HATCHERY_RADIUS = 16, TUMOR_RADIUS = 10, TUMOR_SPACING = 8, MAX_TUMORS = 60;
+	public static final int HATCHERY_RADIUS = 12 * 3, TUMOR_RADIUS = 10 * 3, TUMOR_SPACING = 8 * 3, MAX_TUMORS = 60;
 	private static final Factory<CreepSources> FACTORY = new Factory<>(CreepSources::new, CreepSources::load, null);
 	private final Set<BlockPos> tumors = new HashSet<>();
 
@@ -48,7 +48,8 @@ public final class CreepSources extends SavedData {
 		for (Drip drip : DRIPS)
 			if (drip.until >= now && drip.dimension == level.dimension() && drip.pos.distSqr(pos) <= sq(drip.radius + 0.5)) return true;
 		for (Hive hive : HiveSavedData.get(level.getServer()).all())
-			if (hive.dimension.equals(dimension) && hive.hatchery.distSqr(pos) <= sq(HATCHERY_RADIUS + 0.5)) return true;
+			if (hive.race == dev.starmine.entity.UnitKind.Race.ZERG && hive.dimension.equals(dimension)
+				&& hive.hatchery.distSqr(pos) <= sq(HATCHERY_RADIUS + 0.5)) return true;
 		for (BlockPos tumor : tumors(level).all())
 			if (tumor.distSqr(pos) <= sq(TUMOR_RADIUS + 0.5)) return true;
 		return false;
@@ -59,7 +60,7 @@ public final class CreepSources extends SavedData {
 		double best = Double.MAX_VALUE;
 		String dimension = level.dimension().location().toString();
 		for (Hive hive : HiveSavedData.get(level.getServer()).all())
-			if (hive.dimension.equals(dimension)) best = Math.min(best, Math.sqrt(hive.hatchery.distSqr(pos)));
+			if (hive.race == dev.starmine.entity.UnitKind.Race.ZERG && hive.dimension.equals(dimension)) best = Math.min(best, Math.sqrt(hive.hatchery.distSqr(pos)));
 		for (BlockPos tumor : tumors(level).all()) best = Math.min(best, Math.sqrt(tumor.distSqr(pos)));
 		return best;
 	}

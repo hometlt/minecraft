@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
@@ -28,8 +27,31 @@ public final class Deposits {
 	public static final double CHANCE = 0.35;
 	/** The first player's deposit lies this far from their place. */
 	public static final int NEAR_PLAYER = 30;
+	private static final java.util.Map<MinecraftServer, Integer> NEXT_START_SEARCH = new java.util.WeakHashMap<>();
 
 	private Deposits() {
+	}
+
+	/** A dry valley with room for a main, its resources and the mandatory clearance. */
+	static boolean flat(ServerLevel level, int x, int z) {
+		int y = HiveStructure.ground(level, x, z);
+		for (int dx = -24; dx <= 24; dx += 4) for (int dz = -24; dz <= 24; dz += 4) {
+			int ground = HiveStructure.ground(level, x + dx, z + dz);
+			BlockPos at = new BlockPos(x + dx, ground - 1, z + dz);
+			if (Math.abs(ground - y) > 1 || !level.getFluidState(at).isEmpty() || !level.getFluidState(at.above()).isEmpty()
+				|| !level.getBlockState(at).isFaceSturdy(level, at, net.minecraft.core.Direction.UP)) return false;
+		}
+		return true;
+	}
+
+	static BlockPos nearestValley(ServerLevel level, BlockPos home) {
+		for (int radius = NEAR_PLAYER; radius <= 190; radius += 16)
+			for (int i = 0; i < 16; i++) {
+				double a = i * Math.PI / 8;
+				int x = home.getX() + (int) Math.round(Math.cos(a) * radius), z = home.getZ() + (int) Math.round(Math.sin(a) * radius);
+				if (!dev.starmine.world.MapOverlay.covers(x, z) && flat(level, x, z)) return new BlockPos(x, HiveStructure.ground(level, x, z), z);
+			}
+		return null;
 	}
 
 	/**
@@ -48,13 +70,27 @@ public final class Deposits {
 		double px = -uz, pz = ux; // along the line
 		Minerals.Setter set = (pos, state) -> level.setBlock(pos, state, Block.UPDATE_CLIENTS);
 		for (int i = 0; i < MINERALS; i++) {
-			double along = (i - (MINERALS - 1) / 2.0) * 3.0, back = -Math.abs(i - (MINERALS - 1) / 2.0) * 1.2; // bowed round the base
+			double along = (i - (MINERALS - 1) / 2.0) * 5.0, back = -Math.abs(i - (MINERALS - 1) / 2.0) * 1.2;
 			int cx = Mth.floor(x + px * along + ux * back), cz = Mth.floor(z + pz * along + uz * back);
-			Minerals.place(level, new BlockPos(cx, HiveStructure.ground(level, cx, cz), cz), set);
+			// owner 22.10: the start's geysers came without their crystals (a tree or a bush stood where they go): the place is
+			// cleared first, and a step aside is tried when it still does not fit
+			boolean placed = false;
+			for (int[] off : new int[][] {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {2, 0}, {-2, 0}, {0, 2}, {0, -2}}) {
+				int ox = cx + off[0], oz = cz + off[1];
+				BlockPos core = new BlockPos(ox, HiveStructure.ground(level, ox, oz), oz);
+				clear(level, core);
+				if (Minerals.place(level, core, 3, set) && level.getBlockEntity(core) instanceof Minerals.Core crystal) {
+					crystal.setSize(3);
+					crystal.setAmount(i < 3 ? 1300 : 800);
+					placed = true;
+					break;
+				}
+			}
+			if (!placed) org.slf4j.LoggerFactory.getLogger("StarMine/deposits").warn("No room for crystal {} of the deposit at {} {}", i, x, z);
 		}
 		List<BlockPos> sites = new ArrayList<>();
 		for (int side = -1; side <= 1; side += 2) {
-			int gx = Mth.floor(x + px * side * 10.5 + ux * 3), gz = Mth.floor(z + pz * side * 10.5 + uz * 3);
+			int gx = Mth.floor(x + px * side * 22 + ux * 3), gz = Mth.floor(z + pz * side * 22 + uz * 3);
 			int ground = HiveStructure.ground(level, gx, gz);
 			if (!dev.starmine.vespene.VespeneVeinFeature.build(level, random, gx, gz, true, Heightmap.Types.OCEAN_FLOOR, Heightmap.Types.WORLD_SURFACE))
 				continue;
@@ -64,23 +100,36 @@ public final class Deposits {
 		return sites;
 	}
 
+	/** What stands where a crystal goes (3 x 3, up to 8 high: trees, bushes, snow, flowers) is taken away; fluids and block entities stay. */
+	static void clear(ServerLevel level, BlockPos core) {
+		for (BlockPos at : BlockPos.betweenClosed(core.offset(-1, 0, -1), core.offset(3, 8, 3))) {
+			var state = level.getBlockState(at);
+			if (state.isAir() || !state.getFluidState().isEmpty() || level.getBlockEntity(at) != null || Minerals.isCrystal(state)) continue;
+			if (state.is(net.minecraft.tags.BlockTags.LOGS) || state.is(net.minecraft.tags.BlockTags.LEAVES) || state.canBeReplaced()
+				|| state.getCollisionShape(level, at).isEmpty())
+				level.setBlock(at, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+		}
+	}
+
 	/** Server tick: the first player's deposit, and a superflat world's deposits near players. */
 	public static void tick(MinecraftServer server) {
+		if (dev.starmine.world.SkirmishMap.nativeWorld()) return;
 		if (server.getTickCount() % 20 != 15 || server instanceof net.minecraft.gametest.framework.GameTestServer) return;
 		ServerLevel level = server.overworld();
 		if (level.players().isEmpty()) return;
 		HiveSavedData data = HiveSavedData.get(server);
 		if (!data.structuresDone.contains("DEPOSIT:SPAWN")) {
-			data.structuresDone.add("DEPOSIT:SPAWN");
-			data.setDirty();
+			if (server.getTickCount() < NEXT_START_SEARCH.getOrDefault(server, 0)) return;
+			NEXT_START_SEARCH.put(server, server.getTickCount() + 600);
 			var player = level.players().stream().filter(p -> !p.isSpectator()).findFirst().orElse(null);
 			BlockPos home = player != null ? player.blockPosition() : level.getSharedSpawnPos();
-			double angle = RandomSource.create(level.getSeed()).nextDouble() * Math.PI * 2;
-			int x = home.getX() + (int) Math.round(Math.cos(angle) * NEAR_PLAYER), z = home.getZ() + (int) Math.round(Math.sin(angle) * NEAR_PLAYER);
-			build(level, RandomSource.create(level.getSeed() ^ 0xDE9051L), x, z, home.getX(), home.getZ());
+			BlockPos valley = nearestValley(level, home);
+			if (valley != null) {
+				build(level, RandomSource.create(level.getSeed() ^ 0xDE9051L), valley.getX(), valley.getZ(), home.getX(), home.getZ());
+				data.structuresDone.add("DEPOSIT:SPAWN"); data.setDirty();
+			}
 			return;
 		}
-		if (!(level.getChunkSource().getGenerator() instanceof FlatLevelSource)) return; // elsewhere the world generates them
 		for (var player : level.players()) {
 			if (player.isSpectator()) continue;
 			net.minecraft.world.phys.Vec3 eye = dev.starmine.colony.CommanderEye.eye(player); // round the command view's camera, if it is open
@@ -101,7 +150,8 @@ public final class Deposits {
 					data.setDirty();
 					boolean taken = false; // not on a base: those have their own
 					for (Hive hive : data.all()) taken |= hive.hatchery.distSqr(new BlockPos(x, hive.hatchery.getY(), z)) < 64 * 64;
-					if (!taken) build(level, random, x, z, x + random.nextDouble() - 0.5, z + random.nextDouble() - 0.5);
+					if (!taken && !dev.starmine.world.MapOverlay.covers(x, z) && flat(level, x, z))
+						build(level, random, x, z, x + random.nextDouble() - 0.5, z + random.nextDouble() - 0.5);
 					return; // one a tick: it loads chunks
 				}
 		}

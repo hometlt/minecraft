@@ -145,7 +145,8 @@ public final class TerranAbilities {
 		}
 		// owner 19.10: a great blast — a crater over its middle (9 blocks round) and a ring of blasts round it; the game rule off
 		// leaves the land be. The blasts hurt no one: the harm above is SC2's
-		Level.ExplosionInteraction blocks = level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE;
+		Level.ExplosionInteraction blocks = level.getGameRules().getBoolean(StarMine.NUKE_GRIEFING) && !dev.starmine.world.Skirmish.terrainLocked(level)
+			? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE;
 		level.explode(unit, null, HARMLESS, point.x, point.y + 0.5, point.z, NUKE_BLAST, false, blocks);
 		for (int i = 0; i < 6; i++) {
 			double angle = i * Math.PI / 3, r = 4 * BLOCKS_PER_UNIT / 2;
@@ -298,17 +299,21 @@ public final class TerranAbilities {
 		unit.abilities.repairDebt = 0;
 	}
 
-	/**
-	 * Repair, each tick: within reach the target gets back its health at the SC2 pace (its whole health in
-	 * its build time), each point owing {@link #REPAIR_SHARE} of its cost; whole minerals are paid as they
-	 * are owed. It stops when the target is whole or gone, or the base runs out of minerals.
-	 */
+	/** Preserve the wild economy's last miners and the next replacement worker's price. */
+	static int repairMineralReserve(Hive base) {
+		if (base.owner != null) return 0;
+		int workers = base.count(UnitKind.SCV);
+		return workers <= 3 ? Integer.MAX_VALUE : workers < 6 ? UnitKind.SCV.economy().minerals() : 0;
+	}
+
+	/** Repair at the SC2 pace, paying the repair share of its cost as minerals become due. */
 	static void repairTick(StarUnit unit, ServerLevel level) {
 		AbilityState state = unit.abilities;
 		Entity found = level.getEntity(state.repairTarget);
 		Hive base = Abilities.base(unit);
 		if (!(found instanceof StarUnit target) || !target.isAlive() || target.getHealth() >= target.getMaxHealth() || base == null
-			|| unit.order() != StarUnit.Order.NONE || unit.getTarget() != null) {
+			|| unit.order() != StarUnit.Order.NONE || unit.getTarget() != null
+			|| base.owner == null && base.minerals <= repairMineralReserve(base)) {
 			state.repairTarget = null;
 			return;
 		}

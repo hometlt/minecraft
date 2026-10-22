@@ -1,6 +1,7 @@
 package dev.starmine.entity;
 
 import dev.starmine.StarMine;
+import dev.starmine.ability.TestArena;
 import dev.starmine.colony.BaseLogic;
 import dev.starmine.hive.Hive;
 import dev.starmine.hive.HiveLogic;
@@ -27,6 +28,87 @@ import net.minecraft.world.phys.Vec3;
  */
 public class VespeneGameTests implements FabricGameTest {
 	private static final String ARENA = "starmine:arena";
+
+	@GameTest(template = ARENA, batch = "gasAfterMilitary", timeoutTicks = 40)
+	public void gasConstructionWaitsForBasicMilitaryProduction(GameTestHelper helper) {
+		arena(helper);
+		vein(helper, 36, 24, 2);
+		StarUnit cc = commandCenter(helper);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, cc);
+			for (int i = 0; i < 4; i++) HiveLogic.spawn(helper.getLevel(), base, UnitKind.SCV,
+				Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(30, 2, 18 + i * 2))), null);
+			base.join(UnitKind.SUPPLY_DEPOT); base.mineralsCollected = 1000; base.minerals = 75;
+			dev.starmine.ai.AiCommander.decide(cc, helper.getLevel(), base);
+			helper.assertTrue(base.minerals == 75 && cc.queue().isEmpty(), "AI spent the military prerequisite's savings");
+			helper.assertTrue(helper.getLevel().getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(48),
+				u -> u.kind.worker() && base.id.equals(u.hiveId())).stream().noneMatch(u -> u.buildKind() == UnitKind.REFINERY),
+				"AI sent a refinery builder before having a basic army producer");
+			helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "capitalShipGas", timeoutTicks = 20)
+	public void automaticGasReserveCanFundAMothership(GameTestHelper helper) {
+		Hive base = new Hive(java.util.UUID.randomUUID(), helper.getLevel().dimension().location().toString(), BlockPos.ZERO);
+		base.race = UnitKind.Race.PROTOSS; base.tier = 3; base.minerals = 0;
+		for (UnitKind kind : UnitKind.values()) base.join(kind);
+		helper.assertTrue(base.unlocked(UnitKind.MOTHERSHIP) && UnitKind.MOTHERSHIP.economy().vespene() > 250, "fixture lacks expensive capital-ship technology");
+		helper.assertTrue(DroneWork.automaticGasBudget(base) >= UnitKind.MOTHERSHIP.economy().vespene(), "automatic gas stops before a mothership can be afforded");
+		helper.succeed();
+	}
+
+	@GameTest(template = ARENA, batch = "vespeneAllocation", timeoutTicks = 1600)
+	public void gasSurplusReturnsAutomaticWorkersToMinerals(GameTestHelper helper) {
+		arena(helper);
+		BlockPos outlet = vein(helper, 36, 24, 2);
+		StarUnit cc = commandCenter(helper);
+		var time = dev.starmine.ability.TestArena.Timeline.of(helper);
+		time.at(5, () -> {
+			Hive base = base(helper, cc);
+			HiveLogic.spawn(helper.getLevel(), base, UnitKind.REFINERY, Vec3.atBottomCenterOf(outlet.above()), null);
+			for (int i = 0; i < 4; i++) HiveLogic.spawn(helper.getLevel(), base, UnitKind.SCV,
+				Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(30, 2, 18 + i * 2))), null);
+			base.minerals = 50;
+		});
+		boolean[] delivered = {false};
+		time.every(() -> {
+			if (time.now() < 10) return;
+			Hive base = base(helper, cc);
+			var workers = helper.getLevel().getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(64),
+				u -> u.kind.worker() && base.id.equals(u.hiveId()));
+			long gas = workers.stream().filter(u -> u.goalsRunning().contains(" gas ")).count();
+			long atRefinery = workers.stream().filter(u -> u.goalsRunning().contains(" gas " + outlet.toShortString() + " t")).count();
+			helper.assertTrue(atRefinery <= 2, "refinery assigned more than two workers: " + atRefinery);
+			helper.assertTrue(gas <= Math.max(0, workers.size() - 3), "automatic gas did not leave three mineral workers: " + gas);
+			if (!delivered[0] && base.vespene > 0) {
+				delivered[0] = true;
+				base.vespene = 1000;
+			}
+			if (delivered[0] && gas == 0) helper.succeed();
+		});
+	}
+
+	@GameTest(template = ARENA, batch = "vespeneEconomy", timeoutTicks = 1700)
+	public void automaticGasLeavesSmallBasesMineralWorkers(GameTestHelper helper) {
+		arena(helper);
+		BlockPos outlet = vein(helper, 40, 24, 2);
+		StarUnit cc = commandCenter(helper);
+		helper.runAfterDelay(5, () -> {
+			Hive base = base(helper, cc);
+			HiveLogic.spawn(helper.getLevel(), base, UnitKind.REFINERY, Vec3.atBottomCenterOf(outlet.above()), null);
+			// Three workers cannot support automatic gas and mineral recovery simultaneously.
+			var workers = helper.getLevel().getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(48),
+				u -> u.kind == UnitKind.SCV && base.id.equals(u.hiveId()));
+			workers.getFirst().discard();
+			helper.runAfterDelay(300, () -> {
+				helper.assertTrue(base.vespene == 0, "automatic gas took workers from a three-worker economy");
+				StarUnit explicit = workers.get(1);
+				explicit.commandWork(StarUnit.Work.GATHER, outlet);
+				helper.succeedWhen(() -> helper.assertTrue(base.vespene > 0, "explicit gas order must override automatic allocation"));
+			});
+		});
+	}
 
 	private static void arena(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
@@ -82,7 +164,7 @@ public class VespeneGameTests implements FabricGameTest {
 			BlockPos outlet = vein.outlet(i);
 			helper.assertTrue(Vespene.isOutlet(level.getBlockState(outlet)), "no outlet at " + outlet.toShortString());
 			helper.assertTrue(level.getBlockState(outlet.above()).isAir(), "no air over the outlet at " + outlet.toShortString());
-			helper.assertTrue(level.getBlockState(outlet.below().north()).is(Blocks.COBBLESTONE) || level.getBlockState(outlet.north()).is(Blocks.COBBLESTONE),
+			helper.assertTrue(level.getBlockState(outlet.below().north()).is(Vespene.ROCK) || level.getBlockState(outlet.north()).is(Vespene.ROCK),
 				"no cobblestone around the outlet at " + outlet.toShortString());
 		}
 		helper.succeed();
@@ -162,6 +244,11 @@ public class VespeneGameTests implements FabricGameTest {
 			helper.assertTrue(hive != null, "no hive (hatchery " + (hatchery.isRemoved() ? "removed" : "alive") + ")");
 			hive.minerals = 1000;
 			for (StarUnit drone : drones) drone.joinHive(hive);
+			// Gas needs basic military production; test extraction here, not a random complete opening.
+			hive.join(UnitKind.SPAWNING_POOL);
+			HiveLogic.spawn(helper.getLevel(), hive, UnitKind.SPAWNING_POOL, TestArena.point(helper, 34, 10), null);
+			for (int i = 0; i < 2; i++) HiveLogic.spawn(helper.getLevel(), hive, UnitKind.OVERLORD, TestArena.point(helper, 10 + i * 4, 10).add(0, 4, 0), null);
+			for (int i = 0; i < 6; i++) HiveLogic.spawn(helper.getLevel(), hive, UnitKind.ZERGLING, TestArena.point(helper, 10 + i * 2, 38), null);
 			helper.succeedWhen(() -> {
 				helper.assertTrue(!helper.getLevel().getEntitiesOfClass(StarUnit.class, new net.minecraft.world.phys.AABB(outlet).inflate(2, 3, 2),
 					mob -> mob.kind == UnitKind.EXTRACTOR).isEmpty(), "no extractor on the outlet; drones " + hive.count(UnitKind.DRONE)

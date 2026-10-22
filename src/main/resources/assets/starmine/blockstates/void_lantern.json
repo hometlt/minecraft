@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"hanging=false": {
+			"model": "starmine:block/void_lantern"
+		},
+		"hanging=true": {
+			"model": "starmine:block/void_lantern_hanging"
+		}
+	}
+}

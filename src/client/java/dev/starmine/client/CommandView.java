@@ -60,7 +60,7 @@ import org.joml.Vector3f;
  *   good ({@link HiveTerrain#prepare} check, no building in the way), red when not.
  */
 public final class CommandView {
-	public static final double PITCH = 60, PLAYER_SIGHT = 24;
+	public static final double PITCH = 60, PLAYER_SIGHT = 40; // owner 22.10: the player sees farther (was 24)
 	/** The yaw the view opens with: north, up on the minimap (owner 16.10, as in SC2); Q/E turn it by quarters. */
 	static final double NORTH = 180;
 	/** The yaw the view turns to (north plus quarters). */
@@ -110,11 +110,12 @@ public final class CommandView {
 	}
 
 	static boolean heroSelected() {
-		return hero && selection.isEmpty();
+		return !SkirmishScreen.active && hero && selection.isEmpty();
 	}
 
 	/** Selects the player as the hero (the hero button, F4, a click on their body). */
 	static void selectHero() {
+		if (SkirmishScreen.active) return;
 		selection.clear();
 		hero = true;
 	}
@@ -122,7 +123,7 @@ public final class CommandView {
 	/** Whether the player's body is under a screen point. */
 	static boolean heroAt(double mouseX, double mouseY, int width, int height) {
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.player == null) return false;
+		if (mc.player == null || SkirmishScreen.active) return false;
 		Vec3[] ray = ray(mouseX, mouseY, width, height);
 		return mc.player.getBoundingBox().inflate(0.4).clip(ray[0], ray[0].add(ray[1].scale(300))).isPresent();
 	}
@@ -218,6 +219,7 @@ public final class CommandView {
 			}
 		}
 		if (!active) return;
+		if (SkirmishScreen.active && mc.player != null && mc.level != null && mc.screen != null && !(mc.screen instanceof CommandScreen)) return;
 		if (!(mc.screen instanceof CommandScreen) || mc.player == null || mc.level == null || !mc.player.isAlive()) {
 			exit(mc);
 			return;
@@ -243,6 +245,12 @@ public final class CommandView {
 		BlockFog.cut(mc, cutDepth < 0 ? Integer.MAX_VALUE : Mth.floor(height) - cutDepth,
 			(int) Math.round(camera.getX() / CUT_STEP) * CUT_STEP, (int) Math.round(camera.getY() / CUT_STEP) * CUT_STEP, (int) Math.round(camera.getZ() / CUT_STEP) * CUT_STEP, cutRadius);
 		BlockFog.tick(mc);
+	}
+
+	/** For the harness: where the view's camera stands and looks. */
+	static String describe() {
+		return camera == null ? "no camera" : String.format(java.util.Locale.ROOT, "camera %.1f %.1f %.1f yaw %.1f pitch %.1f target %.1f %.1f ground %.1f height %.1f",
+			camera.getX(), camera.getY(), camera.getZ(), camera.getYRot(), camera.getXRot(), targetX, targetZ, groundY, height);
 	}
 
 	private static double eyeX = Double.NaN, eyeZ;
@@ -312,7 +320,7 @@ public final class CommandView {
 	static float fogAt(ClientLevel level, int x, int z) {
 		if (seen(x + 0.5, z + 0.5, 0)) return 0;
 		var explored = EXPLORED.get(level.dimension());
-		return explored != null && explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
+		return explored != null && explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) || SkirmishOverview.inside(x, z) ? FOG_EXPLORED : FOG_UNSEEN;
 	}
 
 	/** The top of the ground at a column (WORLD_SURFACE: a height the server sends to the client); for pan speed and the look point only. */
@@ -483,16 +491,19 @@ public final class CommandView {
 		List<StarUnit> units = new ArrayList<>();
 		if (mc.level == null) return units;
 		selection.removeIf(id -> !(mc.level.getEntity(id) instanceof net.minecraft.world.entity.LivingEntity e && e.isAlive()
-			&& (e instanceof StarUnit || e instanceof dev.starmine.gear.Turrets.Turret)));
+			&& (e instanceof StarUnit || e instanceof dev.starmine.gear.Turrets.Turret) && visible(e)));
 		for (int id : selection) if (mc.level.getEntity(id) instanceof StarUnit unit) units.add(unit);
 		return units;
 	}
 
 	/** Sends a command for the own selected units. */
 	static void send(String action, Vec3 at, int target, String arg) {
+		Minecraft client = Minecraft.getInstance();
+		if (hero) HeroPilot.command(action, at, client.level == null ? null : client.level.getEntity(target));
 		int[] ids = java.util.stream.IntStream.concat(selected().stream().filter(CommandView::own).mapToInt(Entity::getId),
 			selectedTurrets().stream().filter(CommandView::own).mapToInt(Entity::getId)).toArray(); // owner 19.10: and the player's turrets
 		if (ids.length == 0) return;
+		RtsAudio.order(action);
 		ClientPlayNetworking.send(new ColonyNetwork.UnitCommand(ids, action, at.x, at.y, at.z, target, arg == null ? "" : arg));
 		Minecraft mc = Minecraft.getInstance();
 		Vec3 point = target > 0 && mc.level != null && mc.level.getEntity(target) instanceof Entity aimed ? aimed.position() : at;
@@ -527,7 +538,11 @@ public final class CommandView {
 	/** What the base's units and buildings and the player's body see (recomputed each tick and frame). */
 	private static void updateSights(Minecraft mc) {
 		List<Sight> list = new ArrayList<>();
-		if (mc.player != null) list.add(new Sight(mc.player.getX(), mc.player.getEyeY(), mc.player.getZ(), PLAYER_SIGHT, false));
+		if (System.getProperty("starmine.harness") != null && SkirmishHarness.AI_VS_AI)
+			list.add(new Sight(0, 32, 0, 512, true)); // dev match observer; simulation and AI sight remain unchanged
+		if (System.getProperty("starmine.harness") != null && Boolean.getBoolean("starmine.harness.observer"))
+			list.add(new Sight(264, 128, 264, 1024, true));
+		if (mc.player != null && !SkirmishScreen.active) list.add(new Sight(mc.player.getX(), mc.player.getEyeY(), mc.player.getZ(), PLAYER_SIGHT, false));
 		if (mc.level != null)
 			for (Entity entity : mc.level.entitiesForRendering())
 				if (entity instanceof StarUnit unit && unit.isAlive() && own(unit))
@@ -552,6 +567,8 @@ public final class CommandView {
 	/** Shown in the command view: own units always; others within sight and not behind blocks, or sensed by a detector. */
 	public static boolean visible(Entity entity) {
 		if (!active) return true;
+		if (entity.isInvisible()) return false;
+		if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.isSpectator() && !SkirmishScreen.active) return true;
 		if (entity instanceof StarUnit unit && own(unit)) return true;
 		if (entity instanceof dev.starmine.gear.Turrets.Turret turret && own(turret)) return true;
 		if (entity == Minecraft.getInstance().player) return true;
@@ -575,6 +592,8 @@ public final class CommandView {
 		Vec3 centre = entity.position().add(0, entity.getBbHeight() / 2, 0);
 		double margin = entity.getBbWidth() / 2;
 		for (Sight sight : sights) {
+			if (entity instanceof StarUnit unit && unit.cloaked() && !sight.detector
+				&& !dev.starmine.ability.Status.has(unit, dev.starmine.ability.Status.REVEALED)) continue;
 			double dx = centre.x - sight.x, dy = centre.y - sight.y, dz = centre.z - sight.z, r = sight.radius + margin;
 			if (dx * dx + dy * dy + dz * dz > r * r) continue;
 			if (sight.detector) sensed = true;
@@ -643,11 +662,13 @@ public final class CommandView {
 		MultiBufferSource buffers = context.consumers();
 		pose.pushPose();
 		pose.translate(-cam.x, -cam.y, -cam.z);
-		drawFog(mc.level, pose, buffers.getBuffer(RenderType.debugQuads()));
+		// owner 22.10: the fog was not seen in the world (only on the minimap): debug quads are left out by shader packs. An
+		// entity's translucent layer is drawn by the game and by Iris alike: the fog is a black film of it over the ground
+		drawFog(mc.level, pose, buffers.getBuffer(RenderType.entityTranslucent(FOG_TEXTURE)));
 		drawHero(mc, context, pose, buffers);
 		VertexConsumer lines = buffers.getBuffer(RenderType.lines());
 		for (StarUnit unit : selected()) ring(pose, lines, unit, own(unit) ? 0xFF40FF40 : 0xFFFF4040);
-		if (heroSelected() && mc.player != null) ring(pose, lines, mc.player, 0xFF40E0FF);
+		if (!SkirmishScreen.active && hero && mc.player != null) ring(pose, lines, mc.player, 0xFF40E0FF);
 		// owner 17.10: what the selected workers mine — their area (yellow) and the block each works (a line to it, its outline)
 		for (StarUnit unit : selected()) {
 			if (!own(unit) || !unit.kind.worker()) continue;
@@ -690,6 +711,8 @@ public final class CommandView {
 	 * terrain. What was seen is remembered per dimension for the session.
 	 */
 	private static final int FOG_CELL = 2, FOG_RADIUS = 104;
+	/** A plain white texture the fog's film is tinted from. */
+	private static final net.minecraft.resources.ResourceLocation FOG_TEXTURE = dev.starmine.StarMine.id("textures/misc/fog.png");
 	private static final float FOG_EXPLORED = 0.5f, FOG_UNSEEN = 0.85f;
 	private static final java.util.Map<net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, it.unimi.dsi.fastutil.longs.LongOpenHashSet> EXPLORED = new java.util.HashMap<>();
 	private static int exploreFrame;
@@ -718,7 +741,8 @@ public final class CommandView {
 		for (int i = 0; i < n; i++)
 			for (int k = 0; k < n; k++) {
 				int x = x0 + i * cell, z = z0 + k * cell;
-				dark[i * n + k] = lit[i * n + k] ? 0 : explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) ? FOG_EXPLORED : FOG_UNSEEN;
+				dark[i * n + k] = lit[i * n + k] ? 0 : explored.contains(net.minecraft.world.level.ChunkPos.asLong(x >> 1, z >> 1)) || SkirmishOverview.inside(x, z)
+					? FOG_EXPLORED : FOG_UNSEEN; // owner 22.10: a skirmish's map is all explored, under the fog
 				int top = Math.max(Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z)),
 					Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1), level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z - 1)));
 				height[i * n + k] = Math.min(top, BlockFog.cutTop() + 1) + 0.06f; // on the cut, not over what it left out
@@ -731,11 +755,17 @@ public final class CommandView {
 				double mx = x0 + i * cell + cell / 2.0 - targetX, mz = z0 + k * cell + cell / 2.0 - targetZ;
 				if (mx * mx + mz * mz > radius * radius) continue;
 				float x = x0 + i * cell, z = z0 + k * cell;
-				consumer.addVertex(last, x, height[a], z).setColor(0f, 0f, 0.03f, dark[a]);
-				consumer.addVertex(last, x, height[b], z + cell).setColor(0f, 0f, 0.03f, dark[b]);
-				consumer.addVertex(last, x + cell, height[c], z + cell).setColor(0f, 0f, 0.03f, dark[c]);
-				consumer.addVertex(last, x + cell, height[d], z).setColor(0f, 0f, 0.03f, dark[d]);
+				fogVertex(consumer, last, x, height[a], z, dark[a]);
+				fogVertex(consumer, last, x, height[b], z + cell, dark[b]);
+				fogVertex(consumer, last, x + cell, height[c], z + cell, dark[c]);
+				fogVertex(consumer, last, x + cell, height[d], z, dark[d]);
 			}
+	}
+
+	/** A corner of the fog's film (an entity vertex: white texel, full light, facing up). */
+	private static void fogVertex(VertexConsumer consumer, PoseStack.Pose last, float x, float y, float z, float dark) {
+		consumer.addVertex(last, x, y, z).setColor(0f, 0f, 0.03f, dark).setUv(0.5f, 0.5f).setOverlay(OverlayTexture.NO_OVERLAY)
+			.setLight(LightTexture.FULL_BRIGHT).setNormal(last, 0, 1, 0);
 	}
 
 	private static void ring(PoseStack pose, VertexConsumer lines, Entity unit, int color) {

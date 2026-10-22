@@ -82,6 +82,7 @@ public final class LiftOff {
 		if (!unit.level().getEntitiesOfClass(StarUnit.class, box, other -> other != unit && other.kind.structure() && other.isAlive()).isEmpty())
 			return null;
 		net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(centre.x, ground, centre.z);
+		if (unit.kind == UnitKind.COMMAND_CENTER && dev.starmine.mineral.Minerals.nearSite(unit.level(), feet, half)) return null;
 		int halfSize = (int) Math.ceil(half) - 1;
 		if (!dev.starmine.hive.HiveTerrain.prepare(unit.level(), feet, halfSize, (int) Math.ceil(unit.kind.height), false)) return null;
 		return new Vec3(centre.x, ground, centre.z);

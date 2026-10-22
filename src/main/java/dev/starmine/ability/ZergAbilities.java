@@ -64,7 +64,7 @@ public final class ZergAbilities {
 		level.playSound(null, point.x, point.y, point.z, SoundEvents.SLIME_SQUISH, SoundSource.HOSTILE, 1.5f, 0.6f);
 		for (LivingEntity other : Abilities.around(unit, point, BILE_RADIUS, false)) // SC2: anyone under it, its own side too
 			other.hurt(unit.attackSource(), (float) (BILE_DAMAGE * SCALE));
-		boolean griefing = level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+		boolean griefing = level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && !dev.starmine.world.Skirmish.terrainLocked(level);
 		BlockPos centre = BlockPos.containing(point);
 		for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-1, -1, -1), centre.offset(1, 2, 1))) {
 			BlockState state = level.getBlockState(pos);

@@ -250,7 +250,10 @@ public class DroneGameTests implements FabricGameTest {
 		});
 	}
 
-	/** A real hive's drone digs to an iron ore walled in stone and mines it. */
+	/**
+	 * Owner 22.10: a real hive's drone does not dig through stone to an iron ore walled in it (it took ore through the
+	 * ground before); the same ore laid open, it mines it.
+	 */
 	@GameTest(template = ARENA, timeoutTicks = 3600, batch = "hiveOre")
 	public void droneMinesOreBehindWall(GameTestHelper helper) {
 		hiveArena(helper);
@@ -266,6 +269,12 @@ public class DroneGameTests implements FabricGameTest {
 			if (hive == null) helper.fail("no hive");
 			else drone.joinHive(hive);
 		});
-		helper.succeedWhen(() -> helper.assertBlockNotPresent(Blocks.IRON_ORE, ore));
+		helper.runAfterDelay(1200, () -> {
+			helper.assertBlockPresent(Blocks.IRON_ORE, ore);
+			helper.assertBlockPresent(Blocks.STONE, new BlockPos(21, 3, 24)); // no way dug in
+			fill(helper, 21, 3, 21, 27, 5, 27, Blocks.AIR); // the ore laid open
+			helper.setBlock(ore, Blocks.IRON_ORE);
+			helper.succeedWhen(() -> helper.assertBlockNotPresent(Blocks.IRON_ORE, ore));
+		});
 	}
 }

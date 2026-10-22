@@ -18,12 +18,52 @@ import net.minecraft.server.packs.PackType;
  * type; the terran base's resource panel on the HUD and the command view (key B by default).
  */
 public final class StarMineClient implements ClientModInitializer {
+	private static final net.minecraft.client.KeyMapping SKIRMISH = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
+		new net.minecraft.client.KeyMapping("key.starmine.skirmish", com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+			org.lwjgl.glfw.GLFW.GLFW_KEY_K, "category.starmine"));
 	private static final net.minecraft.client.KeyMapping COMMAND = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
 		new net.minecraft.client.KeyMapping("key.starmine.command", com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
 			org.lwjgl.glfw.GLFW.GLFW_KEY_B, "category.starmine"));
 
 	@Override
 	public void onInitializeClient() {
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.world.Skirmish.State.TYPE,
+			(state, context) -> context.client().execute(() -> {
+				boolean wasActive = SkirmishScreen.active;
+				SkirmishScreen.active = state.active();
+				boolean wasBounded = SkirmishScreen.bounds != null;
+				SkirmishScreen.bounds = state.active() && state.bounded() ? new int[] {state.minX(), state.minZ(), state.maxX(), state.maxZ()} : null;
+				if (wasBounded != (SkirmishScreen.bounds != null) && context.client().level != null)
+					context.client().levelRenderer.allChanged(); // the map's blocks are shown (all explored), or hidden again
+				if (!state.active()) SkirmishOverview.clear();
+				if (state.active() && !CommandView.active()) CommandView.enter(context.client());
+				else if (state.active() && !wasActive) context.client().setScreen(new CommandScreen());
+				if (!state.active() && wasActive) context.client().setScreen(null);
+			}));
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.world.Skirmish.Overview.TYPE,
+			(overview, context) -> context.client().execute(() -> SkirmishOverview.receive(overview)));
+		net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
+			var buttons = net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen);
+			if (screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
+				// owner 22.10: the skirmish beside "Singleplayer" — that button shares its row with it
+				net.minecraft.client.gui.components.AbstractWidget single = null;
+				for (var widget : buttons)
+					if (widget instanceof net.minecraft.client.gui.components.AbstractWidget button
+						&& button.getMessage().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents key
+						&& key.getKey().equals("menu.singleplayer")) single = button;
+				if (single != null) {
+					int full = single.getWidth(), half = (full - 4) / 2;
+					single.setWidth(half);
+					buttons.add(net.minecraft.client.gui.components.Button.builder(net.minecraft.network.chat.Component.translatable("skirmish.starmine.title"),
+						b -> mc.setScreen(new SkirmishScreen(screen))).bounds(single.getX() + half + 4, single.getY(), full - half - 4, single.getHeight()).build());
+					return;
+				}
+			}
+			if (screen instanceof net.minecraft.client.gui.screens.PauseScreen || screen instanceof net.minecraft.client.gui.screens.TitleScreen)
+				buttons.add(net.minecraft.client.gui.components.Button.builder(
+					net.minecraft.network.chat.Component.translatable("skirmish.starmine.title"), b -> mc.setScreen(new SkirmishScreen(screen)))
+					.bounds(width - 125, 5, 120, 20).build());
+		});
 		dev.starmine.colony.CommandPanel.openView = () -> {
 			Minecraft mc = Minecraft.getInstance();
 			if (!CommandView.active()) mc.execute(() -> CommandView.enter(mc));
@@ -41,9 +81,14 @@ public final class StarMineClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> CommandView.chunkLoaded());
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			while (COMMAND.consumeClick()) if (!CommandView.active()) CommandView.enterWithPanel(mc);
+			while (SKIRMISH.consumeClick()) if (mc.player != null) mc.setScreen(new SkirmishScreen(mc.screen));
+			if (SkirmishScreen.active && mc.player != null && mc.level != null && !CommandView.active()) CommandView.enter(mc);
+			SkirmishScreen.tick(mc);
+			CommandScreen.tickResume(mc);
 			PilotClient.tick(mc);
 			CommandView.tick(mc);
 			HeroPilot.tick(mc);
+			RtsAudio.tick(mc);
 		});
 		net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, delta) -> {
 			PilotClient.drawHud(graphics);
@@ -54,6 +99,9 @@ public final class StarMineClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.starmine.entity.Fx.Beam.TYPE,
 			(beam, context) -> BeamRenderer.receive(beam));
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
+			SkirmishScreen.active = false;
+			SkirmishScreen.bounds = null;
+			SkirmishOverview.clear();
 			BaseStatusClient.receive(dev.starmine.colony.ColonyNetwork.BaseStatus.NONE);
 			CommandView.exit(mc);
 			PilotClient.clear();
@@ -95,8 +143,10 @@ public final class StarMineClient implements ClientModInitializer {
 		});
 		BlockEntityRenderers.register(StarMineBlocks.CREEP_TUMOR_ENTITY, CreepTumorRenderer::new);
 		BlockEntityRenderers.register(dev.starmine.mineral.Minerals.CORE_ENTITY, MineralRenderer::new);
+		BlockEntityRenderers.register(dev.starmine.colony.PlatformBlock.ENTITY, PlatformRenderer::new); // owner 22.10: the armoured crate's opening top
 		BlockEntityRenderers.register(dev.starmine.world.Artifact.CORE, ArtifactRenderer::new); // owner 17.10: the artifact's beam
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.Artifact.PORTAL, RenderType.translucent());
+		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.world.VoidCraft.LANTERN, RenderType.cutout());
 		// owner 19.10: crafted blocks — the green-flamed vespene torch, mineral glass
 		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), dev.starmine.block.CraftBlocks.VESPENE_TORCH, dev.starmine.block.CraftBlocks.VESPENE_WALL_TORCH);
 		BlockRenderLayerMap.INSTANCE.putBlock(dev.starmine.block.CraftBlocks.MINERAL_GLASS, RenderType.translucent());

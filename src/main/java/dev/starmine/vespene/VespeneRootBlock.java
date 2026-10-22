@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-/** The root of a vespene vein at the bedrock: unbreakable, it keeps the vein and refills it. */
+/** Unbreakable technical vespene source: stores the remaining gas and feeds its outlets. */
 public final class VespeneRootBlock extends BaseEntityBlock {
 	public static final MapCodec<VespeneRootBlock> CODEC = simpleCodec(VespeneRootBlock::new);
 
