@@ -2,6 +2,7 @@ package dev.starmine.client;
 
 import dev.starmine.entity.UnitKind;
 import dev.starmine.world.Skirmish;
+import dev.starmine.world.SkirmishMap;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -29,7 +30,7 @@ public final class SkirmishScreen extends Screen {
 	private final Screen parent;
 
 	/** A map one may choose: its label, and a dimension of the world played (null: a world of its own). */
-	private record Choice(Component label, @Nullable ResourceKey<Level> dimension, boolean amphion) {
+	private record Choice(Component label, @Nullable ResourceKey<Level> dimension, @Nullable String template) {
 	}
 
 	SkirmishScreen(Screen parent) {
@@ -47,19 +48,18 @@ public final class SkirmishScreen extends Screen {
 	}
 
 	/**
-	 * The maps: Amphion when its template is in the build (it is converted from SC2 and kept out of the public repository);
-	 * in a game the world's dimensions (the one the player is in first), else a new world.
+	 * The maps: the SC2 maps the build converted ({@link SkirmishMap#templates}; none in a build without them); in a game
+	 * the world's dimensions (the one the player is in first), else a new world.
 	 */
 	private List<Choice> choices() {
 		List<Choice> list = new ArrayList<>();
-		if (SkirmishScreen.class.getResource("/assets/starmine/skirmish/amphion.zip") != null)
-			list.add(new Choice(Component.translatable("skirmish.starmine.map_amphion"), null, true));
-		if (minecraft.level == null || minecraft.player == null) list.add(new Choice(Component.translatable("skirmish.starmine.map_new"), null, false));
+		for (SkirmishMap.Template template : SkirmishMap.templates()) list.add(new Choice(Component.literal(template.name()), null, template.id()));
+		if (minecraft.level == null || minecraft.player == null) list.add(new Choice(Component.translatable("skirmish.starmine.map_new"), null, null));
 		else {
 			ResourceKey<Level> here = minecraft.level.dimension();
-			list.add(new Choice(Component.translatable("skirmish.starmine.map_dimension", dimensionName(here)), here, false));
+			list.add(new Choice(Component.translatable("skirmish.starmine.map_dimension", dimensionName(here)), here, null));
 			for (ResourceKey<Level> key : minecraft.player.connection.levels())
-				if (key != here) list.add(new Choice(Component.translatable("skirmish.starmine.map_dimension", dimensionName(key)), key, false));
+				if (key != here) list.add(new Choice(Component.translatable("skirmish.starmine.map_dimension", dimensionName(key)), key, null));
 		}
 		return list;
 	}
@@ -99,12 +99,12 @@ public final class SkirmishScreen extends Screen {
 			}
 			Choice map = maps.get(Math.floorMod(mapChoice, maps.size()));
 			UnitKind.Race player = UnitKind.Race.values()[own], ai = UnitKind.Race.values()[enemy];
-			if (map.amphion()) {
+			if (map.template() != null) {
 				if (minecraft.level != null) { // the game being played is saved and left first
 					minecraft.level.disconnect();
 					minecraft.disconnect(new net.minecraft.client.gui.screens.GenericMessageScreen(Component.translatable("menu.savingLevel")));
 				}
-				SkirmishWorlds.open(minecraft, player, ai);
+				SkirmishWorlds.open(minecraft, map.template(), player, ai);
 			} else if (map.dimension() == null) SkirmishWorlds.fresh(minecraft, player, ai);
 			else if (ClientPlayNetworking.canSend(Skirmish.Request.TYPE))
 				ClientPlayNetworking.send(new Skirmish.Request(own, enemy, false, map.dimension().location().toString(), false));

@@ -163,6 +163,24 @@ if (modelMode == 'voxel') {
 	throw new GradleException('original mode must not use a voxel package; select the original assets directory')
 }
 sourceSets.client.resources.srcDir assetsRoot
+
+// Skirmish maps (owner 22.10): tools/sc2-maps/build-maps.mjs downloads every map of tools/sc2-maps/maps.json from the
+// Battle.net public depot and converts it with Modkit (the workspace beside this project, or -PmodkitWorkspace) into
+// generated resources: assets/starmine/skirmish/{maps.json,<id>.zip,<id>.json}. It keeps its own state per map
+// (C:/MKTEMP/starmine-maps), so a second build is quick. -PnoSkirmishMaps leaves them out. They are SC2-derived like
+// sc2-assets: in dev runs, in a jar only with -PincludeSc2Assets.
+def mapsRoot = layout.buildDirectory.dir('generated/sc2-maps').get().asFile
+def modkitWorkspace = providers.gradleProperty('modkitWorkspace').getOrElse(file('..').absolutePath)
+def skirmishMapsWanted = !providers.gradleProperty('noSkirmishMaps').isPresent() && new File(modkitWorkspace, 'modkit-core').isDirectory()
+def buildSkirmishMaps = tasks.register('buildSkirmishMaps', Exec) {
+	description = 'Downloads the skirmish maps from the Battle.net depot and converts them with Modkit'
+	enabled = skirmishMapsWanted
+	inputs.files('tools/sc2-maps/maps.json', 'tools/sc2-maps/build-maps.mjs')
+	outputs.dir(mapsRoot)
+	commandLine 'node', '--max-old-space-size=20000', 'tools/sc2-maps/build-maps.mjs', '--out', mapsRoot.absolutePath, '--modkit', modkitWorkspace
+}
+sourceSets.main.resources.srcDir mapsRoot
+tasks.named('processResources') { dependsOn buildSkirmishMaps }
 // Loom captures the standard resource path. Rebuild only that generated output when inputs change;
 // an overlay copy could otherwise retain an original death model removed by the voxel package.
 def expectedClientResources = layout.buildDirectory.dir('resources/client').get().asFile.canonicalPath
@@ -178,7 +196,7 @@ tasks.named('processClientResources') {
 	}
 }
 tasks.named('jar') {
-	if (!project.hasProperty('includeSc2Assets')) exclude 'assets/starmine/**/sc2/**', 'assets/starmine/sounds.json'
+	if (!project.hasProperty('includeSc2Assets')) exclude 'assets/starmine/**/sc2/**', 'assets/starmine/sounds.json', 'assets/starmine/skirmish/**'
 	else archiveClassifier = "${modelMode}-dev"
 }
 tasks.named('remapJar') {

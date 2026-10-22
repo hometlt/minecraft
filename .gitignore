@@ -59,8 +59,8 @@ run/
 hs_err_pid*
 replay_pid*
 
-# the Amphion skirmish template is converted from the SC2 map: kept locally, not published (docs/SKIRMISH_2026-10-21.md)
-src/main/resources/assets/starmine/skirmish/amphion.zip
+# skirmish maps are built from the Battle.net depot into build/generated/sc2-maps (tools/sc2-maps/build-maps.mjs)
+src/main/resources/assets/starmine/skirmish/
 
 # left by a game run started in the repository root
 /config/

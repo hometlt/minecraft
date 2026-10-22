@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"comment": "Skirmish maps built into the mod (tools/sc2-maps/build-maps.mjs): each is a Battle.net publication, downloaded from the public depot by its header handle, converted by Modkit to a native Minecraft world. A handle is 4 bytes type, 4 bytes region, 32 bytes SHA-256 (hex); without one the build looks the publication up in the local Battle.net cache by id and version.",
+	"maps": [
+		{
+			"id": "amphion",
+			"name": "Amphion",
+			"bnet": {
+				"region": "eu",
+				"id": 252012,
+				"version": 16,
+				"headerHandle": "73326d6800004555c5132c9f7c0580781c8ad56af3be3b7cdc51eb04cddd7771e56ab8d45ebfabe9"
+			},
+			"export": {
+				"region": "all",
+				"blocksPerUnit": 3,
+				"cliffBlocks": 5,
+				"includeCliffs": true,
+				"materialMode": "texture-types",
+				"basementBlocks": 5,
+				"cliffFamilies": [
+					{ "typePrefix": "CompoundFacilityCliff1:CliffMade20:", "style": "masonry" },
+					{ "typePrefix": "ShakurasCliff0:CliffNatural0:", "style": "natural" }
+				],
+				"includeWater": true,
+				"objectMode": "resources",
+				"resourceProfile": "starmine"
+			}
+		}
+	]
+}

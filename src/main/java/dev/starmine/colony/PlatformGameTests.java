@@ -147,10 +147,14 @@ public class PlatformGameTests implements FabricGameTest {
 		helper.runAfterDelay(20, () -> {
 			Hive base = TestArena.base(helper, cc);
 			helper.assertTrue(base != null, "no base");
+			// one worker only: a crystal takes two (owner 22.10), and the base's starting workers would rightly go to the iron
+			for (StarUnit other : helper.getLevel().getEntitiesOfClass(StarUnit.class, cc.getBoundingBox().inflate(64), u -> u.kind.worker()))
+				other.discard();
 			StarUnit scv = TestArena.member(helper, base, UnitKind.SCV, 16, 24);
 			helper.succeedWhen(() -> {
 				helper.assertTrue(scv.cargoBlocks > 0 || base.collected.getOrDefault("minerals", 0) > 0, "nothing gathered yet: " + scv.goalsRunning());
-				helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(14, 2, 24))).is(Blocks.IRON_ORE), "the SCV took the iron first");
+				helper.assertTrue(helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(14, 2, 24))).is(Blocks.IRON_ORE), "the SCV took the iron first: carries " + scv.cargoLabel + " x" + scv.cargoBlocks + ", " + scv.goalsRunning()
+					+ ", cores " + dev.starmine.mineral.Minerals.coresNear(helper.getLevel(), cc.blockPosition(), 100));
 				helper.assertTrue("minerals".equals(scv.cargoLabel) || base.collected.getOrDefault("minerals", 0) > 0, "the SCV carries " + scv.cargoLabel);
 			});
 		});
@@ -196,19 +200,19 @@ public class PlatformGameTests implements FabricGameTest {
 		scv.setNoAi(true);
 		dev.starmine.ability.Ability charge = dev.starmine.ability.Ability.CHARGE, repair = dev.starmine.ability.Ability.REPAIR;
 		helper.assertTrue(zealot.abilities.autocasts(charge), "a zealot's charge is not on by itself");
-		helper.assertFalse(scv.abilities.autocasts(repair), "an SCV repairs by itself from the start");
+		helper.assertTrue(scv.abilities.autocasts(repair), "an idle SCV does not repair by itself from the start"); // the default since 22.10
 		helper.assertTrue(scv.abilities.autoGather, "a worker does not seek resources by itself from the start");
 		Commands.autocast(java.util.List.of(zealot, scv), "charge");
 		Commands.autocast(java.util.List.of(zealot, scv), "repair");
 		Commands.autocast(java.util.List.of(zealot, scv), "gather");
 		helper.assertFalse(zealot.abilities.autocasts(charge), "the charge stayed on");
-		helper.assertTrue(scv.abilities.autocasts(repair) && scv.autocasts("repair"), "repair did not turn on");
+		helper.assertFalse(scv.abilities.autocasts(repair) || scv.autocasts("repair"), "repair did not turn off");
 		helper.assertFalse(scv.abilities.autoGather || scv.autocasts("gather"), "gathering by itself did not turn off");
 		var tag = new net.minecraft.nbt.CompoundTag();
 		scv.abilities.save(tag);
 		var loaded = new dev.starmine.ability.AbilityState();
 		loaded.load(tag);
-		helper.assertTrue(loaded.autocasts(repair) && !loaded.autoGather, "the autocasts were not saved");
+		helper.assertTrue(!loaded.autocasts(repair) && !loaded.autoGather, "the autocasts were not saved");
 		helper.succeed();
 	}
 

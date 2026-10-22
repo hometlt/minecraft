@@ -62,11 +62,21 @@ public class MechanicsGameTests implements FabricGameTest {
 		});
 	}
 
+	/** A unit of a base of `owner` that has researched burrow (a player's units burrow only after the research). */
+	private static StarUnit burrower(GameTestHelper helper, UnitKind kind, double x, double z, UUID owner) {
+		ServerLevel level = helper.getLevel();
+		var base = new dev.starmine.hive.Hive(UUID.randomUUID(), level.dimension().location().toString(), helper.absolutePos(new BlockPos(40, 2, 40)));
+		base.owner = owner;
+		dev.starmine.hive.HiveSavedData.get(level.getServer()).add(base);
+		dev.starmine.race.Research.BURROW.apply(base);
+		return TestArena.member(helper, base, kind, x, z);
+	}
+
 	@GameTest(template = ARENA, batch = "mechBurrow", timeoutTicks = 200)
 	public void burrowedUnitIsHiddenUntilAnOverseerComes(GameTestHelper helper) {
 		clear(helper);
 		UUID zerg = UUID.randomUUID(), other = UUID.randomUUID();
-		StarUnit zergling = unit(helper, UnitKind.ZERGLING, 10, 24, zerg);
+		StarUnit zergling = burrower(helper, UnitKind.ZERGLING, 10, 24, zerg); // burrow is researched (owner 22.10)
 		StarUnit marine = unit(helper, UnitKind.MARINE, 20, 24, other);
 		marine.setNoAi(true);
 		ServerLevel level = helper.getLevel();
@@ -445,7 +455,7 @@ public class MechanicsGameTests implements FabricGameTest {
 		Vec3 start = point(helper, 5, 5);
 		player.teleportTo(start.x, start.y, start.z);
 		StarUnit marine = unit(helper, UnitKind.MARINE, 10, 24, player.getUUID());
-		StarUnit roach = unit(helper, UnitKind.ROACH, 10, 30, player.getUUID());
+		StarUnit roach = burrower(helper, UnitKind.ROACH, 10, 30, player.getUUID());
 		StarUnit stalker = unit(helper, UnitKind.STALKER, 10, 36, player.getUUID());
 		helper.runAfterDelay(2, () -> {
 			try {

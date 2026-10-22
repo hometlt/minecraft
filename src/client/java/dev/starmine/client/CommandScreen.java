@@ -126,9 +126,10 @@ public final class CommandScreen extends Screen {
 		Minecraft mc = Minecraft.getInstance();
 		double mx = mc.mouseHandler.xpos() * width / mc.getWindow().getScreenWidth();
 		double my = mc.mouseHandler.ypos() * height / mc.getWindow().getScreenHeight();
-		// the screen edges pan only while the window has the cursor: an inactive window reports it at a corner, and the
-		// view drifted off the map on its own
-		int edge = mc.isWindowActive() ? 3 : -1;
+		// the screen edges pan only while the cursor is over the active window: otherwise it is reported at a corner, and
+		// the view drifted off the map on its own
+		boolean hovered = org.lwjgl.glfw.GLFW.glfwGetWindowAttrib(mc.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_HOVERED) != 0;
+		int edge = mc.isWindowActive() && hovered ? 3 : -1;
 		CommandView.panX = (right || mx >= width - edge ? 1 : 0) - (left || mx <= edge ? 1 : 0);
 		CommandView.panZ = (up || my <= edge ? 1 : 0) - (down || my >= height - edge ? 1 : 0);
 		CommandView.turn = 0;

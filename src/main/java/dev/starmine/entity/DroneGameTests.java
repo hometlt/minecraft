@@ -274,6 +274,9 @@ public class DroneGameTests implements FabricGameTest {
 			helper.assertBlockPresent(Blocks.STONE, new BlockPos(21, 3, 24)); // no way dug in
 			fill(helper, 21, 3, 21, 27, 5, 27, Blocks.AIR); // the ore laid open
 			helper.setBlock(ore, Blocks.IRON_ORE);
+			// a worker sees other valuables only within DroneWork.ORE_RADIUS: bring it in sight instead of waiting on its walks
+			var sight = helper.absoluteVec(new net.minecraft.world.phys.Vec3(18.5, 2, 24.5));
+			drone.teleportTo(sight.x, sight.y, sight.z);
 			helper.succeedWhen(() -> helper.assertBlockNotPresent(Blocks.IRON_ORE, ore));
 		});
 	}

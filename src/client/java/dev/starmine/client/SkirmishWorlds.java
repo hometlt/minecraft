@@ -32,20 +32,22 @@ final class SkirmishWorlds {
 			.registryOrThrow(net.minecraft.core.registries.Registries.WORLD_PRESET)
 			.getHolderOrThrow(net.minecraft.world.level.levelgen.presets.WorldPresets.NORMAL).value().createWorldDimensions(), new TitleScreen());
 	}
-	static void open(Minecraft mc, UnitKind.Race own, UnitKind.Race enemy) {
-		try (var input = SkirmishWorlds.class.getResourceAsStream("/assets/starmine/skirmish/amphion.zip")) {
-			if (input == null) throw new IllegalStateException("Missing Amphion template");
+	/** Opens a fresh copy of the map template `mapId` ({@link SkirmishMap#templates}) for a skirmish of these races. */
+	static void open(Minecraft mc, String mapId, UnitKind.Race own, UnitKind.Race enemy) {
+		try (var input = SkirmishMap.world(mapId)) {
+			if (input == null) throw new IllegalStateException("Missing map template " + mapId);
 			byte[] bytes = input.readAllBytes();
 			String sha = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-			if (!sha.equals("38ff928af4b04c16552eb9089b2aa312b864354a9a889b71ce2ae4445abe2a9a")) throw new IllegalStateException("Amphion template checksum mismatch");
-			String name = "StarMine-Amphion-" + System.currentTimeMillis();
+			if (!sha.equals(SkirmishMap.manifest(mapId).get("zipSha256").getAsString())) throw new IllegalStateException("Map template checksum mismatch: " + mapId);
+			String name = "StarMine-" + mapId + "-" + System.currentTimeMillis();
 			Path destination = mc.getLevelSource().getBaseDir().resolve(name).toAbsolutePath().normalize();
 			Files.createDirectory(destination);
 			long total = 0;
 			try (var zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+				String prefix = null; // the archive's one root folder (the world as the converter named it)
 				for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
-					String prefix = "amphion-starmine-water-resources-3x5/";
-					if (!entry.getName().startsWith(prefix)) throw new IllegalStateException("Invalid map archive root");
+					if (prefix == null) prefix = entry.getName().substring(0, entry.getName().indexOf('/') + 1);
+					if (prefix.isEmpty() || !entry.getName().startsWith(prefix)) throw new IllegalStateException("Invalid map archive root");
 					Path path = destination.resolve(entry.getName().substring(prefix.length())).normalize();
 					if (!path.startsWith(destination)) throw new IllegalStateException("Invalid map archive path");
 					if (entry.isDirectory()) { Files.createDirectories(path); continue; }
@@ -59,7 +61,7 @@ final class SkirmishWorlds {
 					}
 				}
 			}
-			JsonObject config = new JsonObject(); config.addProperty("mapId", "amphion");
+			JsonObject config = new JsonObject(); config.addProperty("mapId", mapId);
 			config.addProperty("playerRace", own.name()); config.addProperty("aiRace", enemy.name());
 			Files.writeString(destination.resolve(SkirmishMap.CONFIG), config.toString());
 			mc.createWorldOpenFlows().openWorld(name, () -> mc.setScreen(new TitleScreen()));

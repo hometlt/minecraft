@@ -219,7 +219,11 @@ public final class Dungeons {
 	 */
 	public static List<Spawn> ancientTemples(Painter painter, BlockPos requested) {
 		BlockPos centre = buriedFloor(painter, requested, 41, 12);
-		if (centre == null) return List.of();
+		return centre == null ? List.of() : templesAt(painter, centre);
+	}
+
+	/** The temples built round `centre` itself (its depth already chosen: {@link #ancientTemples} buries them). */
+	static List<Spawn> templesAt(Painter painter, BlockPos centre) {
 		RandomSource random = painter.random;
 		BlockState sandstone = Blocks.CUT_SANDSTONE.defaultBlockState(), smooth = Blocks.SMOOTH_SANDSTONE.defaultBlockState(),
 			glyph = Blocks.CHISELED_SANDSTONE.defaultBlockState(), prism = Blocks.PRISMARINE_BRICKS.defaultBlockState(),

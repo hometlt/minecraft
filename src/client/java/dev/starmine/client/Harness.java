@@ -79,7 +79,7 @@ public final class Harness {
 		if (mc.level == null || mc.player == null || mc.getSingleplayerServer() == null) {
 			if (!worldAsked && (mc.screen instanceof TitleScreen || mc.screen instanceof net.minecraft.client.gui.screens.AccessibilityOnboardingScreen)) {
 				worldAsked = true;
-				if (SCENARIOS.contains("amphionmode")) SkirmishWorlds.open(mc, UnitKind.Race.TERRAN, UnitKind.Race.ZERG);
+				if (SCENARIOS.contains("amphionmode")) SkirmishWorlds.open(mc, "amphion", UnitKind.Race.TERRAN, UnitKind.Race.ZERG);
 				else createWorld(mc);
 			}
 			return;

@@ -145,6 +145,11 @@ public class StructureGameTests implements FabricGameTest {
 
 	/** Whether `to` can be walked to from `from` on one level (feet cells empty, two high) within `limit` cells. */
 	private static boolean walkable(ServerLevel level, BlockPos from, BlockPos to, int limit) {
+		return walkable(level, from, to, limit, null);
+	}
+
+	/** As {@link #walkable}, keeping inside `within` (the stair's mouth opens onto the open arena since 22.10). */
+	private static boolean walkable(ServerLevel level, BlockPos from, BlockPos to, int limit, @org.jetbrains.annotations.Nullable net.minecraft.world.level.levelgen.structure.BoundingBox within) {
 		Set<BlockPos> seen = new HashSet<>();
 		ArrayDeque<BlockPos> queue = new ArrayDeque<>(List.of(from));
 		seen.add(from);
@@ -153,7 +158,7 @@ public class StructureGameTests implements FabricGameTest {
 			if (pos.equals(to)) return true;
 			for (Direction direction : Direction.Plane.HORIZONTAL) {
 				BlockPos next = pos.relative(direction);
-				if (seen.contains(next) || !level.getBlockState(next).isAir() || !level.getBlockState(next.above()).isAir()) continue;
+				if (seen.contains(next) || within != null && !within.isInside(next) || !level.getBlockState(next).isAir() || !level.getBlockState(next.above()).isAir()) continue;
 				seen.add(next);
 				queue.add(next);
 			}
@@ -172,7 +177,10 @@ public class StructureGameTests implements FabricGameTest {
 		BlockPos door = corner.offset(0, 1, mid * Dungeons.PITCH + 2);
 		BlockPos core = corner.offset(mid * Dungeons.PITCH + 2, 1, mid * Dungeons.PITCH + 2);
 		helper.assertTrue(level.getBlockState(core.above(3)).is(Blocks.END_ROD), "no reactor core");
-		helper.assertTrue(walkable(level, door, core.offset(2, 0, 0), 4000), "the core cannot be reached from the door");
+		int size = Dungeons.MAZE_CELLS * Dungeons.PITCH + 1;
+		var maze = new net.minecraft.world.level.levelgen.structure.BoundingBox(corner.getX(), corner.getY(), corner.getZ(),
+			corner.getX() + size - 1, corner.getY() + 5, corner.getZ() + size - 1);
+		helper.assertTrue(walkable(level, door, core.offset(2, 0, 0), 40000, maze), "the core cannot be reached from the door");
 		helper.assertTrue(guards.size() >= 11 && guards.stream().allMatch(g -> g.hall() != null), "guards " + guards.size());
 		helper.succeed();
 	}
@@ -183,7 +191,7 @@ public class StructureGameTests implements FabricGameTest {
 		Painter painter = new Painter(level, RandomSource.create(9));
 		BlockPos centre = far(helper, 200);
 		painter.load(centre, 80);
-		List<Spawn> guards = Dungeons.ancientTemples(painter, centre);
+		List<Spawn> guards = Dungeons.templesAt(painter, centre); // the layout; burying them is DungeonTerrainGameTests'
 		helper.assertTrue(level.getBlockState(centre.above(2)).is(Blocks.AMETHYST_BLOCK), "no altar crystal");
 		helper.assertTrue(walkable(level, centre.offset(0, 0, -41), centre.offset(0, 0, 6), 6000), "the altar cannot be reached from the stair");
 		helper.assertTrue(walkable(level, centre.offset(34, 0, 3), centre.offset(0, 0, 6), 6000), "the east shrine is cut off");
